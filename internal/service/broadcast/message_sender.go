@@ -1,0 +1,776 @@
+package broadcast
+
+import (
+	"context"
+	crand "crypto/rand"
+	"fmt"
+	"math/big"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/google/uuid"
+	"golang.org/x/sync/semaphore"
+)
+
+//go:generate mockgen -destination=./mocks/mock_message_sender.go -package=mocks github.com/Notifuse/notifuse/internal/service/broadcast MessageSender
+
+// MessageSender is the interface for sending messages to recipients
+//
+// The senders never see the workspace, so the two values the web analytics
+// identity needs travel with the send: workspaceSecretKey encrypts the token
+// and webAnalytics decides whether there is one to mint at all.
+type MessageSender interface {
+	// SendToRecipient sends a message to a single recipient
+	SendToRecipient(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, endpoint string, trackingEnabled bool, webAnalytics *domain.WebAnalyticsSettings, broadcast *domain.Broadcast, messageID string, email string,
+		template *domain.Template, data map[string]interface{}, emailProvider *domain.EmailProvider, timeoutAt time.Time, contactLanguage string, workspaceDefaultLanguage string) error
+
+	// SendBatch sends messages to a batch of recipients
+	SendBatch(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, endpoint string, websiteURL string, trackingEnabled bool, webAnalytics *domain.WebAnalyticsSettings, broadcastID string, recipients []*domain.ContactWithList,
+		templates map[string]*domain.Template, emailProvider *domain.EmailProvider, timeoutAt time.Time, workspaceDefaultLanguage string) (sent int, failed int, err error)
+}
+
+// mintIdentifyToken builds the web analytics identity of ONE recipient — the
+// encrypted nf_id appended to tracked links, which identifies the visitor on
+// landing without a line of customer code — together with the hosts it may be
+// handed to.
+//
+// It belongs at the one place per send path where the compiled email is about
+// to be produced for a single contact — SendToRecipient for the direct sender,
+// buildQueueEntry for the queue sender — because only the settings handed to
+// the compiler carry the token onto the links. The token names the contact it
+// was minted for, so one minted per batch instead of per recipient would
+// attribute every visit of the campaign to its first recipient.
+//
+// An empty allowlist is not "no opinion": the workspace-level reading of the
+// same list, WebAnalyticsSettings.MatchesAllowedDomain, answers true for every
+// hostname when it is empty, so a workspace that enabled web analytics without
+// declaring a domain must mint nothing here rather than inherit that fail-open.
+// The link rewriter reads the list the opposite way — notifuse_mjml.
+// MatchesAllowedHost treats empty as "no host at all" — but leaving the whole
+// gate to it would still mint a live per-recipient credential, and hold it out
+// of the email's links by that one downstream check alone.
+func mintIdentifyToken(email string, workspaceSecretKey string, webAnalytics *domain.WebAnalyticsSettings) (token string, allowedHosts []string, err error) {
+	// The workspace has to have asked for this. Every other identity path starts
+	// in the customer's own code — identify() takes their secret to sign —
+	// whereas this token is minted by us, for every recipient of every tracked
+	// send, and identifying someone ties their browsing to their contact record:
+	// timeline entries, goals, automation enrolments. Enabling web analytics and
+	// leaving link tracking on is not a decision to do that.
+	if workspaceSecretKey == "" || !webAnalytics.CanIdentifyFromEmailLinks() {
+		return "", nil, nil
+	}
+
+	token, err = domain.BuildWebIdentifyToken(email, workspaceSecretKey, domain.WebIdentifyTokenTTL, time.Now().UTC())
+	if err != nil {
+		return "", nil, err
+	}
+
+	return token, webAnalytics.AllowedDomains, nil
+}
+
+// CircuitBreaker provides circuit breaking functionality
+type CircuitBreaker struct {
+	failures       int
+	threshold      int
+	cooldownPeriod time.Duration
+	lastFailure    time.Time
+	lastError      error
+	isOpen         bool
+	mutex          sync.RWMutex
+}
+
+// NewCircuitBreaker creates a new circuit breaker
+func NewCircuitBreaker(threshold int, cooldownPeriod time.Duration) *CircuitBreaker {
+	return &CircuitBreaker{
+		threshold:      threshold,
+		cooldownPeriod: cooldownPeriod,
+	}
+}
+
+// IsOpen checks if the circuit is open (preventing further calls)
+func (cb *CircuitBreaker) IsOpen() bool {
+	cb.mutex.RLock()
+	defer cb.mutex.RUnlock()
+
+	// If circuit is open, check if cooldown period has passed
+	if cb.isOpen {
+		if time.Since(cb.lastFailure) > cb.cooldownPeriod {
+			// Reset circuit after cooldown
+			cb.mutex.RUnlock()
+			cb.mutex.Lock()
+			cb.isOpen = false
+			cb.failures = 0
+			cb.lastError = nil
+			cb.mutex.Unlock()
+			cb.mutex.RLock()
+		}
+	}
+
+	return cb.isOpen
+}
+
+// RecordSuccess records a successful call
+func (cb *CircuitBreaker) RecordSuccess() {
+	cb.mutex.Lock()
+	defer cb.mutex.Unlock()
+
+	cb.failures = 0
+	cb.lastError = nil
+	cb.isOpen = false
+}
+
+// RecordFailure records a failed call and opens circuit if threshold is reached
+func (cb *CircuitBreaker) RecordFailure(err error) {
+	cb.mutex.Lock()
+	defer cb.mutex.Unlock()
+
+	cb.failures++
+	cb.lastFailure = time.Now()
+	cb.lastError = err
+
+	if cb.failures >= cb.threshold {
+		cb.isOpen = true
+	}
+}
+
+// GetLastError returns the last error that caused a failure
+func (cb *CircuitBreaker) GetLastError() error {
+	cb.mutex.RLock()
+	defer cb.mutex.RUnlock()
+	return cb.lastError
+}
+
+// messageSender implements the MessageSender interface
+type messageSender struct {
+	broadcastRepo      domain.BroadcastRepository
+	messageHistoryRepo domain.MessageHistoryRepository
+	templateRepo       domain.TemplateRepository
+	emailService       domain.EmailServiceInterface
+	dataFeedFetcher    DataFeedFetcher
+	logger             logger.Logger
+	config             *Config
+	circuitBreaker     *CircuitBreaker
+	rateLimiter        *semaphore.Weighted
+	lastSendTime       time.Time
+	sendMutex          sync.Mutex
+	apiEndpoint        string
+}
+
+// NewMessageSender creates a new message sender
+func NewMessageSender(broadcastRepo domain.BroadcastRepository, messageHistoryRepo domain.MessageHistoryRepository, templateRepo domain.TemplateRepository,
+	emailService domain.EmailServiceInterface, dataFeedFetcher DataFeedFetcher, logger logger.Logger, config *Config, apiEndpoint string) MessageSender {
+	if config == nil {
+		config = DefaultConfig()
+	}
+
+	var cb *CircuitBreaker
+	if config.EnableCircuitBreaker {
+		cb = NewCircuitBreaker(config.CircuitBreakerThreshold, config.CircuitBreakerCooldown)
+	}
+
+	// Calculate permits per second based on rate limit (per minute)
+	permitsPerSecond := int64(config.DefaultRateLimit) / 60
+	if permitsPerSecond < 1 {
+		permitsPerSecond = 1
+	}
+
+	return &messageSender{
+		broadcastRepo:      broadcastRepo,
+		messageHistoryRepo: messageHistoryRepo,
+		templateRepo:       templateRepo,
+		emailService:       emailService,
+		dataFeedFetcher:    dataFeedFetcher,
+		logger:             logger,
+		config:             config,
+		circuitBreaker:     cb,
+		rateLimiter:        semaphore.NewWeighted(permitsPerSecond),
+		lastSendTime:       time.Now(),
+		apiEndpoint:        apiEndpoint,
+	}
+}
+
+// enforceRateLimit applies rate limiting to message sending
+func (s *messageSender) enforceRateLimit(ctx context.Context, integrationRateLimit int) error {
+	// Use integration rate limit (required field, should always be > 0)
+	effectiveRateLimit := integrationRateLimit
+	if effectiveRateLimit <= 0 {
+		// Fallback to config default if somehow not set (shouldn't happen due to validation)
+		effectiveRateLimit = s.config.DefaultRateLimit
+	}
+
+	// If rate limiting is disabled, return immediately
+	if effectiveRateLimit <= 0 {
+		return nil
+	}
+
+	// Calculate permits per second based on rate limit (per minute)
+	permitsPerSecond := float64(effectiveRateLimit) / 60.0
+
+	// Calculate the ideal time between messages
+	// Convert to nanoseconds first to avoid truncation for rates < 60/min
+	timeBetweenMessages := time.Duration(float64(time.Second) / permitsPerSecond)
+
+	s.sendMutex.Lock()
+	defer s.sendMutex.Unlock()
+
+	// Calculate how long to wait
+	elapsed := time.Since(s.lastSendTime)
+	if elapsed < timeBetweenMessages {
+		sleepTime := timeBetweenMessages - elapsed
+
+		// Create a timer for the sleep duration
+		timer := time.NewTimer(sleepTime)
+		defer timer.Stop()
+
+		// Wait for either the timer to expire or the context to be canceled
+		select {
+		case <-timer.C:
+			// Timer expired, continue
+		case <-ctx.Done():
+			// Context canceled
+			return ctx.Err()
+		}
+	}
+
+	// Update last send time
+	s.lastSendTime = time.Now()
+	return nil
+}
+
+// SendToRecipient sends a message to a single recipient
+func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, endpoint string, trackingEnabled bool, webAnalytics *domain.WebAnalyticsSettings, broadcast *domain.Broadcast, messageID string, email string,
+	template *domain.Template, data map[string]interface{}, emailProvider *domain.EmailProvider, timeoutAt time.Time, contactLanguage string, workspaceDefaultLanguage string) error {
+
+	// Ensure UTM parameters object is present to avoid nil dereference
+	if broadcast.UTMParameters == nil {
+		empty := &domain.UTMParameters{}
+		broadcast.UTMParameters = empty
+	}
+
+	// Check circuit breaker
+	if s.circuitBreaker != nil && s.circuitBreaker.IsOpen() {
+		lastError := s.circuitBreaker.GetLastError()
+		logFields := map[string]interface{}{
+			"broadcast_id": broadcast.ID,
+			"workspace_id": workspaceID,
+			"recipient":    email,
+		}
+		if lastError != nil {
+			logFields["last_error"] = lastError.Error()
+		}
+		s.logger.WithFields(logFields).Warn("Circuit breaker open, skipping send")
+		return NewBroadcastError(ErrCodeCircuitOpen, "circuit breaker is open", true, lastError)
+	}
+
+	// Apply rate limiting
+	if err := s.enforceRateLimit(ctx, emailProvider.RateLimitPerMinute); err != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id":           broadcast.ID,
+			"workspace_id":           workspaceID,
+			"recipient":              email,
+			"integration_rate_limit": emailProvider.RateLimitPerMinute,
+			"error":                  err.Error(),
+		}).Warn("Rate limiting interrupted by context cancellation")
+		return NewBroadcastError(ErrCodeRateLimitExceeded, "rate limiting interrupted", true, err)
+	}
+
+	// Default utm_content on a per-recipient copy: the broadcast is shared across
+	// recipients and A/B variants differ per recipient, so the shared UTM
+	// parameters must never be mutated.
+	utmParams := *broadcast.UTMParameters
+	if utmParams.Content == "" {
+		utmParams.Content = template.ID
+	}
+
+	// Identity of this recipient, for the links this email carries. Analytics
+	// identification is a nicety: a mint failure is logged and the email goes
+	// out without it, never at the cost of the send.
+	identifyToken, identifyAllowedHosts, identifyErr := mintIdentifyToken(email, workspaceSecretKey, webAnalytics)
+	if identifyErr != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcast.ID,
+			"workspace_id": workspaceID,
+			"recipient":    email,
+			"error":        identifyErr.Error(),
+		}).Warn("Failed to mint web analytics identity token, sending without it")
+	}
+
+	trackingSettings := notifuse_mjml.TrackingSettings{
+		Endpoint:             endpoint,
+		EnableTracking:       trackingEnabled,
+		UTMSource:            utmParams.Source,
+		UTMMedium:            utmParams.Medium,
+		UTMCampaign:          utmParams.Campaign,
+		UTMContent:           utmParams.Content,
+		UTMTerm:              utmParams.Term,
+		WorkspaceID:          workspaceID,
+		MessageID:            messageID,
+		IdentifyToken:        identifyToken,
+		IdentifyAllowedHosts: identifyAllowedHosts,
+	}
+
+	// Resolve language variant
+	emailContent := template.ResolveEmailContent(contactLanguage, workspaceDefaultLanguage)
+	if emailContent == nil {
+		return NewBroadcastError(ErrCodeTemplateCompile, "email content not available after language resolution", true, nil)
+	}
+
+	// Compile template with the provided data
+	compileReq := notifuse_mjml.CompileTemplateRequest{
+		WorkspaceID:      workspaceID,
+		MessageID:        messageID,
+		TemplateData:     data,
+		TrackingSettings: trackingSettings,
+	}
+	// Wires the resolved variant's tree/source + its inbox-preview override.
+	emailContent.ApplyToCompileRequest(&compileReq, nil)
+	compiledTemplate, err := notifuse_mjml.CompileTemplate(compileReq)
+
+	if err != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcast.ID,
+			"workspace_id": workspaceID,
+			"recipient":    email,
+			"template_id":  template.ID,
+			"error":        err.Error(),
+		}).Error("Failed to compile template")
+		return NewBroadcastError(ErrCodeTemplateCompile, "failed to compile template", true, err)
+	}
+
+	if !compiledTemplate.Success || compiledTemplate.HTML == nil {
+		errMsg := "Template compilation failed"
+		if compiledTemplate.Error != nil {
+			errMsg = compiledTemplate.Error.Message
+		}
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcast.ID,
+			"workspace_id": workspaceID,
+			"recipient":    email,
+			"template_id":  template.ID,
+			"error":        errMsg,
+		}).Error("Failed to generate HTML from template")
+		return NewBroadcastError(ErrCodeTemplateCompile, errMsg, true, nil)
+	}
+
+	emailSender := emailProvider.GetSender(emailContent.SenderID)
+
+	if emailSender == nil {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcast.ID,
+			"workspace_id": workspaceID,
+			"sender_id":    emailContent.SenderID,
+			"recipient":    email,
+		}).Error("Sender not found")
+		return NewBroadcastError(ErrCodeSenderNotFound, "sender not found", true, nil)
+	}
+
+	// Process subject line through Liquid templating if it contains Liquid tags
+	processedSubject, err := notifuse_mjml.ProcessLiquidTemplate(
+		emailContent.Subject,
+		data,
+		"email_subject",
+	)
+	if err != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcast.ID,
+			"workspace_id": workspaceID,
+			"recipient":    email,
+			"subject":      emailContent.Subject,
+			"error":        err.Error(),
+		}).Error("Failed to process subject line with Liquid templating")
+		return NewBroadcastError(ErrCodeTemplateCompile, "failed to process subject with Liquid", true, err)
+	}
+
+	// Create SendEmailProviderRequest
+	emailRequest := domain.SendEmailProviderRequest{
+		WorkspaceID:   workspaceID,
+		IntegrationID: integrationID,
+		MessageID:     messageID,
+		FromAddress:   emailSender.Email,
+		FromName:      emailSender.Name,
+		To:            email,
+		Subject:       processedSubject,
+		Content:       *compiledTemplate.HTML,
+		Provider:      emailProvider,
+		EmailOptions: domain.EmailOptions{
+			ReplyTo: emailContent.ReplyTo,
+		},
+	}
+
+	// Extract List-Unsubscribe URL from template data for RFC-8058 compliance (broadcast emails only)
+	if unsubscribeURL, ok := data["oneclick_unsubscribe_url"].(string); ok && unsubscribeURL != "" {
+		emailRequest.EmailOptions.ListUnsubscribeURL = unsubscribeURL
+	}
+
+	// Now send email directly using compiled HTML rather than passing template to broadcastRepo
+	// Note: Context is checked by SendEmail; in rare cancellation cases we may complete
+	// template compilation (~50-100ms) before detecting cancellation. This is acceptable
+	// as cancellations are infrequent and the work minimal.
+	err = s.emailService.SendEmail(ctx, emailRequest, true)
+
+	if err != nil {
+		// Record failure in circuit breaker
+		if s.circuitBreaker != nil {
+			s.circuitBreaker.RecordFailure(err)
+		}
+
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcast.ID,
+			"workspace_id": workspaceID,
+			"recipient":    email,
+			"error":        err.Error(),
+		}).Error("Failed to send message")
+		return NewBroadcastError(ErrCodeSendFailed, "failed to send message", true, err)
+	}
+
+	// Record success in circuit breaker
+	if s.circuitBreaker != nil {
+		s.circuitBreaker.RecordSuccess()
+	}
+
+	s.logger.WithFields(map[string]interface{}{
+		"broadcast_id": broadcast.ID,
+		"workspace_id": workspaceID,
+		"recipient":    email,
+	}).Debug("Message sent successfully")
+
+	return nil
+}
+
+// SendBatch sends messages to a batch of recipients
+func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, endpoint string, websiteURL string, trackingEnabled bool, webAnalytics *domain.WebAnalyticsSettings, broadcastID string, recipients []*domain.ContactWithList,
+	templates map[string]*domain.Template, emailProvider *domain.EmailProvider, timeoutAt time.Time, workspaceDefaultLanguage string) (sent int, failed int, err error) {
+
+	// Track specific error types for better reporting
+	errorCounts := map[string]int{
+		"template_not_found":    0,
+		"template_data_failed":  0,
+		"send_failed":           0,
+		"empty_email":           0,
+		"context_cancelled":     0,
+		"recipient_feed_failed": 0,
+		"recipient_skipped":     0,
+	}
+	var firstError error
+
+	defer func() {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"workspace_id": workspaceID,
+			"total":        len(recipients),
+			"sent":         sent,
+			"failed":       failed,
+		}).Info("Batch send completed")
+	}()
+
+	// Check if we have any recipients
+	if len(recipients) == 0 {
+		return 0, 0, nil
+	}
+
+	// Check circuit breaker
+	if s.circuitBreaker != nil && s.circuitBreaker.IsOpen() {
+		lastError := s.circuitBreaker.GetLastError()
+		logFields := map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"workspace_id": workspaceID,
+			"recipients":   len(recipients),
+		}
+		if lastError != nil {
+			logFields["last_error"] = lastError.Error()
+		}
+		s.logger.WithFields(logFields).Warn("Circuit breaker open, skipping batch")
+		return 0, 0, NewBroadcastError(ErrCodeCircuitOpen, "circuit breaker is open", true, lastError)
+	}
+
+	// Get the broadcast to determine variations and templates
+	broadcast, err := s.broadcastRepo.GetBroadcast(ctx, workspaceID, broadcastID)
+	if err != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"workspace_id": workspaceID,
+			"error":        err.Error(),
+		}).Error("Failed to get broadcast for sending")
+		return 0, 0, NewBroadcastError(ErrCodeBroadcastNotFound, "broadcast not found", false, err)
+	}
+	if broadcast == nil {
+		// Defensive: repository returned nil without error
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"workspace_id": workspaceID,
+		}).Error("Nil broadcast returned from repository")
+		return 0, 0, NewBroadcastError(ErrCodeBroadcastNotFound, "broadcast not found", false, fmt.Errorf("nil broadcast"))
+	}
+
+	// Ensure UTM parameters is non-nil for downstream usage
+	if broadcast.UTMParameters == nil {
+		broadcast.UTMParameters = &domain.UTMParameters{}
+	}
+
+	// Log rate limiting configuration for this broadcast
+	integrationRateLimit := emailProvider.RateLimitPerMinute
+	if integrationRateLimit <= 0 {
+		integrationRateLimit = s.config.DefaultRateLimit
+	}
+
+	s.logger.WithFields(map[string]interface{}{
+		"broadcast_id":           broadcastID,
+		"workspace_id":           workspaceID,
+		"integration_rate_limit": integrationRateLimit,
+		"recipients":             len(recipients),
+	}).Info("Starting batch send with rate limiting")
+
+	// Send to each recipient
+	for _, contactWithList := range recipients {
+		// Extract the contact from the ContactWithList
+		contact := contactWithList.Contact
+
+		// Skip empty emails (shouldn't happen, but just in case)
+		if contact == nil || contact.Email == "" {
+			failed++
+			errorCounts["empty_email"]++
+			if firstError == nil {
+				firstError = fmt.Errorf("contact has empty email")
+			}
+			continue
+		}
+
+		// Check time-based timeout instead of context cancellation
+		if time.Now().After(timeoutAt) {
+			// Note: This is NOT an error - just time limit reached
+			s.logger.WithField("broadcast_id", broadcastID).Info("Time limit reached in batch processing")
+			return sent, failed, nil // Return current progress, no error
+		}
+
+		// Determine which variation to use for this contact
+		var templateID string
+		if broadcast.WinningTemplate != nil {
+			// Winner selected: use it directly
+			templateID = *broadcast.WinningTemplate
+		} else if broadcast.TestSettings.Enabled {
+			// Test phase (no winner yet): pick a random variation per recipient
+			if len(broadcast.TestSettings.Variations) > 0 {
+				var idx int
+				if r, err := crand.Int(crand.Reader, big.NewInt(int64(len(broadcast.TestSettings.Variations)))); err == nil {
+					idx = int(r.Int64())
+				} else {
+					// Fallback: deterministic mapping if randomness fails
+					idx = int(contact.Email[0]) % len(broadcast.TestSettings.Variations)
+				}
+				templateID = broadcast.TestSettings.Variations[idx].TemplateID
+			}
+		} else if len(broadcast.TestSettings.Variations) > 0 {
+			// Not A/B testing: use the first variation
+			templateID = broadcast.TestSettings.Variations[0].TemplateID
+		}
+
+		// Skip if no template ID was found or template is missing
+		if templateID == "" || templates[templateID] == nil {
+			s.logger.WithFields(map[string]interface{}{
+				"broadcast_id": broadcastID,
+				"workspace_id": workspaceID,
+				"recipient":    contact.Email,
+			}).Error("No template found for recipient")
+			failed++
+			errorCounts["template_not_found"]++
+			if firstError == nil {
+				firstError = fmt.Errorf("template not found for template_id: %s", templateID)
+			}
+			continue
+		}
+
+		// Generate a unique message ID for tracking
+		messageID := generateMessageID(workspaceID)
+
+		// Default utm_content on a per-recipient copy before building the tracking
+		// settings, so this recipient's template data carries their own variant and
+		// the shared broadcast is never mutated across recipients.
+		utmParams := *broadcast.UTMParameters
+		if utmParams.Content == "" {
+			utmParams.Content = templateID
+		}
+
+		// Deliberately no identity token on these settings: they are handed to
+		// BuildTemplateData alone, which reads the endpoint and the UTM fields and
+		// never looks at IdentifyToken. The settings the link rewriter actually
+		// sees are built inside SendToRecipient below, which mints this
+		// recipient's own token there. Minting a second one here would encrypt a
+		// live per-recipient credential once more per contact in the send loop and
+		// park it in a struct nothing reads.
+		trackingSettings := notifuse_mjml.TrackingSettings{
+			Endpoint:       endpoint,
+			EnableTracking: trackingEnabled,
+			UTMSource:      utmParams.Source,
+			UTMMedium:      utmParams.Medium,
+			UTMCampaign:    utmParams.Campaign,
+			UTMContent:     utmParams.Content,
+			UTMTerm:        utmParams.Term,
+			WorkspaceID:    workspaceID,
+			MessageID:      messageID,
+		}
+
+		// Build the template data with all options
+		req := domain.TemplateDataRequest{
+			WorkspaceID:         workspaceID,
+			WorkspaceSecretKey:  workspaceSecretKey,
+			WorkspaceWebsiteURL: websiteURL,
+			ContactWithList:     *contactWithList,
+			MessageID:           messageID,
+			TrackingSettings:    trackingSettings,
+			Broadcast:           broadcast,
+		}
+		recipientData, err := domain.BuildTemplateData(req)
+		if err != nil {
+			s.logger.WithFields(map[string]interface{}{
+				"broadcast_id": broadcastID,
+				"workspace_id": workspaceID,
+				"recipient":    contact.Email,
+				"error":        err.Error(),
+			}).Error("Failed to build template data")
+			failed++
+			errorCounts["template_data_failed"]++
+			if firstError == nil {
+				firstError = fmt.Errorf("template data build failed: %w", err)
+			}
+			continue
+		}
+
+		// Note: global_feed data is now injected by BuildTemplateData (domain/template.go)
+
+		// Fetch recipient feed if configured and enabled
+		if broadcast.DataFeed != nil && broadcast.DataFeed.RecipientFeed != nil && broadcast.DataFeed.RecipientFeed.Enabled && s.dataFeedFetcher != nil {
+			// Build the recipient feed payload
+			payload := &domain.RecipientFeedRequestPayload{
+				Contact: domain.BuildRecipientFeedContact(contact),
+				List: domain.RecipientFeedList{
+					ID:   contactWithList.ListID,
+					Name: contactWithList.ListName,
+				},
+				Broadcast: domain.RecipientFeedBroadcast{
+					ID:   broadcast.ID,
+					Name: broadcast.Name,
+				},
+				Workspace: domain.RecipientFeedWorkspace{
+					ID: workspaceID,
+				},
+			}
+
+			feedData, feedErr := s.dataFeedFetcher.FetchRecipient(ctx, broadcast.DataFeed.RecipientFeed, payload)
+			if feedErr != nil {
+				// Feed failed after retries - pause broadcast immediately
+				// If feed data is configured, it's mandatory - no skipping, no sending without data
+				s.logger.WithFields(map[string]interface{}{
+					"broadcast_id": broadcastID,
+					"workspace_id": workspaceID,
+					"recipient":    contact.Email,
+					"error":        feedErr.Error(),
+				}).Error("Recipient feed fetch failed, pausing broadcast")
+
+				return sent, failed, fmt.Errorf("%w: recipient feed failed for %s: %v",
+					ErrBroadcastShouldPause, contact.Email, feedErr)
+			}
+
+			// Success - add feed data to template context
+			recipientData["recipient_feed"] = feedData
+		}
+
+		// Extract contact language for variant resolution
+		contactLanguage := ""
+		if contact.Language != nil && !contact.Language.IsNull {
+			contactLanguage = contact.Language.String
+		}
+
+		// Send to the recipient
+		err = s.SendToRecipient(ctx, workspaceID, integrationID, workspaceSecretKey, endpoint, trackingEnabled, webAnalytics, broadcast, messageID, contact.Email, templates[templateID], recipientData, emailProvider, timeoutAt, contactLanguage, workspaceDefaultLanguage)
+		if err != nil {
+			// SendToRecipient already logs errors
+			failed++
+			errorCounts["send_failed"]++
+			if firstError == nil {
+				firstError = fmt.Errorf("send failed: %w", err)
+			}
+		} else {
+			sent++
+		}
+
+		now := time.Now().UTC()
+		listID := broadcast.Audience.List
+		message := &domain.MessageHistory{
+			ID:              messageID,
+			ContactEmail:    contact.Email,
+			BroadcastID:     &broadcastID,
+			ListID:          &listID,
+			TemplateID:      templateID,
+			TemplateVersion: templates[templateID].Version,
+			Channel:         "email",
+			MessageData: domain.MessageData{
+				Data: recipientData,
+			},
+			SentAt:    now,
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
+
+		if err != nil {
+			message.FailedAt = &now
+			errStr := fmt.Sprintf("%.255s", err.Error())
+			message.StatusInfo = &errStr
+		}
+
+		// Record the message
+		if err := s.messageHistoryRepo.Create(ctx, workspaceID, workspaceSecretKey, message); err != nil {
+			s.logger.WithFields(map[string]interface{}{
+				"broadcast_id": broadcastID,
+				"workspace_id": workspaceID,
+				"recipient":    contact.Email,
+				"message_id":   messageID,
+				"error":        err.Error(),
+			}).Warn("Failed to record message history, but email was sent")
+			// Don't return an error here since the message was already sent successfully
+		} else {
+			s.logger.WithFields(map[string]interface{}{
+				"broadcast_id": broadcastID,
+				"workspace_id": workspaceID,
+				"recipient":    contact.Email,
+				"message_id":   messageID,
+			}).Debug("Message history recorded successfully")
+		}
+	}
+
+	// Record success/failure in circuit breaker based on overall success rate
+	if s.circuitBreaker != nil {
+		if failed > sent {
+			// Create detailed error message with breakdown
+			var errorDetails []string
+			for errorType, count := range errorCounts {
+				if count > 0 {
+					errorDetails = append(errorDetails, fmt.Sprintf("%s: %d", errorType, count))
+				}
+			}
+
+			var detailedError error
+			if len(errorDetails) > 0 {
+				detailedError = fmt.Errorf("batch send failed (sent: %d, failed: %d) - errors: %s. First error: %v",
+					sent, failed, strings.Join(errorDetails, ", "), firstError)
+			} else {
+				detailedError = fmt.Errorf("batch send failed (sent: %d, failed: %d). First error: %v",
+					sent, failed, firstError)
+			}
+
+			s.circuitBreaker.RecordFailure(detailedError)
+		} else if sent > 0 {
+			s.circuitBreaker.RecordSuccess()
+		}
+	}
+
+	return sent, failed, nil
+}
+
+// generateMessageID creates a unique message ID for tracking
+func generateMessageID(workspaceID string) string {
+	return fmt.Sprintf("%s_%s", workspaceID, uuid.New().String())
+}

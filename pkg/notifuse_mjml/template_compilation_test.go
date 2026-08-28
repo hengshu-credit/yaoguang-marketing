@@ -1,0 +1,3996 @@
+package notifuse_mjml
+
+import (
+	"encoding/json"
+	"reflect"
+	"regexp"
+	"strings"
+	"testing"
+
+	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/preslavrachev/gomjml/mjml"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestTrackLinks(t *testing.T) {
+	tests := []struct {
+		name                string
+		htmlInput           string
+		trackingSettings    TrackingSettings
+		expectedContains    []string
+		expectedNotContains []string
+		shouldError         bool
+	}{
+		{
+			name: "Basic HTML anchor tag with UTM parameters",
+			htmlInput: `<!DOCTYPE html>
+<html>
+<body>
+	<a href="https://example.com">Click me</a>
+</body>
+</html>`,
+			trackingSettings: TrackingSettings{
+				EnableTracking: false,
+				UTMSource:      "email",
+				UTMMedium:      "newsletter",
+				UTMCampaign:    "summer2024",
+			},
+			expectedContains: []string{
+				"utm_source=email",
+				"utm_medium=newsletter",
+				"utm_campaign=summer2024",
+				"https://example.com?",
+			},
+			shouldError: false,
+		},
+		{
+			name: "Multiple anchor tags with different URLs",
+			htmlInput: `<!DOCTYPE html>
+<html>
+<body>
+	<a href="https://example.com/page1">Link 1</a>
+	<a href="https://example.com/page2">Link 2</a>
+</body>
+</html>`,
+			trackingSettings: TrackingSettings{
+				EnableTracking: true,
+				Endpoint:       "https://track.example.com/redirect",
+				UTMSource:      "email",
+				UTMMedium:      "newsletter",
+				WorkspaceID:    "test-workspace",
+				MessageID:      "test-message",
+			},
+			expectedContains: []string{
+				"https://track.example.com/redirect/r/",
+			},
+			shouldError: false,
+		},
+		{
+			name:      "Anchor tags with existing UTM parameters should not be modified",
+			htmlInput: `<a href="https://example.com?utm_source=existing">Link</a>`,
+			trackingSettings: TrackingSettings{
+				EnableTracking: false,
+				UTMSource:      "email",
+				UTMMedium:      "newsletter",
+			},
+			expectedContains: []string{
+				"utm_source=existing",
+			},
+			expectedNotContains: []string{
+				"utm_source=email",
+				"utm_medium=newsletter",
+			},
+			shouldError: false,
+		},
+		{
+			name: "Skip mailto and tel links with tracking disabled",
+			htmlInput: `<a href="mailto:test@example.com">Email</a>
+<a href="tel:+1234567890">Call</a>`,
+			trackingSettings: TrackingSettings{
+				EnableTracking: false,
+				UTMSource:      "email",
+			},
+			expectedContains: []string{
+				"mailto:test@example.com",
+				"tel:+1234567890",
+			},
+			expectedNotContains: []string{
+				"utm_source=email",
+			},
+			shouldError: false,
+		},
+		{
+			name: "Skip mailto and tel links with tracking ENABLED (issue #163)",
+			htmlInput: `<a href="mailto:test@example.com">Email</a>
+<a href="tel:+1234567890">Call</a>
+<a href="sms:+1234567890">Text</a>
+<a href="https://example.com">Normal Link</a>`,
+			trackingSettings: TrackingSettings{
+				EnableTracking: true,
+				Endpoint:       "https://track.example.com",
+				UTMSource:      "email",
+				WorkspaceID:    "test-workspace",
+				MessageID:      "test-message",
+			},
+			expectedContains: []string{
+				`href="mailto:test@example.com"`, // mailto should be unchanged
+				`href="tel:+1234567890"`,         // tel should be unchanged
+				`href="sms:+1234567890"`,         // sms should be unchanged
+				"track.example.com/r/",           // normal links should be tracked
+			},
+			expectedNotContains: []string{
+				"url=mailto", // mailto should NOT be in a tracking redirect URL param
+				"url=tel",    // tel should NOT be in a tracking redirect URL param
+				"url=sms",    // sms should NOT be in a tracking redirect URL param
+			},
+			shouldError: false,
+		},
+		{
+			name: "Skip anchor links with tracking enabled",
+			htmlInput: `<a href="#section1">Jump to section</a>
+<a href="https://example.com">Normal Link</a>`,
+			trackingSettings: TrackingSettings{
+				EnableTracking: true,
+				Endpoint:       "https://track.example.com",
+				UTMSource:      "email",
+				WorkspaceID:    "test-workspace",
+				MessageID:      "test-message",
+			},
+			expectedContains: []string{
+				`href="#section1"`,     // anchor should be unchanged
+				"track.example.com/r/", // normal links should be tracked
+			},
+			shouldError: false,
+		},
+		{
+			name: "Skip javascript links with tracking enabled",
+			htmlInput: `<a href="javascript:void(0)">No-op Link</a>
+<a href="https://example.com">Normal Link</a>`,
+			trackingSettings: TrackingSettings{
+				EnableTracking: true,
+				Endpoint:       "https://track.example.com",
+				UTMSource:      "email",
+				WorkspaceID:    "test-workspace",
+				MessageID:      "test-message",
+			},
+			expectedContains: []string{
+				`href="javascript:void(0)"`, // javascript should be unchanged
+				"track.example.com/r/",      // normal links should be tracked
+			},
+			shouldError: false,
+		},
+		{
+			name: "Skip Liquid template URLs",
+			htmlInput: `<a href="https://example.com/{{ user.id }}">Dynamic Link</a>
+<a href="{% if user.premium %}https://premium.com{% endif %}">Conditional Link</a>`,
+			trackingSettings: TrackingSettings{
+				EnableTracking: false,
+				UTMSource:      "email",
+			},
+			expectedContains: []string{
+				"{{ user.id }}",
+				"{% if user.premium %}",
+			},
+			expectedNotContains: []string{
+				"utm_source=email",
+			},
+			shouldError: false,
+		},
+		{
+			name:      "No tracking when disabled and no UTM",
+			htmlInput: `<a href="https://example.com">Link</a>`,
+			trackingSettings: TrackingSettings{
+				EnableTracking: false,
+			},
+			expectedContains: []string{
+				"https://example.com",
+			},
+			expectedNotContains: []string{
+				"utm_",
+				"track.example.com",
+			},
+			shouldError: false,
+		},
+		{
+			name:      "Full tracking with endpoint and UTM parameters",
+			htmlInput: `<a href="https://example.com/product">Buy Now</a>`,
+			trackingSettings: TrackingSettings{
+				EnableTracking: true,
+				Endpoint:       "https://track.example.com/redirect",
+				UTMSource:      "email",
+				UTMMedium:      "newsletter",
+				UTMCampaign:    "black-friday",
+				UTMContent:     "buy-button",
+				UTMTerm:        "product-sale",
+				WorkspaceID:    "test-workspace",
+				MessageID:      "test-message",
+			},
+			expectedContains: []string{
+				"https://track.example.com/redirect/r/",
+			},
+			shouldError: false,
+		},
+		{
+			name:      "Handle single quotes in href",
+			htmlInput: `<a href='https://example.com/single-quotes'>Link</a>`,
+			trackingSettings: TrackingSettings{
+				EnableTracking: false,
+				UTMSource:      "email",
+			},
+			expectedContains: []string{
+				"utm_source=email",
+				"single-quotes",
+			},
+			shouldError: false,
+		},
+		{
+			name: "Complex HTML with nested elements",
+			htmlInput: `<table>
+<tr>
+	<td>
+		<a href="https://example.com" class="button" style="color: blue;">
+			<span>Click Here</span>
+		</a>
+	</td>
+</tr>
+</table>`,
+			trackingSettings: TrackingSettings{
+				EnableTracking: true,
+				Endpoint:       "https://track.example.com",
+				UTMSource:      "email",
+				WorkspaceID:    "test-workspace",
+				MessageID:      "test-message",
+			},
+			expectedContains: []string{
+				"https://track.example.com/r/",
+				"class=\"button\"",
+				"<span>Click Here</span>",
+			},
+			shouldError: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result, err := TrackLinks(test.htmlInput, test.trackingSettings)
+
+			if test.shouldError && err == nil {
+				t.Errorf("Expected error but got none")
+			}
+			if !test.shouldError && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+
+			// Check expected contains
+			for _, expected := range test.expectedContains {
+				if !strings.Contains(result, expected) {
+					t.Errorf("Expected result to contain %q, but it didn't. Result: %s", expected, result)
+				}
+			}
+
+			// Check expected not contains
+			for _, notExpected := range test.expectedNotContains {
+				if strings.Contains(result, notExpected) {
+					t.Errorf("Expected result NOT to contain %q, but it did. Result: %s", notExpected, result)
+				}
+			}
+		})
+	}
+}
+
+func TestTrackLinksInvalidHTML(t *testing.T) {
+	// Test with malformed HTML - should still work with regex approach
+	invalidHTML := `<a href="https://example.com">Link without closing tag`
+	trackingSettings := TrackingSettings{
+		EnableTracking: true,
+		Endpoint:       "https://track.example.com",
+		UTMSource:      "email",
+		WorkspaceID:    "test-workspace",
+		MessageID:      "test-message",
+	}
+
+	result, err := TrackLinks(invalidHTML, trackingSettings)
+	if err != nil {
+		t.Errorf("TrackLinks should handle malformed HTML gracefully, got error: %v", err)
+	}
+
+	// Should still process the href attribute
+	if !strings.Contains(result, "track.example.com") {
+		t.Error("Expected tracking URL to be added even with malformed HTML")
+	}
+}
+
+// TestTrackLinks_PreservesUTMInEncryptedToken verifies that when click tracking
+// is enabled, the UTM parameters are NOT dropped: they must be appended to the
+// destination URL that gets encrypted into the /r/{token} redirect link.
+func TestTrackLinks_PreservesUTMInEncryptedToken(t *testing.T) {
+	trackingSettings := TrackingSettings{
+		EnableTracking: true,
+		Endpoint:       "https://track.example.com",
+		UTMSource:      "newsletter",
+		UTMMedium:      "email",
+		UTMCampaign:    "spring-sale",
+		UTMContent:     "hero-button",
+		UTMTerm:        "running-shoes",
+		WorkspaceID:    "ws-1",
+		MessageID:      "msg-1",
+	}
+
+	htmlInput := `<a href="https://shop.example.com/product?ref=email">Buy Now</a>`
+
+	result, err := TrackLinks(htmlInput, trackingSettings)
+	if err != nil {
+		t.Fatalf("TrackLinks failed: %v", err)
+	}
+
+	// Extract the encrypted /r/{token} link that TrackLinks generated
+	tokenRegex := regexp.MustCompile(`href="https://track\.example\.com/r/([^"]+)"`)
+	m := tokenRegex.FindStringSubmatch(result)
+	if m == nil {
+		t.Fatalf("expected a /r/{token} tracking link, got: %s", result)
+	}
+
+	// Decrypt the token: format is "messageID\nworkspaceID\ntimestamp\ndestinationURL"
+	plaintext, err := crypto.DecryptTrackingToken(m[1])
+	if err != nil {
+		t.Fatalf("failed to decrypt tracking token: %v", err)
+	}
+	parts := strings.Split(plaintext, "\n")
+	if len(parts) != 4 {
+		t.Fatalf("expected 4 token parts, got %d: %q", len(parts), plaintext)
+	}
+	destinationURL := parts[3]
+
+	// The destination URL embedded in the token must carry every UTM parameter
+	for _, want := range []string{
+		"utm_source=newsletter",
+		"utm_medium=email",
+		"utm_campaign=spring-sale",
+		"utm_content=hero-button",
+		"utm_term=running-shoes",
+		"ref=email", // pre-existing query params must be preserved too
+	} {
+		if !strings.Contains(destinationURL, want) {
+			t.Errorf("expected destination URL %q to contain %q", destinationURL, want)
+		}
+	}
+}
+
+func TestGetTrackingURL(t *testing.T) {
+	trackingSettings := TrackingSettings{
+		EnableTracking: true,
+		Endpoint:       "https://track.example.com/redirect",
+		UTMSource:      "email",
+		UTMMedium:      "newsletter",
+		UTMCampaign:    "test-campaign",
+		WorkspaceID:    "test-workspace",
+		MessageID:      "test-message",
+	}
+
+	tests := []struct {
+		name     string
+		inputURL string
+		expected string
+	}{
+		{
+			name:     "Basic URL with UTM parameters",
+			inputURL: "https://example.com",
+			expected: "https://track.example.com/redirect?url=https%3A%2F%2Fexample.com%3Futm_campaign%3Dtest-campaign%26utm_medium%3Dnewsletter%26utm_source%3Demail",
+		},
+		{
+			name:     "URL with existing UTM parameters",
+			inputURL: "https://example.com?utm_source=existing",
+			expected: "https://track.example.com/redirect?url=https%3A%2F%2Fexample.com%3Futm_source%3Dexisting",
+		},
+		{
+			name:     "Mailto URL should not be modified",
+			inputURL: "mailto:test@example.com",
+			expected: "mailto:test@example.com",
+		},
+		{
+			name:     "Tel URL should not be modified",
+			inputURL: "tel:+1234567890",
+			expected: "tel:+1234567890",
+		},
+		{
+			name:     "Liquid template URL should not be modified",
+			inputURL: "https://example.com/{{ user.id }}",
+			expected: "https://example.com/{{ user.id }}",
+		},
+		{
+			name:     "Empty URL should not be modified",
+			inputURL: "",
+			expected: "",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result := trackingSettings.GetTrackingURL(test.inputURL)
+			if result != test.expected {
+				t.Errorf("Expected %q, got %q", test.expected, result)
+			}
+		})
+	}
+}
+
+func TestCompileTemplateWithTracking(t *testing.T) {
+	// Create a simple email with button
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = stringPtr("Check out our latest offers!")
+	textBlock := &MJTextBlock{BaseBlock: textBase}
+
+	buttonBase := NewBaseBlock("button-1", MJMLComponentMjButton)
+	buttonBase.Attributes["href"] = "https://shop.example.com/offers"
+	buttonBase.Content = stringPtr("Shop Now")
+	buttonBlock := &MJButtonBlock{BaseBlock: buttonBase}
+
+	columnBlock := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	columnBlock.Children = []EmailBlock{textBlock, buttonBlock}
+
+	sectionBlock := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	sectionBlock.Children = []EmailBlock{columnBlock}
+
+	bodyBlock := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	bodyBlock.Children = []EmailBlock{sectionBlock}
+
+	// Create MJML structure
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{bodyBlock}
+
+	// Test CompileTemplate with tracking
+	req := CompileTemplateRequest{
+		WorkspaceID:      "test-workspace",
+		MessageID:        "test-message",
+		VisualEditorTree: mjml,
+		TrackingSettings: TrackingSettings{
+			EnableTracking: true,
+			Endpoint:       "https://track.example.com/redirect",
+			UTMSource:      "email",
+			UTMMedium:      "newsletter",
+			WorkspaceID:    "test-workspace",
+			MessageID:      "test-message",
+		},
+	}
+
+	resp, err := CompileTemplate(req)
+	if err != nil {
+		t.Fatalf("CompileTemplate failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Error("Expected successful compilation")
+	}
+
+	if resp.MJML == nil {
+		t.Error("Expected MJML in response")
+	}
+
+	if resp.HTML == nil {
+		t.Error("Expected HTML in response")
+	}
+
+	// Check that HTML contains tracking (now HTML-based tracking)
+	if !strings.Contains(*resp.HTML, "track.example.com") {
+		t.Error("Expected HTML to contain tracking URL")
+	}
+
+	t.Logf("Generated MJML:\n%s", *resp.MJML)
+	t.Logf("Generated HTML with tracking length: %d bytes", len(*resp.HTML))
+}
+
+func TestCompileTemplateRequest_UnmarshalJSON(t *testing.T) {
+	// Test JSON that should unmarshal correctly
+	jsonData := `{
+		"workspace_id": "test-workspace", 
+		"message_id": "test-message",
+		"visual_editor_tree": {
+			"id": "mjml-1",
+			"type": "mjml",
+			"children": [
+				{
+					"id": "body-1",
+					"type": "mj-body",
+					"children": [
+						{
+							"id": "section-1",
+							"type": "mj-section",
+							"children": [
+								{
+									"id": "column-1",
+									"type": "mj-column",
+									"children": [
+										{
+											"id": "text-1",
+											"type": "mj-text",
+											"content": "Hello World"
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		"test_data": {"name": "John"},
+		"tracking_settings": {
+			"enable_tracking": true,
+			"utm_source": "email"
+		}
+	}`
+
+	var req CompileTemplateRequest
+	err := json.Unmarshal([]byte(jsonData), &req)
+	if err != nil {
+		t.Fatalf("Failed to unmarshal CompileTemplateRequest: %v", err)
+	}
+
+	// Verify that the fields were unmarshaled correctly
+	if req.WorkspaceID != "test-workspace" {
+		t.Errorf("Expected WorkspaceID to be 'test-workspace', got %s", req.WorkspaceID)
+	}
+	if req.MessageID != "test-message" {
+		t.Errorf("Expected MessageID to be 'test-message', got %s", req.MessageID)
+	}
+	if req.VisualEditorTree == nil {
+		t.Error("Expected VisualEditorTree to be set")
+	} else {
+		if req.VisualEditorTree.GetType() != MJMLComponentMjml {
+			t.Errorf("Expected VisualEditorTree type to be 'mjml', got %s", req.VisualEditorTree.GetType())
+		}
+		if req.VisualEditorTree.GetID() != "mjml-1" {
+			t.Errorf("Expected VisualEditorTree ID to be 'mjml-1', got %s", req.VisualEditorTree.GetID())
+		}
+	}
+	if req.TemplateData["name"] != "John" {
+		t.Errorf("Expected TemplateData name to be 'John', got %v", req.TemplateData["name"])
+	}
+	if !req.TrackingSettings.EnableTracking {
+		t.Error("Expected EnableTracking to be true")
+	}
+	if req.TrackingSettings.UTMSource != "email" {
+		t.Errorf("Expected UTMSource to be 'email', got %s", req.TrackingSettings.UTMSource)
+	}
+}
+
+func TestTrackingPixelPlacement(t *testing.T) {
+	htmlString := `<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Email</title>
+</head>
+<body>
+    <h1>Hello World</h1>
+    <p>This is a test email.</p>
+</body>
+</html>`
+
+	trackingSettings := TrackingSettings{
+		EnableTracking: true,
+		Endpoint:       "https://track.example.com",
+		WorkspaceID:    "test-workspace",
+		MessageID:      "test-message",
+	}
+
+	result, err := TrackLinks(htmlString, trackingSettings)
+	if err != nil {
+		t.Fatalf("TrackLinks failed: %v", err)
+	}
+
+	// Check that the tracking pixel uses encrypted /t/ format and new styling
+	hasPixelPattern := strings.Contains(result, `/t/`) &&
+		strings.Contains(result, `alt="" style="border:0;display:block;outline:none;text-decoration:none;">`)
+	if !hasPixelPattern {
+		t.Errorf("Expected encrypted tracking pixel with /t/ path and new styling. Result: %s", result)
+	}
+
+	// Check that the pixel is placed before the closing body tag
+	bodyCloseIndex := strings.Index(result, "</body>")
+	pixelIndex := strings.Index(result, `/t/`)
+
+	if bodyCloseIndex == -1 {
+		t.Error("Expected closing body tag to be present")
+	}
+
+	if pixelIndex == -1 {
+		t.Error("Expected tracking pixel to be present")
+	}
+
+	if pixelIndex >= bodyCloseIndex {
+		t.Error("Expected tracking pixel to be placed before the closing body tag")
+	}
+}
+
+func TestTrackingPixelWithoutBodyTag(t *testing.T) {
+	// Test fallback behavior when there's no body tag
+	htmlString := `<h1>Hello World</h1><p>This is a test without body tag.</p>`
+
+	trackingSettings := TrackingSettings{
+		EnableTracking: true,
+		Endpoint:       "https://track.example.com",
+		WorkspaceID:    "test-workspace",
+		MessageID:      "test-message",
+	}
+
+	result, err := TrackLinks(htmlString, trackingSettings)
+	if err != nil {
+		t.Fatalf("TrackLinks failed: %v", err)
+	}
+
+	// Check that the tracking pixel uses encrypted /t/ format
+	hasPixelPattern := strings.Contains(result, `/t/`) &&
+		strings.Contains(result, `alt="" style="border:0;display:block;outline:none;text-decoration:none;">`)
+	if !hasPixelPattern {
+		t.Error("Expected encrypted tracking pixel with /t/ path and new styling")
+	}
+
+	// Check that the table-wrapped pixel is at the end
+	if !strings.HasSuffix(strings.TrimSpace(result), `</td></tr></table>`) {
+		t.Error("Expected table-wrapped tracking pixel to be at the end when no body tag is present")
+	}
+}
+
+// TestTrackingPixelCollapsesLineBox pins the markup that keeps the open-tracking
+// pixel from adding a visible row to the email.
+//
+// An <img> is inline by default, so it sits on a text baseline and the cell holding
+// it takes a whole line box — around 19px at the default font size — no matter how
+// small the image is. width="1" height="1" does not help, because it describes the
+// image and not the line the image sits on. That is why the pixel used to leave an
+// empty row under the footer, and why Outlook scrolled a few millimetres past it.
+//
+// display:block takes the image off the baseline, the zeroed line-height and
+// font-size collapse the line box for clients that honour only one of the two, and
+// mso-line-height-rule makes the Word engine behind Outlook treat the zero
+// line-height as exact rather than as a minimum.
+func TestTrackingPixelCollapsesLineBox(t *testing.T) {
+	pixel := GenerateHTMLOpenTrackingPixel("ws", "msg", "https://api.example.com", 1700000000)
+
+	assert.Contains(t, pixel, `<td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">`,
+		"the pixel cell must zero its line box, or it reserves a full line of text below the email")
+	assert.Regexp(t, `<img [^>]*style="[^"]*display:block[^"]*"`, pixel,
+		"the pixel image must leave the text baseline, or the cell takes a full line box anyway")
+}
+
+// TestTrackingPixelCellStyleMatchesMJMLSpacerRow pins why the cell carries that
+// exact declaration list: it is the one gomjml already emits for its own spacer
+// rows, so the pixel row reads as ordinary structural markup rather than as
+// something written only for a tracking pixel.
+//
+// A gomjml upgrade that changes its spacer markup fails this test. Copy the new
+// string across rather than dropping the assertion — matching MJML byte for byte
+// is the point.
+func TestTrackingPixelCellStyleMatchesMJMLSpacerRow(t *testing.T) {
+	const cellStyle = `line-height:0px;font-size:0px;mso-line-height-rule:exactly;`
+
+	pixel := GenerateHTMLOpenTrackingPixel("ws", "msg", "https://api.example.com", 1700000000)
+	require.Contains(t, pixel, cellStyle)
+
+	rendered, err := mjml.Render(`<mjml><mj-body><mj-section><mj-column><mj-text>x</mj-text></mj-column></mj-section></mj-body></mjml>`)
+	require.NoError(t, err)
+	assert.Contains(t, rendered, cellStyle,
+		"the pixel cell style must stay a string MJML itself emits")
+}
+
+// TestTrackingPixelCarriesNoDimensionAttributes guards the anti-blocker property
+// the collapse fix must not undo: the classic width="1" height="1" pair is the
+// fingerprint pixel blockers match on, so the collapse is done in CSS instead.
+//
+// SpamAssassin gives the same pair a second reason to stay away: it accumulates
+// image area only when both attributes are present, and coerces a zero to 200,
+// so width="0" height="0" would bill the pixel as 40000px of image.
+func TestTrackingPixelCarriesNoDimensionAttributes(t *testing.T) {
+	pixel := GenerateHTMLOpenTrackingPixel("ws", "msg", "https://api.example.com", 1700000000)
+
+	imgTag := regexp.MustCompile(`<img [^>]*>`).FindString(pixel)
+	require.NotEmpty(t, imgTag, "expected an img tag in the pixel markup")
+	assert.NotRegexp(t, `\swidth=`, imgTag, "a width attribute is the pixel-blocker fingerprint")
+	assert.NotRegexp(t, `\sheight=`, imgTag, "a height attribute is the pixel-blocker fingerprint")
+}
+
+func TestIsNonTrackableURL(t *testing.T) {
+	tests := []struct {
+		name     string
+		url      string
+		expected bool
+	}{
+		// Non-trackable URLs
+		{name: "empty string", url: "", expected: true},
+		{name: "mailto link", url: "mailto:test@example.com", expected: true},
+		{name: "mailto with subject", url: "mailto:test@example.com?subject=Hello", expected: true},
+		{name: "MAILTO uppercase", url: "MAILTO:test@example.com", expected: true},
+		{name: "tel link", url: "tel:+1234567890", expected: true},
+		{name: "TEL uppercase", url: "TEL:+1234567890", expected: true},
+		{name: "sms link", url: "sms:+1234567890", expected: true},
+		{name: "sms with body", url: "sms:+1234567890?body=Hello", expected: true},
+		{name: "javascript void", url: "javascript:void(0)", expected: true},
+		{name: "javascript alert", url: "javascript:alert('test')", expected: true},
+		{name: "data URL", url: "data:image/png;base64,abc123", expected: true},
+		{name: "blob URL", url: "blob:https://example.com/uuid", expected: true},
+		{name: "file URL", url: "file:///path/to/file.txt", expected: true},
+		{name: "anchor link", url: "#section1", expected: true},
+		{name: "anchor with path", url: "#top", expected: true},
+		{name: "liquid double brace", url: "https://example.com/{{ user.id }}", expected: true},
+		{name: "liquid tag", url: "{% if cond %}https://example.com{% endif %}", expected: true},
+
+		// Trackable URLs
+		{name: "http URL", url: "http://example.com", expected: false},
+		{name: "https URL", url: "https://example.com", expected: false},
+		{name: "https with path", url: "https://example.com/path/to/page", expected: false},
+		{name: "https with query", url: "https://example.com?foo=bar", expected: false},
+		{name: "relative URL", url: "/path/to/page", expected: false},
+		{name: "URL with utm params", url: "https://example.com?utm_source=email", expected: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isNonTrackableURL(tt.url)
+			if result != tt.expected {
+				t.Errorf("isNonTrackableURL(%q) = %v, expected %v", tt.url, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestDecodeHTMLEntitiesInURLAttributes(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "href with query parameters containing &amp;",
+			input:    `<a href="https://example.com/confirm?action=confirm&amp;email=test@example.com&amp;token=abc123">Link</a>`,
+			expected: `<a href="https://example.com/confirm?action=confirm&email=test@example.com&token=abc123">Link</a>`,
+		},
+		{
+			name:     "button href with multiple &amp; entities",
+			input:    `<a href="https://mailing.example.com/notification-center?action=confirm&amp;email=mymail%40gmail.com&amp;email_hmac=fd6&amp;lid=mylist&amp;lname=MyList&amp;mid=fb9&amp;wid=myworkspace">Confirm</a>`,
+			expected: `<a href="https://mailing.example.com/notification-center?action=confirm&email=mymail%40gmail.com&email_hmac=fd6&lid=mylist&lname=MyList&mid=fb9&wid=myworkspace">Confirm</a>`,
+		},
+		{
+			name:     "src attribute with &amp;",
+			input:    `<img src="https://example.com/image.png?w=100&amp;h=200" alt="test">`,
+			expected: `<img src="https://example.com/image.png?w=100&h=200" alt="test">`,
+		},
+		{
+			name:     "action attribute with &amp;",
+			input:    `<form action="https://example.com/submit?id=1&amp;type=2">`,
+			expected: `<form action="https://example.com/submit?id=1&type=2">`,
+		},
+		{
+			name:     "multiple attributes in same tag",
+			input:    `<a href="https://example.com?a=1&amp;b=2" class="btn" id="link">Text</a>`,
+			expected: `<a href="https://example.com?a=1&b=2" class="btn" id="link">Text</a>`,
+		},
+		{
+			name:     "href with other HTML entities",
+			input:    `<a href="https://example.com?name=&quot;John&quot;&amp;age=30">Link</a>`,
+			expected: `<a href="https://example.com?name="John"&age=30">Link</a>`,
+		},
+		{
+			name:     "no entities to decode",
+			input:    `<a href="https://example.com/simple">Link</a>`,
+			expected: `<a href="https://example.com/simple">Link</a>`,
+		},
+		{
+			name:     "single quotes in attribute",
+			input:    `<a href='https://example.com?a=1&amp;b=2'>Link</a>`,
+			expected: `<a href='https://example.com?a=1&b=2'>Link</a>`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := decodeHTMLEntitiesInURLAttributes(tt.input)
+			if result != tt.expected {
+				t.Errorf("Expected:\n%s\nGot:\n%s", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestCompileTemplateWithButtonQueryParameters(t *testing.T) {
+	// Test the complete flow: button with confirm_subscription_url containing query parameters
+
+	// Create a button with a URL containing query parameters
+	confirmURL := "https://mailing.example.com/notification-center?action=confirm&email=test@example.com&email_hmac=abc123&lid=newsletter&lname=Newsletter&mid=msg123&wid=workspace123"
+
+	buttonBase := NewBaseBlock("confirm-button", MJMLComponentMjButton)
+	buttonBase.Attributes["href"] = "{{ confirm_subscription_url }}"
+	buttonBase.Attributes["background-color"] = "#007bff"
+	buttonBase.Attributes["color"] = "#ffffff"
+	buttonBase.Content = stringPtr("Confirm Subscription")
+	buttonBlock := &MJButtonBlock{BaseBlock: buttonBase}
+
+	// Create complete MJML structure
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{buttonBlock}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{body}
+
+	// Compile template with template data
+	req := CompileTemplateRequest{
+		WorkspaceID:      "test-workspace",
+		MessageID:        "test-message",
+		VisualEditorTree: mjml,
+		TemplateData: MapOfAny{
+			"confirm_subscription_url": confirmURL,
+		},
+		TrackingSettings: TrackingSettings{
+			EnableTracking: false, // Disable tracking to test just the entity decoding
+		},
+	}
+
+	resp, err := CompileTemplate(req)
+	if err != nil {
+		t.Fatalf("CompileTemplate failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+	}
+
+	if resp.HTML == nil {
+		t.Fatal("Expected HTML in response")
+	}
+
+	// Verify that the HTML contains the decoded URL (with & not &amp;)
+	if !strings.Contains(*resp.HTML, "action=confirm&email=test@example.com") {
+		t.Errorf("Expected HTML to contain decoded query parameters with '&', but got:\n%s", *resp.HTML)
+	}
+
+	// Verify that &amp; is NOT in the href attribute
+	if strings.Contains(*resp.HTML, "href=\"https://mailing.example.com/notification-center?action=confirm&amp;email") {
+		t.Errorf("HTML still contains &amp; in href attribute, entity decoding failed:\n%s", *resp.HTML)
+	}
+
+	t.Logf("Generated HTML (excerpt):\n%s", *resp.HTML)
+}
+
+func TestPreprocessMjmlForXML(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "convert br tag to self-closing",
+			input:    "<mj-text><p>Line 1<br>Line 2</p></mj-text>",
+			expected: "<mj-text><p>Line 1<br/>Line 2</p></mj-text>",
+		},
+		{
+			name:     "convert br tag with space to self-closing",
+			input:    "<mj-text><p>Line 1<br >Line 2</p></mj-text>",
+			expected: "<mj-text><p>Line 1<br/>Line 2</p></mj-text>",
+		},
+		{
+			name:     "preserve already self-closing br",
+			input:    "<mj-text><p>Line 1<br/>Line 2</p></mj-text>",
+			expected: "<mj-text><p>Line 1<br/>Line 2</p></mj-text>",
+		},
+		{
+			name:     "preserve already self-closing br with space",
+			input:    "<mj-text><p>Line 1<br />Line 2</p></mj-text>",
+			expected: "<mj-text><p>Line 1<br />Line 2</p></mj-text>",
+		},
+		{
+			name:     "convert hr tag to self-closing",
+			input:    "<mj-raw><hr></mj-raw>",
+			expected: "<mj-raw><hr/></mj-raw>",
+		},
+		{
+			name:     "convert multiple void tags",
+			input:    "<mj-text><p>A<br>B<br>C<hr>D</p></mj-text>",
+			expected: "<mj-text><p>A<br/>B<br/>C<hr/>D</p></mj-text>",
+		},
+		{
+			name:     "convert img tag with attributes to self-closing",
+			input:    `<mj-raw><img src="test.jpg" alt="test"></mj-raw>`,
+			expected: `<mj-raw><img src="test.jpg" alt="test"/></mj-raw>`,
+		},
+		{
+			name:     "convert nbsp entity to numeric",
+			input:    "<mj-text>Hello&nbsp;World</mj-text>",
+			expected: "<mj-text>Hello&#160;World</mj-text>",
+		},
+		{
+			name:     "convert multiple nbsp entities",
+			input:    "<mj-text>A&nbsp;&nbsp;&nbsp;B</mj-text>",
+			expected: "<mj-text>A&#160;&#160;&#160;B</mj-text>",
+		},
+		{
+			name:     "convert copy entity to numeric",
+			input:    "<mj-text>&copy; 2024</mj-text>",
+			expected: "<mj-text>&#169; 2024</mj-text>",
+		},
+		{
+			name:     "preserve xml predefined entities",
+			input:    "<mj-text>&amp; &lt; &gt; &quot; &apos;</mj-text>",
+			expected: "<mj-text>&amp; &lt; &gt; &quot; &apos;</mj-text>",
+		},
+		{
+			name:     "preserve numeric entities",
+			input:    "<mj-text>&#160;&#169;</mj-text>",
+			expected: "<mj-text>&#160;&#169;</mj-text>",
+		},
+		{
+			name:     "combined void tags and entities",
+			input:    "<mj-text><p>Hello<br>World&nbsp;&copy;</p></mj-text>",
+			expected: "<mj-text><p>Hello<br/>World&#160;&#169;</p></mj-text>",
+		},
+		{
+			name:     "preserve liquid double braces",
+			input:    "<mj-text>Hello {{ user.name }}&nbsp;welcome!</mj-text>",
+			expected: "<mj-text>Hello {{ user.name }}&#160;welcome!</mj-text>",
+		},
+		{
+			name:     "preserve liquid tags",
+			input:    "<mj-text>{% if show %}<br>Show this{% endif %}</mj-text>",
+			expected: "<mj-text>{% if show %}<br/>Show this{% endif %}</mj-text>",
+		},
+		{
+			name:     "combined liquid, void tags and entities",
+			input:    "<mj-text><p>Dear {{ user.name }},<br>Your order #{{ order.id }}&nbsp;shipped!</p></mj-text>",
+			expected: "<mj-text><p>Dear {{ user.name }},<br/>Your order #{{ order.id }}&#160;shipped!</p></mj-text>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := preprocessMjmlForXML(tt.input)
+			if result != tt.expected {
+				t.Errorf("preprocessMjmlForXML() =\n%s\nwant:\n%s", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestCompileTemplateWithHtmlVoidTags(t *testing.T) {
+	// Test that templates with <br> tags compile successfully
+	textContent := "<p>Line 1<br>Line 2<br>Line 3</p>"
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = &textContent
+	textBlock := &MJTextBlock{BaseBlock: textBase}
+
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{textBlock}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{body}
+
+	req := CompileTemplateRequest{
+		WorkspaceID:      "test-workspace",
+		MessageID:        "test-message",
+		VisualEditorTree: mjml,
+		TrackingSettings: TrackingSettings{
+			EnableTracking: false,
+		},
+	}
+
+	resp, err := CompileTemplate(req)
+	if err != nil {
+		t.Fatalf("CompileTemplate failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+	}
+
+	if resp.HTML == nil {
+		t.Fatal("Expected HTML in response")
+	}
+
+	// Verify the HTML contains the content
+	if !strings.Contains(*resp.HTML, "Line 1") || !strings.Contains(*resp.HTML, "Line 2") {
+		t.Errorf("Expected HTML to contain the text content:\n%s", *resp.HTML)
+	}
+}
+
+func TestCompileTemplateWithHtmlEntitiesAndLiquid(t *testing.T) {
+	// Test that templates with HTML entities AND Liquid markup work correctly
+	textContent := "<p>Hello {{ user.name }},<br>Welcome&nbsp;to&nbsp;our&nbsp;service!<br>&copy; 2024</p>"
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = &textContent
+	textBlock := &MJTextBlock{BaseBlock: textBase}
+
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{textBlock}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{body}
+
+	req := CompileTemplateRequest{
+		WorkspaceID:      "test-workspace",
+		MessageID:        "test-message",
+		VisualEditorTree: mjml,
+		TemplateData: MapOfAny{
+			"user": map[string]interface{}{
+				"name": "John",
+			},
+		},
+		TrackingSettings: TrackingSettings{
+			EnableTracking: false,
+		},
+	}
+
+	resp, err := CompileTemplate(req)
+	if err != nil {
+		t.Fatalf("CompileTemplate failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+	}
+
+	if resp.HTML == nil {
+		t.Fatal("Expected HTML in response")
+	}
+
+	// Verify the Liquid variable was replaced
+	if !strings.Contains(*resp.HTML, "Hello John") {
+		t.Errorf("Expected HTML to contain 'Hello John' (Liquid processed), got:\n%s", *resp.HTML)
+	}
+
+	// Verify the content is present
+	if !strings.Contains(*resp.HTML, "Welcome") {
+		t.Errorf("Expected HTML to contain 'Welcome', got:\n%s", *resp.HTML)
+	}
+}
+
+func TestCompileTemplateWithHtmlEntities(t *testing.T) {
+	// Test that templates with &nbsp; and other HTML entities compile successfully
+	textContent := "<p>Hello&nbsp;World &copy; 2024</p>"
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = &textContent
+	textBlock := &MJTextBlock{BaseBlock: textBase}
+
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{textBlock}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{body}
+
+	req := CompileTemplateRequest{
+		WorkspaceID:      "test-workspace",
+		MessageID:        "test-message",
+		VisualEditorTree: mjml,
+		TrackingSettings: TrackingSettings{
+			EnableTracking: false,
+		},
+	}
+
+	resp, err := CompileTemplate(req)
+	if err != nil {
+		t.Fatalf("CompileTemplate failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+	}
+
+	if resp.HTML == nil {
+		t.Fatal("Expected HTML in response")
+	}
+
+	// Verify the HTML contains the content
+	if !strings.Contains(*resp.HTML, "Hello") || !strings.Contains(*resp.HTML, "World") {
+		t.Errorf("Expected HTML to contain the text content:\n%s", *resp.HTML)
+	}
+}
+
+func TestCompileTemplateButtonVsTextURL(t *testing.T) {
+	// Verify that both button href and text content handle URLs correctly
+	confirmURL := "https://example.com/confirm?action=confirm&email=test@example.com&token=abc"
+
+	// Button with URL in href attribute
+	buttonBase := NewBaseBlock("button-1", MJMLComponentMjButton)
+	buttonBase.Attributes["href"] = "{{ confirm_url }}"
+	buttonBase.Content = stringPtr("Confirm via Button")
+	buttonBlock := &MJButtonBlock{BaseBlock: buttonBase}
+
+	// Text block with URL in content
+	textContent := `<a href="{{ confirm_url }}">Confirm via Text Link</a>`
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = &textContent
+	textBlock := &MJTextBlock{BaseBlock: textBase}
+
+	// Create complete structure
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{buttonBlock, textBlock}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{body}
+
+	req := CompileTemplateRequest{
+		WorkspaceID:      "test-workspace",
+		MessageID:        "test-message",
+		VisualEditorTree: mjml,
+		TemplateData: MapOfAny{
+			"confirm_url": confirmURL,
+		},
+		TrackingSettings: TrackingSettings{
+			EnableTracking: false,
+		},
+	}
+
+	resp, err := CompileTemplate(req)
+	if err != nil {
+		t.Fatalf("CompileTemplate failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("Expected successful compilation")
+	}
+
+	// Both should have properly decoded URLs with & not &amp;
+	expectedURLPart := "action=confirm&email=test@example.com"
+	occurrences := strings.Count(*resp.HTML, expectedURLPart)
+
+	if occurrences < 2 {
+		t.Errorf("Expected at least 2 occurrences of properly decoded URL (button + text), got %d\nHTML:\n%s",
+			occurrences, *resp.HTML)
+	}
+}
+
+// TestCompileTemplateWithImageLiquidOnlySrc tests that mj-image with only Liquid syntax
+// in the src attribute compiles successfully without test data (GitHub issue #226)
+func TestCompileTemplateWithImageLiquidOnlySrc(t *testing.T) {
+	// Create an mj-image with only Liquid syntax in src attribute
+	// This is a common use case for transactional emails where the image URL
+	// is dynamically populated from the application
+	imageBase := NewBaseBlock("image-1", MJMLComponentMjImage)
+	imageBase.Attributes["src"] = "{{ postImage }}"
+	imageBase.Attributes["alt"] = "Post Image"
+	imageBlock := &MJImageBlock{BaseBlock: imageBase}
+
+	// Create complete MJML structure
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{imageBlock}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{body}
+
+	// Test 1: Compile WITHOUT test data (simulates export without preview data)
+	// This is the bug scenario - it should still compile successfully
+	t.Run("without test data", func(t *testing.T) {
+		req := CompileTemplateRequest{
+			WorkspaceID:      "test-workspace",
+			MessageID:        "test-message",
+			VisualEditorTree: mjml,
+			// No TemplateData - this simulates export without test data
+			TrackingSettings: TrackingSettings{
+				EnableTracking: false,
+			},
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("CompileTemplate should not return error: %v", err)
+		}
+
+		// Log MJML output for debugging even on failure
+		if resp.MJML != nil {
+			t.Logf("Generated MJML:\n%s", *resp.MJML)
+		}
+
+		if !resp.Success {
+			t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+		}
+
+		if resp.MJML == nil {
+			t.Fatal("Expected MJML in response")
+		}
+
+		if resp.HTML == nil {
+			t.Fatal("Expected HTML in response")
+		}
+
+		// The Liquid syntax should be preserved in the output
+		if !strings.Contains(*resp.MJML, "{{ postImage }}") {
+			t.Errorf("Expected MJML to contain preserved Liquid syntax '{{ postImage }}', got:\n%s", *resp.MJML)
+		}
+
+		t.Logf("Generated MJML:\n%s", *resp.MJML)
+		t.Logf("Generated HTML:\n%s", *resp.HTML)
+	})
+
+	// Test 2: Compile WITH test data (simulates preview with actual data)
+	// This should work and replace the Liquid variable
+	t.Run("with test data", func(t *testing.T) {
+		req := CompileTemplateRequest{
+			WorkspaceID:      "test-workspace",
+			MessageID:        "test-message",
+			VisualEditorTree: mjml,
+			TemplateData: MapOfAny{
+				"postImage": "https://example.com/images/post.jpg",
+			},
+			TrackingSettings: TrackingSettings{
+				EnableTracking: false,
+			},
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("CompileTemplate failed: %v", err)
+		}
+
+		if !resp.Success {
+			t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+		}
+
+		if resp.HTML == nil {
+			t.Fatal("Expected HTML in response")
+		}
+
+		// The Liquid variable should be replaced with the actual URL
+		if !strings.Contains(*resp.HTML, "https://example.com/images/post.jpg") {
+			t.Errorf("Expected HTML to contain the resolved image URL, got:\n%s", *resp.HTML)
+		}
+
+		t.Logf("Generated HTML:\n%s", *resp.HTML)
+	})
+}
+
+// TestCompileTemplateWithPreserveLiquid tests that the preserve_liquid flag
+// correctly skips Liquid template processing and preserves raw syntax (GitHub issue #225)
+func TestCompileTemplateWithPreserveLiquid(t *testing.T) {
+	// Create a text block with Liquid syntax in a link
+	textContent := `<a href="https://example.com?external_id={{contact.external_id}}&amp;unsubscribe=true">Unsubscribe</a>`
+	textBlock := &MJTextBlock{
+		BaseBlock: NewBaseBlock("text-1", MJMLComponentMjText),
+	}
+	textBlock.Content = &textContent
+
+	// Create complete MJML structure
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{textBlock}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{body}
+
+	// Test 1: Compile with empty template data - Liquid syntax should be preserved
+	// This is the expected behavior: when no template data is provided, Liquid syntax is preserved
+	// to prevent broken URLs like src="" which would fail MJML compilation (issue #225, #226)
+	t.Run("with empty template data", func(t *testing.T) {
+		req := CompileTemplateRequest{
+			WorkspaceID:      "test-workspace",
+			MessageID:        "test-message",
+			VisualEditorTree: mjml,
+			TemplateData:     MapOfAny{}, // Empty test data - Liquid syntax should be preserved
+			PreserveLiquid:   false,
+			TrackingSettings: TrackingSettings{
+				EnableTracking: false,
+			},
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("CompileTemplate should not return error: %v", err)
+		}
+
+		if !resp.Success {
+			t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+		}
+
+		// With empty template data, Liquid syntax should be preserved (not rendered to empty)
+		if resp.MJML == nil || !strings.Contains(*resp.MJML, "{{contact.external_id}}") {
+			t.Errorf("With empty template data, Liquid syntax should be preserved in MJML, got:\n%s", *resp.MJML)
+		}
+
+		t.Logf("MJML with empty template data:\n%s", *resp.MJML)
+	})
+
+	// Test 2: Compile WITH preserve_liquid - Liquid syntax should be preserved
+	t.Run("with preserve_liquid", func(t *testing.T) {
+		req := CompileTemplateRequest{
+			WorkspaceID:      "test-workspace",
+			MessageID:        "test-message",
+			VisualEditorTree: mjml,
+			TemplateData:     MapOfAny{}, // This should be ignored when PreserveLiquid is true
+			PreserveLiquid:   true,       // Preserve Liquid syntax
+			TrackingSettings: TrackingSettings{
+				EnableTracking: false,
+			},
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("CompileTemplate should not return error: %v", err)
+		}
+
+		if !resp.Success {
+			t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+		}
+
+		// With preserve_liquid, the Liquid syntax should be preserved in MJML output
+		if resp.MJML == nil {
+			t.Fatal("Expected MJML in response")
+		}
+
+		if !strings.Contains(*resp.MJML, "{{contact.external_id}}") {
+			t.Errorf("With preserve_liquid, Liquid syntax '{{contact.external_id}}' should be preserved in MJML, got:\n%s", *resp.MJML)
+		}
+
+		t.Logf("MJML with preserve_liquid:\n%s", *resp.MJML)
+	})
+
+	// Test 3: Compile with test data but preserve_liquid=true should still preserve Liquid
+	t.Run("with test data and preserve_liquid", func(t *testing.T) {
+		req := CompileTemplateRequest{
+			WorkspaceID:      "test-workspace",
+			MessageID:        "test-message",
+			VisualEditorTree: mjml,
+			TemplateData: MapOfAny{
+				"contact": map[string]interface{}{
+					"external_id": "12345",
+				},
+			},
+			PreserveLiquid: true, // Should ignore TemplateData
+			TrackingSettings: TrackingSettings{
+				EnableTracking: false,
+			},
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("CompileTemplate should not return error: %v", err)
+		}
+
+		if !resp.Success {
+			t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+		}
+
+		// With preserve_liquid, the Liquid syntax should be preserved even with test data
+		if resp.MJML == nil {
+			t.Fatal("Expected MJML in response")
+		}
+
+		if !strings.Contains(*resp.MJML, "{{contact.external_id}}") {
+			t.Errorf("With preserve_liquid, Liquid syntax should be preserved even with test data, got:\n%s", *resp.MJML)
+		}
+
+		// Should NOT contain the rendered value "12345"
+		if strings.Contains(*resp.MJML, "12345") {
+			t.Errorf("With preserve_liquid, test data should not be rendered, but found '12345' in MJML:\n%s", *resp.MJML)
+		}
+
+		t.Logf("MJML with test data and preserve_liquid:\n%s", *resp.MJML)
+	})
+}
+
+// TestGomjmlButtonAttributeSupport tests which MJML button attributes are properly
+// supported by the gomjml library (https://documentation.mjml.io/#mj-button)
+func TestGomjmlButtonAttributeSupport(t *testing.T) {
+	// Create button with various MJML-spec attributes
+	buttonBase := NewBaseBlock("button-1", MJMLComponentMjButton)
+	buttonBase.Attributes["href"] = "https://example.com"
+	buttonBase.Attributes["font-weight"] = "bold"
+	buttonBase.Attributes["font-style"] = "italic"
+	buttonBase.Attributes["text-decoration"] = "underline"
+	buttonBase.Attributes["text-transform"] = "uppercase"
+	buttonBase.Attributes["color"] = "#ff0000"
+	buttonBase.Attributes["background-color"] = "#00ff00"
+	buttonBase.Content = stringPtr("Click Here")
+	buttonBlock := &MJButtonBlock{BaseBlock: buttonBase}
+
+	// Create complete MJML structure
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{buttonBlock}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{body}
+
+	req := CompileTemplateRequest{
+		WorkspaceID:      "test-workspace",
+		MessageID:        "test-message",
+		VisualEditorTree: mjml,
+		TrackingSettings: TrackingSettings{
+			EnableTracking: false,
+		},
+	}
+
+	resp, err := CompileTemplate(req)
+	if err != nil {
+		t.Fatalf("CompileTemplate failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+	}
+
+	// Log MJML for debugging
+	t.Logf("Generated MJML:\n%s", *resp.MJML)
+
+	// Check attribute support in generated HTML
+	attributeChecks := []struct {
+		name     string
+		pattern  string
+		required bool // If true, test fails when not found
+	}{
+		{"font-weight:bold", "font-weight:bold", false},
+		{"font-style:italic", "font-style:italic", false},
+		{"text-decoration", "text-decoration", false},
+		{"text-transform:uppercase", "text-transform:uppercase", false},
+		{"color #ff0000", "#ff0000", false},
+		{"background #00ff00", "#00ff00", false},
+		{"Button text 'Click Here'", "Click Here", true},
+	}
+
+	t.Log("\n=== gomjml Button Attribute Support ===")
+	for _, check := range attributeChecks {
+		found := strings.Contains(*resp.HTML, check.pattern)
+		status := "NOT FOUND"
+		if found {
+			status = "FOUND"
+		}
+		t.Logf("%s: %s", check.name, status)
+
+		if check.required && !found {
+			t.Errorf("Required pattern %q not found in HTML", check.pattern)
+		}
+	}
+
+	// Check that default "Button" text is NOT present (our fix should work)
+	if strings.Contains(*resp.HTML, ">Button<") {
+		t.Error("Found default 'Button' text - custom text was not rendered")
+	}
+}
+
+// TestCompileTemplateWithImageLiquidOnlySrcPartialData tests the bug scenario from issue #226
+// where an mj-image has only Liquid syntax in src (e.g., "{{ postImage }}") and template data
+// exists but doesn't include the referenced variable. This would cause the Liquid engine
+// to render the variable as an empty string, resulting in src="" which breaks MJML compilation.
+// TestCompileTemplateButtonWithHTMLContent tests the bug from GitHub issue #242
+// where button content containing HTML tags like <strong> and <br> renders as "Button"
+// instead of the custom text. The MJML spec requires button content to be plain text.
+func TestCompileTemplateButtonWithHTMLContent(t *testing.T) {
+	// This test confirms the bug: when button content contains HTML like
+	// <strong>Click here for the recipe!</strong><br/>
+	// the button renders as "Button" instead of the custom text
+
+	tests := []struct {
+		name             string
+		buttonContent    string
+		expectedText     string
+		shouldContain    []string
+		shouldNotContain []string
+	}{
+		{
+			name:          "plain text button content",
+			buttonContent: "Click here",
+			expectedText:  "Click here",
+			shouldContain: []string{"Click here"},
+		},
+		{
+			name:          "button with strong tag - BUG #242",
+			buttonContent: "<strong>Click here for the recipe!</strong>",
+			expectedText:  "Click here for the recipe!",
+			shouldContain: []string{"Click here for the recipe!"},
+			// Should NOT render as default "Button" text
+			shouldNotContain: []string{">Button<"},
+		},
+		{
+			name:             "button with strong and br tags - BUG #242",
+			buttonContent:    "<strong>Click here for the recipe!</strong><br/>",
+			expectedText:     "Click here for the recipe!",
+			shouldContain:    []string{"Click here for the recipe!"},
+			shouldNotContain: []string{">Button<"},
+		},
+		{
+			name:             "button with br tag only",
+			buttonContent:    "Line 1<br/>Line 2",
+			expectedText:     "Line 1",
+			shouldContain:    []string{"Line 1", "Line 2"},
+			shouldNotContain: []string{">Button<"},
+		},
+		{
+			name:             "button with em tag",
+			buttonContent:    "<em>Important</em> Action",
+			expectedText:     "Important Action",
+			shouldContain:    []string{"Important", "Action"},
+			shouldNotContain: []string{">Button<"},
+		},
+		{
+			name:             "button with nested formatting",
+			buttonContent:    "<strong><em>Bold Italic</em></strong>",
+			expectedText:     "Bold Italic",
+			shouldContain:    []string{"Bold Italic"},
+			shouldNotContain: []string{">Button<"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create button with the test content
+			buttonBase := NewBaseBlock("button-1", MJMLComponentMjButton)
+			buttonBase.Attributes["href"] = "https://example.com"
+			buttonBase.Content = stringPtr(tt.buttonContent)
+			buttonBlock := &MJButtonBlock{BaseBlock: buttonBase}
+
+			// Create complete MJML structure
+			column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+			column.Children = []EmailBlock{buttonBlock}
+
+			section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+			section.Children = []EmailBlock{column}
+
+			body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+			body.Children = []EmailBlock{section}
+
+			mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+			mjml.Children = []EmailBlock{body}
+
+			req := CompileTemplateRequest{
+				WorkspaceID:      "test-workspace",
+				MessageID:        "test-message",
+				VisualEditorTree: mjml,
+				TrackingSettings: TrackingSettings{
+					EnableTracking: false,
+				},
+			}
+
+			resp, err := CompileTemplate(req)
+			if err != nil {
+				t.Fatalf("CompileTemplate failed: %v", err)
+			}
+
+			if !resp.Success {
+				t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+			}
+
+			if resp.HTML == nil {
+				t.Fatal("Expected HTML in response")
+			}
+
+			// Log MJML and HTML for debugging
+			t.Logf("Input button content: %s", tt.buttonContent)
+			t.Logf("Generated MJML:\n%s", *resp.MJML)
+			t.Logf("Generated HTML (excerpt):\n%s", *resp.HTML)
+
+			// Check that expected content appears in HTML
+			for _, expected := range tt.shouldContain {
+				if !strings.Contains(*resp.HTML, expected) {
+					t.Errorf("Expected HTML to contain %q for button text, but it didn't.\n"+
+						"This confirms bug #242: button content with HTML tags doesn't render correctly.\n"+
+						"HTML output:\n%s", expected, *resp.HTML)
+				}
+			}
+
+			// Check that unexpected content does NOT appear
+			for _, unexpected := range tt.shouldNotContain {
+				if strings.Contains(*resp.HTML, unexpected) {
+					t.Errorf("Expected HTML NOT to contain %q (default button text), but it did.\n"+
+						"This confirms bug #242: button fell back to default 'Button' text.\n"+
+						"HTML output:\n%s", unexpected, *resp.HTML)
+				}
+			}
+		})
+	}
+}
+
+func TestCompileTemplateWithImageLiquidOnlySrcPartialData(t *testing.T) {
+	// Create an mj-image with only Liquid syntax in src attribute
+	imageBase := NewBaseBlock("image-1", MJMLComponentMjImage)
+	imageBase.Attributes["src"] = "{{ postImage }}"
+	imageBase.Attributes["alt"] = "Post Image"
+	imageBlock := &MJImageBlock{BaseBlock: imageBase}
+
+	// Create complete MJML structure
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{imageBlock}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{body}
+
+	// BUG SCENARIO: Template data exists but doesn't include "postImage"
+	// Without the fix, this would render {{ postImage }} to empty string,
+	// resulting in src="" which breaks the MJML compiler or produces invalid HTML.
+	t.Run("with partial template data missing image variable", func(t *testing.T) {
+		req := CompileTemplateRequest{
+			WorkspaceID:      "test-workspace",
+			MessageID:        "test-message",
+			VisualEditorTree: mjml,
+			TemplateData: MapOfAny{
+				"other_var": "some_value",
+				"contact": map[string]interface{}{
+					"email": "test@example.com",
+				},
+			}, // Has data, but NOT the "postImage" variable
+			TrackingSettings: TrackingSettings{
+				EnableTracking: false,
+			},
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("CompileTemplate should not return error: %v", err)
+		}
+
+		// Log MJML output for debugging
+		if resp.MJML != nil {
+			t.Logf("Generated MJML:\n%s", *resp.MJML)
+		}
+
+		if !resp.Success {
+			t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+		}
+
+		if resp.MJML == nil {
+			t.Fatal("Expected MJML in response")
+		}
+
+		if resp.HTML == nil {
+			t.Fatal("Expected HTML in response")
+		}
+
+		// CRITICAL: A helpful debug message should be shown when the variable is not in template data.
+		// Without the fix, it would render to src="" which is broken.
+		if !strings.Contains(*resp.MJML, "[undefined: postImage]") {
+			t.Errorf("Expected MJML to contain debug message '[undefined: postImage]' when variable is not in template data.\n"+
+				"This likely means the Liquid engine rendered it to empty string.\n"+
+				"Got MJML:\n%s", *resp.MJML)
+		}
+
+		// The HTML should also contain the debug message
+		if !strings.Contains(*resp.HTML, "[undefined: postImage]") {
+			t.Errorf("Expected HTML to contain debug message '[undefined: postImage]' when variable is not in template data.\n"+
+				"This likely means the Liquid engine rendered it to empty string.\n"+
+				"Got HTML:\n%s", *resp.HTML)
+		}
+
+		t.Logf("Generated HTML:\n%s", *resp.HTML)
+	})
+
+	// Verify that when the variable IS present, it gets properly replaced
+	t.Run("with complete template data including image variable", func(t *testing.T) {
+		req := CompileTemplateRequest{
+			WorkspaceID:      "test-workspace",
+			MessageID:        "test-message",
+			VisualEditorTree: mjml,
+			TemplateData: MapOfAny{
+				"postImage": "https://example.com/images/my-post.jpg",
+				"other_var": "some_value",
+			}, // Has the "postImage" variable
+			TrackingSettings: TrackingSettings{
+				EnableTracking: false,
+			},
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("CompileTemplate failed: %v", err)
+		}
+
+		if !resp.Success {
+			t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+		}
+
+		// When the variable IS present, it should be replaced
+		if !strings.Contains(*resp.HTML, "https://example.com/images/my-post.jpg") {
+			t.Errorf("Expected HTML to contain the resolved image URL when variable is present, got:\n%s", *resp.HTML)
+		}
+
+		// Should NOT contain the raw Liquid syntax
+		if strings.Contains(*resp.HTML, "{{ postImage }}") {
+			t.Errorf("Expected HTML to NOT contain raw Liquid syntax when variable is present, got:\n%s", *resp.HTML)
+		}
+
+		t.Logf("Generated HTML:\n%s", *resp.HTML)
+	})
+}
+
+func TestAttributePriority(t *testing.T) {
+	t.Run("P3 mj-attributes overrides compiler defaults", func(t *testing.T) {
+		// mj-attributes sets color=#333333, body mj-text has no inline color
+		jsonData := `{
+			"workspace_id": "ws-1",
+			"message_id": "msg-1",
+			"visual_editor_tree": {
+				"id": "mjml-1",
+				"type": "mjml",
+				"children": [
+					{
+						"id": "head-1",
+						"type": "mj-head",
+						"children": [
+							{
+								"id": "attrs-1",
+								"type": "mj-attributes",
+								"children": [
+									{"id":"text-def","type":"mj-text","attributes":{"color":"#333333"}}
+								]
+							}
+						]
+					},
+					{
+						"id": "body-1",
+						"type": "mj-body",
+						"children": [
+							{
+								"id": "section-1",
+								"type": "mj-section",
+								"children": [
+									{
+										"id": "column-1",
+										"type": "mj-column",
+										"children": [
+											{"id":"text-1","type":"mj-text","content":"Hello"}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		}`
+
+		var req CompileTemplateRequest
+		err := json.Unmarshal([]byte(jsonData), &req)
+		if err != nil {
+			t.Fatalf("Failed to unmarshal: %v", err)
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("Failed to compile: %v", err)
+		}
+		if resp.HTML == nil {
+			t.Fatal("HTML should not be nil")
+		}
+
+		html := *resp.HTML
+		if !strings.Contains(html, "color:#333333") && !strings.Contains(html, "color: #333333") {
+			t.Errorf("Expected HTML to contain color:#333333 from mj-attributes, got:\n%s", html)
+		}
+	})
+
+	t.Run("P3 mj-all applies globally", func(t *testing.T) {
+		jsonData := `{
+			"workspace_id": "ws-1",
+			"message_id": "msg-1",
+			"visual_editor_tree": {
+				"id": "mjml-1",
+				"type": "mjml",
+				"children": [
+					{
+						"id": "head-1",
+						"type": "mj-head",
+						"children": [
+							{
+								"id": "attrs-1",
+								"type": "mj-attributes",
+								"children": [
+									{"id":"all-1","type":"mj-all","attributes":{"fontFamily":"Courier"}}
+								]
+							}
+						]
+					},
+					{
+						"id": "body-1",
+						"type": "mj-body",
+						"children": [
+							{
+								"id": "section-1",
+								"type": "mj-section",
+								"children": [
+									{
+										"id": "column-1",
+										"type": "mj-column",
+										"children": [
+											{"id":"text-1","type":"mj-text","content":"Hello"}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		}`
+
+		var req CompileTemplateRequest
+		err := json.Unmarshal([]byte(jsonData), &req)
+		if err != nil {
+			t.Fatalf("Failed to unmarshal: %v", err)
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("Failed to compile: %v", err)
+		}
+		if resp.HTML == nil {
+			t.Fatal("HTML should not be nil")
+		}
+
+		html := *resp.HTML
+		if !strings.Contains(html, "font-family:Courier") && !strings.Contains(html, "font-family: Courier") {
+			t.Errorf("Expected HTML to contain font-family:Courier from mj-all, got:\n%s", html)
+		}
+	})
+
+	t.Run("P1 inline overrides mj-attributes", func(t *testing.T) {
+		jsonData := `{
+			"workspace_id": "ws-1",
+			"message_id": "msg-1",
+			"visual_editor_tree": {
+				"id": "mjml-1",
+				"type": "mjml",
+				"children": [
+					{
+						"id": "head-1",
+						"type": "mj-head",
+						"children": [
+							{
+								"id": "attrs-1",
+								"type": "mj-attributes",
+								"children": [
+									{"id":"text-def","type":"mj-text","attributes":{"color":"#333333"}}
+								]
+							}
+						]
+					},
+					{
+						"id": "body-1",
+						"type": "mj-body",
+						"children": [
+							{
+								"id": "section-1",
+								"type": "mj-section",
+								"children": [
+									{
+										"id": "column-1",
+										"type": "mj-column",
+										"children": [
+											{"id":"text-1","type":"mj-text","content":"Hello","attributes":{"color":"#ff0000"}}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		}`
+
+		var req CompileTemplateRequest
+		err := json.Unmarshal([]byte(jsonData), &req)
+		if err != nil {
+			t.Fatalf("Failed to unmarshal: %v", err)
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("Failed to compile: %v", err)
+		}
+		if resp.HTML == nil {
+			t.Fatal("HTML should not be nil")
+		}
+
+		html := *resp.HTML
+		if !strings.Contains(html, "color:#ff0000") && !strings.Contains(html, "color: #ff0000") {
+			t.Errorf("Expected HTML to contain inline color:#ff0000, got:\n%s", html)
+		}
+	})
+
+	t.Run("P4 compiler defaults when no mj-attributes", func(t *testing.T) {
+		// Without mj-head/mj-attributes, gomjml applies its own component defaults.
+		// The email should render successfully with content visible.
+		jsonData := `{
+			"workspace_id": "ws-1",
+			"message_id": "msg-1",
+			"visual_editor_tree": {
+				"id": "mjml-1",
+				"type": "mjml",
+				"children": [
+					{
+						"id": "body-1",
+						"type": "mj-body",
+						"children": [
+							{
+								"id": "section-1",
+								"type": "mj-section",
+								"children": [
+									{
+										"id": "column-1",
+										"type": "mj-column",
+										"children": [
+											{"id":"text-1","type":"mj-text","content":"Hello"}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		}`
+
+		var req CompileTemplateRequest
+		err := json.Unmarshal([]byte(jsonData), &req)
+		if err != nil {
+			t.Fatalf("Failed to unmarshal: %v", err)
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("Failed to compile: %v", err)
+		}
+		if resp.HTML == nil {
+			t.Fatal("HTML should not be nil")
+		}
+
+		html := *resp.HTML
+		// Content is rendered
+		if !strings.Contains(html, "Hello") {
+			t.Errorf("Expected HTML to contain 'Hello', got:\n%s", html)
+		}
+		// gomjml produces valid HTML structure
+		if !strings.Contains(html, "<table") {
+			t.Errorf("Expected HTML to contain table-based email layout, got:\n%s", html)
+		}
+	})
+}
+
+func TestOverrideMjPreviewInSource(t *testing.T) {
+	t.Run("replaces existing mj-preview content", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview>Old preview</mj-preview></mj-head><mj-body></mj-body></mjml>`
+		result := overrideMjPreviewInSource(mjml, "New preview")
+		assert.Contains(t, result, "<mj-preview>New preview</mj-preview>")
+		assert.NotContains(t, result, "Old preview")
+	})
+
+	t.Run("injects mj-preview when none exists", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-title>Title</mj-title></mj-head><mj-body></mj-body></mjml>`
+		result := overrideMjPreviewInSource(mjml, "Injected preview")
+		assert.Contains(t, result, "<mj-preview>Injected preview</mj-preview>")
+		assert.Contains(t, result, "<mj-title>Title</mj-title>")
+	})
+
+	t.Run("escapes XML special characters", func(t *testing.T) {
+		// Angle brackets must be numeric character references: the MJML parser
+		// pre-decodes named &lt;/&gt; entities back to raw brackets before XML
+		// parsing, so &lt;script&gt; would come back as live markup.
+		mjml := `<mjml><mj-head><mj-preview>Old</mj-preview></mj-head></mjml>`
+		result := overrideMjPreviewInSource(mjml, `<script>alert("xss")</script> & more`)
+		assert.Contains(t, result, "&#60;script&#62;")
+		assert.Contains(t, result, "&amp; more")
+		assert.NotContains(t, result, "<script>")
+		assert.NotContains(t, result, "&lt;script&gt;")
+	})
+
+	t.Run("handles multiline existing content", func(t *testing.T) {
+		mjml := "<mjml><mj-head><mj-preview>Line1\nLine2</mj-preview></mj-head></mjml>"
+		result := overrideMjPreviewInSource(mjml, "New text")
+		assert.Contains(t, result, "<mj-preview>New text</mj-preview>")
+		assert.NotContains(t, result, "Line1")
+	})
+
+	t.Run("handles dollar signs in text", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview>Old</mj-preview></mj-head></mjml>`
+		result := overrideMjPreviewInSource(mjml, "Save $50 today!")
+		assert.Contains(t, result, "<mj-preview>Save $50 today!</mj-preview>")
+	})
+
+	t.Run("preserves Liquid variables for later processing", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview>Old</mj-preview></mj-head></mjml>`
+		result := overrideMjPreviewInSource(mjml, "Order {{ order_id }} confirmed")
+		assert.Contains(t, result, "<mj-preview>Order {{ order_id }} confirmed</mj-preview>")
+	})
+
+	t.Run("replaces self-closing mj-preview", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview /></mj-head><mj-body></mj-body></mjml>`
+		result := overrideMjPreviewInSource(mjml, "New preview")
+		assert.Contains(t, result, "<mj-preview>New preview</mj-preview>")
+		assert.Equal(t, 1, strings.Count(result, "<mj-preview"), "must replace the tag, not add a second one")
+	})
+
+	t.Run("replaces self-closing mj-preview without space", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview/></mj-head><mj-body></mj-body></mjml>`
+		result := overrideMjPreviewInSource(mjml, "New preview")
+		assert.Contains(t, result, "<mj-preview>New preview</mj-preview>")
+		assert.Equal(t, 1, strings.Count(result, "<mj-preview"))
+	})
+
+	t.Run("keeps attributes of a self-closing mj-preview", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview css-class="x" /></mj-head><mj-body></mj-body></mjml>`
+		result := overrideMjPreviewInSource(mjml, "New preview")
+		assert.Contains(t, result, `<mj-preview css-class="x">New preview</mj-preview>`)
+		assert.Equal(t, 1, strings.Count(result, "<mj-preview"))
+	})
+
+	t.Run("replaces content of a paired mj-preview carrying attributes", func(t *testing.T) {
+		mjml := `<mjml><mj-head><mj-preview css-class="x">Old preview</mj-preview></mj-head><mj-body></mj-body></mjml>`
+		result := overrideMjPreviewInSource(mjml, "New preview")
+		assert.Contains(t, result, `<mj-preview css-class="x">New preview</mj-preview>`)
+		assert.NotContains(t, result, "Old preview")
+		assert.Equal(t, 1, strings.Count(result, "<mj-preview"))
+	})
+
+	t.Run("creates mj-head when only mjml root exists", func(t *testing.T) {
+		mjml := `<mjml><mj-body></mj-body></mjml>`
+		result := overrideMjPreviewInSource(mjml, "Preview")
+		assert.Contains(t, result, "<mj-head>")
+		assert.Contains(t, result, "<mj-preview>Preview</mj-preview>")
+		assert.Contains(t, result, "</mj-head>")
+	})
+
+	t.Run("no mjml tag returns unchanged", func(t *testing.T) {
+		mjml := `<div>not mjml</div>`
+		result := overrideMjPreviewInSource(mjml, "Preview")
+		assert.Equal(t, mjml, result)
+	})
+}
+
+func TestUpdateBlockContent(t *testing.T) {
+	t.Run("updates mj-preview block content", func(t *testing.T) {
+		oldContent := "Old preview"
+		previewBase := NewBaseBlock("preview", MJMLComponentMjPreview)
+		previewBase.Content = &oldContent
+
+		headBase := NewBaseBlock("head", MJMLComponentMjHead)
+		headBase.Children = []EmailBlock{
+			&MJPreviewBlock{BaseBlock: previewBase},
+		}
+
+		rootBase := NewBaseBlock("root", MJMLComponentMjml)
+		rootBase.Children = []EmailBlock{
+			&MJHeadBlock{BaseBlock: headBase},
+		}
+		tree := &MJMLBlock{BaseBlock: rootBase}
+
+		updateBlockContent(tree, MJMLComponentMjPreview, "New preview")
+
+		// Find the preview block and verify
+		headBlock := tree.Children[0].(*MJHeadBlock)
+		previewBlock := headBlock.Children[0].(*MJPreviewBlock)
+		assert.Equal(t, "New preview", *previewBlock.Content)
+	})
+
+	t.Run("no-op when block type not found", func(t *testing.T) {
+		tree := &MJMLBlock{BaseBlock: NewBaseBlock("root", MJMLComponentMjml)}
+		// Should not panic
+		updateBlockContent(tree, MJMLComponentMjPreview, "Preview")
+	})
+
+	t.Run("handles nil block", func(t *testing.T) {
+		// Should not panic
+		updateBlockContent(nil, MJMLComponentMjPreview, "Preview")
+	})
+}
+
+func TestCompileTemplateWithMJLiquidForLoop(t *testing.T) {
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(
+		`{% for item in items %}<mj-column><mj-text>{{ item.name }}</mj-text></mj-column>{% endfor %}`)
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("sec", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TemplateData: MapOfAny{"items": []map[string]interface{}{
+			{"name": "Product A"}, {"name": "Product B"},
+		}},
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	assert.True(t, resp.Success, "error: %v", resp.Error)
+	assert.Contains(t, *resp.HTML, "Product A")
+	assert.Contains(t, *resp.HTML, "Product B")
+}
+
+func TestCompileTemplateWithMJLiquidConditional(t *testing.T) {
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(
+		`{% if show_promo %}<mj-section><mj-column><mj-text>Special Offer!</mj-text></mj-column></mj-section>{% endif %}`)
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	// show_promo = true
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TemplateData:     MapOfAny{"show_promo": true},
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	assert.True(t, resp.Success, "error: %v", resp.Error)
+	assert.Contains(t, *resp.HTML, "Special Offer!")
+
+	// show_promo = false
+	resp, err = CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TemplateData:     MapOfAny{"show_promo": false},
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	assert.True(t, resp.Success, "error: %v", resp.Error)
+	assert.NotContains(t, *resp.HTML, "Special Offer!")
+}
+
+func TestCompileTemplateWithMJLiquidPreserveLiquid(t *testing.T) {
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(
+		`{% for item in items %}<mj-column><mj-text>{{ item.name }}</mj-text></mj-column>{% endfor %}`)
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("sec", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		PreserveLiquid:   true,
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	assert.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "{% for item in items %}")
+	assert.Contains(t, *resp.MJML, "{{ item.name }}")
+}
+
+func TestCompileTemplateWithMJLiquidNoData(t *testing.T) {
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(
+		`{% for item in items %}<mj-column><mj-text>{{ item.name }}</mj-text></mj-column>{% endfor %}`)
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("sec", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	assert.NotNil(t, resp.MJML)
+	// No template data → Liquid syntax preserved in MJML
+	assert.Contains(t, *resp.MJML, "{% for item in items %}")
+}
+
+func TestCompileTemplateWithMJLiquidAndRegularBlocks(t *testing.T) {
+	text := &MJTextBlock{BaseBlock: NewBaseBlock("txt", MJMLComponentMjText)}
+	text.Content = stringPtr("Hello {{ user_name }}")
+
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(
+		`{% if show_cta %}<mj-button href="https://example.com">Click me</mj-button>{% endif %}`)
+
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("col", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{text, &MJLiquidBlock{BaseBlock: liqBase}}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("sec", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TemplateData:     MapOfAny{"user_name": "Alice", "show_cta": true},
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	assert.True(t, resp.Success, "error: %v", resp.Error)
+	assert.Contains(t, *resp.HTML, "Hello Alice")
+	assert.Contains(t, *resp.HTML, "Click me")
+}
+
+func TestCompileTemplateWithMJLiquidFromJSON(t *testing.T) {
+	jsonData := `{
+		"workspace_id": "ws",
+		"message_id": "msg",
+		"visual_editor_tree": {
+			"id": "mjml-1", "type": "mjml",
+			"children": [{
+				"id": "body-1", "type": "mj-body",
+				"children": [{
+					"id": "sec-1", "type": "mj-section",
+					"children": [{
+						"id": "liq-1", "type": "mj-liquid",
+						"content": "{% for item in items %}<mj-column><mj-text>{{ item.name }}</mj-text></mj-column>{% endfor %}"
+					}]
+				}]
+			}]
+		},
+		"test_data": {"items": [{"name": "Item 1"}, {"name": "Item 2"}]}
+	}`
+
+	var req CompileTemplateRequest
+	err := json.Unmarshal([]byte(jsonData), &req)
+	assert.NoError(t, err)
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.True(t, resp.Success, "error: %v", resp.Error)
+	assert.Contains(t, *resp.HTML, "Item 1")
+	assert.Contains(t, *resp.HTML, "Item 2")
+}
+
+func TestCompileTemplateWithMJLiquidGeneratingSections(t *testing.T) {
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(
+		`{% for section in sections %}<mj-section><mj-column><mj-text>{{ section.title }}</mj-text></mj-column></mj-section>{% endfor %}`)
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TemplateData: MapOfAny{"sections": []map[string]interface{}{
+			{"title": "Section One"}, {"title": "Section Two"},
+		}},
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	assert.True(t, resp.Success, "error: %v", resp.Error)
+	assert.Contains(t, *resp.HTML, "Section One")
+	assert.Contains(t, *resp.HTML, "Section Two")
+}
+
+func TestCompileTemplateWithMJLiquidInvalidSyntax(t *testing.T) {
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(`{% for item in items %}<mj-text>{{ item.name }}</mj-text>`)
+	// Missing {% endfor %}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("sec", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TemplateData:     MapOfAny{"items": []map[string]interface{}{{"name": "A"}}},
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err) // Go error should be nil
+	assert.False(t, resp.Success)
+	assert.NotNil(t, resp.Error)
+}
+
+func TestCompileTemplateWithMJLiquidDoubleLiquidSafety(t *testing.T) {
+	// Verify that template data containing Liquid-like syntax does not
+	// get re-interpreted by the whole-string Liquid pass.
+	text := &MJTextBlock{BaseBlock: NewBaseBlock("txt", MJMLComponentMjText)}
+	text.Content = stringPtr("Hello {{ user_name }}")
+
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(
+		`{% if show %}<mj-section><mj-column><mj-text>Promo</mj-text></mj-column></mj-section>{% endif %}`)
+
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("col", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{text}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("sec", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section, &MJLiquidBlock{BaseBlock: liqBase}}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	// user_name contains Liquid-like syntax — it should NOT be re-processed
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TemplateData:     MapOfAny{"user_name": "Bob {{ secret }}", "show": true},
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	assert.True(t, resp.Success, "error: %v", resp.Error)
+	// The per-block pass renders "Bob {{ secret }}" into mj-text.
+	// The whole-string pass then sees {{ secret }} and renders it as empty.
+	// This is the known double-processing edge case (same risk as code mode).
+	assert.Contains(t, *resp.HTML, "Bob")
+	assert.Contains(t, *resp.HTML, "Promo")
+}
+
+func TestCompileTemplateWithMJLiquidInvalidMJML(t *testing.T) {
+	// mj-liquid generating structurally invalid MJML (mj-text directly in mj-body)
+	// should produce a compilation error from the MJML compiler, not a crash.
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(`<mj-text>Orphan text</mj-text>`)
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	// Should not panic — either succeeds (MJML is lenient) or returns a clean error
+	assert.NoError(t, err)
+	if !resp.Success {
+		assert.NotNil(t, resp.Error)
+	}
+}
+
+func TestCompileTemplateWithMJLiquidEmptyStringContent(t *testing.T) {
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr("")
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("sec", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	assert.True(t, resp.Success, "error: %v", resp.Error)
+	assert.NotNil(t, resp.HTML)
+	assert.NotContains(t, *resp.HTML, "mj-liquid")
+}
+
+func TestCompileTemplateWithMJLiquidTimeout(t *testing.T) {
+	// Deeply nested loops that should trigger SecureLiquidEngine timeout
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(
+		`{% for a in items %}{% for b in items %}{% for c in items %}{% for d in items %}{% for e in items %}<mj-text>{{ a }}</mj-text>{% endfor %}{% endfor %}{% endfor %}{% endfor %}{% endfor %}`)
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	// Provide a large array to make the nested loops expensive
+	largeArray := make([]int, 100)
+	for i := range largeArray {
+		largeArray[i] = i
+	}
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		TemplateData:     MapOfAny{"items": largeArray},
+		TrackingSettings: TrackingSettings{EnableTracking: false},
+	})
+	assert.NoError(t, err)
+	// Should fail due to timeout, not crash
+	assert.False(t, resp.Success)
+	assert.NotNil(t, resp.Error)
+}
+
+// minimalTree returns the smallest valid visual_editor_tree the compiler accepts.
+func minimalTree() EmailBlock {
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = stringPtr("hello")
+	textBlock := &MJTextBlock{BaseBlock: textBase}
+
+	columnBlock := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	columnBlock.Children = []EmailBlock{textBlock}
+
+	sectionBlock := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	sectionBlock.Children = []EmailBlock{columnBlock}
+
+	bodyBlock := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	bodyBlock.Children = []EmailBlock{sectionBlock}
+
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{bodyBlock}
+	return mjml
+}
+
+func TestCompileTemplateSubjectRendered(t *testing.T) {
+	subject := "Hi {{ contact.first_name }}"
+	preview := "Welcome {{ contact.first_name }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: minimalTree(),
+		Subject:          &subject,
+		SubjectPreview:   &preview,
+		TemplateData:     MapOfAny{"contact": map[string]interface{}{"first_name": "Pierre"}},
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.True(t, resp.Success)
+	if assert.NotNil(t, resp.Subject) {
+		assert.Equal(t, "Hi Pierre", *resp.Subject)
+	}
+	if assert.NotNil(t, resp.SubjectPreview) {
+		assert.Equal(t, "Welcome Pierre", *resp.SubjectPreview)
+	}
+}
+
+func TestCompileTemplateSubjectNoLiquid(t *testing.T) {
+	subject := "Plain subject line"
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: minimalTree(),
+		Subject:          &subject,
+		TemplateData:     MapOfAny{"contact": map[string]interface{}{"first_name": "Pierre"}},
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.True(t, resp.Success)
+	if assert.NotNil(t, resp.Subject) {
+		assert.Equal(t, "Plain subject line", *resp.Subject)
+	}
+}
+
+func TestCompileTemplateSubjectEmpty(t *testing.T) {
+	// No subject provided at all → response omits subject field.
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: minimalTree(),
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.True(t, resp.Success)
+	assert.Nil(t, resp.Subject)
+	assert.Nil(t, resp.SubjectPreview)
+}
+
+func TestCompileTemplateSubjectEmptyString(t *testing.T) {
+	// Subject pointer set but empty string → treated as not provided.
+	empty := ""
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: minimalTree(),
+		Subject:          &empty,
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.True(t, resp.Success)
+	assert.Nil(t, resp.Subject)
+}
+
+func TestCompileTemplateSubjectPreserveLiquid(t *testing.T) {
+	subject := "Hi {{ contact.first_name }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: minimalTree(),
+		Subject:          &subject,
+		TemplateData:     MapOfAny{"contact": map[string]interface{}{"first_name": "Pierre"}},
+		PreserveLiquid:   true,
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.True(t, resp.Success)
+	if assert.NotNil(t, resp.Subject) {
+		assert.Equal(t, "Hi {{ contact.first_name }}", *resp.Subject)
+	}
+}
+
+func TestCompileTemplateSubjectWebChannel(t *testing.T) {
+	subject := "Hi {{ contact.first_name }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: minimalTree(),
+		Subject:          &subject,
+		TemplateData:     MapOfAny{"contact": map[string]interface{}{"first_name": "Pierre"}},
+		Channel:          "web",
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.True(t, resp.Success)
+	if assert.NotNil(t, resp.Subject) {
+		// web channel skips personalization for the body; subject mirrors that.
+		assert.Equal(t, "Hi {{ contact.first_name }}", *resp.Subject)
+	}
+}
+
+func TestCompileTemplateSubjectLiquidError(t *testing.T) {
+	// Unclosed Liquid tag in the subject should short-circuit compilation.
+	subject := "Hi {{ contact.first_name"
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: minimalTree(),
+		Subject:          &subject,
+		TemplateData:     MapOfAny{"contact": map[string]interface{}{"first_name": "Pierre"}},
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.False(t, resp.Success)
+	assert.NotNil(t, resp.Error)
+	// Body should NOT have been compiled because subject failed first.
+	assert.Nil(t, resp.MJML)
+	assert.Nil(t, resp.HTML)
+}
+
+func TestCompileTemplateSubjectPreviewLiquidError(t *testing.T) {
+	// Valid subject, malformed subject_preview → subject is returned, body skipped.
+	subject := "Hi {{ contact.first_name }}"
+	preview := "Welcome {{ contact.first_name"
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: minimalTree(),
+		Subject:          &subject,
+		SubjectPreview:   &preview,
+		TemplateData:     MapOfAny{"contact": map[string]interface{}{"first_name": "Pierre"}},
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.False(t, resp.Success)
+	assert.NotNil(t, resp.Error)
+	if assert.NotNil(t, resp.Subject) {
+		assert.Equal(t, "Hi Pierre", *resp.Subject)
+	}
+	assert.Nil(t, resp.SubjectPreview)
+}
+
+func TestCompileTemplateSubjectReturnedOnBodyError(t *testing.T) {
+	// Valid subject Liquid but malformed body Liquid (unclosed expression in
+	// mj-text content) must still return the rendered subject so the UI can
+	// display it next to the error.
+	subject := "Hi {{ contact.first_name }}"
+
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = stringPtr("Hello {{ contact.first_name")
+	textBlock := &MJTextBlock{BaseBlock: textBase}
+
+	columnBlock := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	columnBlock.Children = []EmailBlock{textBlock}
+
+	sectionBlock := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	sectionBlock.Children = []EmailBlock{columnBlock}
+
+	bodyBlock := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	bodyBlock.Children = []EmailBlock{sectionBlock}
+
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	root.Children = []EmailBlock{bodyBlock}
+
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: root,
+		Subject:          &subject,
+		TemplateData:     MapOfAny{"contact": map[string]interface{}{"first_name": "Pierre"}},
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.False(t, resp.Success)
+	assert.NotNil(t, resp.Error)
+	if assert.NotNil(t, resp.Subject) {
+		assert.Equal(t, "Hi Pierre", *resp.Subject)
+	}
+}
+
+func TestCompileTemplateSubjectNoTemplateData(t *testing.T) {
+	// Liquid expression in subject but no data → ProcessLiquidTemplate is skipped
+	// because TemplateData is empty (mirrors body behavior).
+	subject := "Hi {{ contact.first_name }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: minimalTree(),
+		Subject:          &subject,
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.True(t, resp.Success)
+	if assert.NotNil(t, resp.Subject) {
+		assert.Equal(t, "Hi {{ contact.first_name }}", *resp.Subject)
+	}
+}
+
+// treeWithMjPreview builds a minimal visual tree whose head contains an
+// mj-preview block with the given content.
+func treeWithMjPreview(content string) EmailBlock {
+	previewBase := NewBaseBlock("preview-1", MJMLComponentMjPreview)
+	previewBase.Content = stringPtr(content)
+	previewBlock := &MJPreviewBlock{BaseBlock: previewBase}
+
+	headBlock := &MJHeadBlock{BaseBlock: NewBaseBlock("head-1", MJMLComponentMjHead)}
+	headBlock.Children = []EmailBlock{previewBlock}
+
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = stringPtr("hello")
+	textBlock := &MJTextBlock{BaseBlock: textBase}
+
+	columnBlock := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	columnBlock.Children = []EmailBlock{textBlock}
+
+	sectionBlock := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	sectionBlock.Children = []EmailBlock{columnBlock}
+
+	bodyBlock := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	bodyBlock.Children = []EmailBlock{sectionBlock}
+
+	mjmlBlock := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjmlBlock.Children = []EmailBlock{headBlock, bodyBlock}
+	return mjmlBlock
+}
+
+// treeWithMjTitle builds a minimal visual tree whose head contains an mj-title
+// block with the given content.
+func treeWithMjTitle(content string) EmailBlock {
+	titleBase := NewBaseBlock("title-1", MJMLComponentMjTitle)
+	titleBase.Content = stringPtr(content)
+
+	headBlock := &MJHeadBlock{BaseBlock: NewBaseBlock("head-1", MJMLComponentMjHead)}
+	headBlock.Children = []EmailBlock{&MJTitleBlock{BaseBlock: titleBase}}
+
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = stringPtr("hello")
+
+	columnBlock := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	columnBlock.Children = []EmailBlock{&MJTextBlock{BaseBlock: textBase}}
+
+	sectionBlock := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	sectionBlock.Children = []EmailBlock{columnBlock}
+
+	bodyBlock := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	bodyBlock.Children = []EmailBlock{sectionBlock}
+
+	mjmlBlock := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjmlBlock.Children = []EmailBlock{headBlock, bodyBlock}
+	return mjmlBlock
+}
+
+func globalFeedData(subject string) MapOfAny {
+	return MapOfAny{"global_feed": map[string]interface{}{"subject": subject}}
+}
+
+func TestCompileTemplateSubjectPreviewOverrideFallbackRendersLiquid(t *testing.T) {
+	// Visual tree without an mj-preview block: the override is injected as a new
+	// <mj-preview> tag, and Liquid in it must be rendered — not shipped literally.
+	override := "{{ global_feed.subject }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		VisualEditorTree:       minimalTree(),
+		SubjectPreviewOverride: &override,
+		TemplateData:           globalFeedData("Weekly digest"),
+	}
+
+	resp, err := CompileTemplate(req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	require.NotNil(t, resp.HTML)
+	assert.Contains(t, *resp.MJML, "<mj-preview>Weekly digest</mj-preview>")
+	assert.Contains(t, *resp.HTML, "Weekly digest")
+	assert.NotContains(t, *resp.HTML, "{{ global_feed.subject }}")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideFallbackEscapesRenderedValue(t *testing.T) {
+	// The rendered value — not the raw Liquid — must be escaped before being
+	// spliced into the MJML source, so data containing &, < or > still compiles.
+	override := "{{ global_feed.subject }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		VisualEditorTree:       minimalTree(),
+		SubjectPreviewOverride: &override,
+		TemplateData:           globalFeedData("Tom & Jerry <weekly>"),
+	}
+
+	resp, err := CompileTemplate(req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	require.NotNil(t, resp.HTML)
+	assert.Contains(t, *resp.MJML, "Tom &amp; Jerry &#60;weekly&#62;")
+	assert.Contains(t, *resp.HTML, "Tom & Jerry")
+	assert.NotContains(t, *resp.HTML, "{{ global_feed.subject }}")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideFallbackNoDoubleLiquid(t *testing.T) {
+	// A rendered value that itself looks like Liquid must not be evaluated a
+	// second time by the whole-string pass.
+	override := "{{ global_feed.subject }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		VisualEditorTree:       minimalTree(),
+		SubjectPreviewOverride: &override,
+		TemplateData:           globalFeedData("Use {{coupon}} now"),
+	}
+
+	resp, err := CompileTemplate(req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.HTML)
+	assert.Contains(t, *resp.HTML, "Use {{coupon}} now")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideFallbackLiquidError(t *testing.T) {
+	// Malformed Liquid in the injected preview text surfaces as a compile error
+	// instead of being silently shipped to recipients.
+	override := "{{ global_feed.subject"
+	req := CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		VisualEditorTree:       minimalTree(),
+		SubjectPreviewOverride: &override,
+		TemplateData:           globalFeedData("Weekly digest"),
+	}
+
+	resp, err := CompileTemplate(req)
+	assert.NoError(t, err)
+	assert.False(t, resp.Success)
+	assert.NotNil(t, resp.Error)
+	assert.Nil(t, resp.HTML)
+}
+
+func TestCompileTemplateSubjectPreviewOverrideFallbackPreserveLiquid(t *testing.T) {
+	// MJML export (PreserveLiquid) keeps the Liquid syntax in the injected tag.
+	override := "{{ global_feed.subject }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		VisualEditorTree:       minimalTree(),
+		SubjectPreviewOverride: &override,
+		TemplateData:           globalFeedData("Weekly digest"),
+		PreserveLiquid:         true,
+	}
+
+	resp, err := CompileTemplate(req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "<mj-preview>{{ global_feed.subject }}</mj-preview>")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideFallbackNoData(t *testing.T) {
+	// No template data → Liquid processing is skipped everywhere, so the raw
+	// expression stays in place (mirrors subject/body behavior).
+	override := "{{ global_feed.subject }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		VisualEditorTree:       minimalTree(),
+		SubjectPreviewOverride: &override,
+	}
+
+	resp, err := CompileTemplate(req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "<mj-preview>{{ global_feed.subject }}</mj-preview>")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideFallbackWebChannel(t *testing.T) {
+	// Web channel skips personalization everywhere, so the injected preview keeps
+	// its Liquid syntax rather than rendering against contact data.
+	override := "{{ global_feed.subject }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		VisualEditorTree:       minimalTree(),
+		SubjectPreviewOverride: &override,
+		TemplateData:           globalFeedData("Weekly digest"),
+		Channel:                "web",
+	}
+
+	resp, err := CompileTemplate(req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "<mj-preview>{{ global_feed.subject }}</mj-preview>")
+	assert.NotContains(t, *resp.MJML, "Weekly digest")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideTreeBlockRendersLiquid(t *testing.T) {
+	// When the tree has an mj-preview block, the override lands in that block and
+	// goes through per-block Liquid rendering.
+	override := "{{ global_feed.subject }}"
+	req := CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		VisualEditorTree:       treeWithMjPreview("PLACEHOLDER"),
+		SubjectPreviewOverride: &override,
+		TemplateData:           globalFeedData("Weekly digest"),
+	}
+
+	resp, err := CompileTemplate(req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.HTML)
+	assert.Contains(t, *resp.HTML, "Weekly digest")
+	assert.NotContains(t, *resp.HTML, "PLACEHOLDER")
+	assert.NotContains(t, *resp.HTML, "{{ global_feed.subject }}")
+}
+
+// codeModeSource is a minimal code-mode document with no mj-preview block.
+const codeModeSource = `<mjml><mj-body><mj-section><mj-column><mj-text>hello</mj-text></mj-column></mj-section></mj-body></mjml>`
+
+func compileCodeMode(t *testing.T, override string, data MapOfAny, source string, preserveLiquid bool) *CompileTemplateResponse {
+	t.Helper()
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		MjmlSource:             &source,
+		SubjectPreviewOverride: &override,
+		TemplateData:           data,
+		PreserveLiquid:         preserveLiquid,
+	})
+	require.NoError(t, err)
+	return resp
+}
+
+func TestCompileTemplateSubjectPreviewOverrideCodeModeRendersLiquid(t *testing.T) {
+	// Code mode applies the override before its Liquid pass; Liquid renders.
+	resp := compileCodeMode(t, "{{ global_feed.subject }}", globalFeedData("Weekly digest"), codeModeSource, false)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.HTML)
+	assert.Contains(t, *resp.HTML, "Weekly digest")
+	assert.NotContains(t, *resp.HTML, "{{ global_feed.subject }}")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideCodeModeEscapesRenderedValue(t *testing.T) {
+	// An ampersand in the rendered value must be escaped: escaping the Liquid
+	// syntax instead leaves a bare & in the MJML, which fails the XML parse.
+	resp := compileCodeMode(t, "{{ global_feed.subject }}", globalFeedData("News & Updates"), codeModeSource, false)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "<mj-preview>News &amp; Updates</mj-preview>")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideCodeModeEscapesAngleBrackets(t *testing.T) {
+	resp := compileCodeMode(t, "{{ global_feed.subject }}", globalFeedData("Tom & Jerry <weekly>"), codeModeSource, false)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "<mj-preview>Tom &amp; Jerry &#60;weekly&#62;</mj-preview>")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideCodeModeLiquidComparison(t *testing.T) {
+	// Escaping before Liquid turns `>` into an entity and the comparison silently
+	// degrades to a truthiness test, yielding the wrong branch.
+	override := "{% if a > b %}YES{% else %}NO{% endif %}"
+	resp := compileCodeMode(t, override, MapOfAny{"a": 1, "b": 2}, codeModeSource, false)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "<mj-preview>NO</mj-preview>")
+	assert.NotContains(t, *resp.MJML, "YES")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideCodeModeReplacesExisting(t *testing.T) {
+	// Code mode must replace an existing mj-preview, not add a second one.
+	source := `<mjml><mj-head><mj-preview>OLD</mj-preview></mj-head><mj-body><mj-section><mj-column><mj-text>hello</mj-text></mj-column></mj-section></mj-body></mjml>`
+	resp := compileCodeMode(t, "{{ global_feed.subject }}", globalFeedData("Weekly digest"), source, false)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "<mj-preview>Weekly digest</mj-preview>")
+	assert.NotContains(t, *resp.MJML, "OLD")
+	assert.Equal(t, 1, strings.Count(*resp.MJML, "<mj-preview>"))
+}
+
+func TestCompileTemplateSubjectPreviewOverrideCodeModeLiquidError(t *testing.T) {
+	resp := compileCodeMode(t, "{{ global_feed.subject", globalFeedData("Weekly digest"), codeModeSource, false)
+	assert.False(t, resp.Success)
+	assert.NotNil(t, resp.Error)
+	assert.Nil(t, resp.HTML)
+}
+
+func TestCompileTemplateSubjectPreviewOverrideCodeModePreserveLiquid(t *testing.T) {
+	resp := compileCodeMode(t, "{{ global_feed.subject }}", globalFeedData("Weekly digest"), codeModeSource, true)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "<mj-preview>{{ global_feed.subject }}</mj-preview>")
+	assert.NotContains(t, *resp.MJML, "Weekly digest")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideCodeModeSelfClosingPreview(t *testing.T) {
+	// A hand-written self-closing <mj-preview /> must be replaced, not duplicated.
+	source := `<mjml><mj-head><mj-preview /></mj-head><mj-body><mj-section><mj-column><mj-text>hello</mj-text></mj-column></mj-section></mj-body></mjml>`
+	resp := compileCodeMode(t, "{{ global_feed.subject }}", globalFeedData("Weekly digest"), source, false)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	require.NotNil(t, resp.HTML)
+	assert.Equal(t, 1, strings.Count(*resp.MJML, "<mj-preview"))
+	assert.Contains(t, *resp.HTML, "Weekly digest")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideCodeModePreviewWithAttributes(t *testing.T) {
+	// A paired mj-preview carrying attributes must have its content replaced;
+	// injecting a second one ships the stale preview text to recipients.
+	source := `<mjml><mj-head><mj-preview css-class="x">OLD</mj-preview></mj-head><mj-body><mj-section><mj-column><mj-text>hello</mj-text></mj-column></mj-section></mj-body></mjml>`
+	resp := compileCodeMode(t, "{{ global_feed.subject }}", globalFeedData("Weekly digest"), source, false)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	require.NotNil(t, resp.HTML)
+	assert.Equal(t, 1, strings.Count(*resp.MJML, "<mj-preview"))
+	assert.NotContains(t, *resp.HTML, "OLD")
+	assert.Contains(t, *resp.HTML, "Weekly digest")
+}
+
+func TestCompileTemplateSubjectPreviewOverrideFillsLiquidEmittedSelfClosingPreview(t *testing.T) {
+	// An mj-liquid block can emit a bare <mj-preview /> that the tree walk never
+	// sees, so updateBlockContent cannot place the override in it. The fallback
+	// must fill that tag rather than inject a second preview or drop the text.
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(`<mj-preview />`)
+
+	headBlock := &MJHeadBlock{BaseBlock: NewBaseBlock("head-1", MJMLComponentMjHead)}
+	headBlock.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = stringPtr("hello")
+	columnBlock := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	columnBlock.Children = []EmailBlock{&MJTextBlock{BaseBlock: textBase}}
+	sectionBlock := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	sectionBlock.Children = []EmailBlock{columnBlock}
+	bodyBlock := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	bodyBlock.Children = []EmailBlock{sectionBlock}
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	root.Children = []EmailBlock{headBlock, bodyBlock}
+
+	override := "{{ global_feed.subject }}"
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		VisualEditorTree:       root,
+		SubjectPreviewOverride: &override,
+		TemplateData:           globalFeedData("Weekly digest"),
+	})
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	require.NotNil(t, resp.HTML)
+	assert.Equal(t, 1, strings.Count(*resp.MJML, "<mj-preview"))
+	assert.Contains(t, *resp.MJML, "<mj-preview>Weekly digest</mj-preview>")
+	assert.Contains(t, *resp.HTML, "Weekly digest")
+}
+
+func TestCompileTemplateTreeMjPreviewRendersAngleBrackets(t *testing.T) {
+	// Liquid in an mj-preview block rendering to a value containing angle brackets
+	// must still compile: escaping it with named entities fails, because the MJML
+	// parser decodes those back into markup before parsing.
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: treeWithMjPreview("{{ global_feed.subject }}"),
+		TemplateData:     globalFeedData("Tom & Jerry <weekly>"),
+	}
+
+	resp, err := CompileTemplate(req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "Tom &amp; Jerry &#60;weekly&#62;")
+}
+
+func TestCompileTemplateTreeMjTitleRendersAngleBrackets(t *testing.T) {
+	// mj-title content goes through the same converter escaping as mj-preview.
+	req := CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: treeWithMjTitle("{{ global_feed.subject }}"),
+		TemplateData:     globalFeedData("A & B <x>"),
+	}
+
+	resp, err := CompileTemplate(req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.MJML)
+	assert.Contains(t, *resp.MJML, "A &amp; B &#60;x&#62;")
+}
+
+func TestTrackLinks_DisabledModeSuppressesEverything(t *testing.T) {
+	html := `<html><body><a href="https://example.com/auth/confirm?token=abc">Confirm</a></body></html>`
+	settings := TrackingSettings{
+		// The explicit per-notification opt-out must win over everything else,
+		// even a caller that resolved EnableTracking wrong or set UTM fields
+		// (which alone would otherwise trigger URL rewriting).
+		TrackingMode:   TrackingModeDisabled,
+		EnableTracking: true,
+		UTMSource:      "auth",
+		UTMMedium:      "email",
+		Endpoint:       "https://api.example.com",
+		WorkspaceID:    "ws1",
+		MessageID:      "msg1",
+	}
+
+	result, err := TrackLinks(html, settings)
+	if err != nil {
+		t.Fatalf("TrackLinks returned error: %v", err)
+	}
+	if result != html {
+		t.Errorf("opted-out HTML must be returned unmodified (no redirect, no UTM, no pixel); got: %s", result)
+	}
+}
+
+func TestTrackLinks_InheritAndUnsetModesKeepRewriting(t *testing.T) {
+	html := `<html><body><a href="https://example.com/page">Link</a></body></html>`
+	for _, mode := range []string{"", TrackingModeInherit} {
+		settings := TrackingSettings{
+			TrackingMode:   mode,
+			EnableTracking: true,
+			Endpoint:       "https://api.example.com",
+			WorkspaceID:    "ws1",
+			MessageID:      "msg1",
+		}
+		result, err := TrackLinks(html, settings)
+		if err != nil {
+			t.Fatalf("mode %q: TrackLinks returned error: %v", mode, err)
+		}
+		if result == html {
+			t.Errorf("mode %q must not suppress rewriting when tracking is enabled", mode)
+		}
+		if !strings.Contains(result, "/r/") {
+			t.Errorf("mode %q: expected rewritten /r/ link, got: %s", mode, result)
+		}
+	}
+}
+
+func TestGetTrackingURL_DisabledModeReturnsURLUnmodified(t *testing.T) {
+	settings := &TrackingSettings{
+		TrackingMode:   TrackingModeDisabled,
+		EnableTracking: true,
+		UTMSource:      "auth",
+		Endpoint:       "https://api.example.com/visit",
+	}
+	src := "https://example.com/auth/confirm?token=abc"
+	if got := settings.GetTrackingURL(src); got != src {
+		t.Errorf("opted-out URL must be returned unmodified, got: %s", got)
+	}
+}
+
+func TestValidateTrackingMode(t *testing.T) {
+	for _, valid := range []string{"", TrackingModeInherit, TrackingModeDisabled} {
+		if err := ValidateTrackingMode(valid); err != nil {
+			t.Errorf("mode %q must be valid, got: %v", valid, err)
+		}
+	}
+	if err := ValidateTrackingMode("force_on"); err == nil {
+		t.Error("unknown mode must be rejected")
+	}
+}
+
+// decodeTrackedDestination extracts the first /r/{token} redirect in html and
+// returns the destination URL encrypted inside it, so a test can assert on what
+// the recipient's browser will actually be sent to.
+func decodeTrackedDestination(t *testing.T, html string, endpoint string) string {
+	t.Helper()
+
+	tokenRegex := regexp.MustCompile(regexp.QuoteMeta(endpoint) + `/r/([^"']+)`)
+	m := tokenRegex.FindStringSubmatch(html)
+	require.NotNil(t, m, "expected a /r/{token} tracking link, got: %s", html)
+
+	plaintext, err := crypto.DecryptTrackingToken(m[1])
+	require.NoError(t, err, "failed to decrypt tracking token")
+
+	// Payload format: messageID\nworkspaceID\ntimestamp\ndestinationURL
+	parts := strings.Split(plaintext, "\n")
+	require.Len(t, parts, 4, "unexpected token payload: %q", plaintext)
+	return parts[3]
+}
+
+// TestTrackLinks_IdentityTokenRidesInsideEncryptedPayload is the whole point of
+// applying the token before the redirect is built: the credential must travel
+// encrypted, never as readable text in the email HTML.
+func TestTrackLinks_IdentityTokenRidesInsideEncryptedPayload(t *testing.T) {
+	settings := TrackingSettings{
+		EnableTracking:       true,
+		Endpoint:             "https://track.example.com",
+		WorkspaceID:          "ws-1",
+		MessageID:            "msg-1",
+		UTMSource:            "newsletter",
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: []string{"shop.example.com"},
+	}
+
+	html := `<html><body><a href="https://shop.example.com/product?ref=email">Buy</a></body></html>`
+
+	result, err := TrackLinks(html, settings)
+	require.NoError(t, err)
+
+	// The parameter rides inside the /r/ payload rather than appearing verbatim
+	// in the href. That is obfuscation against pixel-blockers, not
+	// confidentiality: the payload below is decrypted here with no secret.
+	assert.NotContains(t, result, "nf_id",
+		"the identity parameter must ride on the redirect's destination, not on the href itself")
+
+	destination := decodeTrackedDestination(t, result, "https://track.example.com")
+	assert.Contains(t, destination, "nf_id=tok-abc123")
+	assert.Contains(t, destination, "utm_source=newsletter", "UTM rewriting must still apply")
+	assert.Contains(t, destination, "ref=email", "pre-existing query params must survive")
+}
+
+// TestTrackLinks_IdentityTokenSkipsNonAllowlistedHost keeps the credential away
+// from third-party links the email happens to contain.
+func TestTrackLinks_IdentityTokenSkipsNonAllowlistedHost(t *testing.T) {
+	settings := TrackingSettings{
+		EnableTracking:       true,
+		Endpoint:             "https://track.example.com",
+		WorkspaceID:          "ws-1",
+		MessageID:            "msg-1",
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: []string{"shop.example.com"},
+	}
+
+	html := `<html><body><a href="https://partner.example.net/offer">Partner</a></body></html>`
+
+	result, err := TrackLinks(html, settings)
+	require.NoError(t, err)
+
+	destination := decodeTrackedDestination(t, result, "https://track.example.com")
+	assert.NotContains(t, destination, "nf_id",
+		"a host outside the allowlist must never receive the identity token")
+	assert.Equal(t, "https://partner.example.net/offer", destination)
+}
+
+// TestTrackLinks_IdentityTokenEmptyAllowlistAppendsNothing guards the fail-open
+// trap: the workspace-level MatchesAllowedDomain treats an empty allowed-domains
+// list as "every host", which here would hand a bearer identity to any domain on
+// the internet. Unconfigured must mean nowhere.
+func TestTrackLinks_IdentityTokenEmptyAllowlistAppendsNothing(t *testing.T) {
+	settings := TrackingSettings{
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: nil,
+	}
+
+	html := `<html><body><a href="https://anywhere.example.org/page">Link</a></body></html>`
+
+	result, err := TrackLinks(html, settings)
+	require.NoError(t, err)
+	assert.Equal(t, html, result, "an empty allowlist must leave every link untouched")
+}
+
+// TestTrackLinks_IdentityTokenWildcardMatchesApexAndSubdomain mirrors the
+// workspace allowed-domains semantics for "*.example.com".
+func TestTrackLinks_IdentityTokenWildcardMatchesApexAndSubdomain(t *testing.T) {
+	tests := []struct {
+		name       string
+		linkURL    string
+		wantsToken bool
+	}{
+		{name: "apex", linkURL: "https://example.com/page", wantsToken: true},
+		{name: "subdomain", linkURL: "https://shop.example.com/page", wantsToken: true},
+		{name: "deep subdomain", linkURL: "https://eu.shop.example.com/page", wantsToken: true},
+		{name: "uppercase host", linkURL: "https://SHOP.Example.COM/page", wantsToken: true},
+		{name: "host with port", linkURL: "https://shop.example.com:8443/page", wantsToken: true},
+		{name: "suffix lookalike", linkURL: "https://notexample.com/page", wantsToken: false},
+		{name: "attacker suffix", linkURL: "https://example.com.evil.net/page", wantsToken: false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			settings := TrackingSettings{
+				IdentifyToken:        "tok-abc123",
+				IdentifyAllowedHosts: []string{" *.EXAMPLE.com "},
+			}
+
+			result, err := TrackLinks(`<a href="`+test.linkURL+`">Link</a>`, settings)
+			require.NoError(t, err)
+
+			if test.wantsToken {
+				assert.Contains(t, result, "nf_id=tok-abc123")
+			} else {
+				assert.NotContains(t, result, "nf_id")
+			}
+		})
+	}
+}
+
+// TestTrackLinks_IdentityTokenLeavesSpecialLinksUntouched covers the same
+// defensive shape applyUTMParameters has.
+func TestTrackLinks_IdentityTokenLeavesSpecialLinksUntouched(t *testing.T) {
+	settings := TrackingSettings{
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: []string{"example.com"},
+	}
+
+	html := `<html><body>` +
+		`<a href="mailto:hello@example.com">Mail</a>` +
+		`<a href="tel:+33123456789">Call</a>` +
+		`<a href="{{ unsubscribe_url }}">Unsubscribe</a>` +
+		`<a href="{% if x %}https://example.com{% endif %}">Conditional</a>` +
+		`<a href="#top">Top</a>` +
+		`</body></html>`
+
+	result, err := TrackLinks(html, settings)
+	require.NoError(t, err)
+	assert.Equal(t, html, result)
+}
+
+// TestApplyIdentityParam_DefensiveCases exercises the guards directly, since
+// TrackLinks filters some of these out before the method is reached.
+func TestApplyIdentityParam_DefensiveCases(t *testing.T) {
+	settings := &TrackingSettings{
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: []string{"example.com"},
+	}
+
+	unchanged := []string{
+		"",
+		"mailto:hello@example.com",
+		"tel:+33123456789",
+		"{{ unsubscribe_url }}",
+		"{% if x %}https://example.com{% endif %}",
+		"://example.com/broken",
+		"/relative/path",
+	}
+	for _, sourceURL := range unchanged {
+		assert.Equal(t, sourceURL, settings.applyIdentityParam(sourceURL))
+	}
+
+	// A link that already carries an identity keeps the one it has.
+	preIdentified := "https://example.com/page?nf_id=someone-else"
+	assert.Equal(t, preIdentified, settings.applyIdentityParam(preIdentified))
+
+	// No token minted: nothing to append, whatever the allowlist says.
+	noToken := &TrackingSettings{IdentifyAllowedHosts: []string{"example.com"}}
+	assert.Equal(t, "https://example.com/page", noToken.applyIdentityParam("https://example.com/page"))
+}
+
+// TestApplyIdentityParam_PreservesURLBytes pins the byte-exactness of the
+// append: these are links a customer hand-built in their template, and every
+// case below is one that re-serialising through url.Values corrupts —
+// "sid=1;2" and "discount=50%off" are dropped outright by Encode(), the ids
+// list gets its commas and slashes percent-escaped, and the surviving pairs
+// come back in alphabetical order.
+func TestApplyIdentityParam_PreservesURLBytes(t *testing.T) {
+	settings := &TrackingSettings{
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: []string{"example.com"},
+	}
+
+	tests := []struct {
+		name    string
+		linkURL string
+		want    string
+	}{
+		{
+			name:    "semicolon separated value",
+			linkURL: "https://example.com/page?utm_source=x&sid=1;2",
+			want:    "https://example.com/page?utm_source=x&sid=1;2&nf_id=tok-abc123",
+		},
+		{
+			name:    "bare percent sign",
+			linkURL: "https://example.com/page?discount=50%off",
+			want:    "https://example.com/page?discount=50%off&nf_id=tok-abc123",
+		},
+		{
+			name:    "order, slashes and commas kept",
+			linkURL: "https://example.com/page?utm_campaign=spring&redirect=/home&ids=1,2,3",
+			want:    "https://example.com/page?utm_campaign=spring&redirect=/home&ids=1,2,3&nf_id=tok-abc123",
+		},
+		{
+			name:    "valueless flag keeps its missing equals sign",
+			linkURL: "https://example.com/page?flag&utm_source=x",
+			want:    "https://example.com/page?flag&utm_source=x&nf_id=tok-abc123",
+		},
+		{
+			name:    "fragment stays last",
+			linkURL: "https://example.com/page?a=1#section",
+			want:    "https://example.com/page?a=1&nf_id=tok-abc123#section",
+		},
+		{
+			name:    "fragment without query",
+			linkURL: "https://example.com/page#section",
+			want:    "https://example.com/page?nf_id=tok-abc123#section",
+		},
+		{
+			name:    "no query gains a question mark",
+			linkURL: "https://example.com/page",
+			want:    "https://example.com/page?nf_id=tok-abc123",
+		},
+		{
+			name:    "empty query reuses its question mark",
+			linkURL: "https://example.com/page?",
+			want:    "https://example.com/page?nf_id=tok-abc123",
+		},
+		{
+			name:    "port survives",
+			linkURL: "https://example.com:8443/page?a=1",
+			want:    "https://example.com:8443/page?a=1&nf_id=tok-abc123",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.want, settings.applyIdentityParam(test.linkURL))
+		})
+	}
+}
+
+// TestTrackLinks_IdentityTokenKeepsHandBuiltQuery is the end-to-end version:
+// applyUTMParameters already returns a link carrying its own utm_* untouched,
+// and the identity pass must not undo that by rewriting the query.
+func TestTrackLinks_IdentityTokenKeepsHandBuiltQuery(t *testing.T) {
+	settings := TrackingSettings{
+		EnableTracking:       false,
+		UTMSource:            "newsletter",
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: []string{"example.com"},
+	}
+
+	html := `<html><body><a href="https://example.com/page?utm_source=x&sid=1;2#top">Link</a></body></html>`
+
+	result, err := TrackLinks(html, settings)
+	require.NoError(t, err)
+	assert.Equal(t,
+		`<html><body><a href="https://example.com/page?utm_source=x&sid=1;2&nf_id=tok-abc123#top">Link</a></body></html>`,
+		result)
+}
+
+// TestTrackLinks_IdentityTokenSuppressedWhenTrackingDisabled: the per-notification
+// opt-out carries single-use auth URLs that must not be modified in any way.
+func TestTrackLinks_IdentityTokenSuppressedWhenTrackingDisabled(t *testing.T) {
+	settings := TrackingSettings{
+		TrackingMode:         TrackingModeDisabled,
+		EnableTracking:       true,
+		Endpoint:             "https://track.example.com",
+		WorkspaceID:          "ws-1",
+		MessageID:            "msg-1",
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: []string{"example.com"},
+	}
+
+	html := `<html><body><a href="https://example.com/auth/confirm?token=abc">Confirm</a></body></html>`
+
+	result, err := TrackLinks(html, settings)
+	require.NoError(t, err)
+	assert.Equal(t, html, result)
+}
+
+// TestTrackLinks_IdentityTokenAppliedWithClickTrackingOff covers a workspace
+// running web analytics with link tracking off: the early return must not skip
+// the identity pass.
+func TestTrackLinks_IdentityTokenAppliedWithClickTrackingOff(t *testing.T) {
+	settings := TrackingSettings{
+		EnableTracking:       false,
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: []string{"example.com"},
+	}
+
+	html := `<html><body><a href="https://example.com/page">Link</a></body></html>`
+
+	result, err := TrackLinks(html, settings)
+	require.NoError(t, err)
+	assert.Contains(t, result, "https://example.com/page?nf_id=tok-abc123")
+	assert.NotContains(t, result, "/r/", "click tracking stays off")
+	assert.NotContains(t, result, "<img", "the open pixel stays off too")
+}
+
+// TestTrackingSettings_ValueOmitsIdentityCredentials is the persistence check
+// behind the json:"-" tags: TrackingSettings is stored as
+// transactional_notifications.tracking_settings, and a per-recipient credential
+// must never land in that column.
+func TestTrackingSettings_ValueOmitsIdentityCredentials(t *testing.T) {
+	settings := TrackingSettings{
+		EnableTracking:       true,
+		Endpoint:             "https://track.example.com",
+		WorkspaceID:          "ws-1",
+		MessageID:            "msg-1",
+		IdentifyToken:        "tok-secret",
+		IdentifyAllowedHosts: []string{"shop.example.com"},
+	}
+
+	value, err := settings.Value()
+	require.NoError(t, err)
+	stored, ok := value.([]byte)
+	require.True(t, ok, "Value() must return the JSON bytes the column stores")
+
+	assert.NotContains(t, string(stored), "tok-secret")
+	assert.NotContains(t, string(stored), "shop.example.com")
+	assert.NotContains(t, string(stored), "identify")
+
+	var restored TrackingSettings
+	require.NoError(t, restored.Scan(stored))
+	assert.Empty(t, restored.IdentifyToken)
+	assert.Empty(t, restored.IdentifyAllowedHosts)
+
+	// Everything that is meant to be persisted still round-trips.
+	assert.True(t, restored.EnableTracking)
+	assert.Equal(t, "https://track.example.com", restored.Endpoint)
+	assert.Equal(t, "ws-1", restored.WorkspaceID)
+	assert.Equal(t, "msg-1", restored.MessageID)
+}
+
+// TestTrackingSettings_IsZero walks the struct by reflection instead of listing
+// the fields by hand: a hand-written list is a copy of the very enumeration
+// IsZero makes, so both can be forgotten together. A field added to
+// TrackingSettings and missed in IsZero fails here.
+//
+// IsZero has no production caller left. UpdateTransactionalRequest.Validate
+// used to read it as "the caller sent no tracking settings", which cannot tell
+// an absent block from one the caller deliberately emptied — so switching
+// tracking off came back as "at least one field must be updated" and the write
+// was silently dropped. Presence is recorded at decode now. The helper and this
+// test stay because IsZero is exported and an enumeration that quietly falls
+// behind its struct is worth catching wherever it is reached for next.
+func TestTrackingSettings_IsZero(t *testing.T) {
+	assert.True(t, TrackingSettings{}.IsZero())
+
+	structType := reflect.TypeOf(TrackingSettings{})
+	for i := 0; i < structType.NumField(); i++ {
+		field := structType.Field(i)
+		t.Run(field.Name, func(t *testing.T) {
+			if !field.IsExported() {
+				t.Skipf("unexported field %s cannot be set through reflection", field.Name)
+			}
+
+			probe := reflect.New(structType).Elem()
+			setNonZeroValue(t, probe.Field(i))
+
+			settings, ok := probe.Interface().(TrackingSettings)
+			require.True(t, ok)
+			assert.False(t, settings.IsZero(),
+				"IsZero() must report a struct with only %s set as non-zero", field.Name)
+		})
+	}
+}
+
+// setNonZeroValue writes a distinguishable value into one struct field. An
+// unhandled kind fails the test rather than being skipped: a new field of an
+// unknown type is exactly the case this test exists to catch, so it has to be
+// taught here before it can pass.
+func setNonZeroValue(t *testing.T, field reflect.Value) {
+	t.Helper()
+
+	switch field.Kind() {
+	case reflect.Bool:
+		field.SetBool(true)
+	case reflect.String:
+		field.SetString("non-zero")
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		field.SetInt(1)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		field.SetUint(1)
+	case reflect.Float32, reflect.Float64:
+		field.SetFloat(1)
+	case reflect.Slice:
+		element := reflect.New(field.Type().Elem()).Elem()
+		setNonZeroValue(t, element)
+		field.Set(reflect.Append(reflect.MakeSlice(field.Type(), 0, 1), element))
+	case reflect.Map:
+		key := reflect.New(field.Type().Key()).Elem()
+		setNonZeroValue(t, key)
+		value := reflect.New(field.Type().Elem()).Elem()
+		setNonZeroValue(t, value)
+		field.Set(reflect.MakeMap(field.Type()))
+		field.SetMapIndex(key, value)
+	case reflect.Pointer:
+		pointed := reflect.New(field.Type().Elem())
+		setNonZeroValue(t, pointed.Elem())
+		field.Set(pointed)
+	default:
+		t.Fatalf("no non-zero value known for kind %s: teach setNonZeroValue about it, "+
+			"then make sure TrackingSettings.IsZero() accounts for the new field", field.Kind())
+	}
+}
+
+func TestMatchesAllowedHost(t *testing.T) {
+	tests := []struct {
+		name         string
+		hostname     string
+		allowedHosts []string
+		want         bool
+	}{
+		{name: "exact match", hostname: "example.com", allowedHosts: []string{"example.com"}, want: true},
+		{name: "case insensitive", hostname: "Example.COM", allowedHosts: []string{"example.com"}, want: true},
+		{name: "trims configured spaces", hostname: "example.com", allowedHosts: []string{"  example.com "}, want: true},
+		{name: "exact entry excludes subdomain", hostname: "shop.example.com", allowedHosts: []string{"example.com"}, want: false},
+		{name: "wildcard covers apex", hostname: "example.com", allowedHosts: []string{"*.example.com"}, want: true},
+		{name: "wildcard covers subdomain", hostname: "shop.example.com", allowedHosts: []string{"*.example.com"}, want: true},
+		{name: "wildcard rejects lookalike", hostname: "notexample.com", allowedHosts: []string{"*.example.com"}, want: false},
+		// A wildcard over a bare TLD would hand the recipient's identity to
+		// every link in the email pointing at that TLD, so it matches nothing —
+		// not the TLD itself, and not anything under it.
+		{name: "bare TLD wildcard matches nothing", hostname: "example.com", allowedHosts: []string{"*.com"}, want: false},
+		{name: "bare TLD wildcard matches no subdomain", hostname: "shop.example.com", allowedHosts: []string{"*.com"}, want: false},
+		{name: "bare TLD wildcard does not match the TLD", hostname: "com", allowedHosts: []string{"*.com"}, want: false},
+		{name: "empty wildcard suffix matches nothing", hostname: "example.com", allowedHosts: []string{"*."}, want: false},
+		{name: "bare TLD entry does not disable later entries", hostname: "shop.example.com", allowedHosts: []string{"*.com", "*.example.com"}, want: true},
+		// Multi-label wildcards stay legitimate.
+		{name: "multi label wildcard covers apex", hostname: "example.co.uk", allowedHosts: []string{"*.example.co.uk"}, want: true},
+		{name: "multi label wildcard covers subdomain", hostname: "shop.example.co.uk", allowedHosts: []string{"*.example.co.uk"}, want: true},
+		{name: "second entry matches", hostname: "b.com", allowedHosts: []string{"a.com", "b.com"}, want: true},
+		{name: "empty list matches nothing", hostname: "example.com", allowedHosts: nil, want: false},
+		{name: "empty host matches nothing", hostname: "", allowedHosts: []string{"example.com"}, want: false},
+		{name: "blank entries are ignored", hostname: "", allowedHosts: []string{"  "}, want: false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.want, MatchesAllowedHost(test.hostname, test.allowedHosts))
+		})
+	}
+}
+
+// TestTrackLinks_RewritesUppercaseHrefAttributes pins the case-insensitivity of
+// the link rewriter.
+//
+// HTML tag and attribute names are case-insensitive, and <A HREF="..."> is what
+// markup pasted from Word or Outlook routinely produces. While the regex was
+// case-sensitive such a link was skipped entirely — no click tracking, no UTM
+// parameters, no identity token — and because its lowercase neighbours in the
+// same email were rewritten normally, the loss was silent and partial.
+func TestTrackLinks_RewritesUppercaseHrefAttributes(t *testing.T) {
+	settings := TrackingSettings{
+		EnableTracking:       false, // isolate the rewrite from the /r/ wrapper
+		UTMSource:            "newsletter",
+		IdentifyToken:        "tok-abc123",
+		IdentifyAllowedHosts: []string{"shop.example.com"},
+	}
+
+	cases := []struct {
+		name string
+		html string
+	}{
+		{"uppercase attribute", `<a HREF="https://shop.example.com/p">x</a>`},
+		{"uppercase tag", `<A href="https://shop.example.com/p">x</A>`},
+		{"both uppercase", `<A HREF="https://shop.example.com/p">x</A>`},
+		{"mixed case, single quotes", `<A HrEf='https://shop.example.com/p'>x</A>`},
+		{"lowercase still works", `<a href="https://shop.example.com/p">x</a>`},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out, err := TrackLinks(tc.html, settings)
+			require.NoError(t, err)
+			assert.Contains(t, out, "utm_source=newsletter", "the link must be rewritten at all")
+			assert.Contains(t, out, "nf_id=tok-abc123", "an uppercase href must still identify")
+		})
+	}
+
+	t.Run("the author's original casing survives the rewrite", func(t *testing.T) {
+		// Only the URL is replaced; the tag and attribute are echoed back from
+		// the captured groups, so a case-insensitive match must not normalise
+		// the markup around it.
+		out, err := TrackLinks(`<A HREF="https://shop.example.com/p">x</A>`, settings)
+		require.NoError(t, err)
+		assert.Contains(t, out, `<A HREF="`, "the rewriter must not rewrite the markup's case")
+	})
+
+	t.Run("a mixed-case block does not lose one link while keeping the other", func(t *testing.T) {
+		// The shape that made this invisible in production: neighbours in one
+		// block behaving differently.
+		html := `<a href="https://shop.example.com/lower">a</a><a HREF="https://shop.example.com/upper">b</a>`
+		out, err := TrackLinks(html, settings)
+		require.NoError(t, err)
+		assert.Equal(t, 2, strings.Count(out, "nf_id=tok-abc123"), "both links must carry the token")
+	})
+}
+
+// TestApplyUTMParameters_PreservesURLBytes pins the byte-exactness of the UTM
+// append, the same guarantee applyIdentityParam already gives. Every case below
+// is one that rebuilding the URL through url.Values corrupts: "sid=1;2" and
+// "discount=50%off" are dropped by ParseQuery outright (so the customer's
+// parameter disappears from the link the recipient follows), the surviving
+// pairs come back sorted alphabetically, a valueless key grows an "=", a
+// literal space becomes "+" and the path is re-escaped.
+func TestApplyUTMParameters_PreservesURLBytes(t *testing.T) {
+	settings := &TrackingSettings{UTMSource: "email"}
+
+	tests := []struct {
+		name    string
+		linkURL string
+		want    string
+	}{
+		{
+			name:    "semicolon separated value survives",
+			linkURL: "https://example.com/page?sid=1;2",
+			want:    "https://example.com/page?sid=1;2&utm_source=email",
+		},
+		{
+			name:    "bare percent sign survives",
+			linkURL: "https://example.com/page?discount=50%off",
+			want:    "https://example.com/page?discount=50%off&utm_source=email",
+		},
+		{
+			name:    "existing parameter order is kept",
+			linkURL: "https://example.com/page?z=1&a=2&sig=abc",
+			want:    "https://example.com/page?z=1&a=2&sig=abc&utm_source=email",
+		},
+		{
+			name:    "valueless flag keeps its missing equals sign",
+			linkURL: "https://example.com/page?flag",
+			want:    "https://example.com/page?flag&utm_source=email",
+		},
+		{
+			name:    "literal space in a value is not re-encoded",
+			linkURL: "https://example.com/page?a=hello world",
+			want:    "https://example.com/page?a=hello world&utm_source=email",
+		},
+		{
+			name:    "path bytes are not re-escaped",
+			linkURL: "https://example.com/my page?a=1",
+			want:    "https://example.com/my page?a=1&utm_source=email",
+		},
+		{
+			name:    "slashes and commas kept",
+			linkURL: "https://example.com/page?redirect=/home&ids=1,2,3",
+			want:    "https://example.com/page?redirect=/home&ids=1,2,3&utm_source=email",
+		},
+		{
+			name:    "fragment stays last",
+			linkURL: "https://example.com/page?a=1#section",
+			want:    "https://example.com/page?a=1&utm_source=email#section",
+		},
+		{
+			name:    "fragment without query",
+			linkURL: "https://example.com/page#section",
+			want:    "https://example.com/page?utm_source=email#section",
+		},
+		{
+			name:    "no query gains a question mark",
+			linkURL: "https://example.com/page",
+			want:    "https://example.com/page?utm_source=email",
+		},
+		{
+			name:    "empty query reuses its question mark",
+			linkURL: "https://example.com/page?",
+			want:    "https://example.com/page?utm_source=email",
+		},
+		{
+			name:    "port survives",
+			linkURL: "https://example.com:8443/page?a=1",
+			want:    "https://example.com:8443/page?a=1&utm_source=email",
+		},
+		{
+			name:    "unicode in a value survives",
+			linkURL: "https://example.com/page?q=café",
+			want:    "https://example.com/page?q=café&utm_source=email",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.want, settings.applyUTMParameters(test.linkURL))
+		})
+	}
+}
+
+// TestApplyUTMParameters_AppendsConfiguredFieldsInAscendingKeyOrder documents
+// the shape of what gets added: only the configured fields, ascending by key,
+// with only our own values escaped.
+//
+// Ascending key order is what url.Values.Encode() emitted while this function
+// still re-serialised the query, and it is held deliberately. The rewritten URL
+// is the clicked_links key per-link stats aggregate on, so a link the author
+// left unparameterised — the common case — keeps producing the exact bytes it
+// produced before, and its click history does not split.
+func TestApplyUTMParameters_AppendsConfiguredFieldsInAscendingKeyOrder(t *testing.T) {
+	all := &TrackingSettings{
+		UTMSource:   "newsletter",
+		UTMMedium:   "email",
+		UTMCampaign: "spring sale/2024",
+		UTMContent:  "hero-button",
+		UTMTerm:     "running-shoes",
+	}
+	assert.Equal(t,
+		"https://example.com/p?utm_campaign=spring+sale%2F2024&utm_content=hero-button&utm_medium=email&utm_source=newsletter&utm_term=running-shoes",
+		all.applyUTMParameters("https://example.com/p"))
+
+	// A gap in the middle does not leave an empty pair behind.
+	sparse := &TrackingSettings{UTMSource: "newsletter", UTMContent: "hero"}
+	assert.Equal(t,
+		"https://example.com/p?a=1&utm_content=hero&utm_source=newsletter",
+		sparse.applyUTMParameters("https://example.com/p?a=1"))
+}
+
+// TestApplyUTMParameters_UnchangedShapesKeepTheirHistoricalBytes is the
+// continuity half of this rewrite. Per-link click stats aggregate on the
+// rewritten URL as a jsonb key, so every link whose output changes starts a new
+// bucket the day this ships. These are the shapes that must NOT change, and
+// they are the shapes most links have: the expected strings below are the ones
+// the previous url.Values implementation produced.
+func TestApplyUTMParameters_UnchangedShapesKeepTheirHistoricalBytes(t *testing.T) {
+	broadcast := &TrackingSettings{
+		UTMSource:   "newsletter",
+		UTMMedium:   "email",
+		UTMCampaign: "spring",
+	}
+	transactional := &TrackingSettings{UTMContent: "tpl-1"}
+
+	tests := []struct {
+		name     string
+		settings *TrackingSettings
+		linkURL  string
+		want     string
+	}{
+		{
+			name:     "no existing query, every utm field",
+			settings: broadcast,
+			linkURL:  "https://shop.example.com/product",
+			want:     "https://shop.example.com/product?utm_campaign=spring&utm_medium=email&utm_source=newsletter",
+		},
+		{
+			name:     "no existing query, single utm field",
+			settings: transactional,
+			linkURL:  "https://shop.example.com/product",
+			want:     "https://shop.example.com/product?utm_content=tpl-1",
+		},
+		{
+			name:     "one existing key sorting before utm_",
+			settings: broadcast,
+			linkURL:  "https://shop.example.com/product?ref=email",
+			want:     "https://shop.example.com/product?ref=email&utm_campaign=spring&utm_medium=email&utm_source=newsletter",
+		},
+		{
+			name:     "two existing keys already in ascending order",
+			settings: transactional,
+			linkURL:  "https://shop.example.com/product?a=1&b=2",
+			want:     "https://shop.example.com/product?a=1&b=2&utm_content=tpl-1",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.want, test.settings.applyUTMParameters(test.linkURL))
+		})
+	}
+}
+
+// TestApplyUTMParameters_NothingConfiguredLeavesURLUntouched is the case that
+// runs on every send with UTM disabled: with no field set there is nothing to
+// append, so the link must come back byte-for-byte.
+func TestApplyUTMParameters_NothingConfiguredLeavesURLUntouched(t *testing.T) {
+	settings := &TrackingSettings{}
+
+	for _, linkURL := range []string{
+		"https://example.com/page?sid=1;2",
+		"https://example.com/page?discount=50%off",
+		"https://example.com/page?z=1&a=2&sig=abc",
+		"https://example.com/page?flag",
+		"https://example.com/page",
+		"https://example.com/page?",
+		"https://example.com/page?a=1#top",
+	} {
+		assert.Equal(t, linkURL, settings.applyUTMParameters(linkURL))
+	}
+}
+
+// TestApplyUTMParameters_LeavesLinksCarryingUTMAlone keeps the existing
+// "already tagged -> hands off" rule, including the forms url.Values used to
+// normalise away: an uppercase key and a percent-encoded underscore.
+func TestApplyUTMParameters_LeavesLinksCarryingUTMAlone(t *testing.T) {
+	settings := &TrackingSettings{UTMSource: "email", UTMMedium: "newsletter"}
+
+	for _, linkURL := range []string{
+		"https://example.com/page?utm_source=existing",
+		"https://example.com/page?a=1&utm_campaign=mine&b=2",
+		"https://example.com/page?UTM_SOURCE=existing",
+		"https://example.com/page?utm%5Fsource=existing",
+		"https://example.com/page?utm_source=x&sid=1;2",
+		"https://example.com/page?utm_term=x#top",
+	} {
+		assert.Equal(t, linkURL, settings.applyUTMParameters(linkURL))
+	}
+
+	// A value that merely looks like a utm key is not a utm key.
+	assert.Equal(t,
+		"https://example.com/page?ref=utm_source&utm_medium=newsletter&utm_source=email",
+		settings.applyUTMParameters("https://example.com/page?ref=utm_source"))
+}
+
+// TestApplyUTMParameters_DefensiveCases exercises the guards directly, since
+// TrackLinks filters some of these out before the method is reached.
+func TestApplyUTMParameters_DefensiveCases(t *testing.T) {
+	settings := &TrackingSettings{UTMSource: "email"}
+
+	for _, sourceURL := range []string{
+		"",
+		"mailto:hello@example.com",
+		"tel:+33123456789",
+		"{{ unsubscribe_url }}",
+		"{% if x %}https://example.com{% endif %}",
+		"://example.com/broken",
+		"https://example.com/50%off/page", // invalid percent-escape in the path
+	} {
+		assert.Equal(t, sourceURL, settings.applyUTMParameters(sourceURL))
+	}
+
+	// A relative link is still a link: it is what an mj-button pointing at the
+	// hosted page carries, and it must be tagged like any other.
+	assert.Equal(t, "/relative/path?utm_source=email", settings.applyUTMParameters("/relative/path"))
+}
+
+// TestTrackLinks_UTMKeepsHandBuiltQuery is the end-to-end version: a customer's
+// hand-built query must reach the recipient intact even though the send path
+// always has a utm_content to append.
+func TestTrackLinks_UTMKeepsHandBuiltQuery(t *testing.T) {
+	settings := TrackingSettings{
+		EnableTracking: false, // isolate the rewrite from the /r/ wrapper
+		UTMContent:     "tpl-123",
+	}
+
+	html := `<html><body><a href="https://example.com/page?sid=1;2&sig=abc#top">Link</a></body></html>`
+
+	result, err := TrackLinks(html, settings)
+	require.NoError(t, err)
+	assert.Equal(t,
+		`<html><body><a href="https://example.com/page?sid=1;2&sig=abc&utm_content=tpl-123#top">Link</a></body></html>`,
+		result)
+}
+
+// TestMatchesAllowedHost_PortInAllowlistEntry covers a stored allowlist entry
+// that carries a port. The hostname side never has one — every caller passes
+// url.Hostname(), which strips it — so an entry written as "example.com:443"
+// could never match anything at all, silently disabling that entry.
+func TestMatchesAllowedHost_PortInAllowlistEntry(t *testing.T) {
+	tests := []struct {
+		name         string
+		hostname     string
+		allowedHosts []string
+		want         bool
+	}{
+		{name: "exact entry with port", hostname: "example.com", allowedHosts: []string{"example.com:443"}, want: true},
+		{name: "port on the entry is not a host", hostname: "example.com", allowedHosts: []string{"example.com:8443"}, want: true},
+		{name: "wildcard entry with port covers apex", hostname: "example.com", allowedHosts: []string{"*.example.com:443"}, want: true},
+		{name: "wildcard entry with port covers subdomain", hostname: "shop.example.com", allowedHosts: []string{"*.example.com:443"}, want: true},
+		{name: "entry with port keeps its case insensitivity", hostname: "Example.COM", allowedHosts: []string{" EXAMPLE.com:443 "}, want: true},
+		{name: "entry with port still excludes a lookalike", hostname: "notexample.com", allowedHosts: []string{"example.com:443"}, want: false},
+		{name: "bare TLD wildcard with port still matches nothing", hostname: "example.com", allowedHosts: []string{"*.com:443"}, want: false},
+		{name: "ipv6 entry with port", hostname: "::1", allowedHosts: []string{"[::1]:8080"}, want: true},
+		{name: "bare ipv6 entry is not mistaken for a port", hostname: "::1", allowedHosts: []string{"::1"}, want: true},
+		// Only a numeric port comes off. net.SplitHostPort reads
+		// "https://example.com" as host "https" with port "//example.com", and
+		// letting that through would make the entry match the hostname "https",
+		// which it does not name. Everything below is a malformed entry that
+		// simply matches nothing — the direction that releases no identity.
+		{name: "a scheme is not a port", hostname: "https", allowedHosts: []string{"https://example.com"}, want: false},
+		{name: "a path is not a port", hostname: "example.com", allowedHosts: []string{"example.com:443/path"}, want: false},
+		{name: "a trailing colon names no port", hostname: "example.com", allowedHosts: []string{"example.com:"}, want: false},
+		{name: "wildcard with nothing but a port matches nothing", hostname: "example.com", allowedHosts: []string{"*.:443"}, want: false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.want, MatchesAllowedHost(test.hostname, test.allowedHosts))
+		})
+	}
+}
+
+// TestMatchesAllowedHost_ExactEntryNeverCoversSubdomains pins the matcher's
+// narrowness so a later "helpful" relaxation fails here.
+//
+// Only "*.example.com" covers the apex plus its subdomains; a bare
+// "example.com" is that host and nothing else. This matcher is shared with the
+// beat-origin gate (domain.WebAnalyticsSettings.MatchesAllowedDomain delegates
+// to it), so widening it would also start accepting analytics beats from
+// origins the workspace never listed — and on this side it would hand a
+// recipient's bearer identity to a host the workspace never named.
+func TestMatchesAllowedHost_ExactEntryNeverCoversSubdomains(t *testing.T) {
+	for _, hostname := range []string{
+		"www.example.com",
+		"shop.example.com",
+		"a.b.example.com",
+		"evil.example.com",
+	} {
+		assert.False(t, MatchesAllowedHost(hostname, []string{"example.com"}),
+			"a bare entry must cover its own host only: %s", hostname)
+		assert.False(t, MatchesAllowedHost(hostname, []string{"example.com:443"}),
+			"stripping the port must not widen the entry: %s", hostname)
+		assert.True(t, MatchesAllowedHost(hostname, []string{"*.example.com"}),
+			"only the wildcard covers subdomains: %s", hostname)
+	}
+
+	// The apex is still matched by both forms.
+	assert.True(t, MatchesAllowedHost("example.com", []string{"example.com"}))
+	assert.True(t, MatchesAllowedHost("example.com", []string{"*.example.com"}))
+}

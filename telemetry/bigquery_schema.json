@@ -1,0 +1,176 @@
+[
+  {
+    "name": "timestamp",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "When the telemetry data was received"
+  },
+  {
+    "name": "workspace_id_sha1",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "SHA1 hash of the workspace ID"
+  },
+  {
+    "name": "workspace_created_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "When the workspace was created"
+  },
+  {
+    "name": "workspace_updated_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "When the workspace was last updated"
+  },
+  {
+    "name": "last_message_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "When the last message was sent from the workspace"
+  },
+  {
+    "name": "contacts_count",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Number of contacts in the workspace"
+  },
+  {
+    "name": "broadcasts_count",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Number of broadcasts in the workspace"
+  },
+  {
+    "name": "transactional_count",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Number of transactional notifications in the workspace"
+  },
+  {
+    "name": "messages_count",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Number of messages in the workspace"
+  },
+  {
+    "name": "lists_count",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Number of lists in the workspace"
+  },
+  {
+    "name": "segments_count",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Number of segments in the workspace"
+  },
+  {
+    "name": "users_count",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Number of users in the workspace"
+  },
+  {
+    "name": "blog_posts_count",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Number of blog posts in the workspace"
+  },
+  {
+    "name": "api_endpoint",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "API endpoint of the Notifuse instance"
+  },
+  {
+    "name": "source",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Source of the telemetry data"
+  },
+  {
+    "name": "event_type",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Type of event"
+  },
+  {
+    "name": "mailgun",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether Mailgun integration is active"
+  },
+  {
+    "name": "amazonses",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether Amazon SES integration is active"
+  },
+  {
+    "name": "mailjet",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether Mailjet integration is active"
+  },
+  {
+    "name": "sparkpost",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether SparkPost integration is active"
+  },
+  {
+    "name": "postmark",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether Postmark integration is active"
+  },
+  {
+    "name": "smtp",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether SMTP integration is active"
+  },
+  {
+    "name": "s3",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether S3 file storage is active"
+  },
+  {
+    "name": "anthropic",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether an Anthropic LLM integration is configured"
+  },
+  {
+    "name": "openai",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether an OpenAI LLM integration is configured"
+  },
+  {
+    "name": "gemini",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether a Gemini LLM integration is configured"
+  },
+  {
+    "name": "supabase",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether a Supabase integration is configured"
+  },
+  {
+    "name": "firecrawl",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether a Firecrawl integration is configured"
+  },
+  {
+    "name": "web_analytics",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Whether the workspace recorded a web analytics session in the last 30 days"
+  }
+]

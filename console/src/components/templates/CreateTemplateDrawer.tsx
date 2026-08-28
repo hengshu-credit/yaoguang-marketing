@@ -1,0 +1,1416 @@
+import { useState, useMemo, useRef } from 'react'
+import { useLingui } from '@lingui/react/macro'
+import {
+  Button,
+  Drawer,
+  Form,
+  Input,
+  Select,
+  Space,
+  App,
+  Tabs,
+  Row,
+  Col,
+  Tag,
+  Dropdown,
+  Radio,
+  MenuProps
+} from 'antd'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { templatesApi, type CreateTemplateRequest, type UpdateTemplateRequest } from '../../services/api/template'
+import { ApiError } from '../../services/api/client'
+import { useTemplateConflictModal } from './useTemplateConflictModal'
+import { templateBlocksApi } from '../../services/api/template_blocks'
+import type { Template, Workspace } from '../../services/api/types'
+import EmailBuilder from '../email_builder/EmailBuilder'
+import type { EmailBlock } from '../email_builder/types'
+import type { PreviewRef } from '../email_builder/panels/Preview'
+import { kebabCase } from 'lodash'
+import IphoneEmailPreview from './PhonePreview'
+import defaultTemplateData from './email-template.json'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faQuestion } from '@fortawesome/free-solid-svg-icons'
+import { Tour } from 'antd'
+import { ImportExportButton } from './ImportExportButton'
+import { useAuth } from '../../contexts/AuthContext'
+import { EmailAIAssistant } from '../email_builder/EmailAIAssistant'
+import { EmailBlockClass } from '../email_builder/EmailBlockClass'
+import type { MJMLComponentType } from '../email_builder/types'
+import MjmlCodeEditor, { STARTER_TEMPLATE } from '../email_builder/MjmlCodeEditor'
+import type { MjmlCodeEditorRef } from '../email_builder/MjmlCodeEditor'
+import type { MjmlCompileError } from '../../services/api/template'
+import { SUPPORTED_LANGUAGES } from '../../lib/languages'
+import TemplateTranslationsTab from './TemplateTranslationsTab'
+import type { TranslationEditorState } from './TemplateTranslationsTab'
+import type { EmailTemplate, TemplateTranslation } from '../../services/api/template'
+
+/**
+ * Validates liquid template tags in a string to ensure they are properly closed
+ * @param text - The text to validate
+ * @returns Object with isValid boolean and error message if invalid
+ */
+const validateLiquidTags = (text: string): { isValid: boolean; error?: string } => {
+  if (!text) return { isValid: true }
+
+  // Find all opening double curly braces
+  const openingTags = text.match(/\{\{/g) || []
+  // Find all closing double curly braces
+  const closingTags = text.match(/\}\}/g) || []
+
+  if (openingTags.length !== closingTags.length) {
+    return {
+      isValid: false,
+      error: `Unclosed liquid tag detected. Found ${openingTags.length} opening tags ({{) but ${closingTags.length} closing tags (}})`
+    }
+  }
+
+  // Check for proper nesting by tracking position
+  let openCount = 0
+  let i = 0
+
+  while (i < text.length - 1) {
+    if (text.slice(i, i + 2) === '{{') {
+      openCount++
+      i += 2
+    } else if (text.slice(i, i + 2) === '}}') {
+      if (openCount === 0) {
+        return {
+          isValid: false,
+          error: 'Found closing liquid tag (}}) without matching opening tag ({{)'
+        }
+      }
+      openCount--
+      i += 2
+    } else {
+      i++
+    }
+  }
+
+  if (openCount > 0) {
+    return {
+      isValid: false,
+      error: `${openCount} liquid tag(s) not properly closed. Make sure each {{ has a matching }}`
+    }
+  }
+
+  return { isValid: true }
+}
+
+interface CreateTemplateDrawerProps {
+  workspace: Workspace
+  template?: Template
+  fromTemplate?: Template
+  buttonProps?: Record<string, unknown>
+  buttonContent?: React.ReactNode
+  onClose?: () => void
+  forceCategory?: string
+}
+
+/**
+ * What the drawer actually submits for a translation.
+ *
+ * `EmailTemplate` marks `compiled_preview` and `visual_editor_tree` as required because
+ * that is what the API returns; a translation being SENT carries neither (the server
+ * compiles the preview, and code mode has no visual tree), so the payload is modelled
+ * as its own partial shape instead of being asserted into the response type.
+ */
+type TranslationEmailPayload = Partial<EmailTemplate> & Pick<EmailTemplate, 'subject'>
+
+const HEADER_HEIGHT = 66
+/**
+ * Creates default email blocks from the template JSON
+ */
+const createDefaultBlocks = (): EmailBlock => {
+  return defaultTemplateData.emailTree as EmailBlock
+}
+
+// Help & Support dropdown component
+const HelpSupportDropdown: React.FC<{ onStartTour: () => void }> = ({ onStartTour }) => {
+  const { t } = useLingui()
+  const menuItems: MenuProps['items'] = [
+    {
+      key: 'tour',
+      label: t`Take a Tour`,
+      icon: <FontAwesomeIcon icon={faQuestion} />,
+      onClick: onStartTour
+    }
+  ]
+
+  return (
+    <Dropdown menu={{ items: menuItems }} placement="bottomRight" trigger={['click']}>
+      <Button
+        size="small"
+        title={t`Help & Support`}
+        type="primary"
+        ghost
+        icon={<FontAwesomeIcon icon={faQuestion} size="sm" />}
+      >
+        {t`Help`}
+      </Button>
+    </Dropdown>
+  )
+}
+/**
+ * Renders a Tag component with the appropriate color for an email template category
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- Utility export co-located with component
+export const renderCategoryTag = (category: string) => {
+  let color = 'default'
+
+  if (['marketing', 'transactional'].includes(category)) {
+    color = 'green'
+  } else if (category === 'welcome') {
+    color = 'blue'
+  } else if (['opt_in', 'unsubscribe', 'bounce', 'blocklist'].includes(category)) {
+    color = 'purple'
+  }
+
+  return (
+    <Tag variant="filled" color={color}>
+      {category.charAt(0).toUpperCase() + category.slice(1).replace('_', '-')}
+    </Tag>
+  )
+}
+
+export function CreateTemplateDrawer({
+  workspace,
+  template,
+  fromTemplate,
+  buttonProps = {},
+  buttonContent,
+  onClose,
+  forceCategory
+}: CreateTemplateDrawerProps) {
+  const { t } = useLingui()
+  const [isOpen, setIsOpen] = useState(false)
+  const [form] = Form.useForm()
+  const queryClient = useQueryClient()
+  const { conflictModal, showConflict } = useTemplateConflictModal()
+  // The template revision the current editor content is based on. Sent as
+  // base_version on save so the server can reject a stale-base overwrite (409).
+  const baseVersionRef = useRef<number | undefined>(template?.version)
+  // Whether the user has edited since the drawer opened. Guards the freshen-on-open
+  // reseed so a background refetch never silently discards in-progress edits.
+  const dirtyRef = useRef(false)
+  // The last submitted form values, so the conflict dialog can re-submit ("overwrite").
+  const lastSubmittedValuesRef = useRef<Record<string, unknown> | null>(null)
+  const [tab, setTab] = useState<string>('settings')
+  const [loading, setLoading] = useState(false)
+  const { message } = App.useApp()
+  const { refreshWorkspaces } = useAuth()
+  const [tourOpen, setTourOpen] = useState(false)
+  const [forcedViewMode, setForcedViewMode] = useState<'edit' | 'preview' | null>(null)
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
+  const [emailBuilderHeight, setEmailBuilderHeight] = useState<string>(
+    `calc(100vh - ${HEADER_HEIGHT}px)`
+  )
+  const [editorMode, setEditorMode] = useState<'visual' | 'code'>(() => {
+    if (template?.email?.editor_mode === 'code') return 'code'
+    if (fromTemplate?.email?.editor_mode === 'code') return 'code'
+    return 'visual'
+  })
+  const [mjmlSource, setMjmlSource] = useState<string>(() => {
+    if (template?.email?.mjml_source) return template.email.mjml_source
+    if (fromTemplate?.email?.mjml_source) return fromTemplate.email.mjml_source
+    return STARTER_TEMPLATE
+  })
+  const [translationsState, setTranslationsState] = useState<Record<string, TranslationEditorState>>({})
+
+  const translationLanguages = (workspace.settings.languages || []).filter(
+    (l) => l !== workspace.settings.default_language
+  )
+  const showTranslationsTab = translationLanguages.length > 0
+
+  // Refs for tour targets
+  const treePanelRef = useRef<HTMLDivElement>(null)
+  const editPanelRef = useRef<HTMLDivElement>(null)
+  const settingsPanelRef = useRef<HTMLDivElement>(null)
+  const previewSwitcherRef = useRef<HTMLDivElement>(null)
+  const mobileDesktopSwitcherRef = useRef<HTMLDivElement>(null)
+  const templateDataRef = useRef<PreviewRef>(null)
+  const importExportButtonRef = useRef<HTMLDivElement>(null)
+  const codeEditorRef = useRef<MjmlCodeEditorRef>(null)
+
+  // set the tree apart to avoid rerendering the Email Editor when the tree changes
+  const [visualEditorTree, setVisualEditorTree] = useState<EmailBlock>(() => {
+    if (template && template.email?.visual_editor_tree) {
+      // Check if visual_editor_tree is already an object
+      if (typeof template.email.visual_editor_tree === 'object') {
+        return template.email.visual_editor_tree as unknown as EmailBlock
+      }
+
+      // Otherwise parse it from string
+      try {
+        return JSON.parse(template.email.visual_editor_tree) as EmailBlock
+      } catch (error) {
+        console.error('Error parsing visual editor tree:', error)
+        message.error(t`Error loading template: Invalid template data`)
+        return createDefaultBlocks()
+      }
+    }
+    return createDefaultBlocks()
+  })
+
+  // Always-current snapshot of the tree, so async callers (the AI assistant reading
+  // the tree after its edits) never see a stale value captured in an old closure.
+  const visualEditorTreeRef = useRef(visualEditorTree)
+  visualEditorTreeRef.current = visualEditorTree
+
+  // Add Form.useWatch for the email fields - must be called before conditional returns
+  const senderID = Form.useWatch(['email', 'sender_id'], form)
+  const emailSubject = Form.useWatch(['email', 'subject'], form)
+  const emailPreview = Form.useWatch(['email', 'subject_preview'], form)
+  const watchedCategory = Form.useWatch(['category'], form)
+  const categoryValue = forceCategory || watchedCategory
+
+  const emailProvider = useMemo(() => {
+    const providerId =
+      categoryValue === 'marketing'
+        ? workspace.settings.marketing_email_provider_id
+        : workspace.settings.transactional_email_provider_id
+    return workspace.integrations?.find((integration) => integration.id === providerId)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Provider IDs are part of workspace settings
+  }, [workspace.integrations, categoryValue])
+
+  const emailSender = useMemo(() => {
+    if (emailProvider) {
+      return emailProvider.email_provider?.senders.find((sender) => sender.id === senderID)
+    }
+    return null
+  }, [emailProvider, senderID])
+
+  const createTemplateMutation = useMutation({
+    mutationFn: (values: Record<string, unknown>) => {
+      if (template) {
+        return templatesApi.update({
+          ...(values as Omit<UpdateTemplateRequest, 'channel' | 'workspace_id' | 'id'>),
+          channel: 'email',
+          workspace_id: workspace.id,
+          id: template.id,
+          base_version: baseVersionRef.current
+        })
+      } else {
+        return templatesApi.create({
+          ...(values as Omit<CreateTemplateRequest, 'channel' | 'workspace_id'>),
+          channel: 'email',
+          workspace_id: workspace.id
+        })
+      }
+    },
+    onSuccess: (response) => {
+      codeEditorRef.current?.clearDraft()
+      // Advance the base to the just-saved revision so a subsequent save isn't a false conflict.
+      baseVersionRef.current = response.template.version
+      dirtyRef.current = false
+      message.success(template ? t`Template updated successfully` : t`Template created successfully`)
+      handleClose()
+      queryClient.invalidateQueries({ queryKey: ['templates', workspace.id] })
+      if (template) {
+        queryClient.invalidateQueries({ queryKey: ['template', workspace.id, template.id] })
+      }
+      setLoading(false)
+    },
+    onError: (error) => {
+      // 409: the template advanced past our base while editing. Let the user decide
+      // between keeping their work (overwrite) or loading the latest (discard theirs).
+      if (error instanceof ApiError && error.status === 409) {
+        const latest = (error.data as { latest_version?: number } | undefined)?.latest_version
+        showConflict({
+          latestVersion: latest,
+          baseVersion: baseVersionRef.current,
+          onOverwrite: () => {
+            // Adopt the server's latest as the new base and re-submit. Fall back to 0
+            // (skip the check, force the write) when the server didn't report a version,
+            // so "overwrite" can never loop on a conflict it cannot resolve.
+            baseVersionRef.current = latest ?? 0
+            if (lastSubmittedValuesRef.current) {
+              createTemplateMutation.mutate(lastSubmittedValuesRef.current)
+            }
+          },
+          onReload: () => {
+            void freshenFromServer(true)
+          }
+        })
+        setLoading(false)
+        return
+      }
+      message.error(template ? t`Failed to update template: ${error.message}` : t`Failed to create template: ${error.message}`)
+      setLoading(false)
+    }
+  })
+
+  const defaultTestData = useMemo(() => {
+    const endpoint = workspace.settings.custom_endpoint_url || window.API_ENDPOINT
+    // These example values show available template variables for preview
+    // Note: Preview links (mid=preview) show a "Preview Mode" message in the notification center
+    // Real emails use secure HMACs for authentication
+    // The `workspace` object (base_url / website_url) is intentionally omitted: the compile
+    // endpoint injects it server-side (single source of truth), so it renders in the preview
+    // and is echoed back without being hard-coded here.
+    return {
+      contact: {
+        first_name: 'John',
+        last_name: 'Doe',
+        email: 'john.doe@example.com'
+      },
+      list: {
+        id: 'newsletter',
+        name: 'Newsletter'
+      },
+      unsubscribe_url: `${endpoint}/notification-center?action=unsubscribe&email=john.doe@example.com&lid=newsletter&lname=Newsletter&wid=${workspace.id}&mid=preview&email_hmac=abc123`,
+      confirm_subscription_url: `${endpoint}/notification-center?action=confirm&email=john.doe@example.com&lid=newsletter&lname=Newsletter&wid=${workspace.id}&mid=preview&email_hmac=abc123`,
+      notification_center_url: `${endpoint}/notification-center?email=john.doe@example.com&email_hmac=abc123&wid=${workspace.id}`
+    }
+  }, [workspace.settings.custom_endpoint_url, workspace.id])
+
+  const loadTranslations = (translations?: Record<string, TemplateTranslation>) => {
+    if (!translations) return
+    const loaded: Record<string, TranslationEditorState> = {}
+    for (const [lang, trans] of Object.entries(translations)) {
+      loaded[lang] = {
+        enabled: true,
+        subject: trans.email?.subject || '',
+        subjectPreview: trans.email?.subject_preview || '',
+        visualEditorTree: trans.email?.visual_editor_tree
+          ? (typeof trans.email.visual_editor_tree === 'object'
+              ? (JSON.parse(JSON.stringify(trans.email.visual_editor_tree)) as EmailBlock)
+              : (JSON.parse(trans.email.visual_editor_tree as unknown as string) as EmailBlock))
+          : undefined,
+        mjmlSource: trans.email?.mjml_source || undefined
+      }
+    }
+    setTranslationsState(loaded)
+  }
+
+  // Reseed every editor surface from a freshly-fetched template revision.
+  const seedEditorFromLatest = (latest: Template) => {
+    setEditorMode(latest.email?.editor_mode === 'code' ? 'code' : 'visual')
+    if (latest.email?.editor_mode === 'code' && latest.email?.mjml_source) {
+      setMjmlSource(latest.email.mjml_source)
+    }
+    form.setFieldsValue({
+      name: latest.name,
+      id: latest.id || kebabCase(latest.name),
+      category: latest.category || undefined,
+      email: {
+        sender_id: latest.email?.sender_id || undefined,
+        reply_to: latest.email?.reply_to || undefined,
+        subject: latest.email?.subject || '',
+        subject_preview: latest.email?.subject_preview || '',
+        content: latest.email?.visual_editor_tree || '',
+        visual_editor_tree: latest.email?.visual_editor_tree || createDefaultBlocks()
+      },
+      test_data: latest.test_data || defaultTestData
+    })
+    loadTranslations(latest.translations)
+    if (latest.email?.visual_editor_tree) {
+      if (typeof latest.email.visual_editor_tree === 'object') {
+        setVisualEditorTree(latest.email.visual_editor_tree as unknown as EmailBlock)
+      } else {
+        try {
+          setVisualEditorTree(JSON.parse(latest.email.visual_editor_tree) as EmailBlock)
+        } catch (error) {
+          console.error('Error parsing visual editor tree:', error)
+        }
+      }
+    }
+  }
+
+  // Freshen the editor against the latest server revision. The list snapshot the drawer
+  // opens from can be stale (refetchOnWindowFocus is off), so we re-read on open to
+  // minimize conflicts. Reseeds only when safe (not dirty) or when forced by the user.
+  const freshenFromServer = async (force = false) => {
+    if (!template) return
+    try {
+      const { template: latest } = await templatesApi.get({
+        workspace_id: workspace.id,
+        id: template.id,
+        version: 0
+      })
+      if (latest.version === baseVersionRef.current) return
+      if (force || !dirtyRef.current) {
+        seedEditorFromLatest(latest)
+        baseVersionRef.current = latest.version
+        dirtyRef.current = false
+        if (!force) {
+          message.info(t`Loaded the latest version of this template (v${latest.version}).`)
+        }
+      }
+    } catch {
+      // A forced reload (from the conflict dialog) is user-initiated, so surface the
+      // failure. A background freshen-on-open stays silent — the current content is kept
+      // and the server-side 409 check still guards the save.
+      if (force) {
+        message.error(t`Could not load the latest version. Please try again.`)
+      }
+    }
+  }
+
+  const showDrawer = () => {
+    if (template) {
+      // Set editor mode from existing template
+      setEditorMode(template.email?.editor_mode === 'code' ? 'code' : 'visual')
+      if (template.email?.editor_mode === 'code' && template.email?.mjml_source) {
+        setMjmlSource(template.email.mjml_source)
+      }
+      form.setFieldsValue({
+        name: template.name,
+        id: template.id || kebabCase(template.name),
+        category: template.category || undefined,
+        email: {
+          sender_id: template.email?.sender_id || undefined,
+          reply_to: template.email?.reply_to || undefined,
+          subject: template.email?.subject || '',
+          subject_preview: template.email?.subject_preview || '',
+          content: template.email?.visual_editor_tree || '',
+          visual_editor_tree: template.email?.visual_editor_tree || createDefaultBlocks()
+        },
+        test_data: template.test_data || defaultTestData
+      })
+      loadTranslations(template.translations)
+      // Track the revision this content is based on, then freshen against the server
+      // so a stale list snapshot doesn't lead to a silent overwrite of newer edits.
+      baseVersionRef.current = template.version
+      dirtyRef.current = false
+      void freshenFromServer()
+    } else if (fromTemplate) {
+      // Clone template functionality - lock to source template's editor mode
+      setEditorMode(fromTemplate.email?.editor_mode === 'code' ? 'code' : 'visual')
+      if (fromTemplate.email?.editor_mode === 'code' && fromTemplate.email?.mjml_source) {
+        setMjmlSource(fromTemplate.email.mjml_source)
+      }
+      // Append "copy" as suffix instead of "Copy of" prefix
+      form.setFieldsValue({
+        name: `${fromTemplate.name} copy`,
+        id: kebabCase(`${fromTemplate.name}-copy`),
+        category: fromTemplate.category || forceCategory || undefined,
+        email: {
+          sender_id: fromTemplate.email?.sender_id || undefined,
+          reply_to: fromTemplate.email?.reply_to || undefined,
+          subject: fromTemplate.email?.subject || '',
+          subject_preview: fromTemplate.email?.subject_preview || '',
+          content: fromTemplate.email?.visual_editor_tree || '',
+          visual_editor_tree: fromTemplate.email?.visual_editor_tree || createDefaultBlocks()
+        },
+        test_data: fromTemplate.test_data || defaultTestData
+      })
+
+      loadTranslations(fromTemplate.translations)
+
+      // Update the visual editor tree
+      if (fromTemplate.email?.visual_editor_tree) {
+        if (typeof fromTemplate.email.visual_editor_tree === 'object') {
+          setVisualEditorTree(fromTemplate.email.visual_editor_tree as unknown as EmailBlock)
+        } else {
+          try {
+            setVisualEditorTree(JSON.parse(fromTemplate.email.visual_editor_tree) as EmailBlock)
+          } catch (error) {
+            console.error('Error parsing visual editor tree:', error)
+            message.error(t`Error loading template: Invalid template data`)
+          }
+        }
+      }
+    }
+    setIsOpen(true)
+
+    // Calculate EmailBuilder height after drawer opens
+    setTimeout(() => {
+      // Height calculation: 100vh - drawer header - tabs - some padding
+      setEmailBuilderHeight(`calc(100vh - ${HEADER_HEIGHT}px)`)
+    }, 100)
+  }
+
+  const handleClose = () => {
+    setIsOpen(false)
+    form.resetFields()
+    setTab('settings')
+    setEditorMode('visual')
+    setMjmlSource(STARTER_TEMPLATE)
+    setTranslationsState({})
+    if (onClose) {
+      onClose()
+    }
+  }
+
+  const handleImport = (tree: EmailBlock) => {
+    dirtyRef.current = true
+    setVisualEditorTree(tree)
+  }
+
+  const handleSaveBlock = async (
+    block: EmailBlock,
+    operation: 'create' | 'update' | 'delete',
+    nameOrId: string
+  ) => {
+    try {
+      if (operation === 'create') {
+        // Create new template block
+        await templateBlocksApi.create({
+          workspace_id: workspace.id,
+          name: nameOrId,
+          block: block
+        })
+        message.success(t`Template block "${nameOrId}" saved successfully`)
+      } else if (operation === 'update') {
+        // Update existing template block
+        const existingBlock = workspace.settings.template_blocks?.find((b) => b.id === nameOrId)
+        if (!existingBlock) {
+          message.error(t`Template block not found`)
+          return
+        }
+        await templateBlocksApi.update({
+          workspace_id: workspace.id,
+          id: nameOrId,
+          name: existingBlock.name, // Preserve the existing name
+          block: block
+        })
+        message.success(t`Template block "${existingBlock.name}" updated successfully`)
+      } else if (operation === 'delete') {
+        // Delete template block
+        await templateBlocksApi.delete({
+          workspace_id: workspace.id,
+          id: nameOrId
+        })
+        const existingBlock = workspace.settings.template_blocks?.find((b) => b.id === nameOrId)
+        message.success(t`Template block "${existingBlock?.name || nameOrId}" deleted successfully`)
+      } else {
+        return // Invalid operation
+      }
+
+      // Invalidate workspace query to refetch latest data
+      queryClient.invalidateQueries({ queryKey: ['workspace', workspace.id] })
+
+      // Refresh workspaces in AuthContext to immediately update the workspace state
+      // This ensures the EmailBuilder shows the saved blocks without requiring a page refresh
+      await refreshWorkspaces()
+    } catch (error) {
+      console.error('Failed to save template block:', error)
+      const err = error as Error
+      message.error(err?.message || t`Failed to save template block`)
+    }
+  }
+
+  const goNext = () => {
+    if (tab === 'settings') {
+      setTab('template')
+    } else if (tab === 'template' && showTranslationsTab) {
+      setTab('translations')
+    }
+  }
+
+  return (
+    <>
+      <Button type="primary" onClick={showDrawer} {...buttonProps}>
+        {buttonContent ||
+          (template ? t`Edit Template` : fromTemplate ? t`Clone Template` : t`Create Template`)}
+      </Button>
+      {isOpen && (
+        <Drawer
+          title={
+            <>
+              {template
+                ? t`Edit email template`
+                : fromTemplate
+                  ? t`Clone email template`
+                  : t`Create an email template`}
+            </>
+          }
+          closable={true}
+          keyboard={false}
+          mask={{ closable: false }}
+          size={'100%'}
+          open={isOpen}
+          onClose={handleClose}
+          className="drawer-no-transition drawer-body-no-padding"
+          extra={
+            <div className="text-right">
+              <Space>
+                <Button type="link" loading={loading} onClick={handleClose}>
+                  {t`Cancel`}
+                </Button>
+
+                {tab === 'settings' && (
+                  <Button type="primary" onClick={goNext}>
+                    {t`Next`}
+                  </Button>
+                )}
+                {tab === 'template' && (
+                  <Button type="primary" ghost onClick={() => setTab('settings')}>
+                    {t`Previous`}
+                  </Button>
+                )}
+                {tab === 'template' && !showTranslationsTab && (
+                  <Button
+                    loading={loading || createTemplateMutation.isPending}
+                    onClick={() => {
+                      form.submit()
+                    }}
+                    type="primary"
+                  >
+                    {t`Save`}
+                  </Button>
+                )}
+                {tab === 'template' && showTranslationsTab && (
+                  <Button type="primary" onClick={goNext}>
+                    {t`Next`}
+                  </Button>
+                )}
+                {tab === 'translations' && (
+                  <Button type="primary" ghost onClick={() => setTab('template')}>
+                    {t`Previous`}
+                  </Button>
+                )}
+                {tab === 'translations' && (
+                  <Button
+                    loading={loading || createTemplateMutation.isPending}
+                    onClick={() => {
+                      form.submit()
+                    }}
+                    type="primary"
+                  >
+                    {t`Save`}
+                  </Button>
+                )}
+              </Space>
+            </div>
+          }
+        >
+          <Form
+            form={form}
+            layout="vertical"
+            onValuesChange={() => {
+              dirtyRef.current = true
+            }}
+            onFinish={(values) => {
+              setLoading(true)
+              if (editorMode === 'code') {
+                values.email.editor_mode = 'code'
+                values.email.mjml_source = mjmlSource
+                // Code mode doesn't use visual_editor_tree
+                delete values.email.visual_editor_tree
+              } else {
+                values.email.editor_mode = 'visual'
+                values.email.visual_editor_tree = visualEditorTree
+              }
+
+              // Validate and build translations from state
+              if (showTranslationsTab) {
+                // Check enabled translations have required fields
+                for (const [lang, state] of Object.entries(translationsState)) {
+                  if (!state.enabled) continue
+                  if (!state.subject || !state.subjectPreview) {
+                    const langName = SUPPORTED_LANGUAGES[lang] || lang
+                    message.error(t`${langName} translation is missing required fields (subject and preview)`)
+                    setTab('translations')
+                    setLoading(false)
+                    return
+                  }
+                }
+
+                const translations: Record<string, { email: TranslationEmailPayload }> = {}
+                for (const [lang, state] of Object.entries(translationsState)) {
+                  if (!state.enabled) continue
+                  const emailTranslation: TranslationEmailPayload = {
+                    subject: state.subject,
+                    subject_preview: state.subjectPreview || ''
+                  }
+                  if (editorMode === 'code') {
+                    emailTranslation.editor_mode = 'code'
+                    emailTranslation.mjml_source = state.mjmlSource || ''
+                  } else {
+                    emailTranslation.editor_mode = 'visual'
+                    emailTranslation.visual_editor_tree = state.visualEditorTree || visualEditorTree
+                  }
+                  translations[lang] = { email: emailTranslation }
+                }
+                // Always send translations (even empty) so disabling all clears them on the server
+                values.translations = translations
+              }
+
+              // Remember the payload so the conflict dialog can re-submit it verbatim.
+              lastSubmittedValuesRef.current = values
+              createTemplateMutation.mutate(values)
+            }}
+            onFinishFailed={(info) => {
+              if (info.errorFields) {
+                info.errorFields.forEach((field) => {
+                  // field.name can be an array, so we need to concatenate the array into a string
+                  const fieldName = field.name.join('.')
+                  if (
+                    [
+                      'name',
+                      'id',
+                      'category',
+                      'email.sender_id',
+                      'email.subject',
+                      'email.subject_preview',
+                      'email.reply_to'
+                    ].indexOf(fieldName) !== -1
+                  ) {
+                    setTab('settings')
+                  }
+                })
+              }
+              setLoading(false)
+            }}
+            initialValues={{
+              'email.visual_editor_tree': visualEditorTree,
+              category: forceCategory || undefined,
+              test_data: defaultTestData
+            }}
+          >
+            <Form.Item name="test_data" hidden>
+              <Input type="hidden" />
+            </Form.Item>
+
+            <div className="flex justify-center">
+              <Tabs
+                activeKey={tab}
+                centered
+                onChange={(k) => setTab(k)}
+                style={{ display: 'inline-block' }}
+                className="tabs-in-header"
+                destroyOnHidden={false}
+                items={[
+                  {
+                    key: 'settings',
+                    label: t`1. Settings`
+                  },
+                  {
+                    key: 'template',
+                    label: showTranslationsTab
+                      ? t`2. Template (${workspace.settings.default_language})`
+                      : t`2. Template`
+                  },
+                  ...(showTranslationsTab
+                    ? [
+                        {
+                          key: 'translations',
+                          label: t`3. Translations`
+                        }
+                      ]
+                    : [])
+                ]}
+              />
+            </div>
+            <div className="relative">
+              <div style={{ display: tab === 'settings' ? 'block' : 'none' }}>
+                <div className="p-8">
+                  <Row gutter={24}>
+                    <Col span={6}>
+                      <Form.Item name="name" label={t`Template name`} rules={[{ required: true }]}>
+                        <Input
+                          placeholder={t`i.e: Welcome Email`}
+                          onChange={(e) => {
+                            if (!template) {
+                              const id = kebabCase(e.target.value)
+                              form.setFieldsValue({ id: id })
+                              form.validateFields(['id'])
+                            }
+                          }}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                      <Form.Item
+                        name="id"
+                        label={t`Template ID (utm_content)`}
+                        tooltip={t`This is the ID that will be used as the utm_content parameter in the links URL to track the template`}
+                        rules={[
+                          {
+                            required: true,
+                            type: 'string',
+                            pattern: /^[a-z0-9_-]+$/,
+                            message:
+                              t`ID must contain only lowercase letters, numbers, underscores, and hyphens`
+                          },
+                          {
+                            validator: async (_rule, value) => {
+                              if (value && !template) {
+                                try {
+                                  await templatesApi.get({ workspace_id: workspace.id, id: value })
+                                  return Promise.reject(t`Template ID already exists`)
+                                } catch {
+                                  return Promise.resolve()
+                                }
+                              }
+                              return Promise.resolve()
+                            }
+                          }
+                        ]}
+                      >
+                        <Input
+                          disabled={template ? true : false}
+                          placeholder={t`i.e: welcome-email`}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                      <Form.Item
+                        name="category"
+                        label={t`Category`}
+                        rules={[{ required: true, type: 'string' }]}
+                      >
+                        <Select
+                          placeholder={t`Select category`}
+                          disabled={forceCategory ? true : false}
+                          options={[
+                            {
+                              value: 'marketing',
+                              label: renderCategoryTag('marketing')
+                            },
+                            {
+                              value: 'transactional',
+                              label: renderCategoryTag('transactional')
+                            },
+                            {
+                              value: 'welcome',
+                              label: renderCategoryTag('welcome')
+                            },
+                            {
+                              value: 'opt_in',
+                              label: renderCategoryTag('opt_in')
+                            },
+                            {
+                              value: 'unsubscribe',
+                              label: renderCategoryTag('unsubscribe')
+                            },
+                            {
+                              value: 'bounce',
+                              label: renderCategoryTag('bounce')
+                            },
+                            {
+                              value: 'blocklist',
+                              label: renderCategoryTag('blocklist')
+                            }
+                          ]}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                      <Form.Item label={t`Editor mode`}>
+                        <Radio.Group
+                          value={editorMode}
+                          onChange={(e) => setEditorMode(e.target.value as 'visual' | 'code')}
+                          optionType="button"
+                          disabled={!!(template || fromTemplate)}
+                          options={[
+                            { label: t`Visual`, value: 'visual' },
+                            { label: t`Code (MJML)`, value: 'code' }
+                          ]}
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <div className="text-lg my-8 font-bold">{t`Sender`}</div>
+                  <Row gutter={24}>
+                    <Col span={12}>
+                      <Form.Item
+                        name={['email', 'subject']}
+                        label={showTranslationsTab ? t`Email subject (${workspace.settings.default_language})` : t`Email subject`}
+                        rules={[
+                          { required: true, type: 'string' },
+                          {
+                            validator: (_, value) => {
+                              const validation = validateLiquidTags(value)
+                              if (!validation.isValid) {
+                                return Promise.reject(new Error(validation.error))
+                              }
+                              return Promise.resolve()
+                            }
+                          }
+                        ]}
+                      >
+                        <Input placeholder={t`Templating markup allowed`} />
+                      </Form.Item>
+                      <Form.Item
+                        name={['email', 'subject_preview']}
+                        label={showTranslationsTab ? t`Subject preview (${workspace.settings.default_language})` : t`Subject preview`}
+                        rules={[
+                          { required: true, type: 'string' },
+                          {
+                            validator: (_, value) => {
+                              const validation = validateLiquidTags(value)
+                              if (!validation.isValid) {
+                                return Promise.reject(new Error(validation.error))
+                              }
+                              return Promise.resolve()
+                            }
+                          }
+                        ]}
+                      >
+                        <Input placeholder={t`Templating markup allowed`} />
+                      </Form.Item>
+
+                      <Row gutter={24}>
+                        <Col span={12}>
+                          <Form.Item
+                            name={['email', 'reply_to']}
+                            label={t`Reply to`}
+                            rules={[{ required: false, type: 'email' }]}
+                          >
+                            <Input />
+                          </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                          <Form.Item
+                            name={['email', 'sender_id']}
+                            label={categoryValue === 'marketing' ? t`Custom sender (marketing email provider)` : t`Custom sender (transactional email provider)`}
+                            rules={[{ required: false, type: 'string' }]}
+                          >
+                            <Select
+                              options={emailProvider?.email_provider?.senders.map((sender) => ({
+                                value: sender.id,
+                                label: `${sender.name} <${sender.email}>`
+                              }))}
+                              allowClear={true}
+                            />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                    </Col>
+                    <Col span={12}>
+                      <div className="flex justify-center">
+                        <IphoneEmailPreview
+                          sender={emailSender?.name || t`Sender Name`}
+                          subject={emailSubject || t`Email Subject`}
+                          previewText={emailPreview || t`Preview text will appear here...`}
+                          timestamp={t`Now`}
+                          currentTime="12:12"
+                        />
+                      </div>
+                    </Col>
+                  </Row>
+                </div>
+              </div>
+
+              <div style={{ display: tab === 'template' ? 'block' : 'none' }}>
+                <Form.Item dependencies={['id']} style={{ margin: 0 }}>
+                  {(form) => {
+                    const testData = form.getFieldValue('test_data')
+                    const templateId = form.getFieldValue('id')
+
+                    if (editorMode === 'code') {
+                      return (
+                        <MjmlCodeEditor
+                          ref={codeEditorRef}
+                          mjmlSource={mjmlSource}
+                          onMjmlSourceChange={(source) => {
+                            dirtyRef.current = true
+                            setMjmlSource(source)
+                          }}
+                          onCompile={async (
+                            mjml: string,
+                            codeTestData?: Record<string, unknown>
+                          ) => {
+                            try {
+                              const response = await templatesApi.compile({
+                                workspace_id: workspace.id,
+                                message_id: 'preview',
+                                mjml_source: mjml,
+                                test_data: codeTestData || {},
+                                channel: 'email',
+                                tracking_settings: {
+                                  enable_tracking:
+                                    workspace.settings?.email_tracking_enabled || false,
+                                  endpoint: workspace.settings?.custom_endpoint_url || undefined,
+                                  workspace_id: workspace.id,
+                                  message_id: 'preview'
+                                }
+                              })
+
+                              return {
+                                html: response.html || '',
+                                mjml: response.mjml || '',
+                                error: response.error
+                              }
+                            } catch (error) {
+                              const err = error as Error
+                              return {
+                                html: '',
+                                mjml: '',
+                                error: {
+                                  message: err.message || 'Compilation failed',
+                                  details: []
+                                } as MjmlCompileError
+                              }
+                            }
+                          }}
+                          testData={testData}
+                          onTestDataChange={(newTestData) => {
+                            form.setFieldsValue({
+                              test_data: newTestData
+                            })
+                          }}
+                          height={emailBuilderHeight}
+                          templateId={templateId || 'new'}
+                        />
+                      )
+                    }
+
+                    return (
+                      <EmailBuilder
+                        tree={visualEditorTree}
+                        onTreeChange={(tree) => {
+                          // Visual edits go through here; mark dirty so a freshen-on-open
+                          // refetch never silently reseeds over in-progress work.
+                          dirtyRef.current = true
+                          setVisualEditorTree(tree)
+                        }}
+                        onCompile={async (
+                          tree: EmailBlock,
+                          builderTestData?: Record<string, unknown>
+                        ) => {
+                          try {
+                            const response = await templatesApi.compile({
+                              workspace_id: workspace.id,
+                              message_id: 'preview',
+                              visual_editor_tree: tree,
+                              test_data: builderTestData || {},
+                              channel: 'email',
+                              tracking_settings: {
+                                enable_tracking:
+                                  workspace.settings?.email_tracking_enabled || false,
+                                endpoint: workspace.settings?.custom_endpoint_url || undefined,
+                                workspace_id: workspace.id,
+                                message_id: 'preview'
+                              }
+                            })
+
+                            if (response.error) {
+                              return {
+                                html: '',
+                                mjml: response.mjml || '',
+                                errors: [response.error as unknown as Record<string, unknown>]
+                              }
+                            }
+
+                            return {
+                              html: response.html || '',
+                              mjml: response.mjml || '',
+                              errors: []
+                            }
+                          } catch (error) {
+                            const err = error as Error
+                            return {
+                              html: '',
+                              mjml: '',
+                              errors: [{ message: err.message || 'Compilation failed' }]
+                            }
+                          }
+                        }}
+                        testData={testData}
+                        onTestDataChange={(newTestData) => {
+                          form.setFieldsValue({
+                            test_data: newTestData
+                          })
+                        }}
+                        treePanelRef={treePanelRef as React.RefObject<HTMLDivElement>}
+                        editPanelRef={editPanelRef as React.RefObject<HTMLDivElement>}
+                        settingsPanelRef={settingsPanelRef as React.RefObject<HTMLDivElement>}
+                        previewSwitcherRef={previewSwitcherRef as React.RefObject<HTMLDivElement>}
+                        mobileDesktopSwitcherRef={
+                          mobileDesktopSwitcherRef as React.RefObject<HTMLDivElement>
+                        }
+                        templateDataRef={templateDataRef as React.RefObject<PreviewRef>}
+                        forcedViewMode={forcedViewMode}
+                        savedBlocks={workspace.settings.template_blocks || []}
+                        onSaveBlock={handleSaveBlock}
+                        onSelectBlock={setSelectedBlockId}
+                        selectedBlockId={selectedBlockId}
+                        hiddenBlocks={['mj-title', 'mj-preview']}
+                        height={emailBuilderHeight}
+                        toolbarActions={
+                          <div className="flex gap-2 items-start">
+                            <HelpSupportDropdown
+                              onStartTour={() => {
+                                setTourOpen(true)
+                              }}
+                            />
+                            <div ref={importExportButtonRef}>
+                              <ImportExportButton
+                                onImport={handleImport}
+                                // onTestDataImport={handleTestDataImport}
+                                tree={visualEditorTree}
+                                testData={testData}
+                                workspaceId={workspace.id}
+                                templateName={template?.name}
+                              />
+                            </div>
+                          </div>
+                        }
+                      />
+                    )
+                  }}
+                </Form.Item>
+              </div>
+
+              {showTranslationsTab && (
+                <div style={{ display: tab === 'translations' ? 'block' : 'none' }}>
+                  <TemplateTranslationsTab
+                    workspace={workspace}
+                    editorMode={editorMode}
+                    translationsState={translationsState}
+                    onTranslationsStateChange={(s) => {
+                      dirtyRef.current = true
+                      setTranslationsState(s)
+                    }}
+                    defaultSubject={emailSubject}
+                    defaultSubjectPreview={emailPreview}
+                    defaultVisualEditorTree={visualEditorTree}
+                    defaultMjmlSource={mjmlSource}
+                    testData={form.getFieldValue('test_data')}
+                    onTestDataChange={(newTestData) => form.setFieldsValue({ test_data: newTestData })}
+                    savedBlocks={workspace.settings.template_blocks || []}
+                    onSaveBlock={handleSaveBlock}
+                  />
+                </div>
+              )}
+            </div>
+          </Form>
+          <Tour
+            open={tourOpen}
+            onClose={() => {
+              setTourOpen(false)
+              // Reset forced view mode when tour closes
+              setForcedViewMode(null)
+              // Mark tour as seen
+              localStorage.setItem('email-builder-tour-seen', 'true')
+            }}
+            onChange={(current) => {
+              // Change email builder state based on tour step
+              switch (current) {
+                case 2: {
+                  // Edit panel step (0-indexed)
+                  // Select the body block to demonstrate block selection
+                  const bodyBlock = visualEditorTree.children?.find(
+                    (child) => child.type === 'mj-body'
+                  )
+                  if (bodyBlock) {
+                    setSelectedBlockId(bodyBlock.id)
+                  }
+                  setForcedViewMode('edit')
+                  break
+                }
+                case 4: // Preview step (0-indexed)
+                case 5: // Mobile/Desktop preview step
+                  // Automatically switch to preview mode when reaching the preview steps
+                  setForcedViewMode('preview')
+                  break
+                case 6: // Template Data step
+                  // Switch to preview mode and open template data editor
+                  setForcedViewMode('preview')
+                  // Open the template data editor using the ref
+                  setTimeout(() => {
+                    templateDataRef.current?.openTemplateDataEditor()
+                  }, 500) // Small delay to ensure preview mode is active
+                  break
+                case 7: // Import/Export step
+                  // Switch back to edit mode for import/export step
+                  setForcedViewMode('edit')
+                  // Close template data editor if open
+                  templateDataRef.current?.closeTemplateDataEditor()
+                  break
+                default:
+                  // For other steps, ensure we're in edit mode
+                  setForcedViewMode('edit')
+                  break
+              }
+            }}
+            steps={[
+              {
+                title: t`Welcome to Email Builder!`,
+                description:
+                  t`Let's take a quick tour to help you get started with building beautiful emails using MJML.`,
+                target: null // Center of screen
+              },
+              {
+                title: t`Content Structure Tree`,
+                description:
+                  t`This is your content structure tree. You can drag and drop blocks to reorganize your email layout. Click the + buttons to add new blocks, or drag blocks from one section to another.`,
+                target: () => treePanelRef.current!,
+                placement: 'right' as const
+              },
+              {
+                title: t`Visual Email Editor`,
+                description:
+                  t`This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options.`,
+                target: () => editPanelRef.current!,
+                placement: 'top' as const
+              },
+              {
+                title: t`Block Settings Panel`,
+                description:
+                  t`When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design.`,
+                target: () => settingsPanelRef.current!,
+                placement: 'left' as const
+              },
+              {
+                title: t`Preview Your Email`,
+                description:
+                  t`Switch to Preview mode to see how your email will look to recipients. This shows the final rendered version with all styling applied.`,
+                target: () => previewSwitcherRef.current!,
+                placement: 'bottom' as const
+              },
+              {
+                title: t`Mobile & Desktop Preview`,
+                description:
+                  t`Toggle between mobile and desktop views to see how your email appears on different devices. Mobile view shows a 400px width while desktop shows the full width.`,
+                target: () => mobileDesktopSwitcherRef.current!,
+                placement: 'left' as const
+              },
+              {
+                title: t`Template Data & Liquid Templating`,
+                description:
+                  t`Use the Template Data tab to define dynamic content for your emails. Add variables like {{ name }} or {{ company }} in your email content, then define their values here. The Liquid templating engine supports conditionals, loops, and filters for powerful personalization.`,
+                target: () =>
+                  (templateDataRef.current?.getTemplateDataTabRef() as HTMLElement) || null,
+                placement: 'top' as const
+              },
+              {
+                title: t`Import & Export Templates`,
+                description:
+                  t`Use this button to import saved email templates or export your finished emails. You can import JSON/MJML templates or export as HTML, MJML, or JSON for future use.`,
+                target: () => importExportButtonRef.current!,
+                placement: 'bottom' as const
+              }
+            ]}
+            indicatorsRender={(current, total) => (
+              <span
+                style={{
+                  color: '#1890ff',
+                  fontSize: '12px',
+                  fontWeight: 'bold'
+                }}
+              >
+                {current + 1} / {total}
+              </span>
+            )}
+          />
+
+          {/* AI Email Assistant - persists across tab switches, hidden in code mode */}
+          <EmailAIAssistant
+              hidden={tab !== 'template' || editorMode === 'code'}
+              workspace={workspace}
+              currentSubject={emailSubject}
+              currentPreviewText={emailPreview}
+              onUpdateSubject={(subject) => form.setFieldValue(['email', 'subject'], subject)}
+              onUpdatePreviewText={(preview) => form.setFieldValue(['email', 'subject_preview'], preview)}
+              validateOnComplete={async () => {
+                // Compile the freshly-edited tree; surface MJML errors so a broken
+                // generation is never presented as success.
+                try {
+                  const response = await templatesApi.compile({
+                    workspace_id: workspace.id,
+                    message_id: 'preview',
+                    visual_editor_tree: visualEditorTreeRef.current,
+                    test_data: {},
+                    channel: 'email',
+                    tracking_settings: {
+                      enable_tracking: workspace.settings?.email_tracking_enabled || false,
+                      endpoint: workspace.settings?.custom_endpoint_url || undefined,
+                      workspace_id: workspace.id,
+                      message_id: 'preview'
+                    }
+                  })
+                  if (response.error) {
+                    const details = (response.error.details || [])
+                      .map((d) => (d.line ? `• line ${d.line}: ${d.message}` : `• ${d.message}`))
+                      .join('\n')
+                    const errorText = [response.error.message, details].filter(Boolean).join('\n')
+                    return { ok: false, errorText: errorText || 'MJML compilation failed' }
+                  }
+                  return { ok: true }
+                } catch (error) {
+                  return { ok: false, errorText: (error as Error).message || 'Compilation failed' }
+                }
+              }}
+              callbacks={{
+                getEmailTree: () => visualEditorTreeRef.current,
+                setEmailTree: setVisualEditorTree,
+                onAddBlock: (parentId, blockType, position, content, attributes) => {
+                  dirtyRef.current = true
+                  // Use functional updater to ensure we have the latest state
+                  setVisualEditorTree(prevTree => {
+                    // Create a new block with defaults
+                    const newBlock = EmailBlockClass.createBlock(
+                      blockType as MJMLComponentType,
+                      undefined,
+                      content,
+                      prevTree
+                    )
+                    // Apply custom attributes if provided
+                    if (attributes) {
+                      newBlock.attributes = { ...newBlock.attributes, ...attributes }
+                    }
+                    // Insert into tree
+                    const updatedTree = EmailBlockClass.insertBlockIntoTree(
+                      prevTree,
+                      parentId,
+                      newBlock,
+                      position ?? (prevTree.children?.length || 0)
+                    )
+                    if (updatedTree) {
+                      // Schedule selection update after state is applied
+                      setTimeout(() => setSelectedBlockId(newBlock.id), 0)
+                      return updatedTree
+                    }
+                    return prevTree
+                  })
+                },
+                onUpdateBlock: (blockId, updates) => {
+                  dirtyRef.current = true
+                  // Use functional updater to ensure atomic updates
+                  setVisualEditorTree(prevTree => {
+                    const updatedTree = JSON.parse(JSON.stringify(prevTree)) as EmailBlock
+                    const block = EmailBlockClass.findBlockById(updatedTree, blockId)
+                    if (block) {
+                      if (updates.attributes) {
+                        block.attributes = { ...block.attributes, ...updates.attributes }
+                      }
+                      if (updates.content !== undefined) {
+                        block.content = updates.content
+                      }
+                      return updatedTree
+                    }
+                    return prevTree
+                  })
+                },
+                onDeleteBlock: (blockId) => {
+                  dirtyRef.current = true
+                  setVisualEditorTree(prevTree => {
+                    const updatedTree = EmailBlockClass.removeBlockFromTree(prevTree, blockId)
+                    if (updatedTree) {
+                      // Clear selection if deleted block was selected
+                      if (selectedBlockId === blockId) {
+                        setTimeout(() => setSelectedBlockId(null), 0)
+                      }
+                      return updatedTree
+                    }
+                    return prevTree
+                  })
+                },
+                onMoveBlock: (blockId, newParentId, position) => {
+                  dirtyRef.current = true
+                  setVisualEditorTree(prevTree => {
+                    const updatedTree = EmailBlockClass.moveBlockInTree(
+                      prevTree,
+                      blockId,
+                      newParentId,
+                      position
+                    )
+                    return updatedTree || prevTree
+                  })
+                },
+                onSelectBlock: (blockId) => {
+                  setSelectedBlockId(blockId)
+                }
+              }}
+            />
+        </Drawer>
+      )}
+      {conflictModal}
+    </>
+  )
+}

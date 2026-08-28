@@ -1,0 +1,452 @@
+package testutil
+
+import (
+	"context"
+	"fmt"
+	"net"
+	"net/http"
+	"time"
+
+	"github.com/Notifuse/notifuse/config"
+	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/service"
+	"github.com/Notifuse/notifuse/internal/service/queue"
+	"github.com/Notifuse/notifuse/pkg/logger"
+)
+
+// ServerManager manages test server lifecycle
+type ServerManager struct {
+	app       AppInterface
+	server    *http.Server
+	url       string
+	listener  net.Listener
+	isStarted bool
+	config    *config.Config
+	dbManager *DatabaseManager
+}
+
+// AppInterface defines the interface for the App (to avoid circular imports)
+type AppInterface interface {
+	Initialize() error
+	Start() error
+	Shutdown(ctx context.Context) error
+	GetConfig() *config.Config
+	GetLogger() logger.Logger
+	GetMux() *http.ServeMux
+
+	// Repository getters for testing
+	GetUserRepository() domain.UserRepository
+	GetWorkspaceRepository() domain.WorkspaceRepository
+	GetContactRepository() domain.ContactRepository
+	GetListRepository() domain.ListRepository
+	GetTemplateRepository() domain.TemplateRepository
+	GetBroadcastRepository() domain.BroadcastRepository
+	GetMessageHistoryRepository() domain.MessageHistoryRepository
+	GetContactListRepository() domain.ContactListRepository
+	GetTransactionalNotificationRepository() domain.TransactionalNotificationRepository
+	GetEmailQueueRepository() domain.EmailQueueRepository
+	GetTaskRepository() domain.TaskRepository
+
+	// Service getters for testing
+	GetAuthService() interface{} // Returns *service.AuthService but defined as interface{} to avoid import cycle
+	GetTransactionalNotificationService() domain.TransactionalNotificationService
+	GetEmailQueueWorker() *queue.EmailQueueWorker
+	GetAutomationScheduler() *service.AutomationScheduler
+	GetTaskScheduler() *service.TaskScheduler
+	GetWebAnalyticsBuffer() *service.WebAnalyticsBuffer
+	GetWebAnalyticsRepository() domain.WebAnalyticsRepository
+	GetCustomEventRepository() domain.CustomEventRepository
+}
+
+// TestSecretKey is the installation SECRET_KEY every test server runs with. It
+// encrypts workspace settings and derives the key that signs /api/tasks.execute,
+// so the client and the database seeder both have to agree with it.
+const TestSecretKey = "test-secret-key-for-integration-tests-only"
+
+// NewServerManager creates a new server manager for testing
+func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *DatabaseManager) *ServerManager {
+	// Create test JWT secret (32+ bytes for HS256)
+	jwtSecret := []byte("test-jwt-secret-key-for-integration-tests-only-32bytes")
+
+	// Create test configuration
+	// Use "development" to enable features like returning invitation tokens in responses
+	cfg := &config.Config{
+		Environment: "development",
+		RootEmail:   "test@example.com",
+		APIEndpoint: "",   // Empty to trigger direct task execution instead of HTTP callbacks
+		IsInstalled: true, // Mark as installed for tests
+		Server: config.ServerConfig{
+			Host: "127.0.0.1",
+			Port: 0, // Use random available port
+		},
+		Database: *dbManager.GetConfig(),
+		Security: config.SecurityConfig{
+			SecretKey: TestSecretKey,
+			JWTSecret: jwtSecret,
+		},
+		SMTP: config.SMTPConfig{
+			Host:      "localhost",
+			Port:      1025,
+			FromEmail: "test@example.com",
+			FromName:  "Test Notifuse",
+		},
+		Broadcast: config.BroadcastConfig{
+			DefaultRateLimit: 6000, // 6000 per minute = 100 per second (no rate limiting for tests)
+		},
+		TaskScheduler: config.TaskSchedulerConfig{
+			Enabled: false, // Disable task scheduler and autoExecuteImmediate to prevent background goroutines
+		},
+		AutomationScheduler: config.AutomationSchedulerConfig{
+			Delay:     0,                      // No delay for tests
+			Interval:  500 * time.Millisecond, // Fast polling for tests
+			BatchSize: 50,
+		},
+		Tracing: config.TracingConfig{
+			Enabled: false,
+		},
+	}
+
+	app := appFactory(cfg)
+
+	return &ServerManager{
+		app:       app,
+		config:    cfg,
+		dbManager: dbManager,
+	}
+}
+
+// NewServerManagerWithLiveScheduler creates a server manager that will drive
+// the real TaskScheduler ticker + HTTP dispatch instead of the direct-execution
+// branch. Call StartLive() instead of Start() to bring it up.
+//
+// Differences from NewServerManager:
+//   - cfg.TaskScheduler.Interval is reduced to 500ms (default 20s is too slow
+//     to wait for in a test).
+//   - cfg.APIEndpoint is left empty here; StartLive populates it once the
+//     listener port is known, forcing TaskService down its HTTP-dispatch
+//     branch (internal/service/task_service.go:260-373) — the exact path
+//     issue #317 reports stuck.
+//
+// cfg.TaskScheduler.Enabled stays false because the test harness does not
+// invoke app.Start() — it serves the mux directly. StartLive calls
+// TaskScheduler.Start(ctx) explicitly.
+func NewServerManagerWithLiveScheduler(appFactory func(*config.Config) AppInterface, dbManager *DatabaseManager) *ServerManager {
+	sm := NewServerManager(appFactory, dbManager)
+	sm.config.TaskScheduler.Interval = 500 * time.Millisecond
+	return sm
+}
+
+// Start starts the test server
+func (sm *ServerManager) Start() error {
+	if sm.isStarted {
+		return nil
+	}
+
+	// Initialize the app
+	if err := sm.app.Initialize(); err != nil {
+		return fmt.Errorf("failed to initialize app: %w", err)
+	}
+
+	// Create listener on random port
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:0", sm.config.Server.Host))
+	if err != nil {
+		return fmt.Errorf("failed to create listener: %w", err)
+	}
+
+	sm.listener = listener
+
+	// Get the actual port
+	port := listener.Addr().(*net.TCPAddr).Port
+	sm.url = fmt.Sprintf("http://%s:%d", sm.config.Server.Host, port)
+
+	// Create HTTP server
+	sm.server = &http.Server{
+		Handler:      sm.app.GetMux(),
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+	}
+
+	// Start server in background
+	go func() {
+		if err := sm.server.Serve(listener); err != nil && err != http.ErrServerClosed {
+			sm.app.GetLogger().WithField("error", err.Error()).Error("Server error")
+		}
+	}()
+
+	// Wait for server to be ready
+	if err := sm.waitForReady(10 * time.Second); err != nil {
+		return fmt.Errorf("server not ready: %w", err)
+	}
+
+	// Note: We intentionally do NOT update the API endpoint in tests
+	// This keeps it empty, which triggers direct task execution instead of HTTP callbacks
+	// Direct execution is faster and more reliable for tests
+
+	sm.isStarted = true
+	return nil
+}
+
+// StartLive brings up the server with APIEndpoint populated before
+// app.Initialize so TaskService wires its HTTP-dispatch branch, then starts
+// the real TaskScheduler ticker and the email queue worker. This is the
+// opposite of Start(): Start() keeps APIEndpoint="" and leaves workers off by
+// default; StartLive drives the full pipeline.
+//
+// Order matters:
+//  1. Bind the listener first so the port is known.
+//  2. Mutate sm.config.APIEndpoint on the shared pointer so
+//     app.Initialize → InitServices → NewTaskService (app.go:~647) reads it.
+//  3. Only then call app.Initialize().
+func (sm *ServerManager) StartLive(ctx context.Context) error {
+	if sm.isStarted {
+		return nil
+	}
+
+	// 1. Bind the listener first to know the port.
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:0", sm.config.Server.Host))
+	if err != nil {
+		return fmt.Errorf("failed to create listener: %w", err)
+	}
+	sm.listener = listener
+	port := listener.Addr().(*net.TCPAddr).Port
+	sm.url = fmt.Sprintf("http://%s:%d", sm.config.Server.Host, port)
+
+	// 2. Mutate APIEndpoint on the shared config pointer — this is the pivot
+	// that forces TaskService.ExecutePendingTasks down its HTTP-dispatch branch
+	// instead of executeTasksDirectly.
+	sm.config.APIEndpoint = sm.url
+
+	// 3. Initialize app (reads APIEndpoint during InitServices).
+	if err := sm.app.Initialize(); err != nil {
+		_ = listener.Close()
+		return fmt.Errorf("failed to initialize app: %w", err)
+	}
+
+	// 4. Build HTTP server on the pre-bound listener.
+	sm.server = &http.Server{
+		Handler:      sm.app.GetMux(),
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+	}
+	go func() {
+		if err := sm.server.Serve(listener); err != nil && err != http.ErrServerClosed {
+			sm.app.GetLogger().WithField("error", err.Error()).Error("Server error")
+		}
+	}()
+
+	// cleanup is called on any error after the server goroutine has started,
+	// so we don't leak the serve goroutine / listener when the test fails mid-setup.
+	cleanup := func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = sm.server.Shutdown(shutdownCtx)
+		_ = listener.Close()
+	}
+
+	if err := sm.waitForReady(10 * time.Second); err != nil {
+		cleanup()
+		return fmt.Errorf("server not ready: %w", err)
+	}
+
+	// 5. Start the real task scheduler ticker. app.Shutdown() will stop it via
+	// the existing taskScheduler.Stop() call at app.go:~1392.
+	if scheduler := sm.app.GetTaskScheduler(); scheduler != nil {
+		scheduler.Start(ctx)
+	}
+
+	// 6. Start background workers (email queue worker, automation scheduler).
+	if err := sm.StartBackgroundWorkers(ctx); err != nil {
+		cleanup()
+		return fmt.Errorf("failed to start background workers: %w", err)
+	}
+
+	sm.isStarted = true
+	return nil
+}
+
+// StartLiveDirect brings up the server like StartLive (real TaskScheduler ticker +
+// background workers) but exercises the production Cloud path: the internal scheduler
+// is ENABLED and the APIEndpoint is intentionally unreachable.
+//
+// With the scheduler enabled, app.Initialize wires SetDirectExecution(true), so
+// ExecutePendingTasks runs each task in-process and must never dispatch over HTTP. The
+// dead APIEndpoint ("http://127.0.0.1:1") is the assertion's teeth: if the execution-mode
+// coupling regressed and it fell back to HTTP dispatch, every task would stall against the
+// unreachable endpoint instead of silently succeeding.
+//
+// Mirrors StartLive's ordering: bind the listener, mutate the shared config pointer
+// BEFORE app.Initialize() (so InitServices reads Enabled + APIEndpoint), then start the
+// ticker and workers.
+func (sm *ServerManager) StartLiveDirect(ctx context.Context) error {
+	if sm.isStarted {
+		return nil
+	}
+
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:0", sm.config.Server.Host))
+	if err != nil {
+		return fmt.Errorf("failed to create listener: %w", err)
+	}
+	sm.listener = listener
+	port := listener.Addr().(*net.TCPAddr).Port
+	sm.url = fmt.Sprintf("http://%s:%d", sm.config.Server.Host, port)
+
+	// Enable the internal scheduler so app wiring sets directExecution=true, and point
+	// APIEndpoint at an unreachable address so any (incorrect) HTTP dispatch fails loudly.
+	sm.config.TaskScheduler.Enabled = true
+	sm.config.APIEndpoint = "http://127.0.0.1:1"
+
+	if err := sm.app.Initialize(); err != nil {
+		_ = listener.Close()
+		return fmt.Errorf("failed to initialize app: %w", err)
+	}
+
+	sm.server = &http.Server{
+		Handler:      sm.app.GetMux(),
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+	}
+	go func() {
+		if err := sm.server.Serve(listener); err != nil && err != http.ErrServerClosed {
+			sm.app.GetLogger().WithField("error", err.Error()).Error("Server error")
+		}
+	}()
+
+	cleanup := func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = sm.server.Shutdown(shutdownCtx)
+		_ = listener.Close()
+	}
+
+	if err := sm.waitForReady(10 * time.Second); err != nil {
+		cleanup()
+		return fmt.Errorf("server not ready: %w", err)
+	}
+
+	// Start the real task scheduler ticker (Enabled is true, but the harness drives it
+	// explicitly since it serves the mux directly rather than calling app.Start()).
+	if scheduler := sm.app.GetTaskScheduler(); scheduler != nil {
+		scheduler.Start(ctx)
+	}
+
+	if err := sm.StartBackgroundWorkers(ctx); err != nil {
+		cleanup()
+		return fmt.Errorf("failed to start background workers: %w", err)
+	}
+
+	sm.isStarted = true
+	return nil
+}
+
+// StartBackgroundWorkers starts the email queue worker and other background services
+// Call this after Start() when you need workers to process queued items
+func (sm *ServerManager) StartBackgroundWorkers(ctx context.Context) error {
+	worker := sm.app.GetEmailQueueWorker()
+	if worker != nil {
+		if err := worker.Start(ctx); err != nil {
+			return fmt.Errorf("failed to start email queue worker: %w", err)
+		}
+	}
+
+	// Start automation scheduler for tests (no delay since config has Delay=0)
+	// Note: Start() spawns its own goroutine internally, no need for `go`
+	if scheduler := sm.app.GetAutomationScheduler(); scheduler != nil {
+		scheduler.Start(ctx)
+	}
+
+	return nil
+}
+
+// Stop stops the test server
+func (sm *ServerManager) Stop() error {
+	if !sm.isStarted {
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// First, shutdown the app (closes database connections, etc.)
+	if err := sm.app.Shutdown(ctx); err != nil {
+		sm.app.GetLogger().WithField("error", err.Error()).Warn("Failed to shutdown app gracefully")
+	}
+
+	// Then shutdown the HTTP server
+	if err := sm.server.Shutdown(ctx); err != nil {
+		return fmt.Errorf("failed to shutdown server: %w", err)
+	}
+
+	if sm.listener != nil {
+		sm.listener.Close()
+	}
+
+	sm.isStarted = false
+	return nil
+}
+
+// GetURL returns the server URL
+func (sm *ServerManager) GetURL() string {
+	return sm.url
+}
+
+// IsStarted returns whether the server is started
+func (sm *ServerManager) IsStarted() bool {
+	return sm.isStarted
+}
+
+// GetApp returns the app instance
+func (sm *ServerManager) GetApp() AppInterface {
+	return sm.app
+}
+
+// waitForReady waits for the server to be ready to accept requests
+func (sm *ServerManager) waitForReady(timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	client := &http.Client{
+		Timeout: 1 * time.Second,
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("timeout waiting for server to be ready")
+		case <-ticker.C:
+			// Try to make a request to the health endpoint
+			resp, err := client.Get(sm.url + "/health")
+			if err == nil {
+				resp.Body.Close()
+				if resp.StatusCode < 500 {
+					return nil
+				}
+			}
+		}
+	}
+}
+
+// WaitForReady waits for the server to be ready with custom timeout
+func (sm *ServerManager) WaitForReady(timeout time.Duration) error {
+	if !sm.isStarted {
+		return fmt.Errorf("server not started")
+	}
+	return sm.waitForReady(timeout)
+}
+
+// Restart stops and starts the server
+func (sm *ServerManager) Restart() error {
+	if err := sm.Stop(); err != nil {
+		return fmt.Errorf("failed to stop server: %w", err)
+	}
+
+	time.Sleep(100 * time.Millisecond) // Brief pause
+
+	if err := sm.Start(); err != nil {
+		return fmt.Errorf("failed to start server: %w", err)
+	}
+
+	return nil
+}

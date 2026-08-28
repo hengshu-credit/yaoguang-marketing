@@ -1,0 +1,1084 @@
+package integration
+
+import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strconv"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/Notifuse/notifuse/config"
+	"github.com/Notifuse/notifuse/internal/app"
+	"github.com/Notifuse/notifuse/tests/testutil"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// TestWebhookSubscriptionE2E tests the complete webhook subscription flow end-to-end via API
+// This test covers:
+// - Full CRUD operations on webhook subscriptions
+// - Input validation for webhook subscriptions
+// - Secret regeneration
+// - Enable/disable functionality
+// - Custom event filters
+// - Event types listing
+func TestWebhookSubscriptionE2E(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+	factory := suite.DataFactory
+
+	// Create test user and workspace
+	user, err := factory.CreateUser()
+	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+
+	// Add user to workspace as owner
+	err = factory.AddUserToWorkspace(user.ID, workspace.ID, "owner")
+	require.NoError(t, err)
+
+	// Set up authentication
+	err = client.Login(user.Email, "password")
+	require.NoError(t, err)
+	client.SetWorkspaceID(workspace.ID)
+
+	t.Run("Webhook Subscription CRUD Operations", func(t *testing.T) {
+		testWebhookSubscriptionCRUD(t, client, workspace.ID)
+	})
+
+	t.Run("Webhook Subscription Validation", func(t *testing.T) {
+		testWebhookSubscriptionValidation(t, client, workspace.ID)
+	})
+
+	t.Run("Webhook Subscription with Custom Event Filters", func(t *testing.T) {
+		testWebhookSubscriptionCustomFilters(t, client, workspace.ID)
+	})
+
+	t.Run("Multiple Webhook Subscriptions", func(t *testing.T) {
+		testMultipleWebhookSubscriptions(t, client, workspace.ID)
+	})
+}
+
+// testWebhookSubscriptionCRUD tests full CRUD operations on webhook subscriptions
+func testWebhookSubscriptionCRUD(t *testing.T, client *testutil.APIClient, workspaceID string) {
+	var subscriptionID string
+	var originalSecret string
+
+	// CREATE - Test creating a webhook subscription
+	t.Run("Create Webhook Subscription", func(t *testing.T) {
+		createReq := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"name":         "Test Webhook Subscription",
+			"url":          "https://example.com/webhook",
+			"description":  "Test webhook for integration testing",
+			"event_types":  []string{"contact.created", "contact.updated", "email.sent"},
+		}
+
+		resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		var response map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&response)
+		require.NoError(t, err)
+
+		subscription := response["subscription"].(map[string]interface{})
+		subscriptionID = subscription["id"].(string)
+		originalSecret = subscription["secret"].(string)
+
+		assert.NotEmpty(t, subscriptionID)
+		assert.Equal(t, "Test Webhook Subscription", subscription["name"])
+		assert.Equal(t, "https://example.com/webhook", subscription["url"])
+		assert.NotEmpty(t, originalSecret, "Secret should be generated")
+		assert.True(t, strings.HasPrefix(originalSecret, "whsec_"), "Secret should carry the Standard Webhooks whsec_ prefix")
+		assert.Equal(t, true, subscription["enabled"], "Webhook should be enabled by default")
+
+		// Verify event types
+		eventTypes := subscription["event_types"].([]interface{})
+		assert.Len(t, eventTypes, 3)
+		assert.Contains(t, eventTypes, "contact.created")
+		assert.Contains(t, eventTypes, "contact.updated")
+		assert.Contains(t, eventTypes, "email.sent")
+	})
+
+	// READ - Test getting a webhook subscription
+	t.Run("Get Webhook Subscription", func(t *testing.T) {
+		resp, err := client.Get("/api/webhookSubscriptions.get", map[string]string{
+			"workspace_id": workspaceID,
+			"id":           subscriptionID,
+		})
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var response map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&response)
+		require.NoError(t, err)
+
+		subscription := response["subscription"].(map[string]interface{})
+		assert.Equal(t, subscriptionID, subscription["id"])
+		assert.Equal(t, "Test Webhook Subscription", subscription["name"])
+	})
+
+	// LIST - Test listing webhook subscriptions
+	t.Run("List Webhook Subscriptions", func(t *testing.T) {
+		resp, err := client.Get("/api/webhookSubscriptions.list", map[string]string{
+			"workspace_id": workspaceID,
+		})
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var response map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&response)
+		require.NoError(t, err)
+
+		subscriptions := response["subscriptions"].([]interface{})
+		assert.GreaterOrEqual(t, len(subscriptions), 1, "Should have at least one subscription")
+
+		// Find our subscription
+		var found bool
+		for _, sub := range subscriptions {
+			subMap := sub.(map[string]interface{})
+			if subMap["id"].(string) == subscriptionID {
+				found = true
+				assert.Equal(t, "Test Webhook Subscription", subMap["name"])
+				break
+			}
+		}
+		assert.True(t, found, "Should find created subscription in list")
+	})
+
+	// UPDATE - Test updating a webhook subscription
+	t.Run("Update Webhook Subscription", func(t *testing.T) {
+		updateReq := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           subscriptionID,
+			"name":         "Updated Webhook Name",
+			"url":          "https://updated.example.com/webhook",
+			"description":  "Updated description",
+			"event_types":  []string{"contact.created", "contact.deleted", "email.delivered"},
+			"enabled":      true,
+		}
+
+		resp, err := client.Post("/api/webhookSubscriptions.update", updateReq)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var response map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&response)
+		require.NoError(t, err)
+
+		subscription := response["subscription"].(map[string]interface{})
+		assert.Equal(t, "Updated Webhook Name", subscription["name"])
+		assert.Equal(t, "https://updated.example.com/webhook", subscription["url"])
+		assert.Equal(t, originalSecret, subscription["secret"], "Secret should not change on update")
+
+		eventTypes := subscription["event_types"].([]interface{})
+		assert.Len(t, eventTypes, 3)
+		assert.Contains(t, eventTypes, "contact.created")
+		assert.Contains(t, eventTypes, "contact.deleted")
+		assert.Contains(t, eventTypes, "email.delivered")
+	})
+
+	// TOGGLE - Test enabling/disabling a webhook subscription
+	t.Run("Toggle Webhook Subscription", func(t *testing.T) {
+		// Disable the webhook
+		toggleReq := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           subscriptionID,
+			"enabled":      false,
+		}
+
+		resp, err := client.Post("/api/webhookSubscriptions.toggle", toggleReq)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var response map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&response)
+		require.NoError(t, err)
+
+		subscription := response["subscription"].(map[string]interface{})
+		assert.Equal(t, false, subscription["enabled"])
+
+		// Re-enable the webhook
+		toggleReq["enabled"] = true
+		resp, err = client.Post("/api/webhookSubscriptions.toggle", toggleReq)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		err = json.NewDecoder(resp.Body).Decode(&response)
+		require.NoError(t, err)
+
+		subscription = response["subscription"].(map[string]interface{})
+		assert.Equal(t, true, subscription["enabled"])
+	})
+
+	// REGENERATE SECRET - Test regenerating webhook secret
+	t.Run("Regenerate Webhook Secret", func(t *testing.T) {
+		regenerateReq := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           subscriptionID,
+		}
+
+		resp, err := client.Post("/api/webhookSubscriptions.regenerateSecret", regenerateReq)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var response map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&response)
+		require.NoError(t, err)
+
+		subscription := response["subscription"].(map[string]interface{})
+		newSecret := subscription["secret"].(string)
+
+		assert.NotEmpty(t, newSecret)
+		assert.NotEqual(t, originalSecret, newSecret, "Secret should be different after regeneration")
+		assert.True(t, strings.HasPrefix(newSecret, "whsec_"), "Regenerated secret should carry the Standard Webhooks whsec_ prefix")
+		// whsec_ (6) + base64(32 bytes) (44) = 50 chars
+		assert.Equal(t, 50, len(newSecret), "whsec_-prefixed base64(32-byte) secret should be exactly 50 chars")
+	})
+
+	// GET EVENT TYPES - Test getting available event types
+	t.Run("Get Event Types", func(t *testing.T) {
+		resp, err := client.Get("/api/webhookSubscriptions.eventTypes", map[string]string{
+			"workspace_id": workspaceID,
+		})
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var response map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&response)
+		require.NoError(t, err)
+
+		eventTypes := response["event_types"].([]interface{})
+		assert.Greater(t, len(eventTypes), 0)
+
+		// Verify some expected event types exist
+		expectedTypes := []string{
+			"contact.created", "contact.updated", "contact.deleted",
+			"email.sent", "email.delivered", "email.opened",
+			"list.subscribed", "list.unsubscribed",
+			"custom_event.created",
+		}
+
+		for _, expected := range expectedTypes {
+			assert.Contains(t, eventTypes, expected)
+		}
+	})
+
+	// DELETE - Test deleting a webhook subscription
+	t.Run("Delete Webhook Subscription", func(t *testing.T) {
+		deleteReq := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           subscriptionID,
+		}
+
+		resp, err := client.Post("/api/webhookSubscriptions.delete", deleteReq)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		// Verify it's deleted
+		getResp, err := client.Get("/api/webhookSubscriptions.get", map[string]string{
+			"workspace_id": workspaceID,
+			"id":           subscriptionID,
+		})
+		require.NoError(t, err)
+		defer getResp.Body.Close()
+
+		assert.Equal(t, http.StatusNotFound, getResp.StatusCode)
+	})
+}
+
+// testWebhookSubscriptionValidation tests input validation for webhook subscriptions
+func testWebhookSubscriptionValidation(t *testing.T, client *testutil.APIClient, workspaceID string) {
+	t.Run("Empty Name Validation", func(t *testing.T) {
+		createReq := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"name":         "",
+			"url":          "https://example.com/webhook",
+			"event_types":  []string{"contact.created"},
+		}
+
+		resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("Invalid URL Validation", func(t *testing.T) {
+		invalidURLs := []string{
+			"",
+			"not-a-url",
+			"ftp://example.com",
+			"ws://example.com",
+			"https://",
+		}
+
+		for _, invalidURL := range invalidURLs {
+			createReq := map[string]interface{}{
+				"workspace_id": workspaceID,
+				"name":         "Test Webhook",
+				"url":          invalidURL,
+				"event_types":  []string{"contact.created"},
+			}
+
+			resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode, "Should reject invalid URL: %s", invalidURL)
+		}
+	})
+
+	t.Run("Empty Event Types Validation", func(t *testing.T) {
+		createReq := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"name":         "Test Webhook",
+			"url":          "https://example.com/webhook",
+			"event_types":  []string{},
+		}
+
+		resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("Invalid Event Type Validation", func(t *testing.T) {
+		createReq := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"name":         "Test Webhook",
+			"url":          "https://example.com/webhook",
+			"event_types":  []string{"contact.created", "invalid.event.type"},
+		}
+
+		resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("Valid HTTP and HTTPS URLs", func(t *testing.T) {
+		validURLs := []string{
+			"https://example.com/webhook",
+			"http://example.com/webhook",
+			"https://example.com:8080/webhook",
+			"https://api.example.com/webhooks?token=abc123",
+		}
+
+		for i, validURL := range validURLs {
+			createReq := map[string]interface{}{
+				"workspace_id": workspaceID,
+				"name":         "Test Webhook " + string(rune('A'+i)),
+				"url":          validURL,
+				"event_types":  []string{"contact.created"},
+			}
+
+			resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, http.StatusCreated, resp.StatusCode, "Should accept valid URL: %s", validURL)
+
+			// Clean up
+			var response map[string]interface{}
+			json.NewDecoder(resp.Body).Decode(&response)
+			if subscription, ok := response["subscription"].(map[string]interface{}); ok {
+				subID := subscription["id"].(string)
+				deleteReq := map[string]interface{}{
+					"workspace_id": workspaceID,
+					"id":           subID,
+				}
+				delResp, _ := client.Post("/api/webhookSubscriptions.delete", deleteReq)
+				if delResp != nil {
+					delResp.Body.Close()
+				}
+			}
+		}
+	})
+}
+
+// testWebhookSubscriptionCustomFilters tests webhook subscriptions with custom event filters
+func testWebhookSubscriptionCustomFilters(t *testing.T, client *testutil.APIClient, workspaceID string) {
+	t.Run("Create with Custom Event Filters", func(t *testing.T) {
+		createReq := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"name":         "Custom Filter Webhook",
+			"url":          "https://example.com/custom-webhook",
+			"description":  "Webhook with custom event filters",
+			"event_types":  []string{"custom_event.created", "custom_event.updated"},
+			"custom_event_filters": map[string]interface{}{
+				"goal_types":  []string{"conversion", "engagement"},
+				"event_names": []string{"purchase", "signup", "trial_started"},
+			},
+		}
+
+		resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		var response map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&response)
+		require.NoError(t, err)
+
+		subscription := response["subscription"].(map[string]interface{})
+		subscriptionID := subscription["id"].(string)
+
+		// Verify custom event filters
+		require.NotNil(t, subscription["custom_event_filters"])
+		filters := subscription["custom_event_filters"].(map[string]interface{})
+
+		goalTypes := filters["goal_types"].([]interface{})
+		assert.Len(t, goalTypes, 2)
+		assert.Contains(t, goalTypes, "conversion")
+		assert.Contains(t, goalTypes, "engagement")
+
+		eventNames := filters["event_names"].([]interface{})
+		assert.Len(t, eventNames, 3)
+		assert.Contains(t, eventNames, "purchase")
+		assert.Contains(t, eventNames, "signup")
+		assert.Contains(t, eventNames, "trial_started")
+
+		// Clean up
+		deleteReq := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           subscriptionID,
+		}
+		delResp, _ := client.Post("/api/webhookSubscriptions.delete", deleteReq)
+		if delResp != nil {
+			delResp.Body.Close()
+		}
+	})
+}
+
+// testMultipleWebhookSubscriptions tests creating and managing multiple webhook subscriptions
+func testMultipleWebhookSubscriptions(t *testing.T, client *testutil.APIClient, workspaceID string) {
+	subscriptionIDs := make([]string, 0)
+
+	t.Run("Create Multiple Subscriptions", func(t *testing.T) {
+		for i := 1; i <= 5; i++ {
+			createReq := map[string]interface{}{
+				"workspace_id": workspaceID,
+				"name":         "Webhook " + string(rune('A'+i-1)),
+				"url":          "https://example.com/webhook" + string(rune('0'+i)),
+				"event_types":  []string{"contact.created"},
+			}
+
+			resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, http.StatusCreated, resp.StatusCode)
+
+			var response map[string]interface{}
+			err = json.NewDecoder(resp.Body).Decode(&response)
+			require.NoError(t, err)
+
+			subscription := response["subscription"].(map[string]interface{})
+			subscriptionIDs = append(subscriptionIDs, subscription["id"].(string))
+		}
+	})
+
+	t.Run("List All Subscriptions", func(t *testing.T) {
+		resp, err := client.Get("/api/webhookSubscriptions.list", map[string]string{
+			"workspace_id": workspaceID,
+		})
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var response map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&response)
+		require.NoError(t, err)
+
+		subscriptions := response["subscriptions"].([]interface{})
+		assert.GreaterOrEqual(t, len(subscriptions), 5, "Should have at least 5 subscriptions")
+
+		// Verify all our subscriptions are present
+		foundCount := 0
+		for _, sub := range subscriptions {
+			subMap := sub.(map[string]interface{})
+			subID := subMap["id"].(string)
+			for _, createdID := range subscriptionIDs {
+				if subID == createdID {
+					foundCount++
+					break
+				}
+			}
+		}
+		assert.Equal(t, 5, foundCount, "Should find all created subscriptions")
+	})
+
+	t.Run("Verify Unique IDs and Secrets", func(t *testing.T) {
+		ids := make(map[string]bool)
+		secrets := make(map[string]bool)
+
+		for _, subID := range subscriptionIDs {
+			resp, err := client.Get("/api/webhookSubscriptions.get", map[string]string{
+				"workspace_id": workspaceID,
+				"id":           subID,
+			})
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			var response map[string]interface{}
+			json.NewDecoder(resp.Body).Decode(&response)
+
+			subscription := response["subscription"].(map[string]interface{})
+			id := subscription["id"].(string)
+			secret := subscription["secret"].(string)
+
+			assert.False(t, ids[id], "ID should be unique: %s", id)
+			assert.False(t, secrets[secret], "Secret should be unique: %s", secret)
+
+			ids[id] = true
+			secrets[secret] = true
+		}
+	})
+
+	// Clean up all created subscriptions
+	t.Run("Delete All Subscriptions", func(t *testing.T) {
+		for _, subID := range subscriptionIDs {
+			deleteReq := map[string]interface{}{
+				"workspace_id": workspaceID,
+				"id":           subID,
+			}
+
+			resp, err := client.Post("/api/webhookSubscriptions.delete", deleteReq)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+		}
+
+		// Verify all deleted
+		for _, subID := range subscriptionIDs {
+			resp, err := client.Get("/api/webhookSubscriptions.get", map[string]string{
+				"workspace_id": workspaceID,
+				"id":           subID,
+			})
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+		}
+	})
+}
+
+// TestWebhookPayloadAndSignatureVerification tests the complete webhook delivery flow
+// including payload structure and HMAC signature verification from the receiver's perspective.
+// This test demonstrates how a webhook consumer should verify incoming webhooks.
+func TestWebhookPayloadAndSignatureVerification(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+	factory := suite.DataFactory
+
+	// Create test user and workspace
+	user, err := factory.CreateUser()
+	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+
+	// Add user to workspace as owner
+	err = factory.AddUserToWorkspace(user.ID, workspace.ID, "owner")
+	require.NoError(t, err)
+
+	// Set up authentication
+	err = client.Login(user.Email, "password")
+	require.NoError(t, err)
+	client.SetWorkspaceID(workspace.ID)
+
+	t.Run("Verify Webhook Signature and Payload Structure", func(t *testing.T) {
+		// Channel to capture webhook data
+		type webhookCapture struct {
+			headers http.Header
+			body    []byte
+		}
+		captured := make(chan webhookCapture, 1)
+
+		// Create a test HTTP server that simulates a webhook receiver
+		testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			captured <- webhookCapture{
+				headers: r.Header.Clone(),
+				body:    body,
+			}
+
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("OK"))
+		}))
+		defer testServer.Close()
+
+		// Create a webhook subscription pointing to our test server
+		createReq := map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"name":         "Signature Test Webhook",
+			"url":          testServer.URL,
+			"event_types":  []string{"contact.created"},
+		}
+
+		resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		var createResponse map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&createResponse)
+		require.NoError(t, err)
+
+		subscription := createResponse["subscription"].(map[string]interface{})
+		subscriptionID := subscription["id"].(string)
+		secret := subscription["secret"].(string)
+
+		// Clean up at the end
+		defer func() {
+			deleteReq := map[string]interface{}{
+				"workspace_id": workspace.ID,
+				"id":           subscriptionID,
+			}
+			delResp, _ := client.Post("/api/webhookSubscriptions.delete", deleteReq)
+			if delResp != nil {
+				delResp.Body.Close()
+			}
+		}()
+
+		// Send a test webhook
+		testReq := map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"id":           subscriptionID,
+			"event_type":   "contact.created",
+		}
+
+		testResp, err := client.Post("/api/webhookSubscriptions.test", testReq)
+		require.NoError(t, err)
+		defer testResp.Body.Close()
+		require.Equal(t, http.StatusOK, testResp.StatusCode)
+
+		// Wait for webhook to be captured
+		var cap webhookCapture
+		select {
+		case cap = <-captured:
+		case <-time.After(5 * time.Second):
+			t.Fatal("Timeout waiting for webhook delivery")
+		}
+
+		// === VERIFY HEADERS ===
+		t.Run("Headers Present", func(t *testing.T) {
+			assert.Equal(t, "application/json", cap.headers.Get("Content-Type"), "Content-Type should be application/json")
+			assert.NotEmpty(t, cap.headers.Get("Webhook-Id"), "webhook-id header should be present")
+			assert.NotEmpty(t, cap.headers.Get("Webhook-Timestamp"), "webhook-timestamp header should be present")
+			assert.NotEmpty(t, cap.headers.Get("Webhook-Signature"), "webhook-signature header should be present")
+		})
+
+		// === VERIFY PAYLOAD STRUCTURE ===
+		t.Run("Payload Structure", func(t *testing.T) {
+			var payload map[string]interface{}
+			err := json.Unmarshal(cap.body, &payload)
+			require.NoError(t, err, "Payload should be valid JSON")
+
+			// Verify required envelope fields
+			assert.NotEmpty(t, payload["id"], "Payload should have 'id' field")
+			assert.Equal(t, "contact.created", payload["type"], "Payload should have correct 'type' field")
+			assert.Equal(t, workspace.ID, payload["workspace_id"], "Payload should have correct 'workspace_id' field")
+			assert.NotEmpty(t, payload["timestamp"], "Payload should have 'timestamp' field")
+			assert.NotNil(t, payload["data"], "Payload should have 'data' field")
+
+			// Verify timestamp is valid RFC3339
+			timestampStr, ok := payload["timestamp"].(string)
+			require.True(t, ok, "Timestamp should be a string")
+			_, err = time.Parse(time.RFC3339, timestampStr)
+			assert.NoError(t, err, "Timestamp should be valid RFC3339 format")
+
+			// Verify data contains expected test contact fields
+			data, ok := payload["data"].(map[string]interface{})
+			require.True(t, ok, "Data should be an object")
+			// contact.* deliveries carry the whole contacts row under "contact",
+			// mirroring the to_jsonb(contact_record) the database trigger builds.
+			// There is no top-level email on this event family.
+			contact, ok := data["contact"].(map[string]interface{})
+			require.True(t, ok, "contact.created data should carry a contact object")
+			assert.NotEmpty(t, contact["email"], "Contact should contain email field")
+		})
+
+		// === VERIFY SIGNATURE (RECEIVER'S PERSPECTIVE) ===
+		t.Run("Signature Verification", func(t *testing.T) {
+			webhookID := cap.headers.Get("Webhook-Id")
+			timestampStr := cap.headers.Get("Webhook-Timestamp")
+			signatureHeader := cap.headers.Get("Webhook-Signature")
+
+			// Exercise the verifyWebhookSignature reference helper end-to-end.
+			// This is the same code shape published in the docs, so a passing
+			// assertion here means a consumer who copies the docs verbatim
+			// will successfully verify real Notifuse deliveries.
+			require.True(t, strings.HasPrefix(secret, "whsec_"), "webhook secret should carry the whsec_ prefix")
+			ok, err := verifyWebhookSignature(webhookID, timestampStr, signatureHeader, secret, cap.body)
+			require.NoError(t, err, "reference verifier should not error on a valid delivery")
+			assert.True(t, ok, "reference verifier should accept the delivery")
+
+			// Additional low-level assertions to catch regressions in the shape
+			// of the signature header (scheme prefix + base64 body).
+			timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+			require.NoError(t, err, "Timestamp should be a valid integer")
+			now := time.Now().Unix()
+			assert.LessOrEqual(t, now-timestamp, int64(300), "Timestamp should be within 5 minutes")
+			assert.True(t, strings.HasPrefix(signatureHeader, "v1,"), "Signature should start with 'v1,'")
+			_, err = base64.StdEncoding.DecodeString(strings.TrimPrefix(signatureHeader, "v1,"))
+			require.NoError(t, err, "Signature body should be valid base64")
+		})
+
+		// === VERIFY SIGNATURE FAILS WITH WRONG SECRET ===
+		t.Run("Signature Fails With Wrong Secret", func(t *testing.T) {
+			webhookID := cap.headers.Get("Webhook-Id")
+			timestampStr := cap.headers.Get("Webhook-Timestamp")
+			signatureHeader := cap.headers.Get("Webhook-Signature")
+
+			timestamp, _ := strconv.ParseInt(timestampStr, 10, 64)
+			receivedSignature := strings.TrimPrefix(signatureHeader, "v1,")
+
+			// Compute signature with a different key (what a consumer using the
+			// wrong secret would produce).
+			wrongSecret := "whsec_" + base64.StdEncoding.EncodeToString([]byte("wrong-key-bytes-0000000000000000"))
+			wrongKey, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(wrongSecret, "whsec_"))
+			require.NoError(t, err)
+			signedContent := fmt.Sprintf("%s.%d.%s", webhookID, timestamp, string(cap.body))
+			h := hmac.New(sha256.New, wrongKey)
+			h.Write([]byte(signedContent))
+			wrongSignature := base64.StdEncoding.EncodeToString(h.Sum(nil))
+
+			assert.NotEqual(t, wrongSignature, receivedSignature, "Signature with wrong secret should not match")
+		})
+
+		// === VERIFY SIGNATURE FAILS WITH TAMPERED PAYLOAD ===
+		t.Run("Signature Fails With Tampered Payload", func(t *testing.T) {
+			webhookID := cap.headers.Get("Webhook-Id")
+			timestampStr := cap.headers.Get("Webhook-Timestamp")
+			signatureHeader := cap.headers.Get("Webhook-Signature")
+
+			timestamp, _ := strconv.ParseInt(timestampStr, 10, 64)
+			receivedSignature := strings.TrimPrefix(signatureHeader, "v1,")
+
+			// Compute signature with tampered payload using the real secret.
+			key, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(secret, "whsec_"))
+			require.NoError(t, err)
+			tamperedPayload := `{"id":"tampered","type":"contact.created","data":{"email":"hacker@evil.com"}}`
+			signedContent := fmt.Sprintf("%s.%d.%s", webhookID, timestamp, tamperedPayload)
+			h := hmac.New(sha256.New, key)
+			h.Write([]byte(signedContent))
+			tamperedSignature := base64.StdEncoding.EncodeToString(h.Sum(nil))
+
+			assert.NotEqual(t, tamperedSignature, receivedSignature, "Signature with tampered payload should not match")
+		})
+	})
+
+	t.Run("Verify Multiple Event Types Have Correct Payloads", func(t *testing.T) {
+		// Track received webhooks
+		var mu sync.Mutex
+		receivedWebhooks := make(map[string]map[string]interface{})
+
+		testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			body, _ := io.ReadAll(r.Body)
+			var payload map[string]interface{}
+			json.Unmarshal(body, &payload)
+
+			mu.Lock()
+			if eventType, ok := payload["type"].(string); ok {
+				receivedWebhooks[eventType] = payload
+			}
+			mu.Unlock()
+
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer testServer.Close()
+
+		// Create webhook subscription for multiple event types
+		createReq := map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"name":         "Multi-Event Webhook",
+			"url":          testServer.URL,
+			"event_types":  []string{"contact.created", "email.sent", "list.subscribed"},
+		}
+
+		resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		var createResponse map[string]interface{}
+		json.NewDecoder(resp.Body).Decode(&createResponse)
+		subscription := createResponse["subscription"].(map[string]interface{})
+		subscriptionID := subscription["id"].(string)
+
+		defer func() {
+			deleteReq := map[string]interface{}{
+				"workspace_id": workspace.ID,
+				"id":           subscriptionID,
+			}
+			delResp, _ := client.Post("/api/webhookSubscriptions.delete", deleteReq)
+			if delResp != nil {
+				delResp.Body.Close()
+			}
+		}()
+
+		// Test each event type
+		eventTypes := []string{"contact.created", "email.sent", "list.subscribed"}
+		for _, eventType := range eventTypes {
+			testReq := map[string]interface{}{
+				"workspace_id": workspace.ID,
+				"id":           subscriptionID,
+				"event_type":   eventType,
+			}
+
+			testResp, err := client.Post("/api/webhookSubscriptions.test", testReq)
+			require.NoError(t, err)
+			testResp.Body.Close()
+
+			// Give time for webhook to be delivered
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		// Wait a bit more for all webhooks to arrive
+		time.Sleep(500 * time.Millisecond)
+
+		// Verify each event type was received with correct structure
+		mu.Lock()
+		defer mu.Unlock()
+
+		for _, eventType := range eventTypes {
+			payload, exists := receivedWebhooks[eventType]
+			assert.True(t, exists, "Should have received webhook for event type: %s", eventType)
+			if exists {
+				assert.Equal(t, eventType, payload["type"], "Event type should match")
+				assert.NotEmpty(t, payload["id"], "Payload should have ID")
+				assert.Equal(t, workspace.ID, payload["workspace_id"], "Workspace ID should match")
+				assert.NotNil(t, payload["data"], "Payload should have data")
+			}
+		}
+	})
+}
+
+// verifyWebhookSignature is a reference implementation of Standard Webhooks
+// verification, matching the snippets published in the public docs.
+// https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md
+func verifyWebhookSignature(webhookID, timestampStr, signatureHeader, secret string, payload []byte) (bool, error) {
+	// Parse timestamp
+	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+	if err != nil {
+		return false, fmt.Errorf("invalid timestamp: %w", err)
+	}
+
+	// Check timestamp is not too old (5 minutes tolerance)
+	now := time.Now().Unix()
+	if now-timestamp > 300 {
+		return false, fmt.Errorf("webhook timestamp too old")
+	}
+
+	// Extract signature
+	if !strings.HasPrefix(signatureHeader, "v1,") {
+		return false, fmt.Errorf("invalid signature format")
+	}
+	receivedSig := strings.TrimPrefix(signatureHeader, "v1,")
+
+	// Derive the HMAC key from the stored secret per spec: strip whsec_, base64-decode.
+	key, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(secret, "whsec_"))
+	if err != nil {
+		return false, fmt.Errorf("invalid secret encoding: %w", err)
+	}
+
+	// Compute expected signature
+	signedContent := fmt.Sprintf("%s.%d.%s", webhookID, timestamp, string(payload))
+	h := hmac.New(sha256.New, key)
+	h.Write([]byte(signedContent))
+	expectedSig := base64.StdEncoding.EncodeToString(h.Sum(nil))
+
+	// Constant-time comparison
+	decodedReceived, err := base64.StdEncoding.DecodeString(receivedSig)
+	if err != nil {
+		return false, fmt.Errorf("invalid signature encoding: %w", err)
+	}
+	decodedExpected, _ := base64.StdEncoding.DecodeString(expectedSig)
+
+	return hmac.Equal(decodedReceived, decodedExpected), nil
+}
+
+// TestWebhookSubscriptionServerSideFiltering covers the list_id / segment_id
+// filters applied inside the trigger bodies.
+//
+// Without them the fan-out matches on event type alone, so a subscription
+// watching one list receives a delivery row and an outbound HTTPS request for
+// every list in the workspace and discards the rest at the far end. That is
+// invisible to the subscriber and expensive here: importing a hundred thousand
+// contacts into one list sends a hundred thousand POSTs to an endpoint that cares
+// about a different one.
+//
+// Every case runs against two subscriptions — one filtered, one not — because
+// "the filtered subscription received nothing" is worthless on its own: it is
+// exactly what a trigger that failed to fire, a write that rolled back or a
+// mistyped event type would also produce. The unfiltered control is what
+// separates "the filter dropped it" from "there was nothing to drop".
+func TestWebhookSubscriptionServerSideFiltering(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+	factory := suite.DataFactory
+
+	user, err := factory.CreateUser()
+	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+	require.NoError(t, factory.AddUserToWorkspace(user.ID, workspace.ID, "owner"))
+	require.NoError(t, client.Login(user.Email, "password"))
+	client.SetWorkspaceID(workspace.ID)
+
+	db, err := factory.GetWorkspaceDB(workspace.ID)
+	require.NoError(t, err)
+
+	exec := func(query string, args ...interface{}) {
+		t.Helper()
+		_, err := db.Exec(query, args...)
+		require.NoError(t, err, "statement failed: %s", query)
+	}
+
+	// The delivery worker does not run under this harness, so a queued row stays
+	// queued: counting rows is counting deliveries the subscriber would receive.
+	countDeliveries := func(subscriptionID string) int {
+		t.Helper()
+		var count int
+		require.NoError(t, db.QueryRow(
+			`SELECT count(*) FROM webhook_deliveries WHERE subscription_id = $1`, subscriptionID).Scan(&count))
+		return count
+	}
+
+	createSubscription := func(name string, eventTypes []string, filterKey string, filterIDs []string) string {
+		t.Helper()
+
+		body := map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"name":         name,
+			"url":          "https://hooks.example.com/notifuse",
+			"event_types":  eventTypes,
+		}
+		if len(filterIDs) > 0 {
+			body[filterKey] = filterIDs
+		}
+
+		resp, err := client.Post("/api/webhookSubscriptions.create", body)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		var created struct {
+			Subscription struct {
+				ID string `json:"id"`
+			} `json:"subscription"`
+		}
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&created))
+		require.NotEmpty(t, created.Subscription.ID)
+		return created.Subscription.ID
+	}
+
+	contactEmail := "filtered.subscriber@example.com"
+	exec(`INSERT INTO contacts (email, first_name) VALUES ($1, 'Filtered')`, contactEmail)
+
+	t.Run("List Filter Only Delivers The Watched List", func(t *testing.T) {
+		exec(`INSERT INTO lists (id, name) VALUES ('filterListA', 'Watched List')`)
+		exec(`INSERT INTO lists (id, name) VALUES ('filterListB', 'Ignored List')`)
+
+		watching := createSubscription("Watching list A", []string{"list.subscribed"}, "list_ids", []string{"filterListA"})
+		everything := createSubscription("Watching every list", []string{"list.subscribed"}, "list_ids", nil)
+
+		exec(`INSERT INTO contact_lists (email, list_id, status) VALUES ($1, 'filterListB', 'active')`, contactEmail)
+
+		require.Equal(t, 1, countDeliveries(everything),
+			"an unfiltered subscription must still receive every list the workspace has")
+		assert.Equal(t, 0, countDeliveries(watching),
+			"a subscription filtered to one list received an event for a different list")
+
+		exec(`INSERT INTO contact_lists (email, list_id, status) VALUES ($1, 'filterListA', 'active')`, contactEmail)
+
+		assert.Equal(t, 1, countDeliveries(watching),
+			"a subscription filtered to one list missed an event for that very list")
+		require.Equal(t, 2, countDeliveries(everything))
+	})
+
+	t.Run("Segment Filter Only Delivers The Watched Segment", func(t *testing.T) {
+		exec(`INSERT INTO segments (id, name, color, tree, timezone, version, status)
+			VALUES ('filterSegA', 'Watched Segment', '#4F46E5', '{}'::jsonb, 'UTC', 1, 'active')`)
+		exec(`INSERT INTO segments (id, name, color, tree, timezone, version, status)
+			VALUES ('filterSegB', 'Ignored Segment', '#4F46E5', '{}'::jsonb, 'UTC', 1, 'active')`)
+
+		watching := createSubscription("Watching segment A", []string{"segment.joined"}, "segment_ids", []string{"filterSegA"})
+		everything := createSubscription("Watching every segment", []string{"segment.joined"}, "segment_ids", nil)
+
+		exec(`INSERT INTO contact_segments (email, segment_id, version, matched_at)
+			VALUES ($1, 'filterSegB', 1, NOW())`, contactEmail)
+
+		require.Equal(t, 1, countDeliveries(everything),
+			"an unfiltered subscription must still receive every segment the workspace has")
+		assert.Equal(t, 0, countDeliveries(watching),
+			"a subscription filtered to one segment received an event for a different segment")
+
+		exec(`INSERT INTO contact_segments (email, segment_id, version, matched_at)
+			VALUES ($1, 'filterSegA', 1, NOW())`, contactEmail)
+
+		assert.Equal(t, 1, countDeliveries(watching),
+			"a subscription filtered to one segment missed an event for that very segment")
+		require.Equal(t, 2, countDeliveries(everything))
+	})
+}

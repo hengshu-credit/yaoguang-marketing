@@ -1,0 +1,676 @@
+package service
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/google/uuid"
+)
+
+// SegmentService handles segment operations
+type SegmentService struct {
+	segmentRepo   domain.SegmentRepository
+	workspaceRepo domain.WorkspaceRepository
+	taskService   domain.TaskService
+	queryBuilder  *QueryBuilder
+	authService   domain.AuthService
+	logger        logger.Logger
+}
+
+// NewSegmentService creates a new segment service
+func NewSegmentService(
+	segmentRepo domain.SegmentRepository,
+	workspaceRepo domain.WorkspaceRepository,
+	taskService domain.TaskService,
+	authService domain.AuthService,
+	logger logger.Logger,
+) *SegmentService {
+	return &SegmentService{
+		segmentRepo:   segmentRepo,
+		workspaceRepo: workspaceRepo,
+		taskService:   taskService,
+		authService:   authService,
+		queryBuilder:  NewQueryBuilder(),
+		logger:        logger,
+	}
+}
+
+// authorize confirms the caller is a member of the workspace they named and holds
+// the segments permission at the requested level.
+//
+// INVARIANT: every method below takes workspace_id from the request, and must
+// call this before touching a repository.
+//
+// Isolation is per-database, but opening a workspace database does not itself
+// establish any right to it — workspace_id selects a database and asserts
+// nothing more. This is what establishes the right.
+//
+// It returns the caller's membership so the two methods that read contact data
+// through a segment query can require contacts:read on top of segments:read.
+//
+// The returned context carries the authenticated user and must be used downstream.
+func (s *SegmentService) authorize(ctx context.Context, workspaceID string, write bool) (context.Context, *domain.UserWorkspace, error) {
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return ctx, nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	permission := domain.PermissionTypeRead
+	access := "read"
+	if write {
+		permission = domain.PermissionTypeWrite
+		access = "write"
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceSegments, permission) {
+		return ctx, nil, domain.NewPermissionError(
+			domain.PermissionResourceSegments,
+			permission,
+			fmt.Sprintf("Insufficient permissions: %s access to segments required", access),
+		)
+	}
+
+	return ctx, userWorkspace, nil
+}
+
+// requireContactsRead gates the methods that answer questions about contacts
+// rather than about segments.
+//
+// A segment tree compiles against contacts, contact_lists, custom_events_goals and
+// contact_timeline, so segments:read alone would make these an unbounded count
+// oracle over contact attributes, list membership, custom events and message
+// history. contacts:read narrows who can ask; it does not close the oracle — a
+// holder of both can still count contacts by any attribute the compiler accepts.
+func (s *SegmentService) requireContactsRead(userWorkspace *domain.UserWorkspace) error {
+	if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeRead) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceContacts,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to contacts required",
+		)
+	}
+	return nil
+}
+
+// CreateSegment creates a new segment
+func (s *SegmentService) CreateSegment(ctx context.Context, req *domain.CreateSegmentRequest) (*domain.Segment, error) {
+	ctx, _, err := s.authorize(ctx, req.WorkspaceID, true)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate the request
+	segment, workspaceID, err := req.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("invalid request: %w", err)
+	}
+
+	// Generate ID if not provided
+	if segment.ID == "" {
+		segment.ID = uuid.New().String()[:8]
+	}
+
+	// Set initial version
+	segment.Version = 1
+
+	// Set status to building (will be updated by the build task)
+	segment.Status = string(domain.SegmentStatusBuilding)
+
+	// Set timestamps
+	now := time.Now().UTC()
+	segment.DBCreatedAt = now
+	segment.DBUpdatedAt = now
+
+	// Validate and generate SQL from the tree
+	sqlQuery, args, err := s.queryBuilder.BuildSQL(segment.Tree)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build SQL from tree: %w", err)
+	}
+
+	// Store generated SQL and args for debugging and reuse
+	segment.GeneratedSQL = &sqlQuery
+	segment.GeneratedArgs = domain.JSONArray(args)
+
+	// Check if segment has relative dates and set recompute_after if needed
+	if segment.Tree.HasRelativeDates() {
+		next5AM, err := calculateNext5AMInTimezone(segment.Timezone)
+		if err != nil {
+			s.logger.WithFields(map[string]interface{}{
+				"error":      err.Error(),
+				"segment_id": segment.ID,
+				"timezone":   segment.Timezone,
+			}).Warn("Failed to calculate next 5AM for segment with relative dates (non-fatal)")
+		} else {
+			segment.RecomputeAfter = &next5AM
+			s.logger.WithFields(map[string]interface{}{
+				"segment_id":      segment.ID,
+				"recompute_after": next5AM.Format(time.RFC3339),
+			}).Info("Segment has relative dates, scheduled for daily recomputation")
+		}
+	}
+
+	// Create the segment in the database
+	if err := s.segmentRepo.CreateSegment(ctx, workspaceID, segment); err != nil {
+		return nil, fmt.Errorf("failed to create segment: %w", err)
+	}
+
+	// Create a task to build the segment membership
+	task := &domain.Task{
+		ID:          uuid.New().String(),
+		WorkspaceID: workspaceID,
+		Type:        "build_segment",
+		Status:      domain.TaskStatusPending,
+		Progress:    0,
+		State: &domain.TaskState{
+			BuildSegment: &domain.BuildSegmentState{
+				SegmentID: segment.ID,
+				Version:   segment.Version,
+				BatchSize: 100,
+				StartedAt: time.Now().Format(time.RFC3339),
+			},
+		},
+		MaxRuntime: 300, // 5 minutes
+		MaxRetries: 3,
+	}
+
+	if err := s.taskService.CreateTask(ctx, workspaceID, task); err != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"error":      err.Error(),
+			"segment_id": segment.ID,
+		}).Warn("Failed to create build task for segment (non-fatal)")
+	} else {
+		// Immediately trigger execution of the specific build task
+		go func() {
+			// Small delay to ensure transaction is committed
+			time.Sleep(100 * time.Millisecond)
+			timeoutAt := time.Now().Add(time.Duration(task.MaxRuntime) * time.Second)
+			if execErr := s.taskService.ExecuteTask(context.Background(), workspaceID, task.ID, timeoutAt); execErr != nil {
+				s.logger.WithFields(map[string]interface{}{
+					"segment_id": segment.ID,
+					"task_id":    task.ID,
+					"error":      execErr.Error(),
+				}).Error("Failed to trigger immediate task execution after segment creation")
+			}
+		}()
+	}
+
+	s.logger.WithFields(map[string]interface{}{
+		"segment_id":   segment.ID,
+		"workspace_id": workspaceID,
+	}).Info("Segment created")
+
+	return segment, nil
+}
+
+// GetSegment retrieves a segment by ID
+func (s *SegmentService) GetSegment(ctx context.Context, req *domain.GetSegmentRequest) (*domain.Segment, error) {
+	ctx, _, err := s.authorize(ctx, req.WorkspaceID, false)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.WorkspaceID == "" {
+		return nil, fmt.Errorf("workspace_id is required")
+	}
+	if req.ID == "" {
+		return nil, fmt.Errorf("segment id is required")
+	}
+
+	segment, err := s.segmentRepo.GetSegmentByID(ctx, req.WorkspaceID, req.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get segment: %w", err)
+	}
+
+	// Fetch contact count for the segment
+	count, err := s.segmentRepo.GetSegmentContactCount(ctx, req.WorkspaceID, req.ID)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to get segment contact count")
+	} else {
+		segment.UsersCount = count
+	}
+
+	return segment, nil
+}
+
+// ListSegments retrieves all segments for a workspace
+func (s *SegmentService) ListSegments(ctx context.Context, req *domain.GetSegmentsRequest) ([]*domain.Segment, error) {
+	ctx, _, err := s.authorize(ctx, req.WorkspaceID, false)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.WorkspaceID == "" {
+		return nil, fmt.Errorf("workspace_id is required")
+	}
+
+	// Pass withCount parameter to repository - counts are fetched in a single efficient query
+	segments, err := s.segmentRepo.GetSegments(ctx, req.WorkspaceID, req.WithCount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list segments: %w", err)
+	}
+
+	return segments, nil
+}
+
+// UpdateSegment updates an existing segment
+func (s *SegmentService) UpdateSegment(ctx context.Context, req *domain.UpdateSegmentRequest) (*domain.Segment, error) {
+	ctx, _, err := s.authorize(ctx, req.WorkspaceID, true)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate the request
+	updates, workspaceID, err := req.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("invalid request: %w", err)
+	}
+
+	// Fetch the existing segment
+	existing, err := s.segmentRepo.GetSegmentByID(ctx, workspaceID, req.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get existing segment: %w", err)
+	}
+
+	// Track if tree or timezone has changed
+	treeChanged := false
+	timezoneChanged := false
+
+	// Apply updates
+	if updates.Name != "" {
+		existing.Name = updates.Name
+	}
+	if updates.Color != "" {
+		existing.Color = updates.Color
+	}
+	if updates.Timezone != "" && updates.Timezone != existing.Timezone {
+		existing.Timezone = updates.Timezone
+		timezoneChanged = true
+	}
+	if updates.Tree != nil {
+		existing.Tree = updates.Tree
+		treeChanged = true
+
+		// Regenerate SQL and args
+		sqlQuery, args, err := s.queryBuilder.BuildSQL(existing.Tree)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build SQL from updated tree: %w", err)
+		}
+		existing.GeneratedSQL = &sqlQuery
+		existing.GeneratedArgs = domain.JSONArray(args)
+
+		// Increment version since the criteria changed
+		existing.Version++
+	}
+
+	// Update recompute_after if tree or timezone changed
+	if treeChanged || timezoneChanged {
+		hasRelativeDates := existing.Tree.HasRelativeDates()
+		if hasRelativeDates {
+			// Segment now has (or still has) relative dates - schedule recomputation
+			next5AM, err := calculateNext5AMInTimezone(existing.Timezone)
+			if err != nil {
+				s.logger.WithFields(map[string]interface{}{
+					"error":      err.Error(),
+					"segment_id": existing.ID,
+					"timezone":   existing.Timezone,
+				}).Warn("Failed to calculate next 5AM for segment with relative dates (non-fatal)")
+			} else {
+				existing.RecomputeAfter = &next5AM
+				s.logger.WithFields(map[string]interface{}{
+					"segment_id":      existing.ID,
+					"recompute_after": next5AM.Format(time.RFC3339),
+				}).Info("Updated recompute schedule for segment with relative dates")
+			}
+		} else {
+			// Segment no longer has relative dates - remove recomputation schedule
+			if existing.RecomputeAfter != nil {
+				existing.RecomputeAfter = nil
+				s.logger.WithFields(map[string]interface{}{
+					"segment_id": existing.ID,
+				}).Info("Removed recompute schedule (segment no longer has relative dates)")
+			}
+		}
+	}
+
+	// Update timestamp
+	existing.DBUpdatedAt = time.Now().UTC()
+
+	// Save the updated segment
+	if err := s.segmentRepo.UpdateSegment(ctx, workspaceID, existing); err != nil {
+		return nil, fmt.Errorf("failed to update segment: %w", err)
+	}
+
+	// If the tree changed, create a new build task
+	if treeChanged {
+		task := &domain.Task{
+			ID:          uuid.New().String(),
+			WorkspaceID: workspaceID,
+			Type:        "build_segment",
+			Status:      domain.TaskStatusPending,
+			Progress:    0,
+			State: &domain.TaskState{
+				BuildSegment: &domain.BuildSegmentState{
+					SegmentID: existing.ID,
+					Version:   existing.Version,
+					BatchSize: 100,
+					StartedAt: time.Now().Format(time.RFC3339),
+				},
+			},
+			MaxRuntime: 300, // 5 minutes
+			MaxRetries: 3,
+		}
+
+		if err := s.taskService.CreateTask(ctx, workspaceID, task); err != nil {
+			s.logger.WithFields(map[string]interface{}{
+				"error":      err.Error(),
+				"segment_id": existing.ID,
+			}).Warn("Failed to create rebuild task for segment (non-fatal)")
+		} else {
+			// Immediately trigger execution of the specific build task
+			go func() {
+				// Small delay to ensure transaction is committed
+				time.Sleep(100 * time.Millisecond)
+				timeoutAt := time.Now().Add(time.Duration(task.MaxRuntime) * time.Second)
+				if execErr := s.taskService.ExecuteTask(context.Background(), workspaceID, task.ID, timeoutAt); execErr != nil {
+					s.logger.WithFields(map[string]interface{}{
+						"segment_id": existing.ID,
+						"task_id":    task.ID,
+						"error":      execErr.Error(),
+					}).Error("Failed to trigger immediate task execution after segment update")
+				}
+			}()
+		}
+
+		existing.Status = string(domain.SegmentStatusBuilding)
+	}
+
+	s.logger.WithFields(map[string]interface{}{
+		"segment_id":   existing.ID,
+		"workspace_id": workspaceID,
+		"tree_changed": treeChanged,
+	}).Info("Segment updated")
+
+	return existing, nil
+}
+
+// DeleteSegment deletes a segment
+func (s *SegmentService) DeleteSegment(ctx context.Context, req *domain.DeleteSegmentRequest) error {
+	ctx, _, err := s.authorize(ctx, req.WorkspaceID, true)
+	if err != nil {
+		return err
+	}
+
+	workspaceID, id, err := req.Validate()
+	if err != nil {
+		return fmt.Errorf("invalid request: %w", err)
+	}
+
+	if err := s.segmentRepo.DeleteSegment(ctx, workspaceID, id); err != nil {
+		return fmt.Errorf("failed to delete segment: %w", err)
+	}
+
+	s.logger.WithFields(map[string]interface{}{
+		"segment_id":   id,
+		"workspace_id": workspaceID,
+	}).Info("Segment deleted")
+
+	return nil
+}
+
+// RebuildSegment triggers a rebuild of segment membership
+func (s *SegmentService) RebuildSegment(ctx context.Context, workspaceID, segmentID string) error {
+	ctx, _, err := s.authorize(ctx, workspaceID, true)
+	if err != nil {
+		return err
+	}
+
+	if workspaceID == "" {
+		return fmt.Errorf("workspace_id is required")
+	}
+	if segmentID == "" {
+		return fmt.Errorf("segment_id is required")
+	}
+
+	// Fetch the segment
+	segment, err := s.segmentRepo.GetSegmentByID(ctx, workspaceID, segmentID)
+	if err != nil {
+		return fmt.Errorf("failed to get segment: %w", err)
+	}
+
+	// Increment version for the rebuild
+	segment.Version++
+	segment.Status = string(domain.SegmentStatusBuilding)
+	segment.DBUpdatedAt = time.Now().UTC()
+
+	if err := s.segmentRepo.UpdateSegment(ctx, workspaceID, segment); err != nil {
+		return fmt.Errorf("failed to update segment: %w", err)
+	}
+
+	// Create a build task
+	task := &domain.Task{
+		ID:          uuid.New().String(),
+		WorkspaceID: workspaceID,
+		Type:        "build_segment",
+		Status:      domain.TaskStatusPending,
+		Progress:    0,
+		State: &domain.TaskState{
+			BuildSegment: &domain.BuildSegmentState{
+				SegmentID: segment.ID,
+				Version:   segment.Version,
+				BatchSize: 100,
+				StartedAt: time.Now().Format(time.RFC3339),
+			},
+		},
+		MaxRuntime: 300, // 5 minutes
+		MaxRetries: 3,
+	}
+
+	if err := s.taskService.CreateTask(ctx, workspaceID, task); err != nil {
+		return fmt.Errorf("failed to create rebuild task: %w", err)
+	}
+
+	// Immediately trigger execution of the specific build task
+	go func() {
+		// Small delay to ensure transaction is committed
+		time.Sleep(100 * time.Millisecond)
+		timeoutAt := time.Now().Add(time.Duration(task.MaxRuntime) * time.Second)
+		if execErr := s.taskService.ExecuteTask(context.Background(), workspaceID, task.ID, timeoutAt); execErr != nil {
+			s.logger.WithFields(map[string]interface{}{
+				"segment_id": segmentID,
+				"task_id":    task.ID,
+				"error":      execErr.Error(),
+			}).Error("Failed to trigger immediate task execution after segment rebuild")
+		}
+	}()
+
+	s.logger.WithFields(map[string]interface{}{
+		"segment_id":   segmentID,
+		"workspace_id": workspaceID,
+		"version":      segment.Version,
+	}).Info("Segment rebuild initiated")
+
+	return nil
+}
+
+// PreviewSegment executes the segment query and returns a preview of matching contacts
+// This does NOT save the results to the database
+func (s *SegmentService) PreviewSegment(ctx context.Context, workspaceID string, tree *domain.TreeNode, limit int) (*domain.PreviewSegmentResponse, error) {
+	ctx, userWorkspace, err := s.authorize(ctx, workspaceID, false)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.requireContactsRead(userWorkspace); err != nil {
+		return nil, err
+	}
+
+	if workspaceID == "" {
+		return nil, fmt.Errorf("workspace_id is required")
+	}
+	if tree == nil {
+		return nil, fmt.Errorf("tree is required")
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 20 // Default preview limit
+	}
+
+	// Validate the tree
+	if err := tree.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid tree: %w", err)
+	}
+
+	// Build SQL from tree
+	sqlQuery, args, err := s.queryBuilder.BuildSQL(tree)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build SQL: %w", err)
+	}
+
+	s.logger.WithFields(map[string]interface{}{
+		"workspace_id": workspaceID,
+		"sql":          sqlQuery,
+		"args":         args,
+	}).Debug("Preview segment SQL generated")
+
+	// Get count using repository method
+	totalCount, err := s.segmentRepo.PreviewSegment(ctx, workspaceID, sqlQuery, args, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to preview segment: %w", err)
+	}
+
+	return &domain.PreviewSegmentResponse{
+		Emails:       []string{}, // Don't return emails for privacy/performance
+		TotalCount:   totalCount,
+		Limit:        limit,
+		GeneratedSQL: sqlQuery,
+		SQLArgs:      args,
+	}, nil
+}
+
+// GetSegmentContacts retrieves contacts that belong to a segment
+func (s *SegmentService) GetSegmentContacts(ctx context.Context, workspaceID, segmentID string, limit, offset int) ([]string, error) {
+	ctx, userWorkspace, err := s.authorize(ctx, workspaceID, false)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.requireContactsRead(userWorkspace); err != nil {
+		return nil, err
+	}
+
+	if workspaceID == "" {
+		return nil, fmt.Errorf("workspace_id is required")
+	}
+	if segmentID == "" {
+		return nil, fmt.Errorf("segment_id is required")
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	// Get workspace database connection
+	workspaceDB, err := s.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace database connection: %w", err)
+	}
+
+	// Query contact_segments table. Order by matched_at (when the contact joined the
+	// segment) — contact_segments has no created_at column, so ordering by it errored.
+	query := `
+		SELECT email
+		FROM contact_segments
+		WHERE segment_id = $1
+		ORDER BY matched_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := workspaceDB.QueryContext(ctx, query, segmentID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query segment contacts: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var emails []string
+	for rows.Next() {
+		var email string
+		if err := rows.Scan(&email); err != nil {
+			return nil, fmt.Errorf("failed to scan email: %w", err)
+		}
+		emails = append(emails, email)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating segment contacts: %w", err)
+	}
+
+	return emails, nil
+}
+
+// GetSegmentContactDetails retrieves the contacts belonging to a segment as whole
+// records, most recently joined first.
+//
+// It reads more about each contact than GetSegmentContacts does, so it carries the
+// same two gates: segments:read to look through the segment, contacts:read for the
+// contact fields it hands back.
+func (s *SegmentService) GetSegmentContactDetails(ctx context.Context, workspaceID, segmentID string, limit, offset int) ([]*domain.SegmentContactDetail, error) {
+	ctx, userWorkspace, err := s.authorize(ctx, workspaceID, false)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.requireContactsRead(userWorkspace); err != nil {
+		return nil, err
+	}
+
+	if workspaceID == "" {
+		return nil, fmt.Errorf("workspace_id is required")
+	}
+	if segmentID == "" {
+		return nil, fmt.Errorf("segment_id is required")
+	}
+	// Same clamps as GetSegmentContacts: a caller that omits a limit gets a page,
+	// and no caller can pull the whole segment in one request.
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	details, err := s.segmentRepo.GetSegmentContactDetails(ctx, workspaceID, segmentID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get segment contact details: %w", err)
+	}
+
+	return details, nil
+}
+
+// calculateNext5AMInTimezone calculates the next occurrence of 5:00 AM in the given timezone
+// and returns it as a UTC time
+func calculateNext5AMInTimezone(tz string) (time.Time, error) {
+	// Load the timezone
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid timezone %s: %w", tz, err)
+	}
+
+	// Get current time in the target timezone
+	now := time.Now().In(loc)
+
+	// Calculate next 5:00 AM in that timezone
+	next5AM := time.Date(now.Year(), now.Month(), now.Day(), 5, 0, 0, 0, loc)
+
+	// If we've already passed 5 AM today, move to tomorrow
+	if now.After(next5AM) || now.Equal(next5AM) {
+		tomorrow := now.AddDate(0, 0, 1)
+		next5AM = time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 5, 0, 0, 0, loc)
+	}
+
+	// Convert to UTC for storage
+	return next5AM.UTC(), nil
+}

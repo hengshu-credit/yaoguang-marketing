@@ -1,0 +1,394 @@
+package testutil
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"os"
+	"sync"
+	"time"
+
+	"github.com/Notifuse/notifuse/config"
+	_ "github.com/lib/pq"
+)
+
+// TestConnectionPoolTimingConfig holds tunable timing parameters for cleanup operations
+type TestConnectionPoolTimingConfig struct {
+	CleanupWorkspaceSleep    time.Duration // Sleep after terminating workspace connections
+	CleanupBatchSleep        time.Duration // Sleep after closing all workspace connections
+	CleanupPerWorkspaceSleep time.Duration // Sleep per workspace during drain
+	DropDatabaseSleep        time.Duration // Sleep before dropping database
+	SystemPoolPreCloseSleep  time.Duration // Sleep before closing system pool
+	SystemPoolPostCloseSleep time.Duration // Sleep after closing system pool
+}
+
+// DefaultTimingConfig returns conservative defaults for reliability
+func DefaultTimingConfig() TestConnectionPoolTimingConfig {
+	return TestConnectionPoolTimingConfig{
+		CleanupWorkspaceSleep:    200 * time.Millisecond,
+		CleanupBatchSleep:        500 * time.Millisecond,
+		CleanupPerWorkspaceSleep: 10 * time.Millisecond,
+		DropDatabaseSleep:        100 * time.Millisecond,
+		SystemPoolPreCloseSleep:  50 * time.Millisecond,
+		SystemPoolPostCloseSleep: 200 * time.Millisecond,
+	}
+}
+
+// FastTimingConfig returns aggressive timings for performance tests
+func FastTimingConfig() TestConnectionPoolTimingConfig {
+	return TestConnectionPoolTimingConfig{
+		CleanupWorkspaceSleep:    25 * time.Millisecond,
+		CleanupBatchSleep:        50 * time.Millisecond,
+		CleanupPerWorkspaceSleep: 2 * time.Millisecond,
+		DropDatabaseSleep:        10 * time.Millisecond,
+		SystemPoolPreCloseSleep:  10 * time.Millisecond,
+		SystemPoolPostCloseSleep: 25 * time.Millisecond,
+	}
+}
+
+// TestConnectionPool manages a pool of database connections for integration tests
+type TestConnectionPool struct {
+	config          *config.DatabaseConfig
+	timingConfig    TestConnectionPoolTimingConfig
+	systemPool      *sql.DB
+	workspacePools  map[string]*sql.DB
+	poolMutex       sync.RWMutex
+	maxConnections  int
+	maxIdleTime     time.Duration
+	connectionCount int
+}
+
+// NewTestConnectionPool creates a new connection pool for tests with fast timing
+func NewTestConnectionPool(cfg *config.DatabaseConfig) *TestConnectionPool {
+	return NewTestConnectionPoolWithTiming(cfg, FastTimingConfig())
+}
+
+// NewTestConnectionPoolWithTiming creates a new connection pool with custom timing configuration
+func NewTestConnectionPoolWithTiming(cfg *config.DatabaseConfig, timing TestConnectionPoolTimingConfig) *TestConnectionPool {
+	return &TestConnectionPool{
+		config:         cfg,
+		timingConfig:   timing,
+		workspacePools: make(map[string]*sql.DB),
+		maxConnections: 10, // Conservative limit for tests
+		maxIdleTime:    2 * time.Minute,
+	}
+}
+
+// GetSystemConnection returns a connection to the system database
+func (pool *TestConnectionPool) GetSystemConnection() (*sql.DB, error) {
+	pool.poolMutex.Lock()
+	defer pool.poolMutex.Unlock()
+
+	if pool.systemPool == nil {
+		systemDSN := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=postgres sslmode=%s connect_timeout=30",
+			pool.config.Host, pool.config.Port, pool.config.User, pool.config.Password, pool.config.SSLMode)
+
+		db, err := sql.Open("postgres", systemDSN)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create system connection: %w", err)
+		}
+
+		// Configure connection pool for tests
+		db.SetMaxOpenConns(5) // Conservative for system operations
+		db.SetMaxIdleConns(2)
+		db.SetConnMaxLifetime(pool.maxIdleTime)
+		db.SetConnMaxIdleTime(pool.maxIdleTime / 2)
+
+		// Use context with timeout for ping
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := db.PingContext(ctx); err != nil {
+			db.Close()
+			return nil, fmt.Errorf("failed to ping system database: %w", err)
+		}
+
+		pool.systemPool = db
+	}
+
+	return pool.systemPool, nil
+}
+
+// GetWorkspaceConnection returns a pooled connection to a workspace database
+func (pool *TestConnectionPool) GetWorkspaceConnection(workspaceID string) (*sql.DB, error) {
+	pool.poolMutex.Lock()
+	defer pool.poolMutex.Unlock()
+
+	// Check if we already have a connection for this workspace
+	if db, exists := pool.workspacePools[workspaceID]; exists {
+		// Test if connection is still alive with timeout
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := db.PingContext(ctx); err == nil {
+			return db, nil
+		}
+		// Connection is dead, remove it
+		db.Close()
+		delete(pool.workspacePools, workspaceID)
+		pool.connectionCount--
+	}
+
+	// Create new connection
+	workspaceDBName := fmt.Sprintf("%s_ws_%s", pool.config.Prefix, workspaceID)
+	workspaceDSN := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s connect_timeout=30",
+		pool.config.Host, pool.config.Port, pool.config.User, pool.config.Password, workspaceDBName, pool.config.SSLMode)
+
+	db, err := sql.Open("postgres", workspaceDSN)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create workspace connection: %w", err)
+	}
+
+	// Configure connection pool for tests - use smaller pools
+	db.SetMaxOpenConns(3) // Very conservative for individual workspaces
+	db.SetMaxIdleConns(1)
+	db.SetConnMaxLifetime(pool.maxIdleTime)
+	db.SetConnMaxIdleTime(pool.maxIdleTime / 2)
+
+	// Use context with timeout for ping
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to ping workspace database: %w", err)
+	}
+
+	pool.workspacePools[workspaceID] = db
+	pool.connectionCount++
+
+	return db, nil
+}
+
+// EnsureWorkspaceDatabase creates the workspace database if it doesn't exist
+func (pool *TestConnectionPool) EnsureWorkspaceDatabase(workspaceID string) error {
+	systemDB, err := pool.GetSystemConnection()
+	if err != nil {
+		return fmt.Errorf("failed to get system connection: %w", err)
+	}
+
+	workspaceDBName := fmt.Sprintf("%s_ws_%s", pool.config.Prefix, workspaceID)
+
+	// Check if database exists
+	var exists bool
+	query := "SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = $1)"
+	err = systemDB.QueryRow(query, workspaceDBName).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("failed to check if workspace database exists: %w", err)
+	}
+
+	// Create database if it doesn't exist
+	if !exists {
+		createDBQuery := fmt.Sprintf("CREATE DATABASE %s", workspaceDBName)
+		_, err = systemDB.Exec(createDBQuery)
+		if err != nil {
+			return fmt.Errorf("failed to create workspace database: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// CleanupWorkspace removes a workspace connection from the pool
+func (pool *TestConnectionPool) CleanupWorkspace(workspaceID string) error {
+	pool.poolMutex.Lock()
+	defer pool.poolMutex.Unlock()
+
+	if db, exists := pool.workspacePools[workspaceID]; exists {
+		db.Close()
+		delete(pool.workspacePools, workspaceID)
+		pool.connectionCount--
+	}
+
+	// Also drop the workspace database
+	if pool.systemPool != nil {
+		workspaceDBName := fmt.Sprintf("%s_ws_%s", pool.config.Prefix, workspaceID)
+
+		// Terminate connections to the workspace database
+		terminateQuery := fmt.Sprintf(`
+			SELECT pg_terminate_backend(pid) 
+			FROM pg_stat_activity 
+			WHERE datname = '%s' 
+			AND pid <> pg_backend_pid()`, workspaceDBName)
+
+		pool.systemPool.Exec(terminateQuery)
+
+		// Delay for connections to fully close (configurable)
+		time.Sleep(pool.timingConfig.CleanupWorkspaceSleep)
+
+		// Drop the database
+		dropQuery := fmt.Sprintf("DROP DATABASE IF EXISTS %s", workspaceDBName)
+		_, err := pool.systemPool.Exec(dropQuery)
+		if err != nil {
+			return fmt.Errorf("failed to drop workspace database: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// GetConnectionCount returns the current number of active connections
+func (pool *TestConnectionPool) GetConnectionCount() int {
+	pool.poolMutex.RLock()
+	defer pool.poolMutex.RUnlock()
+	return pool.connectionCount
+}
+
+// Cleanup closes all connections in the pool with proper verification
+func (pool *TestConnectionPool) Cleanup() error {
+	pool.poolMutex.Lock()
+	defer pool.poolMutex.Unlock()
+
+	var errors []error
+
+	// Step 1: Close all workspace connections first
+	workspaceDBNames := make([]string, 0, len(pool.workspacePools))
+	for workspaceID, db := range pool.workspacePools {
+		workspaceDBName := fmt.Sprintf("%s_ws_%s", pool.config.Prefix, workspaceID)
+		workspaceDBNames = append(workspaceDBNames, workspaceDBName)
+
+		// Force immediate closure of all idle connections
+		db.SetMaxIdleConns(0)
+		db.SetMaxOpenConns(1)
+		db.SetConnMaxLifetime(0)
+
+		// Give connections time to drain before closing (configurable)
+		time.Sleep(pool.timingConfig.CleanupPerWorkspaceSleep)
+
+		if err := db.Close(); err != nil {
+			errors = append(errors, fmt.Errorf("error closing workspace pool %s: %w", workspaceID, err))
+		}
+		delete(pool.workspacePools, workspaceID)
+	}
+
+	// Step 2: Wait for connections to actually close
+	// Brief delay to ensure PostgreSQL releases connections (configurable)
+	time.Sleep(pool.timingConfig.CleanupBatchSleep)
+
+	// Step 3: Drop workspace databases using system connection
+	if pool.systemPool != nil {
+		for _, workspaceDBName := range workspaceDBNames {
+			if err := pool.dropDatabaseIfExists(workspaceDBName); err != nil {
+				errors = append(errors, fmt.Errorf("error dropping database %s: %w", workspaceDBName, err))
+			}
+		}
+	}
+
+	// Step 4: Close system connection last
+	if pool.systemPool != nil {
+		// Force immediate closure of all idle connections
+		pool.systemPool.SetMaxIdleConns(0)
+		pool.systemPool.SetMaxOpenConns(1)
+		pool.systemPool.SetConnMaxLifetime(0)
+		time.Sleep(pool.timingConfig.SystemPoolPreCloseSleep)
+
+		if err := pool.systemPool.Close(); err != nil {
+			errors = append(errors, fmt.Errorf("error closing system pool: %w", err))
+		}
+		pool.systemPool = nil
+
+		// Final wait to ensure system connection is fully released (configurable)
+		time.Sleep(pool.timingConfig.SystemPoolPostCloseSleep)
+	}
+
+	pool.connectionCount = 0
+
+	if len(errors) > 0 {
+		return fmt.Errorf("cleanup errors: %v", errors)
+	}
+
+	return nil
+}
+
+// dropDatabaseIfExists drops a database if it exists (helper for cleanup)
+func (pool *TestConnectionPool) dropDatabaseIfExists(dbName string) error {
+	// Terminate any remaining connections to the database
+	terminateQuery := fmt.Sprintf(`
+		SELECT pg_terminate_backend(pid) 
+		FROM pg_stat_activity 
+		WHERE datname = '%s' 
+		  AND pid <> pg_backend_pid()`, dbName)
+
+	_, err := pool.systemPool.Exec(terminateQuery)
+	if err != nil {
+		// Log but don't fail - database might not exist
+		return nil
+	}
+
+	// Small delay for connections to close (configurable)
+	time.Sleep(pool.timingConfig.DropDatabaseSleep)
+
+	// Drop the database
+	dropQuery := fmt.Sprintf("DROP DATABASE IF EXISTS %s", dbName)
+	_, err = pool.systemPool.Exec(dropQuery)
+	if err != nil {
+		return fmt.Errorf("failed to drop database: %w", err)
+	}
+
+	return nil
+}
+
+// Global connection pool instance for tests
+var globalTestPool *TestConnectionPool
+var poolOnce sync.Once
+
+// GetGlobalTestPool returns a singleton connection pool for all tests
+func GetGlobalTestPool() *TestConnectionPool {
+	poolOnce.Do(func() {
+		// Default to localhost for normal environments
+		// In containerized environments (like Cursor), set TEST_DB_HOST env var
+		// to the actual container IP or accessible hostname
+		defaultHost := "localhost"
+		defaultPort := 5433
+
+		// Check if we're likely in a containerized environment
+		// If TEST_DB_HOST is explicitly set, use it with its port
+		testHost := getEnvOrDefault("TEST_DB_HOST", defaultHost)
+		testPort := defaultPort
+		if portStr := os.Getenv("TEST_DB_PORT"); portStr != "" {
+			fmt.Sscanf(portStr, "%d", &testPort)
+		} else if testHost != defaultHost {
+			testPort = 5432 // Default to internal port when using custom host
+		}
+
+		config := &config.DatabaseConfig{
+			Host:     testHost,
+			Port:     testPort,
+			User:     getEnvOrDefault("TEST_DB_USER", "notifuse_test"),
+			Password: getEnvOrDefault("TEST_DB_PASSWORD", "test_password"),
+			Prefix:   "notifuse_test",
+			SSLMode:  "disable",
+		}
+		globalTestPool = NewTestConnectionPoolWithTiming(config, FastTimingConfig())
+	})
+	return globalTestPool
+}
+
+// CleanupGlobalTestPool cleans up the global test pool
+// This should be called at the end of test runs to ensure no connections leak
+func CleanupGlobalTestPool() error {
+	if globalTestPool == nil {
+		return nil
+	}
+
+	// Cleanup the pool
+	err := globalTestPool.Cleanup()
+
+	// Reset global state
+	globalTestPool = nil
+	poolOnce = sync.Once{}
+
+	// Give PostgreSQL extra time to release connections when running multiple tests
+	// This prevents connection exhaustion between test suites
+	time.Sleep(500 * time.Millisecond)
+
+	return err
+}
+
+// GetGlobalPoolConnectionCount returns the connection count from the global pool
+func GetGlobalPoolConnectionCount() int {
+	if globalTestPool == nil {
+		return 0
+	}
+	return globalTestPool.GetConnectionCount()
+}

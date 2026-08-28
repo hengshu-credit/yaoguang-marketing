@@ -1,0 +1,98 @@
+# ⚠️  IMPORTANT: If using a .env file with Docker Compose
+# Values containing # must be quoted: DB_PASSWORD="mypass#word123"
+# See env.example for more details.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '8081:8080'
+      - '587:587'
+    environment:
+      # Server Configuration
+      - SERVER_PORT=${SERVER_PORT:-8080}
+      - SERVER_HOST=${SERVER_HOST:-0.0.0.0}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+
+      # Database Configuration (Required)
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_PREFIX=${DB_PREFIX:-notifuse}
+      - DB_NAME=${DB_NAME:-notifuse_system}
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+
+      # Secret Key (Required) - Generate a secure random string for production
+      - SECRET_KEY=${SECRET_KEY:-d04zCk3Fa45oOjDWHpAvc1AZxnLdGffOnNWK+Jt2yXf37+FTfuMMHb8flcfPMqLluRR3rvhbr555r6j1DEigrA==}
+
+      # All other settings (ROOT_EMAIL, API_ENDPOINT, SMTP)
+      # can be configured through the Setup Wizard on first launch
+      # Or set them here as environment variables if you prefer
+      # - ROOT_EMAIL=${ROOT_EMAIL}
+      # - API_ENDPOINT=${API_ENDPOINT}
+      # - SMTP_HOST=${SMTP_HOST}
+      # - SMTP_PORT=${SMTP_PORT}
+      # - SMTP_USERNAME=${SMTP_USERNAME}
+      # - SMTP_PASSWORD=${SMTP_PASSWORD}
+      # - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
+      # - SMTP_FROM_NAME=${SMTP_FROM_NAME}
+
+      # SMTP Bridge Configuration (Optional - for receiving inbound emails)
+      # - SMTP_BRIDGE_ENABLED=${SMTP_BRIDGE_ENABLED}
+      # - SMTP_BRIDGE_PORT=${SMTP_BRIDGE_PORT}
+      # - SMTP_BRIDGE_DOMAIN=${SMTP_BRIDGE_DOMAIN}
+      # - SMTP_BRIDGE_TLS=${SMTP_BRIDGE_TLS}  # off | starttls | implicit (default: starttls when certs present)
+      # - SMTP_BRIDGE_TLS_CERT_BASE64=${SMTP_BRIDGE_TLS_CERT_BASE64}
+      # - SMTP_BRIDGE_TLS_KEY_BASE64=${SMTP_BRIDGE_TLS_KEY_BASE64}
+    depends_on:
+      - postgres
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    networks:
+      - notifuse-network
+    healthcheck:
+      test:
+        ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/healthz']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  postgres:
+    # Pinned to 17 deliberately. Bumping the major version here would break
+    # every existing install: the server refuses to start on a data directory
+    # from an older major without pg_upgrade, and postgres:18 also moved PGDATA
+    # to /var/lib/postgresql/18/docker (declaring VOLUME /var/lib/postgresql),
+    # so the volume mounted below would no longer receive the data at all.
+    # Notifuse runs on 17+; to move to 18, migrate with pg_upgrade and mount
+    # the volume at /var/lib/postgresql. For faster analytics, prefer
+    # compose.alloydb.yaml.
+    image: postgres:17-alpine
+    ports:
+      - '5433:5432'
+    environment:
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-postgres}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - notifuse-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+    driver: local
+
+networks:
+  notifuse-network:
+    driver: bridge

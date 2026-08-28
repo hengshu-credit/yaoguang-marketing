@@ -1,0 +1,24 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 70%
+        threshold: 10%
+    patch: off
+  range: '60...80'
+  # Exclude mock files from coverage calculation
+  ignore:
+    - '**/mocks/**'
+    - '**/mock/**'
+    - '**/*_mock.go'
+    - '**/*mock*.go'
+    - '**/database/utils.go'
+    - '**/cmd/api/**'
+    - 'cmd/api/**'
+    - '**/pkg/tracing/**'
+    - '**/pkg/logger/testing.go'
+    - '**/http/middleware/tracing.go'
+    - '**/internal/tracing/**'
+    - '**/tests/**'
+    - '**/tests/**'
+    - '**/testutil/**'

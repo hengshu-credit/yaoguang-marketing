@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="robots" content="noindex">
+  <!-- <link rel="icon" type="image/svg+xml" href="/vite.svg" /> -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notification Center</title>
+  <style>
+    body {
+      margin: 0;
+    }
+
+    .preload-splash {
+      min-height: 100vh;
+    }
+
+    .preload-splash-content {
+      text-align: center;
+      padding-top: 20%;
+    }
+
+    .preload-icon {
+      display: inline-block;
+      color: inherit;
+      font-style: normal;
+      line-height: 0;
+      text-align: center;
+      text-transform: none;
+      vertical-align: -0.125em;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-size: 60px;
+    }
+
+    .preload-icon-spin {
+      display: inline-block;
+      -webkit-animation: loadingCircle 1s infinite linear;
+      animation: loadingCircle 1s infinite linear;
+    }
+
+    @keyframes loadingCircle {
+      100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root">
+    <div class="preload-splash">
+      <div class="preload-splash-content">
+        <i aria-label="icon: loading" class="preload-icon preload-icon-loading"><svg viewBox="0 0 1024 1024"
+            class="preload-icon-spin" data-icon="loading" width="1em" height="1em" fill="#000000" aria-hidden="true"
+            focusable="false">
+            <path
+              d="M988 548c-19.9 0-36-16.1-36-36 0-59.4-11.6-117-34.6-171.3a440.45 440.45 0 0 0-94.3-139.9 437.71 437.71 0 0 0-139.9-94.3C629 83.6 571.4 72 512 72c-19.9 0-36-16.1-36-36s16.1-36 36-36c69.1 0 136.2 13.5 199.3 40.3C772.3 66 827 103 874 150c47 47 83.9 101.8 109.7 162.7 26.7 63.1 40.2 130.2 40.2 199.3.1 19.9-16 36-35.9 36z">
+            </path>
+          </svg></i>
+      </div>
+    </div>
+  </div>
+  <script src="/config.js"></script>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>

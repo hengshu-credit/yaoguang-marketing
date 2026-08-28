@@ -1,0 +1,441 @@
+package repository
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"time"
+
+	sq "github.com/Masterminds/squirrel"
+	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/lib/pq"
+)
+
+type templateRepository struct {
+	workspaceRepo domain.WorkspaceRepository
+}
+
+// NewTemplateRepository creates a new PostgreSQL template repository
+func NewTemplateRepository(workspaceRepo domain.WorkspaceRepository) domain.TemplateRepository {
+	return &templateRepository{
+		workspaceRepo: workspaceRepo,
+	}
+}
+
+func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID string, template *domain.Template) error {
+	// Get the workspace database connection
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	now := time.Now().UTC()
+	template.CreatedAt = now
+	template.UpdatedAt = now
+
+	// Ensure version is at least 1 for creation
+	if template.Version == 0 {
+		template.Version = 1
+	}
+
+	// Normalize nil translations to empty map for consistent JSONB storage
+	translations := template.Translations
+	if translations == nil {
+		translations = make(map[string]domain.TemplateTranslation)
+	}
+
+	// Marshal translations to JSON
+	translationsJSON, err := json.Marshal(translations)
+	if err != nil {
+		return fmt.Errorf("failed to marshal translations: %w", err)
+	}
+
+	query := `
+		INSERT INTO templates (
+			id,
+			name,
+			version,
+			channel,
+			email,
+			web,
+			category,
+			template_macro_id,
+			integration_id,
+			test_data,
+			settings,
+			translations,
+			created_at,
+			updated_at
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+	`
+	_, err = workspaceDB.ExecContext(ctx, query,
+		template.ID,
+		template.Name,
+		template.Version,
+		template.Channel,
+		template.Email,
+		template.Web,
+		template.Category,
+		template.TemplateMacroID,
+		template.IntegrationID,
+		template.TestData,
+		template.Settings,
+		translationsJSON,
+		template.CreatedAt,
+		template.UpdatedAt,
+	)
+
+	if err != nil {
+		// Match the SQLSTATE, never the message: PostgreSQL translates error text per
+		// lc_messages, so a non-English server renders this same 23505 in its own locale
+		// and no text match survives it. The INSERT fails either way; what a missed match
+		// costs is the diagnosis - template.create answers 500 "Failed to create template"
+		// instead of 400 "Template id already exists", so the console shows a generic
+		// server error and the author never learns the id is taken.
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			return &domain.ErrTemplateExists{Message: "template id already exists"}
+		}
+		return fmt.Errorf("failed to create template: %w", err)
+	}
+	return nil
+}
+
+func (r *templateRepository) GetTemplateByID(ctx context.Context, workspaceID string, id string, version int64) (*domain.Template, error) {
+	// Get the workspace database connection
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	var query string
+	var args []interface{}
+
+	if version > 0 {
+		// Get specific version
+		query = `
+			SELECT
+				id,
+				name,
+				version,
+				channel,
+				email,
+				web,
+				category,
+				template_macro_id,
+				integration_id,
+				test_data,
+				settings,
+				translations,
+				created_at,
+				updated_at
+			FROM templates
+			WHERE id = $1 AND version = $2
+		`
+		args = []interface{}{id, version}
+	} else {
+		// Get latest version
+		query = `
+			SELECT
+				id,
+				name,
+				version,
+				channel,
+				email,
+				web,
+				category,
+				template_macro_id,
+				integration_id,
+				test_data,
+				settings,
+				translations,
+				created_at,
+				updated_at
+			FROM templates
+			WHERE id = $1
+			ORDER BY version DESC
+			LIMIT 1
+		`
+		args = []interface{}{id}
+	}
+
+	row := workspaceDB.QueryRowContext(ctx, query, args...)
+
+	template, err := scanTemplate(row)
+	if err == sql.ErrNoRows {
+		return nil, &domain.ErrTemplateNotFound{Message: "template not found"}
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get template: %w", err)
+	}
+
+	return template, nil
+}
+
+func (r *templateRepository) GetTemplateLatestVersion(ctx context.Context, workspaceID string, id string) (int64, error) {
+	// Get the workspace database connection
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `
+		SELECT MAX(version) 
+		FROM templates
+		WHERE id = $1
+	`
+
+	var version int64
+	err = workspaceDB.QueryRowContext(ctx, query, id).Scan(&version)
+	if err == sql.ErrNoRows {
+		return 0, &domain.ErrTemplateNotFound{Message: "template not found"}
+	}
+	if err != nil {
+		return 0, fmt.Errorf("failed to get template latest version: %w", err)
+	}
+
+	return version, nil
+}
+
+func (r *templateRepository) GetTemplates(ctx context.Context, workspaceID string, category string, channel string) ([]*domain.Template, error) {
+	// Get the workspace database connection
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	// Get only the latest version of each template
+	latestVersionsCTE := `
+		WITH latest_versions AS (
+			SELECT id, MAX(version) as max_version
+			FROM templates
+			GROUP BY id
+		)
+	`
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	selectBuilder := psql.Select(
+		"t.id",
+		"t.name",
+		"t.version",
+		"t.channel",
+		"t.email",
+		"t.web",
+		"t.category",
+		"t.template_macro_id",
+		"t.integration_id",
+		"t.test_data",
+		"t.settings",
+		"t.translations",
+		"t.created_at",
+		"t.updated_at",
+	).Prefix(latestVersionsCTE).
+		From("templates t").
+		Join("latest_versions lv ON t.id = lv.id AND t.version = lv.max_version").
+		Where(sq.Eq{"t.deleted_at": nil}).
+		OrderBy("t.updated_at DESC")
+
+	if category != "" {
+		selectBuilder = selectBuilder.Where(sq.Eq{"t.category": category})
+	}
+
+	if channel != "" {
+		selectBuilder = selectBuilder.Where(sq.Eq{"t.channel": channel})
+	}
+
+	query, args, err := selectBuilder.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build query: %w", err)
+	}
+
+	rows, err := workspaceDB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get templates: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var templates []*domain.Template
+	for rows.Next() {
+		template, err := scanTemplate(rows)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan template: %w", err)
+		}
+		templates = append(templates, template)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating template rows: %w", err)
+	}
+
+	return templates, nil
+}
+
+func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID string, template *domain.Template, baseVersion int64) error {
+	// Get the workspace database connection
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	template.UpdatedAt = time.Now().UTC()
+
+	// Normalize nil translations to empty map for consistent JSONB storage
+	translations := template.Translations
+	if translations == nil {
+		translations = make(map[string]domain.TemplateTranslation)
+	}
+
+	// Marshal translations to JSON
+	translationsJSON, err := json.Marshal(translations)
+	if err != nil {
+		return fmt.Errorf("failed to marshal translations: %w", err)
+	}
+
+	// Append-only versioning with atomic optimistic concurrency. The new version is
+	// computed as MAX(version)+1 inside the statement, and the row is only inserted when
+	// the caller's base_version still matches the latest ($14 = 0 skips the check for
+	// legacy last-writer-wins callers). This closes the read-then-write race two ways:
+	//   - base already stale before the statement ran → WHERE yields no row → ErrNoRows
+	//   - a concurrent writer with the same base committed first → the PRIMARY KEY
+	//     (id, version) rejects the loser with a unique violation (23505)
+	// Both map to a version conflict. RETURNING reports the newly-created version.
+	query := `
+		WITH curr AS (
+			SELECT COALESCE(MAX(version), 0) AS max_v
+			FROM templates
+			WHERE id = $1
+		)
+		INSERT INTO templates (
+			id, name, version, channel, email, web, category,
+			template_macro_id, integration_id, test_data, settings, translations,
+			created_at, updated_at
+		)
+		SELECT
+			$1, $2, curr.max_v + 1, $3, $4, $5, $6,
+			$7, $8, $9, $10, $11,
+			$12, $13
+		FROM curr
+		WHERE $14 = 0 OR curr.max_v = $14
+		RETURNING version
+	`
+	err = workspaceDB.QueryRowContext(ctx, query,
+		template.ID,
+		template.Name,
+		template.Channel,
+		template.Email,
+		template.Web,
+		template.Category,
+		template.TemplateMacroID,
+		template.IntegrationID,
+		template.TestData,
+		template.Settings,
+		translationsJSON,
+		template.CreatedAt,
+		template.UpdatedAt,
+		baseVersion,
+	).Scan(&template.Version)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// The base_version guard excluded the insert: the template advanced since.
+			return r.newVersionConflict(ctx, workspaceDB, template.ID, baseVersion)
+		}
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" && pqErr.Constraint == "templates_pkey" {
+			// A concurrent save with the same base won the (id, version) race.
+			return r.newVersionConflict(ctx, workspaceDB, template.ID, baseVersion)
+		}
+		return fmt.Errorf("failed to update template: %w", err)
+	}
+
+	return nil
+}
+
+// newVersionConflict builds an ErrTemplateVersionConflict, reading the current latest
+// version (best-effort) so the client can rebase onto it.
+func (r *templateRepository) newVersionConflict(ctx context.Context, db *sql.DB, id string, baseVersion int64) error {
+	var latest int64
+	_ = db.QueryRowContext(ctx,
+		`SELECT COALESCE(MAX(version), 0) FROM templates WHERE id = $1`, id).Scan(&latest)
+	return &domain.ErrTemplateVersionConflict{BaseVersion: baseVersion, LatestVersion: latest}
+}
+
+func (r *templateRepository) DeleteTemplate(ctx context.Context, workspaceID string, id string) error {
+	// Get the workspace database connection
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	// Soft delete by setting deleted_at
+	query := `UPDATE templates SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`
+
+	result, err := workspaceDB.ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete template: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	if rows == 0 {
+		return &domain.ErrTemplateNotFound{Message: "template not found"}
+	}
+
+	return nil
+}
+
+// scanTemplate scans a template from a database row
+func scanTemplate(scanner interface {
+	Scan(dest ...interface{}) error
+}) (*domain.Template, error) {
+	var (
+		template         domain.Template
+		templateMacroID  sql.NullString
+		integrationID    sql.NullString
+		translationsJSON []byte
+	)
+
+	err := scanner.Scan(
+		&template.ID,
+		&template.Name,
+		&template.Version,
+		&template.Channel,
+		&template.Email,
+		&template.Web,
+		&template.Category,
+		&templateMacroID,
+		&integrationID,
+		&template.TestData,
+		&template.Settings,
+		&translationsJSON,
+		&template.CreatedAt,
+		&template.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Handle nullable fields
+	if templateMacroID.Valid {
+		template.TemplateMacroID = &templateMacroID.String
+	}
+	if integrationID.Valid {
+		template.IntegrationID = &integrationID.String
+	}
+
+	// Unmarshal translations JSON, always initialize to empty map for consistency
+	template.Translations = make(map[string]domain.TemplateTranslation)
+	if len(translationsJSON) > 0 {
+		if err := json.Unmarshal(translationsJSON, &template.Translations); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal translations: %w", err)
+		}
+	}
+
+	return &template, nil
+}

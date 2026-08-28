@@ -1,0 +1,160 @@
+# Integration Testing Makefile for Notifuse API
+
+.PHONY: test-integration test-integration-setup test-integration-teardown test-integration-docker test-integration-full
+
+# Default target
+help:
+	@echo "Integration Testing Commands:"
+	@echo "  test-integration-setup    - Start test database and dependencies"
+	@echo "  test-integration-teardown - Stop test database and dependencies" 
+	@echo "  test-integration-docker   - Run integration tests with Docker"
+	@echo "  test-integration          - Run integration tests (requires manual setup)"
+	@echo "  test-integration-full     - Setup, test, and teardown"
+	@echo "  test-integration-watch    - Run tests in watch mode"
+
+# Start test database and dependencies
+test-integration-setup:
+	@echo "Starting test infrastructure..."
+	cd tests && docker compose -f compose.test.yaml up -d
+	@echo "Waiting for services to be ready..."
+	sleep 8
+	@echo "Test infrastructure ready!"
+
+# Stop test database and dependencies
+test-integration-teardown:
+	@echo "Stopping test infrastructure..."
+	cd tests && docker compose -f compose.test.yaml down -v
+	@echo "Test infrastructure stopped!"
+
+# Run integration tests with environment variables
+test-integration:
+	@echo "Running integration tests..."
+	@echo "Make sure test database is running (run 'make test-integration-setup' first)"
+	INTEGRATION_TESTS=true \
+	TEST_DB_HOST=localhost \
+	TEST_DB_PORT=5433 \
+	TEST_DB_USER=notifuse_test \
+	TEST_DB_PASSWORD=test_password \
+	ENVIRONMENT=test \
+	go test -v -timeout 5m ./tests/integration/...
+
+# Run integration tests with Docker setup
+test-integration-docker: test-integration-setup
+	@echo "Running integration tests with Docker infrastructure..."
+	@sleep 5  # Additional wait for services
+	INTEGRATION_TESTS=true \
+	TEST_DB_HOST=localhost \
+	TEST_DB_PORT=5433 \
+	TEST_DB_USER=notifuse_test \
+	TEST_DB_PASSWORD=test_password \
+	ENVIRONMENT=test \
+	go test -v -timeout 10m ./tests/integration/... || (make test-integration-teardown && exit 1)
+
+# Full integration test cycle
+test-integration-full: test-integration-setup test-integration-docker test-integration-teardown
+	@echo "Full integration test cycle completed!"
+
+# Run specific test files
+test-integration-database:
+	INTEGRATION_TESTS=true \
+	TEST_DB_HOST=localhost \
+	TEST_DB_PORT=5433 \
+	TEST_DB_USER=notifuse_test \
+	TEST_DB_PASSWORD=test_password \
+	ENVIRONMENT=test \
+	go test -v -timeout 5m ./tests/integration/database_test.go
+
+test-integration-api:
+	INTEGRATION_TESTS=true \
+	TEST_DB_HOST=localhost \
+	TEST_DB_PORT=5433 \
+	TEST_DB_USER=notifuse_test \
+	TEST_DB_PASSWORD=test_password \
+	ENVIRONMENT=test \
+	go test -v -timeout 5m ./tests/integration/api_test.go
+
+test-integration-contacts:
+	INTEGRATION_TESTS=true \
+	TEST_DB_HOST=localhost \
+	TEST_DB_PORT=5433 \
+	TEST_DB_USER=notifuse_test \
+	TEST_DB_PASSWORD=test_password \
+	ENVIRONMENT=test \
+	go test -v -timeout 5m ./tests/integration/contact_api_test.go
+
+# Run tests in watch mode (requires entr: brew install entr)
+test-integration-watch:
+	@echo "Watching for changes and running tests..."
+	@echo "Make sure test infrastructure is running first!"
+	find ./tests/integration ./tests/testutil -name "*.go" | entr -c make test-integration
+
+# Run integration tests with coverage
+test-integration-coverage:
+	@echo "Running integration tests with coverage..."
+	INTEGRATION_TESTS=true \
+	TEST_DB_HOST=localhost \
+	TEST_DB_PORT=5433 \
+	TEST_DB_USER=notifuse_test \
+	TEST_DB_PASSWORD=test_password \
+	ENVIRONMENT=test \
+	go test -v -timeout 10m -coverprofile=integration_coverage.out ./tests/integration/...
+	go tool cover -html=integration_coverage.out -o integration_coverage.html
+	@echo "Coverage report generated: integration_coverage.html"
+
+# Clean up test artifacts
+test-integration-clean:
+	@echo "Cleaning up test artifacts..."
+	rm -f integration_coverage.out integration_coverage.html
+	docker system prune -f
+	@echo "Cleanup completed!"
+
+# Lint integration tests
+test-integration-lint:
+	@echo "Linting integration test code..."
+	golangci-lint run ./tests/...
+
+# Build test utilities
+test-integration-build:
+	@echo "Building test utilities..."
+	go build -o bin/test-runner ./tests/cmd/test-runner/... || echo "No test runner found, skipping"
+
+# Debug integration tests
+test-integration-debug:
+	@echo "Running integration tests in debug mode..."
+	INTEGRATION_TESTS=true \
+	TEST_DB_HOST=localhost \
+	TEST_DB_PORT=5433 \
+	TEST_DB_USER=notifuse_test \
+	TEST_DB_PASSWORD=test_password \
+	ENVIRONMENT=test \
+	LOG_LEVEL=debug \
+	go test -v -timeout 10m -race ./tests/integration/...
+
+# Check test infrastructure health
+test-integration-health:
+	@echo "Checking test infrastructure health..."
+	@echo "Checking PostgreSQL..."
+	@timeout 5s bash -c 'until nc -z localhost 5433; do sleep 1; done' && echo "✅ PostgreSQL is ready" || echo "❌ PostgreSQL is not ready"
+	@echo "Checking Mailpit..."
+	@timeout 5s bash -c 'until nc -z localhost 1025; do sleep 1; done' && echo "✅ Mailpit SMTP is ready" || echo "❌ Mailpit SMTP is not ready"
+	@timeout 5s bash -c 'until nc -z localhost 8025; do sleep 1; done' && echo "✅ Mailpit Web UI is ready" || echo "❌ Mailpit Web UI is not ready"
+
+# View test infrastructure logs
+test-integration-logs:
+	@echo "Viewing test infrastructure logs..."
+	cd tests && docker compose -f compose.test.yaml logs -f
+
+# Reset test infrastructure
+test-integration-reset: test-integration-teardown test-integration-setup
+	@echo "Test infrastructure reset completed!"
+
+# Quick integration test (subset)
+test-integration-quick:
+	@echo "Running quick integration tests..."
+	INTEGRATION_TESTS=true \
+	TEST_DB_HOST=localhost \
+	TEST_DB_PORT=5433 \
+	TEST_DB_USER=notifuse_test \
+	TEST_DB_PASSWORD=test_password \
+	ENVIRONMENT=test \
+	go test -v -timeout 3m -short ./tests/integration/... 

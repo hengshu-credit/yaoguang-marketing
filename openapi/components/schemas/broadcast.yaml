@@ -1,0 +1,781 @@
+Broadcast:
+  type: object
+  properties:
+    id:
+      type: string
+      description: Unique identifier for the broadcast
+      example: broadcast_12345
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    name:
+      type: string
+      description: Name of the broadcast
+      example: Spring Newsletter 2024
+      maxLength: 255
+    channel_type:
+      type: string
+      description: Communication channel type
+      example: email
+    status:
+      type: string
+      enum:
+        - draft
+        - scheduled
+        - processing
+        - paused
+        - processed
+        - cancelled
+        - failed
+        - testing
+        - test_completed
+        - winner_selected
+      description: Current status of the broadcast
+      example: draft
+    audience:
+      $ref: '#/AudienceSettings'
+    schedule:
+      $ref: '#/ScheduleSettings'
+    test_settings:
+      $ref: '#/BroadcastTestSettings'
+    utm_parameters:
+      $ref: '#/UTMParameters'
+    data_feed:
+      $ref: '#/DataFeedSettings'
+    metadata:
+      type: object
+      additionalProperties: true
+      description: Custom metadata for the broadcast
+    winning_template:
+      type: string
+      nullable: true
+      description: ID of the winning template variation
+      example: template_winner
+    test_sent_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: When the A/B test was sent
+    winner_sent_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: When the winning variation was sent
+    enqueued_count:
+      type: integer
+      description: Number of emails added to the queue by orchestrator
+      example: 1000
+    test_phase_recipient_count:
+      type: integer
+      description: Number of recipients in test phase
+    winner_phase_recipient_count:
+      type: integer
+      description: Number of recipients in winner phase
+    created_at:
+      type: string
+      format: date-time
+      description: When the broadcast was created
+    updated_at:
+      type: string
+      format: date-time
+      description: When the broadcast was last updated
+    started_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: When the broadcast started sending
+    completed_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: When the broadcast completed sending
+    cancelled_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: When the broadcast was cancelled
+    paused_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: When the broadcast was paused
+    pause_reason:
+      type: string
+      nullable: true
+      description: Reason for pausing the broadcast
+
+BroadcastTestSettings:
+  type: object
+  properties:
+    enabled:
+      type: boolean
+      description: Whether A/B testing is enabled
+      example: true
+    sample_percentage:
+      type: integer
+      minimum: 1
+      maximum: 100
+      description: Percentage of audience to use for testing
+      example: 20
+    auto_send_winner:
+      type: boolean
+      description: Automatically send winning variation to remaining audience
+      example: true
+    auto_send_winner_metric:
+      type: string
+      enum:
+        - open_rate
+        - click_rate
+      description: Metric used to determine the winner
+      example: open_rate
+    test_duration_hours:
+      type: integer
+      minimum: 1
+      maximum: 168
+      description: Duration of the test in hours (max 7 days)
+      example: 24
+    variations:
+      type: array
+      description: Test variations (2-8 variations allowed)
+      minItems: 2
+      maxItems: 8
+      items:
+        $ref: '#/BroadcastVariation'
+
+BroadcastVariation:
+  type: object
+  required:
+    - template_id
+  properties:
+    variation_name:
+      type: string
+      description: Name of this variation
+      example: Variation A
+    template_id:
+      type: string
+      description: Template ID for this variation
+      example: template_variant_a
+    metrics:
+      $ref: '#/VariationMetrics'
+    template:
+      type: object
+      nullable: true
+      description: Full template object (populated when with_templates=true)
+
+VariationMetrics:
+  type: object
+  properties:
+    recipients:
+      type: integer
+      description: Number of recipients
+    delivered:
+      type: integer
+      description: Number of delivered messages
+    opens:
+      type: integer
+      description: Number of opens
+    clicks:
+      type: integer
+      description: Number of clicks
+    bounced:
+      type: integer
+      description: Number of bounces
+    complained:
+      type: integer
+      description: Number of complaints
+    unsubscribed:
+      type: integer
+      description: Number of unsubscribes
+
+AudienceSettings:
+  type: object
+  required:
+    - list
+  properties:
+    list:
+      type: string
+      description: List ID to send to
+      example: newsletter
+    segments:
+      type: array
+      description: Optional segment IDs to filter recipients
+      items:
+        type: string
+      example:
+        - premium_users
+    exclude_unsubscribed:
+      type: boolean
+      description: Whether to exclude unsubscribed contacts
+      example: true
+
+AudienceSettingsPatch:
+  type: object
+  description: >-
+    The audience keys a broadcasts.update body carries. Same fields as
+    AudienceSettings, but none of them is required: each key the body names replaces the
+    stored value and each key it leaves out keeps it.
+  properties:
+    list:
+      type: string
+      description: List ID to send to. Omit to keep the stored list.
+      example: newsletter
+    segments:
+      type: array
+      description: >-
+        Segment IDs to filter recipients. Omit to keep the stored segments; send an empty
+        array to remove segment targeting and send to the whole list.
+      items:
+        type: string
+      example:
+        - premium_users
+    exclude_unsubscribed:
+      type: boolean
+      description: >-
+        Whether to exclude unsubscribed contacts. Omit to keep the stored value; send
+        false to mail them too.
+      example: true
+
+ScheduleSettings:
+  type: object
+  description: |
+    Schedule settings for a broadcast. Note: When a broadcast is first created,
+    these fields are empty/false. Use the /api/broadcasts.schedule endpoint to
+    configure scheduling.
+  properties:
+    is_scheduled:
+      type: boolean
+      description: Whether the broadcast is scheduled (false after creation, set via broadcasts.schedule)
+      example: false
+    scheduled_date:
+      type: string
+      pattern: '^\d{4}-\d{2}-\d{2}$'
+      description: Scheduled date in YYYY-MM-DD format
+      example: '2024-03-15'
+    scheduled_time:
+      type: string
+      pattern: '^\d{2}:\d{2}$'
+      description: Scheduled time in HH:MM format
+      example: '10:30'
+    timezone:
+      type: string
+      description: IANA timezone
+      example: America/New_York
+    use_recipient_timezone:
+      type: boolean
+      description: Send at scheduled time in each recipient's timezone
+      example: false
+
+UTMParameters:
+  type: object
+  properties:
+    source:
+      type: string
+      description: UTM source parameter
+      example: newsletter
+    medium:
+      type: string
+      description: UTM medium parameter
+      example: email
+    campaign:
+      type: string
+      description: UTM campaign parameter
+      example: spring_2024
+    term:
+      type: string
+      description: UTM term parameter
+    content:
+      type: string
+      description: UTM content parameter
+
+CreateBroadcastRequest:
+  type: object
+  required:
+    - workspace_id
+    - name
+    - audience
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    name:
+      type: string
+      description: Name of the broadcast
+      example: Spring Newsletter 2024
+      maxLength: 255
+    audience:
+      $ref: '#/AudienceSettings'
+    test_settings:
+      $ref: '#/BroadcastTestSettings'
+    utm_parameters:
+      $ref: '#/UTMParameters'
+    data_feed:
+      $ref: '#/DataFeedSettings'
+    metadata:
+      type: object
+      additionalProperties: true
+      description: Custom metadata for the broadcast
+
+UpdateBroadcastRequest:
+  type: object
+  description: >-
+    Partial update of a broadcast. workspace_id, id and name are always applied; audience
+    is merged one key at a time, and schedule, test_settings, utm_parameters, metadata and
+    data_feed keep their stored value when the key is left out of the body. Send the key to
+    change it — including an explicitly empty object to clear it.
+  required:
+    - workspace_id
+    - id
+    - name
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    id:
+      type: string
+      description: ID of the broadcast to update
+      example: broadcast_12345
+    name:
+      type: string
+      description: Name of the broadcast
+      example: Spring Newsletter 2024
+      maxLength: 255
+    audience:
+      allOf:
+        - $ref: '#/AudienceSettingsPatch'
+      description: >-
+        Merged into the stored audience one key at a time, so a body naming only list
+        retargets the broadcast without dropping its segments or its exclusion of
+        unsubscribed contacts. Omit the whole object to leave the audience untouched.
+    schedule:
+      allOf:
+        - $ref: '#/ScheduleSettings'
+      description: >-
+        Omit to keep the stored schedule. Sending it replaces the schedule wholesale,
+        so a body carrying an empty or partial object clears is_scheduled — which a
+        later resume reads to decide between restoring the schedule and sending now.
+    test_settings:
+      allOf:
+        - $ref: '#/BroadcastTestSettings'
+      description: >-
+        Omit to keep the stored test settings. These hold the broadcast's template
+        variations, so sending a partial object detaches its templates.
+    utm_parameters:
+      allOf:
+        - $ref: '#/UTMParameters'
+      description: Omit to keep the stored UTM parameters; send an empty object to clear them.
+    data_feed:
+      allOf:
+        - $ref: '#/DataFeedSettings'
+      description: Omit to keep the stored data feed settings and their last fetched data.
+    metadata:
+      type: object
+      additionalProperties: true
+      description: >-
+        Custom metadata for the broadcast. Omit to keep the stored metadata; send an
+        empty object to clear it.
+
+ScheduleBroadcastRequest:
+  type: object
+  required:
+    - workspace_id
+    - id
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    id:
+      type: string
+      description: ID of the broadcast to schedule
+      example: broadcast_12345
+    send_now:
+      type: boolean
+      description: Send immediately instead of scheduling
+      example: false
+    scheduled_date:
+      type: string
+      pattern: '^\d{4}-\d{2}-\d{2}$'
+      description: Scheduled date in YYYY-MM-DD format (required if send_now=false)
+      example: '2024-03-15'
+    scheduled_time:
+      type: string
+      pattern: '^\d{2}:\d{2}$'
+      description: Scheduled time in HH:MM format (required if send_now=false)
+      example: '10:30'
+    timezone:
+      type: string
+      description: IANA timezone
+      example: America/New_York
+    use_recipient_timezone:
+      type: boolean
+      description: Send at scheduled time in each recipient's timezone
+      example: false
+
+PauseBroadcastRequest:
+  type: object
+  required:
+    - workspace_id
+    - id
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    id:
+      type: string
+      description: ID of the broadcast to pause
+      example: broadcast_12345
+
+ResumeBroadcastRequest:
+  type: object
+  required:
+    - workspace_id
+    - id
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    id:
+      type: string
+      description: ID of the broadcast to resume
+      example: broadcast_12345
+
+CancelBroadcastRequest:
+  type: object
+  required:
+    - workspace_id
+    - id
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    id:
+      type: string
+      description: ID of the broadcast to cancel
+      example: broadcast_12345
+
+DeleteBroadcastRequest:
+  type: object
+  required:
+    - workspace_id
+    - id
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    id:
+      type: string
+      description: ID of the broadcast to delete
+      example: broadcast_12345
+
+SendToIndividualRequest:
+  type: object
+  required:
+    - workspace_id
+    - broadcast_id
+    - recipient_email
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    broadcast_id:
+      type: string
+      description: ID of the broadcast
+      example: broadcast_12345
+    recipient_email:
+      type: string
+      format: email
+      description: Email address to send test to
+      example: test@example.com
+    template_id:
+      type: string
+      description: Optional specific template variation to send
+      example: template_variant_a
+
+SelectWinnerRequest:
+  type: object
+  required:
+    - workspace_id
+    - id
+    - template_id
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    id:
+      type: string
+      description: ID of the broadcast
+      example: broadcast_12345
+    template_id:
+      type: string
+      description: Template ID of the winning variation
+      example: template_variant_a
+
+BroadcastListResponse:
+  type: object
+  properties:
+    broadcasts:
+      type: array
+      description: List of broadcasts
+      items:
+        $ref: '#/Broadcast'
+    total_count:
+      type: integer
+      description: Total number of broadcasts matching the query
+      example: 45
+
+VariationResult:
+  type: object
+  properties:
+    template_id:
+      type: string
+      description: Template ID for this variation
+      example: template_variant_a
+    template_name:
+      type: string
+      description: Template name
+      example: Variation A
+    recipients:
+      type: integer
+      description: Total sent emails
+      example: 1000
+    delivered:
+      type: integer
+      description: Total delivered emails
+      example: 980
+    opens:
+      type: integer
+      description: Number of opens
+      example: 450
+    clicks:
+      type: integer
+      description: Number of clicks
+      example: 120
+    open_rate:
+      type: number
+      format: float
+      description: Open rate (opens / recipients)
+      example: 0.45
+    click_rate:
+      type: number
+      format: float
+      description: Click rate (clicks / recipients)
+      example: 0.12
+
+TestResultsResponse:
+  type: object
+  properties:
+    broadcast_id:
+      type: string
+      description: ID of the broadcast
+      example: broadcast_12345
+    status:
+      type: string
+      description: Current broadcast status
+      example: testing
+    test_started_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: When the test started
+    test_completed_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: When the test completed
+    variation_results:
+      type: object
+      additionalProperties:
+        $ref: '#/VariationResult'
+      description: Results for each variation, keyed by template_id
+    recommended_winner:
+      type: string
+      nullable: true
+      description: Recommended winning template ID based on metrics
+      example: template_variant_a
+    winning_template:
+      type: string
+      nullable: true
+      description: Selected winning template ID
+      example: template_variant_a
+    is_auto_send_winner:
+      type: boolean
+      description: Whether winner will be automatically sent
+      example: true
+
+DataFeedHeader:
+  type: object
+  required:
+    - name
+    - value
+  properties:
+    name:
+      type: string
+      description: HTTP header name
+      example: Authorization
+    value:
+      type: string
+      description: HTTP header value
+      example: Bearer token123
+
+GlobalFeedSettings:
+  type: object
+  properties:
+    enabled:
+      type: boolean
+      description: Whether the global data feed is enabled
+      example: true
+    url:
+      type: string
+      description: URL endpoint to fetch global data from (must be HTTPS)
+      example: https://api.example.com/broadcast-data
+    headers:
+      type: array
+      description: Custom HTTP headers to include in the request
+      items:
+        $ref: '#/DataFeedHeader'
+
+RecipientFeedSettings:
+  type: object
+  properties:
+    enabled:
+      type: boolean
+      description: Whether the per-recipient data feed is enabled
+      example: true
+    url:
+      type: string
+      description: URL endpoint to fetch per-recipient data from (must be HTTPS)
+      example: https://api.example.com/recipient-data
+    headers:
+      type: array
+      description: Custom HTTP headers to include in the request
+      items:
+        $ref: '#/DataFeedHeader'
+
+DataFeedSettings:
+  type: object
+  description: Configuration for external data feeds
+  properties:
+    global_feed:
+      $ref: '#/GlobalFeedSettings'
+    global_feed_data:
+      type: object
+      additionalProperties: true
+      description: Cached data from the global feed (populated after fetch)
+    global_feed_fetched_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: When the global feed was last fetched
+    recipient_feed:
+      $ref: '#/RecipientFeedSettings'
+
+RefreshGlobalFeedRequest:
+  type: object
+  required:
+    - workspace_id
+    - broadcast_id
+    - url
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    broadcast_id:
+      type: string
+      description: ID of the broadcast
+      example: broadcast_12345
+    url:
+      type: string
+      format: uri
+      description: The feed URL to fetch data from
+      example: https://api.example.com/feed/global
+    headers:
+      type: array
+      description: Optional custom headers to send with the request
+      items:
+        $ref: '#/DataFeedHeader'
+
+RefreshGlobalFeedResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      description: Whether the refresh was successful
+      example: true
+    data:
+      type: object
+      additionalProperties: true
+      description: The fetched data from the global feed
+    fetched_at:
+      type: string
+      format: date-time
+      description: When the data was fetched
+    error:
+      type: string
+      description: Error message if the refresh failed
+      example: null
+
+TestRecipientFeedRequest:
+  type: object
+  required:
+    - workspace_id
+    - broadcast_id
+    - url
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    broadcast_id:
+      type: string
+      description: ID of the broadcast
+      example: broadcast_12345
+    contact_email:
+      type: string
+      format: email
+      description: Optional email of a specific contact to test with. If not provided, uses a random contact from the audience.
+      example: john@example.com
+    url:
+      type: string
+      format: uri
+      description: The feed URL to fetch data from (must use HTTPS)
+      example: https://api.example.com/feed/recipient
+    headers:
+      type: array
+      description: Optional custom headers to send with the request
+      items:
+        $ref: '#/DataFeedHeader'
+
+TestRecipientFeedResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      description: Whether the test was successful
+      example: true
+    data:
+      type: object
+      additionalProperties: true
+      description: The fetched data from the recipient feed
+    fetched_at:
+      type: string
+      format: date-time
+      description: When the data was fetched
+    error:
+      type: string
+      description: Error message if the test failed
+      example: null
+    contact_email:
+      type: string
+      format: email
+      description: Email of the contact used for the test
+      example: john@example.com

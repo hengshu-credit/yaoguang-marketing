@@ -1,0 +1,1 @@
+window.API_ENDPOINT = 'https://localapi.notifuse.com:4000'

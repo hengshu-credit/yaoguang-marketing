@@ -1,0 +1,1153 @@
+package http_test
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"testing"
+	"time"
+
+	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	http_handler "github.com/Notifuse/notifuse/internal/http"
+	"github.com/Notifuse/notifuse/internal/service"
+	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	notifusemjml "github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// Test setup helper
+func setupTemplateHandlerTest(t *testing.T) (*mocks.MockTemplateService, *pkgmocks.MockLogger, string, []byte, func()) {
+	ctrl := gomock.NewController(t)
+	t.Cleanup(func() { ctrl.Finish() })
+
+	mockService := mocks.NewMockTemplateService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Setup common logger expectations
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Fatal(gomock.Any()).AnyTimes()
+
+	// Create key pair for testing
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
+
+	handler := http_handler.NewTemplateHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
+	mux := http.NewServeMux()
+	handler.RegisterRoutes(mux)
+
+	server := httptest.NewServer(mux)
+	cleanup := func() {
+		server.Close()
+	}
+
+	return mockService, mockLogger, server.URL, jwtSecret, cleanup
+}
+
+func createTestEmailTemplate() *domain.EmailTemplate {
+	base := notifusemjml.NewBaseBlock("root", notifusemjml.MJMLComponentMjml)
+	base.Attributes["version"] = "4.0.0"
+	return &domain.EmailTemplate{
+		SenderID:         "sender123",
+		Subject:          "Test Email",
+		CompiledPreview:  "<html><body>Test</body></html>",
+		VisualEditorTree: &notifusemjml.MJMLBlock{BaseBlock: base},
+	}
+}
+
+// Create a test token for authentication, signed with the correct secret key
+func createTestToken(jwtSecret []byte) string {
+	claims := &service.UserClaims{
+		UserID:    "test-user",
+		Type:      string(domain.UserTypeUser),
+		SessionID: "test-session",
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, _ := token.SignedString(jwtSecret)
+	return signedToken
+}
+
+// Helper to create and send request
+func sendRequest(t *testing.T, method, urlStr, token string, body interface{}) *http.Response {
+	var reqBodyReader *bytes.Reader
+
+	if body != nil {
+		if strBody, ok := body.(string); ok {
+			// Handle raw string body (for bad JSON tests)
+			reqBodyReader = bytes.NewReader([]byte(strBody))
+		} else {
+			// Marshal other body types to JSON
+			reqBodyBytes, err := json.Marshal(body)
+			require.NoError(t, err)
+			reqBodyReader = bytes.NewReader(reqBodyBytes)
+		}
+	} else {
+		reqBodyReader = bytes.NewReader([]byte{})
+	}
+
+	req, err := http.NewRequest(method, urlStr, reqBodyReader)
+	require.NoError(t, err)
+
+	req.Header.Set("Content-Type", "application/json")
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	// Use a client that doesn't follow redirects for more predictable testing
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+
+	return resp
+}
+
+func TestTemplateHandler_HandleList(t *testing.T) {
+	workspaceID := "workspace123"
+
+	testCases := []struct {
+		name           string
+		queryParams    url.Values
+		setupMock      func(*mocks.MockTemplateService)
+		expectedStatus int
+		expectBody     bool
+		authenticate   bool
+	}{
+		{
+			name:        "Success",
+			queryParams: url.Values{"workspace_id": {workspaceID}},
+			setupMock: func(m *mocks.MockTemplateService) {
+				now := time.Now().UTC()
+				m.EXPECT().GetTemplates(gomock.Any(), workspaceID, "", "").Return([]*domain.Template{
+					{ID: "template1", Name: "T1", Version: 1, Channel: "email", Category: "c1", Email: createTestEmailTemplate(), CreatedAt: now, UpdatedAt: now},
+					{ID: "template2", Name: "T2", Version: 1, Channel: "email", Category: "c2", Email: createTestEmailTemplate(), CreatedAt: now, UpdatedAt: now},
+				}, nil)
+			},
+			expectedStatus: http.StatusOK,
+			expectBody:     true,
+			authenticate:   true,
+		},
+		{
+			name:        "Service Error",
+			queryParams: url.Values{"workspace_id": {workspaceID}},
+			setupMock: func(m *mocks.MockTemplateService) {
+				m.EXPECT().GetTemplates(gomock.Any(), workspaceID, "", "").Return(nil, errors.New("db error"))
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectBody:     false,
+			authenticate:   true,
+		},
+		{
+			name:           "Missing Workspace ID",
+			queryParams:    url.Values{},
+			setupMock:      func(m *mocks.MockTemplateService) {},
+			expectedStatus: http.StatusBadRequest, // Validation happens before service call
+			expectBody:     false,
+			authenticate:   true,
+		},
+		{
+			name:           "Unauthorized",
+			queryParams:    url.Values{"workspace_id": {workspaceID}},
+			setupMock:      func(m *mocks.MockTemplateService) {}, // No service call expected
+			expectedStatus: http.StatusUnauthorized,
+			expectBody:     false,
+			authenticate:   false, // Send request without token
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+			defer cleanup()
+
+			tc.setupMock(mockService)
+
+			listURL := fmt.Sprintf("%s/api/templates.list?%s", serverURL, tc.queryParams.Encode())
+			token := ""
+			if tc.authenticate {
+				token = createTestToken(secretKey)
+			}
+
+			resp := sendRequest(t, http.MethodGet, listURL, token, nil)
+			defer func() { _ = resp.Body.Close() }()
+
+			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
+
+			if tc.expectBody && resp.StatusCode == http.StatusOK {
+				var responseMap map[string]interface{}
+				err := json.NewDecoder(resp.Body).Decode(&responseMap)
+				require.NoError(t, err, "Failed to decode response body")
+				templates, ok := responseMap["templates"].([]interface{})
+				assert.True(t, ok, "Response should contain a templates array")
+				assert.NotEmpty(t, templates)
+			} else if resp.StatusCode != http.StatusOK {
+				// Optionally check error message structure for non-OK responses
+				var errResp map[string]interface{}
+				_ = json.NewDecoder(resp.Body).Decode(&errResp) // Ignore decode error if body is empty/not JSON
+				// You could assert structure of errResp here if needed
+				// fmt.Printf("DEBUG: Error response body for %s (%d): %+v\n", tc.name, resp.StatusCode, errResp) // Debugging
+			}
+		})
+	}
+}
+
+func TestTemplateHandler_HandleGet(t *testing.T) {
+	workspaceID := "workspace123"
+	templateID := "template1"
+
+	testCases := []struct {
+		name           string
+		queryParams    url.Values
+		setupMock      func(*mocks.MockTemplateService)
+		expectedStatus int
+		expectBody     bool
+		authenticate   bool
+	}{
+		{
+			name:        "Success",
+			queryParams: url.Values{"workspace_id": {workspaceID}, "id": {templateID}},
+			setupMock: func(m *mocks.MockTemplateService) {
+				now := time.Now().UTC()
+				m.EXPECT().GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).Return(&domain.Template{
+					ID: templateID, Name: "T1", Version: 1, Channel: "email", Category: "c1", Email: createTestEmailTemplate(), CreatedAt: now, UpdatedAt: now}, nil)
+			},
+			expectedStatus: http.StatusOK,
+			expectBody:     true,
+			authenticate:   true,
+		},
+		{
+			name:        "Success With Version",
+			queryParams: url.Values{"workspace_id": {workspaceID}, "id": {templateID}, "version": {"2"}},
+			setupMock: func(m *mocks.MockTemplateService) {
+				now := time.Now().UTC()
+				m.EXPECT().GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(2)).Return(&domain.Template{
+					ID: templateID, Name: "T1", Version: 2, Channel: "email", Category: "c1", Email: createTestEmailTemplate(), CreatedAt: now, UpdatedAt: now}, nil)
+			},
+			expectedStatus: http.StatusOK,
+			expectBody:     true,
+			authenticate:   true,
+		},
+		{
+			name:        "Not Found",
+			queryParams: url.Values{"workspace_id": {workspaceID}, "id": {templateID}},
+			setupMock: func(m *mocks.MockTemplateService) {
+				m.EXPECT().GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).Return(nil, &domain.ErrTemplateNotFound{Message: "not found"})
+			},
+			expectedStatus: http.StatusNotFound,
+			expectBody:     false,
+			authenticate:   true,
+		},
+		{
+			name:        "Service Error",
+			queryParams: url.Values{"workspace_id": {workspaceID}, "id": {templateID}},
+			setupMock: func(m *mocks.MockTemplateService) {
+				m.EXPECT().GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).Return(nil, errors.New("db error"))
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectBody:     false,
+			authenticate:   true,
+		},
+		{
+			name:           "Missing Template ID",
+			queryParams:    url.Values{"workspace_id": {workspaceID}},
+			setupMock:      func(m *mocks.MockTemplateService) {},
+			expectedStatus: http.StatusBadRequest,
+			expectBody:     false,
+			authenticate:   true,
+		},
+		{
+			name:           "Unauthorized",
+			queryParams:    url.Values{"workspace_id": {workspaceID}, "id": {templateID}},
+			setupMock:      func(m *mocks.MockTemplateService) {},
+			expectedStatus: http.StatusUnauthorized,
+			expectBody:     false,
+			authenticate:   false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+			defer cleanup()
+
+			tc.setupMock(mockService)
+
+			getURL := fmt.Sprintf("%s/api/templates.get?%s", serverURL, tc.queryParams.Encode())
+			token := ""
+			if tc.authenticate {
+				token = createTestToken(secretKey)
+			}
+
+			resp := sendRequest(t, http.MethodGet, getURL, token, nil)
+			defer func() { _ = resp.Body.Close() }()
+
+			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
+
+			if tc.expectBody && resp.StatusCode == http.StatusOK {
+				var responseMap map[string]interface{}
+				err := json.NewDecoder(resp.Body).Decode(&responseMap)
+				require.NoError(t, err, "Failed to decode response body")
+				assert.NotNil(t, responseMap["template"])
+			}
+		})
+	}
+}
+
+func TestTemplateHandler_HandleCreate(t *testing.T) {
+	workspaceID := "workspace123"
+	templateID := "newTemplate"
+	validRequest := domain.CreateTemplateRequest{
+		WorkspaceID: workspaceID,
+		ID:          templateID,
+		Name:        "New Template",
+		Channel:     "email",
+		Category:    "transactional",
+		Email:       createTestEmailTemplate(),
+	}
+
+	invalidRequestMissingName := validRequest
+	invalidRequestMissingName.Name = "" // Missing required field
+
+	testCases := []struct {
+		name           string
+		requestBody    interface{}
+		setupMock      func(*mocks.MockTemplateService)
+		expectedStatus int
+		expectBody     bool
+		authenticate   bool
+	}{
+		{
+			name:        "Success",
+			requestBody: validRequest,
+			setupMock: func(m *mocks.MockTemplateService) {
+				m.EXPECT().CreateTemplate(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+			},
+			expectedStatus: http.StatusCreated,
+			expectBody:     true,
+			authenticate:   true,
+		},
+		{
+			name:        "Service Error",
+			requestBody: validRequest,
+			setupMock: func(m *mocks.MockTemplateService) {
+				m.EXPECT().CreateTemplate(gomock.Any(), workspaceID, gomock.Any()).Return(errors.New("db error"))
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectBody:     false,
+			authenticate:   true,
+		},
+		{
+			name:           "Invalid Request Body (Bad JSON)",
+			requestBody:    "this is not json", // Send raw string
+			setupMock:      func(m *mocks.MockTemplateService) {},
+			expectedStatus: http.StatusBadRequest,
+			expectBody:     false,
+			authenticate:   true,
+		},
+		{
+			name:           "Validation Error (Missing Name)",
+			requestBody:    invalidRequestMissingName,
+			setupMock:      func(m *mocks.MockTemplateService) {}, // Validation happens before service call
+			expectedStatus: http.StatusBadRequest,
+			expectBody:     false,
+			authenticate:   true,
+		},
+		{
+			name:           "Unauthorized",
+			requestBody:    validRequest,
+			setupMock:      func(m *mocks.MockTemplateService) {},
+			expectedStatus: http.StatusUnauthorized,
+			expectBody:     false,
+			authenticate:   false,
+		},
+		{
+			name:           "Method Not Allowed (GET)",
+			requestBody:    validRequest,
+			setupMock:      func(m *mocks.MockTemplateService) {},
+			expectedStatus: http.StatusMethodNotAllowed,
+			expectBody:     false,
+			authenticate:   true,
+			// We test method allowance by sending GET in the loop below
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+			defer cleanup()
+
+			tc.setupMock(mockService)
+
+			createURL := fmt.Sprintf("%s/api/templates.create", serverURL)
+			token := ""
+			if tc.authenticate {
+				token = createTestToken(secretKey)
+			}
+
+			method := http.MethodPost
+			if tc.name == "Method Not Allowed (GET)" {
+				method = http.MethodGet
+			}
+
+			resp := sendRequest(t, method, createURL, token, tc.requestBody)
+			defer func() { _ = resp.Body.Close() }()
+
+			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
+
+			if tc.expectBody && resp.StatusCode == http.StatusCreated {
+				var responseMap map[string]interface{}
+				err := json.NewDecoder(resp.Body).Decode(&responseMap)
+				require.NoError(t, err, "Failed to decode response body")
+				assert.NotNil(t, responseMap["template"])
+			}
+		})
+	}
+}
+
+// A taken template id must answer 400 and say so. The repository reports it as a typed
+// *domain.ErrTemplateExists rather than as PostgreSQL's English message, which the server
+// translates per lc_messages - matching that text meant a French or Japanese server sent
+// the author a bare 500 with no indication the id was the problem.
+func TestTemplateHandler_HandleCreate_DuplicateID(t *testing.T) {
+	validRequest := domain.CreateTemplateRequest{
+		WorkspaceID: "workspace123",
+		ID:          "template123",
+		Name:        "Test Template",
+		Channel:     "email",
+		Category:    "transactional",
+		Email:       createTestEmailTemplate(),
+	}
+
+	t.Run("taken id answers 400 naming the id", func(t *testing.T) {
+		mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+		defer cleanup()
+
+		mockService.EXPECT().CreateTemplate(gomock.Any(), "workspace123", gomock.Any()).
+			Return(fmt.Errorf("failed to create template: %w", &domain.ErrTemplateExists{Message: "template id already exists"}))
+
+		resp := sendRequest(t, http.MethodPost, fmt.Sprintf("%s/api/templates.create", serverURL), createTestToken(secretKey), validRequest)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		var body map[string]string
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+		assert.Equal(t, "Template id already exists", body["error"])
+	})
+
+	// The contrast that gives the test its teeth: anything else is still an outage, so the
+	// author is not told to rename a template when the database was unreachable.
+	t.Run("any other failure stays a 500", func(t *testing.T) {
+		mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+		defer cleanup()
+
+		mockService.EXPECT().CreateTemplate(gomock.Any(), "workspace123", gomock.Any()).
+			Return(errors.New("sorry, too many clients already"))
+
+		resp := sendRequest(t, http.MethodPost, fmt.Sprintf("%s/api/templates.create", serverURL), createTestToken(secretKey), validRequest)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+		var body map[string]string
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+		assert.Equal(t, "Failed to create template", body["error"])
+	})
+}
+
+func TestTemplateHandler_HandleCreate_WithTranslations(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	reqWithTranslations := domain.CreateTemplateRequest{
+		WorkspaceID: "workspace123",
+		ID:          "translatedTmpl",
+		Name:        "Translated Template",
+		Channel:     "email",
+		Category:    "transactional",
+		Email:       createTestEmailTemplate(),
+		Translations: map[string]domain.TemplateTranslation{
+			"fr": {Email: &domain.EmailTemplate{
+				SenderID:         "sender123",
+				Subject:          "Sujet FR",
+				CompiledPreview:  "<html>FR</html>",
+				VisualEditorTree: createTestEmailTemplate().VisualEditorTree,
+			}},
+		},
+	}
+
+	mockService.EXPECT().CreateTemplate(gomock.Any(), "workspace123", gomock.Any()).
+		DoAndReturn(func(ctx context.Context, wsID string, tmpl *domain.Template) error {
+			assert.NotNil(t, tmpl.Translations)
+			assert.Len(t, tmpl.Translations, 1)
+			fr, ok := tmpl.Translations["fr"]
+			assert.True(t, ok, "expected fr translation")
+			assert.NotNil(t, fr.Email)
+			assert.Equal(t, "Sujet FR", fr.Email.Subject)
+			return nil
+		})
+
+	resp := sendRequest(t, http.MethodPost, fmt.Sprintf("%s/api/templates.create", serverURL), createTestToken(secretKey), reqWithTranslations)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+}
+
+func TestTemplateHandler_HandleUpdate_WithTranslations(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	reqWithTranslations := domain.UpdateTemplateRequest{
+		WorkspaceID: "workspace123",
+		ID:          "translatedTmpl",
+		Name:        "Updated Translated Template",
+		Channel:     "email",
+		Category:    "transactional",
+		Email:       createTestEmailTemplate(),
+		Translations: map[string]domain.TemplateTranslation{
+			"fr": {Email: &domain.EmailTemplate{
+				SenderID:         "sender123",
+				Subject:          "Sujet FR mis à jour",
+				CompiledPreview:  "<html>FR updated</html>",
+				VisualEditorTree: createTestEmailTemplate().VisualEditorTree,
+			}},
+			"es": {Email: &domain.EmailTemplate{
+				SenderID:         "sender123",
+				Subject:          "Asunto ES",
+				CompiledPreview:  "<html>ES</html>",
+				VisualEditorTree: createTestEmailTemplate().VisualEditorTree,
+			}},
+		},
+	}
+
+	mockService.EXPECT().UpdateTemplate(gomock.Any(), "workspace123", gomock.Any()).
+		DoAndReturn(func(ctx context.Context, wsID string, tmpl *domain.Template) error {
+			assert.NotNil(t, tmpl.Translations)
+			assert.Len(t, tmpl.Translations, 2)
+			fr, ok := tmpl.Translations["fr"]
+			assert.True(t, ok, "expected fr translation")
+			assert.Equal(t, "Sujet FR mis à jour", fr.Email.Subject)
+			es, ok := tmpl.Translations["es"]
+			assert.True(t, ok, "expected es translation")
+			assert.Equal(t, "Asunto ES", es.Email.Subject)
+			return nil
+		})
+
+	resp := sendRequest(t, http.MethodPost, fmt.Sprintf("%s/api/templates.update", serverURL), createTestToken(secretKey), reqWithTranslations)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestTemplateHandler_HandleUpdate(t *testing.T) {
+	workspaceID := "workspace123"
+	templateID := "template1"
+	validRequest := domain.UpdateTemplateRequest{
+		WorkspaceID: workspaceID,
+		ID:          templateID,
+		Name:        "Updated Template",
+		Channel:     "email",
+		Category:    "transactional",
+		Email:       createTestEmailTemplate(),
+	}
+
+	invalidRequestMissingName := validRequest
+	invalidRequestMissingName.Name = "" // Missing required field
+
+	testCases := []struct {
+		name           string
+		requestBody    interface{}
+		setupMock      func(*mocks.MockTemplateService)
+		expectedStatus int
+		expectBody     bool
+		authenticate   bool
+	}{
+		{
+			name:        "Success",
+			requestBody: validRequest,
+			setupMock: func(m *mocks.MockTemplateService) {
+				m.EXPECT().UpdateTemplate(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+			},
+			expectedStatus: http.StatusOK,
+			expectBody:     true,
+			authenticate:   true,
+		},
+		{
+			name:        "Not Found",
+			requestBody: validRequest,
+			setupMock: func(m *mocks.MockTemplateService) {
+				m.EXPECT().UpdateTemplate(gomock.Any(), workspaceID, gomock.Any()).Return(&domain.ErrTemplateNotFound{Message: "not found"})
+			},
+			expectedStatus: http.StatusNotFound,
+			expectBody:     false,
+			authenticate:   true,
+		},
+		{
+			name:        "Service Error",
+			requestBody: validRequest,
+			setupMock: func(m *mocks.MockTemplateService) {
+				m.EXPECT().UpdateTemplate(gomock.Any(), workspaceID, gomock.Any()).Return(errors.New("db error"))
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectBody:     false,
+			authenticate:   true,
+		},
+		{
+			name:        "Version Conflict",
+			requestBody: validRequest,
+			setupMock: func(m *mocks.MockTemplateService) {
+				m.EXPECT().UpdateTemplate(gomock.Any(), workspaceID, gomock.Any()).Return(&domain.ErrTemplateVersionConflict{BaseVersion: 4, LatestVersion: 9})
+			},
+			expectedStatus: http.StatusConflict,
+			expectBody:     false,
+			authenticate:   true,
+		},
+		{
+			name:           "Invalid Request Body (Bad JSON)",
+			requestBody:    "this is not json",
+			setupMock:      func(m *mocks.MockTemplateService) {},
+			expectedStatus: http.StatusBadRequest,
+			expectBody:     false,
+			authenticate:   true,
+		},
+		{
+			name:           "Validation Error (Missing Name)",
+			requestBody:    invalidRequestMissingName,
+			setupMock:      func(m *mocks.MockTemplateService) {},
+			expectedStatus: http.StatusBadRequest,
+			expectBody:     false,
+			authenticate:   true,
+		},
+		{
+			name:           "Unauthorized",
+			requestBody:    validRequest,
+			setupMock:      func(m *mocks.MockTemplateService) {},
+			expectedStatus: http.StatusUnauthorized,
+			expectBody:     false,
+			authenticate:   false,
+		},
+		{
+			name:           "Method Not Allowed (GET)",
+			requestBody:    validRequest,
+			setupMock:      func(m *mocks.MockTemplateService) {},
+			expectedStatus: http.StatusMethodNotAllowed,
+			expectBody:     false,
+			authenticate:   true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+			defer cleanup()
+
+			tc.setupMock(mockService)
+
+			updateURL := fmt.Sprintf("%s/api/templates.update", serverURL)
+			token := ""
+			if tc.authenticate {
+				token = createTestToken(secretKey)
+			}
+
+			method := http.MethodPost
+			if tc.name == "Method Not Allowed (GET)" {
+				method = http.MethodGet
+			}
+
+			resp := sendRequest(t, method, updateURL, token, tc.requestBody)
+			defer func() { _ = resp.Body.Close() }()
+
+			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
+
+			if tc.expectBody && resp.StatusCode == http.StatusOK {
+				var responseMap map[string]interface{}
+				err := json.NewDecoder(resp.Body).Decode(&responseMap)
+				require.NoError(t, err, "Failed to decode response body")
+				assert.NotNil(t, responseMap["template"])
+			}
+		})
+	}
+}
+
+func TestTemplateHandler_HandleDelete(t *testing.T) {
+	workspaceID := "workspace123"
+	templateID := "template1"
+	validRequest := domain.DeleteTemplateRequest{
+		WorkspaceID: workspaceID,
+		ID:          templateID,
+	}
+
+	invalidRequestMissingID := validRequest
+	invalidRequestMissingID.ID = "" // Missing required field
+
+	testCases := []struct {
+		name           string
+		requestBody    interface{}
+		setupMock      func(*mocks.MockTemplateService)
+		expectedStatus int
+		expectBody     bool // Expect a specific {success: true} body
+		authenticate   bool
+	}{
+		{
+			name:        "Success",
+			requestBody: validRequest,
+			setupMock: func(m *mocks.MockTemplateService) {
+				m.EXPECT().DeleteTemplate(gomock.Any(), workspaceID, templateID).Return(nil)
+			},
+			expectedStatus: http.StatusOK,
+			expectBody:     true,
+			authenticate:   true,
+		},
+		{
+			name:        "Not Found",
+			requestBody: validRequest,
+			setupMock: func(m *mocks.MockTemplateService) {
+				m.EXPECT().DeleteTemplate(gomock.Any(), workspaceID, templateID).Return(&domain.ErrTemplateNotFound{Message: "not found"})
+			},
+			expectedStatus: http.StatusNotFound,
+			expectBody:     false,
+			authenticate:   true,
+		},
+		{
+			name:        "Service Error",
+			requestBody: validRequest,
+			setupMock: func(m *mocks.MockTemplateService) {
+				m.EXPECT().DeleteTemplate(gomock.Any(), workspaceID, templateID).Return(errors.New("db error"))
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectBody:     false,
+			authenticate:   true,
+		},
+		{
+			name:           "Invalid Request Body (Bad JSON)",
+			requestBody:    "this is not json",
+			setupMock:      func(m *mocks.MockTemplateService) {},
+			expectedStatus: http.StatusBadRequest,
+			expectBody:     false,
+			authenticate:   true,
+		},
+		{
+			name:           "Validation Error (Missing ID)",
+			requestBody:    invalidRequestMissingID,
+			setupMock:      func(m *mocks.MockTemplateService) {},
+			expectedStatus: http.StatusBadRequest,
+			expectBody:     false,
+			authenticate:   true,
+		},
+		{
+			name:           "Unauthorized",
+			requestBody:    validRequest,
+			setupMock:      func(m *mocks.MockTemplateService) {},
+			expectedStatus: http.StatusUnauthorized,
+			expectBody:     false,
+			authenticate:   false,
+		},
+		{
+			name:           "Method Not Allowed (GET)",
+			requestBody:    validRequest,
+			setupMock:      func(m *mocks.MockTemplateService) {},
+			expectedStatus: http.StatusMethodNotAllowed,
+			expectBody:     false,
+			authenticate:   true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+			defer cleanup()
+
+			tc.setupMock(mockService)
+
+			deleteURL := fmt.Sprintf("%s/api/templates.delete", serverURL)
+			token := ""
+			if tc.authenticate {
+				token = createTestToken(secretKey)
+			}
+
+			method := http.MethodPost
+			if tc.name == "Method Not Allowed (GET)" {
+				method = http.MethodGet
+			}
+
+			resp := sendRequest(t, method, deleteURL, token, tc.requestBody)
+			defer func() { _ = resp.Body.Close() }()
+
+			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
+
+			if tc.expectBody && resp.StatusCode == http.StatusOK {
+				var responseMap map[string]interface{}
+				err := json.NewDecoder(resp.Body).Decode(&responseMap)
+				require.NoError(t, err, "Failed to decode response body")
+				success, ok := responseMap["success"].(bool)
+				assert.True(t, ok && success, "Expected 'success' field to be true")
+			}
+		})
+	}
+}
+
+// Helper function from email_blocks_test.go (or define similarly here)
+func createTestRootBlockHandler(children ...notifusemjml.EmailBlock) notifusemjml.EmailBlock {
+	base := notifusemjml.NewBaseBlock("root", notifusemjml.MJMLComponentMjml)
+	base.Children = children
+	base.Attributes["version"] = "4.0.0"
+	return &notifusemjml.MJMLBlock{BaseBlock: base}
+}
+
+func createTestTextBlockHandler(id, textContent string) notifusemjml.EmailBlock {
+	content := textContent
+	base := notifusemjml.NewBaseBlock(id, notifusemjml.MJMLComponentMjText)
+	base.Content = &content
+	return &notifusemjml.MJTextBlock{BaseBlock: base}
+}
+
+func TestHandleCompile_ServiceError(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	// Prepare request that passes validation but service returns error
+	payload := domain.CompileTemplateRequest{
+		WorkspaceID:      "workspace123",
+		MessageID:        "msg-1",
+		VisualEditorTree: createTestRootBlockHandler(createTestTextBlockHandler("t1", "hi")),
+		TemplateData:     map[string]interface{}{"contact": map[string]interface{}{"first_name": "John"}},
+	}
+
+	// We don't assert logger calls here to avoid tight coupling with log behavior
+	mockService.EXPECT().CompileTemplate(gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("compile error"))
+
+	url := fmt.Sprintf("%s/api/templates.compile", serverURL)
+	token := createTestToken(secretKey)
+	resp := sendRequest(t, http.MethodPost, url, token, payload)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestHandleCompile_MethodNotAllowed(t *testing.T) {
+	_, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	url := fmt.Sprintf("%s/api/templates.compile", serverURL)
+	token := createTestToken(secretKey)
+	resp := sendRequest(t, http.MethodGet, url, token, nil)
+	defer func() { _ = resp.Body.Close() }()
+	assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
+}
+
+// Note: Testing the auth middleware itself requires a different setup,
+// these tests focus on the handler logic assuming auth succeeds (by adding context value manually)
+// or testing scenarios where the handler rejects before auth (like wrong method).
+
+// --- Commented out tests (can be restored/fixed later if auth handling changes) ---
+// func TestHandleCompile_Success(t *testing.T) {
+// 	// ... (Original test code)
+// }
+// func TestHandleCompile_BadRequest_InvalidJSON(t *testing.T) {
+// 	// ... (Original test code)
+// }
+// func TestHandleCompile_BadRequest_ValidationError(t *testing.T) {
+// 	// ... (Original test code)
+// }
+
+func TestHandleCompile_WithMjmlSource(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	mjmlSrc := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello</mj-text></mj-column></mj-section></mj-body></mjml>"
+	htmlOut := "<html><body>Hello</body></html>"
+
+	payload := map[string]interface{}{
+		"workspace_id": "workspace123",
+		"message_id":   "msg-1",
+		"mjml_source":  mjmlSrc,
+	}
+
+	mockService.EXPECT().CompileTemplate(gomock.Any(), gomock.Any()).Return(&domain.CompileTemplateResponse{
+		Success: true,
+		MJML:    &mjmlSrc,
+		HTML:    &htmlOut,
+	}, nil)
+
+	apiURL := fmt.Sprintf("%s/api/templates.compile", serverURL)
+	token := createTestToken(secretKey)
+	resp := sendRequest(t, http.MethodPost, apiURL, token, payload)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestHandleCreate_CodeModeTemplate(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	mjmlSrc := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello</mj-text></mj-column></mj-section></mj-body></mjml>"
+
+	payload := map[string]interface{}{
+		"workspace_id": "workspace123",
+		"id":           "code-tmpl",
+		"name":         "Code Template",
+		"channel":      "email",
+		"category":     "marketing",
+		"email": map[string]interface{}{
+			"editor_mode":     "code",
+			"mjml_source":     mjmlSrc,
+			"subject":         "Test Subject",
+			"compiled_preview": mjmlSrc,
+		},
+	}
+
+	mockService.EXPECT().CreateTemplate(gomock.Any(), "workspace123", gomock.Any()).Return(nil)
+
+	apiURL := fmt.Sprintf("%s/api/templates.create", serverURL)
+	token := createTestToken(secretKey)
+	resp := sendRequest(t, http.MethodPost, apiURL, token, payload)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+}
+
+func TestTemplateHandler_HandleUpdate_VersionConflictBody(t *testing.T) {
+	workspaceID := "workspace123"
+	validRequest := domain.UpdateTemplateRequest{
+		WorkspaceID: workspaceID,
+		ID:          "template1",
+		Name:        "Updated Template",
+		Channel:     "email",
+		Category:    "transactional",
+		Email:       createTestEmailTemplate(),
+		BaseVersion: 4,
+	}
+
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	mockService.EXPECT().UpdateTemplate(gomock.Any(), workspaceID, gomock.Any()).
+		Return(&domain.ErrTemplateVersionConflict{BaseVersion: 4, LatestVersion: 9})
+
+	updateURL := fmt.Sprintf("%s/api/templates.update", serverURL)
+	resp := sendRequest(t, http.MethodPost, updateURL, createTestToken(secretKey), validRequest)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusConflict, resp.StatusCode)
+
+	var body map[string]interface{}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	// The frontend conflict dialog reads latest_version to offer reload/overwrite.
+	assert.Equal(t, float64(9), body["latest_version"])
+	assert.Equal(t, float64(4), body["base_version"])
+	assert.NotEmpty(t, body["error"])
+}
+
+func TestHandleUpdate_CodeModeTemplate(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	mjmlSrc := "<mjml><mj-body><mj-section><mj-column><mj-text>Updated</mj-text></mj-column></mj-section></mj-body></mjml>"
+
+	payload := map[string]interface{}{
+		"workspace_id": "workspace123",
+		"id":           "code-tmpl",
+		"name":         "Code Template",
+		"channel":      "email",
+		"category":     "marketing",
+		"email": map[string]interface{}{
+			"editor_mode":     "code",
+			"mjml_source":     mjmlSrc,
+			"subject":         "Updated Subject",
+			"compiled_preview": mjmlSrc,
+		},
+	}
+
+	mockService.EXPECT().UpdateTemplate(gomock.Any(), "workspace123", gomock.Any()).Return(nil)
+
+	apiURL := fmt.Sprintf("%s/api/templates.update", serverURL)
+	token := createTestToken(secretKey)
+	resp := sendRequest(t, http.MethodPost, apiURL, token, payload)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+// TestHandleCreate_MissingVisualEditorTree posts a raw payload whose "email" object omits
+// visual_editor_tree. The body is a map rather than a marshalled domain.CreateTemplateRequest
+// so the request reaches the handler exactly as an external API client would send it; a
+// typed request always carries a tree and cannot reproduce the case.
+func TestHandleCreate_MissingVisualEditorTree(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	payload := map[string]interface{}{
+		"workspace_id": "workspace123",
+		"id":           "test-template",
+		"name":         "Test Template",
+		"category":     "transactional",
+		"channel":      "email",
+		"email": map[string]interface{}{
+			"subject": "Test - {{ nombre }}",
+			"html":    "<p>Hola {{ nombre }}</p>",
+		},
+	}
+
+	// Validation must reject the request before it reaches the service.
+	mockService.EXPECT().CreateTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+	apiURL := fmt.Sprintf("%s/api/templates.create", serverURL)
+	resp := sendRequest(t, http.MethodPost, apiURL, createTestToken(secretKey), payload)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	var body map[string]interface{}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	assert.Contains(t, body["error"], "visual_editor_tree is required")
+}
+
+// TestHandleUpdate_MissingVisualEditorTree is the templates.update counterpart.
+func TestHandleUpdate_MissingVisualEditorTree(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	payload := map[string]interface{}{
+		"workspace_id": "workspace123",
+		"id":           "test-template",
+		"name":         "Test Template",
+		"category":     "transactional",
+		"channel":      "email",
+		"email": map[string]interface{}{
+			"subject": "Test Subject",
+		},
+	}
+
+	mockService.EXPECT().UpdateTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+	apiURL := fmt.Sprintf("%s/api/templates.update", serverURL)
+	resp := sendRequest(t, http.MethodPost, apiURL, createTestToken(secretKey), payload)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+// TestTemplateHandler_HandleUpdate_AbsentAndServerOwnedFields pins the two wire facts the
+// service's preserve logic rests on, using map bodies because a typed request literal cannot
+// express a missing key — which is exactly how this class of bug ships. An omitted
+// "translations" must reach the service as a nil map (its signal to keep what is stored) and an
+// explicit {} must reach it non-nil (the deliberate clear); integration_id is server-owned and
+// must not be settable from the wire whatever a client sends.
+func TestTemplateHandler_HandleUpdate_AbsentAndServerOwnedFields(t *testing.T) {
+	baseBody := func() map[string]interface{} {
+		return map[string]interface{}{
+			"workspace_id": "workspace123",
+			"id":           "tmpl_abc",
+			"name":         "Updated Name",
+			"channel":      "email",
+			"category":     "transactional",
+			"email":        createTestEmailTemplate(),
+		}
+	}
+
+	t.Run("omitted translations arrive as a nil map", func(t *testing.T) {
+		mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+		defer cleanup()
+
+		mockService.EXPECT().UpdateTemplate(gomock.Any(), "workspace123", gomock.Any()).
+			DoAndReturn(func(ctx context.Context, wsID string, tmpl *domain.Template) error {
+				assert.Nil(t, tmpl.Translations, "an omitted key must stay distinguishable from an explicit clear")
+				return nil
+			})
+
+		resp := sendRequest(t, http.MethodPost, fmt.Sprintf("%s/api/templates.update", serverURL), createTestToken(secretKey), baseBody())
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	})
+
+	t.Run("an explicit empty translations object arrives as an empty non-nil map", func(t *testing.T) {
+		mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+		defer cleanup()
+
+		body := baseBody()
+		body["translations"] = map[string]interface{}{}
+
+		mockService.EXPECT().UpdateTemplate(gomock.Any(), "workspace123", gomock.Any()).
+			DoAndReturn(func(ctx context.Context, wsID string, tmpl *domain.Template) error {
+				assert.NotNil(t, tmpl.Translations, "an explicit {} is a clear, not an omission")
+				assert.Empty(t, tmpl.Translations)
+				return nil
+			})
+
+		resp := sendRequest(t, http.MethodPost, fmt.Sprintf("%s/api/templates.update", serverURL), createTestToken(secretKey), body)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	})
+
+	t.Run("integration_id sent by a client is ignored", func(t *testing.T) {
+		mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+		defer cleanup()
+
+		body := baseBody()
+		body["integration_id"] = "client-supplied"
+
+		mockService.EXPECT().UpdateTemplate(gomock.Any(), "workspace123", gomock.Any()).
+			DoAndReturn(func(ctx context.Context, wsID string, tmpl *domain.Template) error {
+				assert.Nil(t, tmpl.IntegrationID, "integration_id is server-owned: a client must not be able to claim a template for an integration")
+				return nil
+			})
+
+		resp := sendRequest(t, http.MethodPost, fmt.Sprintf("%s/api/templates.update", serverURL), createTestToken(secretKey), body)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	})
+
+	t.Run("the response reports what was persisted, not what was sent", func(t *testing.T) {
+		mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+		defer cleanup()
+
+		// Stands in for the service restoring the fields the request could not carry, so the
+		// client's local copy is not left believing they are gone.
+		mockService.EXPECT().UpdateTemplate(gomock.Any(), "workspace123", gomock.Any()).
+			DoAndReturn(func(ctx context.Context, wsID string, tmpl *domain.Template) error {
+				integrationID := "supabase-int-1"
+				tmpl.IntegrationID = &integrationID
+				tmpl.Translations = map[string]domain.TemplateTranslation{
+					"fr": {Email: &domain.EmailTemplate{SenderID: "sender123", Subject: "Sujet FR"}},
+				}
+				return nil
+			})
+
+		resp := sendRequest(t, http.MethodPost, fmt.Sprintf("%s/api/templates.update", serverURL), createTestToken(secretKey), baseBody())
+		defer func() { _ = resp.Body.Close() }()
+
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		var response struct {
+			Template struct {
+				IntegrationID *string                               `json:"integration_id"`
+				Translations  map[string]domain.TemplateTranslation `json:"translations"`
+			} `json:"template"`
+		}
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&response))
+		require.NotNil(t, response.Template.IntegrationID)
+		assert.Equal(t, "supabase-int-1", *response.Template.IntegrationID)
+		require.Contains(t, response.Template.Translations, "fr")
+		assert.Equal(t, "Sujet FR", response.Template.Translations["fr"].Email.Subject)
+	})
+}

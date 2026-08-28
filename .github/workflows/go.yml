@@ -1,0 +1,173 @@
+name: Go
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          go mod download
+          go get github.com/DATA-DOG/go-sqlmock
+
+      - name: Run unit tests and generate coverage
+        run: |
+          # Create a test .env file
+          echo "SECRET_KEY=mytestsecretkey" >> .env.test
+          echo "ROOT_EMAIL=admin@example.com" >> .env.test
+
+          # Run unit tests (exclude integration tests)
+          go test -race -coverprofile=coverage-unit.txt -covermode=atomic $(go list ./... | grep -v '/tests/integration') -v
+
+      - name: Upload unit test coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: Notifuse/notifuse
+          files: coverage-unit.txt
+          fail_ci_if_error: false
+          verbose: true
+          name: codecov-unit-tests
+          flags: unit
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./
+
+    services:
+      postgres:
+        # Same major version as tests/compose.test.yaml and the documented
+        # production target, so CI exercises the SQL we actually ship against.
+        image: postgres:17
+        env:
+          POSTGRES_USER: notifuse_test
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: postgres
+
+        options: >-
+          --health-cmd "pg_isready -U notifuse_test -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5433:5432
+
+      mailpit:
+        image: axllent/mailpit:latest
+        env:
+          MP_MAX_MESSAGES: 2000
+        options: >-
+          --health-cmd "wget --quiet --tries=1 --spider http://localhost:8025/ || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
+        ports:
+          - 1025:1025
+          - 8025:8025
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          go mod download
+          go get github.com/DATA-DOG/go-sqlmock
+
+      - name: Run integration tests and generate coverage
+        env:
+          # Enable integration tests
+          INTEGRATION_TESTS: true
+          # Test database configuration
+          TEST_DB_HOST: localhost
+          TEST_DB_PORT: 5433
+          TEST_DB_USER: notifuse_test
+          TEST_DB_PASSWORD: test_password
+          ENVIRONMENT: test
+          # Set main database config to use test database
+          DB_HOST: localhost
+          DB_PORT: 5433
+          DB_USER: notifuse_test
+          DB_PASSWORD: test_password
+          DB_NAME: notifuse_test_integration
+          DB_PREFIX: notifuse_test
+          DB_SSLMODE: disable
+        run: |
+          # Create a test .env file for integration tests
+          echo "SECRET_KEY=UayDa4OMDpm3CvIT+iSC39iDyPlsui0pNQYDEZ1pbo1LsIrO4p/aVuCBWz6LiYvzj9pc+gn0gLwRd0CoHV+nxw==" >> .env.test
+          echo "ROOT_EMAIL=admin@example.com" >> .env.test
+          echo "DB_HOST=localhost" >> .env.test
+          echo "DB_PORT=5433" >> .env.test
+          echo "DB_USER=notifuse_test" >> .env.test
+          echo "DB_PASSWORD=test_password" >> .env.test
+          echo "DB_NAME=notifuse_test_integration" >> .env.test
+          echo "DB_PREFIX=notifuse_test" >> .env.test
+          echo "DB_SSLMODE=disable" >> .env.test
+
+          # Wait for services to be ready
+          echo "Waiting for PostgreSQL to be ready..."
+          sleep 10
+
+          # Wait for Mailpit to be ready
+          echo "Waiting for Mailpit to be ready..."
+          for i in {1..30}; do
+            if curl -f http://localhost:8025/ > /dev/null 2>&1; then
+              echo "Mailpit is ready!"
+              break
+            fi
+            echo "Waiting for Mailpit... ($i/30)"
+            sleep 2
+          done
+
+          # Run integration tests only with more timeout. The -race suite runs
+          # ~10-12m of test time on a good hosted runner but slow runners have
+          # been observed inflating identical tests by 40-125%, pushing a
+          # healthy run past 20m into Go's panic-on-timeout with nothing hung
+          # (the running test at the kill was 1s old).
+          #
+          # -tags integration pulls in the scheduler/dispatch suite. Without the
+          # flag those files build out and the HTTP dispatch branch and the lease
+          # reap go completely untested. It costs ~2m: the whole suite measures
+          # ~15.7m locally with -race, against ~14m before. At the top of the
+          # observed inflation range that lands on ~35m, so the budget goes to
+          # 45m to keep the same margin the 35m was chosen for.
+          go test -race -tags integration -coverprofile=coverage-integration.txt -covermode=atomic -timeout=45m ./tests/integration/... -v
+
+      # - name: Upload integration test coverage to Codecov
+      #   uses: codecov/codecov-action@v3
+      #   with:
+      #     token: ${{ secrets.CODECOV_TOKEN }}
+      #     slug: Notifuse/notifuse
+      #     file: coverage-integration.txt
+      #     fail_ci_if_error: true
+      #     verbose: true
+      #     name: codecov-integration-tests
+      #     flags: integration

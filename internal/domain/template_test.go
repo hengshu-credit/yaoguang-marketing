@@ -1,0 +1,2825 @@
+package domain
+
+import (
+	"encoding/json"
+	"net/url"
+	"strconv"
+	"testing"
+	"time"
+
+	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// createValidMJMLBlock creates a valid MJML EmailBlock for testing EmailTemplate
+func createValidMJMLBlock() notifuse_mjml.EmailBlock {
+	bodyBlock := &notifuse_mjml.MJBodyBlock{
+		BaseBlock: notifuse_mjml.NewBaseBlock("body-1", notifuse_mjml.MJMLComponentMjBody),
+	}
+	bodyBlock.Children = []notifuse_mjml.EmailBlock{}
+
+	mjmlBlock := &notifuse_mjml.MJMLBlock{
+		BaseBlock: notifuse_mjml.NewBaseBlock("mjml-root", notifuse_mjml.MJMLComponentMjml),
+	}
+	mjmlBlock.Attributes["lang"] = "en"
+	mjmlBlock.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+
+	return mjmlBlock
+}
+
+// createInvalidMJMLBlock creates an invalid MJML EmailBlock for testing EmailTemplate
+func createInvalidMJMLBlock(blockType notifuse_mjml.MJMLComponentType) notifuse_mjml.EmailBlock {
+	return &notifuse_mjml.MJTextBlock{
+		BaseBlock: notifuse_mjml.NewBaseBlock("text-1", blockType),
+	}
+}
+
+func TestValidateTemplateID(t *testing.T) {
+	tests := []struct {
+		name    string
+		id      string
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name:    "valid alphanumeric",
+			id:      "template123",
+			wantErr: false,
+		},
+		{
+			name:    "valid with underscores",
+			id:      "my_template_123",
+			wantErr: false,
+		},
+		{
+			name:    "valid with hyphens",
+			id:      "my-template-123",
+			wantErr: false,
+		},
+		{
+			name:    "valid mixed underscores and hyphens",
+			id:      "my_template-123",
+			wantErr: false,
+		},
+		{
+			name:    "empty id",
+			id:      "",
+			wantErr: true,
+			errMsg:  "id is required",
+		},
+		{
+			name:    "too long",
+			id:      "this_is_a_very_long_template_id_that_exceeds_32_characters",
+			wantErr: true,
+			errMsg:  "id length must be between 1 and 32",
+		},
+		{
+			name:    "invalid characters - space",
+			id:      "my template",
+			wantErr: true,
+			errMsg:  "id must contain only letters, numbers, underscores, and hyphens",
+		},
+		{
+			name:    "invalid characters - special chars",
+			id:      "my@template",
+			wantErr: true,
+			errMsg:  "id must contain only letters, numbers, underscores, and hyphens",
+		},
+		{
+			name:    "invalid characters - dots",
+			id:      "my.template",
+			wantErr: true,
+			errMsg:  "id must contain only letters, numbers, underscores, and hyphens",
+		},
+		{
+			name:    "uppercase letters allowed",
+			id:      "MyTemplate_123",
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateTemplateID(tt.id)
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errMsg != "" {
+					assert.Equal(t, tt.errMsg, err.Error())
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestTemplateCategory_Validate(t *testing.T) {
+	tests := []struct {
+		name     string
+		category TemplateCategory
+		wantErr  bool
+	}{
+		{
+			name:     "valid marketing category",
+			category: TemplateCategoryMarketing,
+			wantErr:  false,
+		},
+		{
+			name:     "valid transactional category",
+			category: TemplateCategoryTransactional,
+			wantErr:  false,
+		},
+		{
+			name:     "valid welcome category",
+			category: TemplateCategoryWelcome,
+			wantErr:  false,
+		},
+		{
+			name:     "valid opt_in category",
+			category: TemplateCategoryOptIn,
+			wantErr:  false,
+		},
+		{
+			name:     "valid unsubscribe category",
+			category: TemplateCategoryUnsubscribe,
+			wantErr:  false,
+		},
+		{
+			name:     "valid bounce category",
+			category: TemplateCategoryBounce,
+			wantErr:  false,
+		},
+		{
+			name:     "valid blocklist category",
+			category: TemplateCategoryBlocklist,
+			wantErr:  false,
+		},
+		{
+			name:     "valid other category",
+			category: TemplateCategoryOther,
+			wantErr:  false,
+		},
+		{
+			name:     "valid blog category",
+			category: TemplateCategoryBlog,
+			wantErr:  false,
+		},
+		{
+			name:     "invalid category",
+			category: "invalid",
+			wantErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.category.Validate()
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestTemplate_Validate(t *testing.T) {
+	now := time.Now()
+
+	createValidTemplate := func() *Template {
+		return &Template{
+			ID:      "test123",
+			Name:    "Test Template",
+			Version: 1,
+			Channel: "email",
+			Email: &EmailTemplate{
+				SenderID:         "test123",
+				Subject:          "Test Subject",
+				CompiledPreview:  "<html>Test content</html>",
+				VisualEditorTree: createValidMJMLBlock(),
+			},
+			Category:  string(TemplateCategoryMarketing),
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
+	}
+
+	tests := []struct {
+		name     string
+		template *Template
+		wantErr  bool
+	}{
+		{
+			name:     "valid template",
+			template: createValidTemplate(),
+			wantErr:  false,
+		},
+		{
+			name: "invalid template with version 0",
+			template: func() *Template {
+				t := createValidTemplate()
+				t.Version = 0
+				return t
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "invalid template - missing ID",
+			template: func() *Template {
+				t := createValidTemplate()
+				t.ID = ""
+				return t
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "invalid template - missing name",
+			template: func() *Template {
+				t := createValidTemplate()
+				t.Name = ""
+				return t
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "invalid template - missing channel",
+			template: func() *Template {
+				t := createValidTemplate()
+				t.Channel = ""
+				return t
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "invalid template - channel too long",
+			template: func() *Template {
+				t := createValidTemplate()
+				t.Channel = "this_channel_name_is_too_long_for_validation"
+				return t
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "invalid template - missing category",
+			template: func() *Template {
+				t := createValidTemplate()
+				t.Category = ""
+				return t
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "invalid template - category too long",
+			template: func() *Template {
+				t := createValidTemplate()
+				t.Category = "this_category_name_is_too_long_for_validation"
+				return t
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "invalid template - zero version",
+			template: func() *Template {
+				t := createValidTemplate()
+				t.Version = 0
+				return t
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "invalid template - negative version",
+			template: func() *Template {
+				t := createValidTemplate()
+				t.Version = -1
+				return t
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "invalid template - missing email",
+			template: func() *Template {
+				t := createValidTemplate()
+				t.Email = nil
+				return t
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "valid web template",
+			template: &Template{
+				ID:      "test-web",
+				Name:    "Test Web Template",
+				Version: 1,
+				Channel: "web",
+				Web: &WebTemplate{
+					Content:   MapOfAny{"type": "doc", "content": []interface{}{}},
+					HTML:      "<div>Test content</div>",
+					PlainText: "Test content",
+				},
+				Category:  string(TemplateCategoryBlog),
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid web template - missing web field",
+			template: &Template{
+				ID:        "test-web",
+				Name:      "Test Web Template",
+				Version:   1,
+				Channel:   "web",
+				Web:       nil,
+				Category:  string(TemplateCategoryBlog),
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid template - email channel with web field",
+			template: func() *Template {
+				t := createValidTemplate()
+				t.Web = &WebTemplate{
+					Content: MapOfAny{"type": "doc"},
+				}
+				return t
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "invalid template - web channel with email field",
+			template: &Template{
+				ID:      "test-web",
+				Name:    "Test Web Template",
+				Version: 1,
+				Channel: "web",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Web:       nil,
+				Category:  string(TemplateCategoryBlog),
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.template.Validate()
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestTemplateReference_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		ref     *TemplateReference
+		wantErr bool
+	}{
+		{
+			name: "valid reference",
+			ref: &TemplateReference{
+				ID:      "test123",
+				Version: 1,
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid reference with version 0",
+			ref: &TemplateReference{
+				ID:      "test123",
+				Version: 0,
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid reference - missing ID",
+			ref: &TemplateReference{
+				ID:      "",
+				Version: 1,
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid reference - negative version",
+			ref: &TemplateReference{
+				ID:      "test123",
+				Version: -1,
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.ref.Validate()
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestTemplateReference_Scan_Value(t *testing.T) {
+	ref := &TemplateReference{
+		ID:      "test123",
+		Version: 1,
+	}
+
+	// Test Value() method
+	value, err := ref.Value()
+	assert.NoError(t, err)
+	assert.NotNil(t, value)
+
+	// Test Scan() method with []byte
+	bytes, err := json.Marshal(ref)
+	assert.NoError(t, err)
+
+	newRef := &TemplateReference{}
+	err = newRef.Scan(bytes)
+	assert.NoError(t, err)
+	assert.Equal(t, ref.ID, newRef.ID)
+	assert.Equal(t, ref.Version, newRef.Version)
+
+	// Test Scan() method with string
+	err = newRef.Scan(string(bytes))
+	assert.NoError(t, err)
+	assert.Equal(t, ref.ID, newRef.ID)
+	assert.Equal(t, ref.Version, newRef.Version)
+
+	// Test Scan() method with nil
+	err = newRef.Scan(nil)
+	assert.NoError(t, err)
+}
+
+func TestEmailTemplate_Validate(t *testing.T) {
+	tests := []struct {
+		name     string
+		template *EmailTemplate
+		testData MapOfAny
+		wantErr  bool
+	}{
+		{
+			name: "valid template",
+			template: &EmailTemplate{
+				SenderID:         "test123",
+				Subject:          "Test Subject",
+				CompiledPreview:  "<html>Test content</html>",
+				VisualEditorTree: createValidMJMLBlock(),
+			},
+			testData: nil,
+			wantErr:  false,
+		},
+		{
+			name: "invalid email template - missing subject",
+			template: func() *EmailTemplate {
+				e := &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				}
+				e.Subject = ""
+				return e
+			}(),
+			testData: nil,
+			wantErr:  true,
+		},
+		{
+			name: "invalid email template - missing compiled_preview but valid tree",
+			template: func() *EmailTemplate {
+				e := &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "",
+					VisualEditorTree: createValidMJMLBlock(),
+				}
+				return e
+			}(),
+			testData: nil,
+			wantErr:  false,
+		},
+		{
+			name: "valid email template - missing compiled_preview and missing root data",
+			template: func() *EmailTemplate {
+				e := &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "",
+					VisualEditorTree: createInvalidMJMLBlock(notifuse_mjml.MJMLComponentMjml),
+				}
+				return e
+			}(),
+			testData: nil,
+			wantErr:  false,
+		},
+		{
+			name: "valid email template - missing compiled_preview and invalid root data type",
+			template: func() *EmailTemplate {
+				e := &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "",
+					VisualEditorTree: createInvalidMJMLBlock(notifuse_mjml.MJMLComponentMjml),
+				}
+				return e
+			}(),
+			testData: nil,
+			wantErr:  false,
+		},
+		{
+			name: "valid email template - missing compiled_preview and missing styles in root data",
+			template: func() *EmailTemplate {
+				e := &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "",
+					VisualEditorTree: createInvalidMJMLBlock(notifuse_mjml.MJMLComponentMjml),
+				}
+				return e
+			}(),
+			testData: nil,
+			wantErr:  false,
+		},
+		{
+			name: "invalid email template - invalid visual_editor_tree kind",
+			template: func() *EmailTemplate {
+				e := &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createInvalidMJMLBlock(notifuse_mjml.MJMLComponentMjText),
+				}
+				return e
+			}(),
+			testData: nil,
+			wantErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.template.Validate(tt.testData)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				if tt.name == "invalid email template - missing compiled_preview but valid tree" {
+					assert.NotEmpty(t, tt.template.CompiledPreview, "CompiledPreview should be populated after validation")
+				}
+			}
+		})
+	}
+}
+
+func TestEmailTemplate_Scan_Value(t *testing.T) {
+	email := &EmailTemplate{
+		SenderID:         "test123",
+		Subject:          "Test Subject",
+		CompiledPreview:  "<html>Test content</html>",
+		VisualEditorTree: createValidMJMLBlock(),
+	}
+
+	// Test Value() method
+	value, err := email.Value()
+	assert.NoError(t, err)
+	assert.NotNil(t, value)
+
+	// For JSON serialization of interfaces, we need custom marshalling
+	// For now, test the basic structure without full JSON roundtrip
+	// since the interface can't be unmarshalled directly
+
+	// Test basic validation instead
+	err = email.Validate(nil)
+	assert.NoError(t, err)
+
+	// Test Scan() method with nil
+	newEmail := &EmailTemplate{}
+	err = newEmail.Scan(nil)
+	assert.NoError(t, err)
+}
+
+func TestWebTemplate_Validate(t *testing.T) {
+	tests := []struct {
+		name     string
+		template *WebTemplate
+		wantErr  bool
+	}{
+		{
+			name: "valid web template with Tiptap content",
+			template: &WebTemplate{
+				Content:   MapOfAny{"type": "doc", "content": []interface{}{}},
+				HTML:      "<div>Test content</div>",
+				PlainText: "Test content",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid web template - minimal content",
+			template: &WebTemplate{
+				Content: MapOfAny{"type": "doc"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid web template - missing content",
+			template: &WebTemplate{
+				HTML:      "<div>Test</div>",
+				PlainText: "Test",
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid web template - empty content",
+			template: &WebTemplate{
+				Content: MapOfAny{},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.template.Validate(nil)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestWebTemplate_Scan_Value(t *testing.T) {
+	web := &WebTemplate{
+		Content:   MapOfAny{"type": "doc", "content": []interface{}{}},
+		HTML:      "<div>Test content</div>",
+		PlainText: "Test content",
+	}
+
+	// Test Value() method
+	value, err := web.Value()
+	assert.NoError(t, err)
+	assert.NotNil(t, value)
+
+	// Test basic validation
+	err = web.Validate(nil)
+	assert.NoError(t, err)
+
+	// Test Scan() method with nil
+	newWeb := &WebTemplate{}
+	err = newWeb.Scan(nil)
+	assert.NoError(t, err)
+}
+
+func TestWebTemplate_UnmarshalJSON(t *testing.T) {
+	// Test WebTemplate.UnmarshalJSON - this was at 0% coverage
+	t.Run("valid JSON", func(t *testing.T) {
+		jsonData := []byte(`{
+			"content": {"type": "doc", "content": []},
+			"html": "<div>Test HTML</div>",
+			"plain_text": "Test plain text"
+		}`)
+
+		web := &WebTemplate{}
+		err := web.UnmarshalJSON(jsonData)
+		assert.NoError(t, err)
+		assert.NotNil(t, web.Content)
+		assert.Equal(t, "<div>Test HTML</div>", web.HTML)
+		assert.Equal(t, "Test plain text", web.PlainText)
+	})
+
+	t.Run("invalid JSON", func(t *testing.T) {
+		jsonData := []byte(`{invalid json}`)
+
+		web := &WebTemplate{}
+		err := web.UnmarshalJSON(jsonData)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to unmarshal WebTemplate")
+	})
+
+	t.Run("empty JSON", func(t *testing.T) {
+		jsonData := []byte(`{}`)
+
+		web := &WebTemplate{}
+		err := web.UnmarshalJSON(jsonData)
+		assert.NoError(t, err)
+	})
+
+	t.Run("partial fields", func(t *testing.T) {
+		jsonData := []byte(`{
+			"content": {"type": "doc"}
+		}`)
+
+		web := &WebTemplate{}
+		err := web.UnmarshalJSON(jsonData)
+		assert.NoError(t, err)
+		assert.NotNil(t, web.Content)
+	})
+}
+
+func TestCreateTemplateRequest_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		request *CreateTemplateRequest
+		wantErr bool
+	}{
+		{
+			name: "valid request",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing workspace ID",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing ID",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+			},
+			wantErr: true,
+		},
+		{
+			name: "ID too long",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "this_id_is_way_too_long_for_the_validation_to_pass_properly",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing name",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing channel",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing category",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing email",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email:       nil,
+				Category:    string(TemplateCategoryMarketing),
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid email template",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					// no subject
+					Subject:          "",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid web template request",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "web-template",
+				Name:        "Test Web Template",
+				Channel:     "web",
+				Web: &WebTemplate{
+					Content:   MapOfAny{"type": "doc", "content": []interface{}{}},
+					HTML:      "<div>Test content</div>",
+					PlainText: "Test content",
+				},
+				Category: string(TemplateCategoryBlog),
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid web template - missing web field",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "web-template",
+				Name:        "Test Web Template",
+				Channel:     "web",
+				Web:         nil,
+				Category:    string(TemplateCategoryBlog),
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid request - email channel with web field",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Web: &WebTemplate{
+					Content: MapOfAny{"type": "doc"},
+				},
+				Category: string(TemplateCategoryMarketing),
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid request - web channel with email field",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "web-template",
+				Name:        "Test Web Template",
+				Channel:     "web",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Web:      nil,
+				Category: string(TemplateCategoryBlog),
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid translation language key",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category:     string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{"invalid_lang": {}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid translation language key",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{"fr": {Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Sujet FR",
+					CompiledPreview:  "<html>Contenu FR</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				}}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "empty translation object is rejected",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{
+					"fr": {},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid translation email content",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{
+					"fr": {Email: &EmailTemplate{Subject: ""}},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "email template with web-only translation is channel mismatch",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{
+					"fr": {Web: &WebTemplate{Content: MapOfAny{"type": "doc"}}},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid translation with email content",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{
+					"fr": {Email: &EmailTemplate{
+						SenderID:         "test123",
+						Subject:          "Sujet FR",
+						CompiledPreview:  "<html>Contenu FR</html>",
+						VisualEditorTree: createValidMJMLBlock(),
+					}},
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			template, workspaceID, err := tt.request.Validate()
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, template)
+				assert.Equal(t, tt.request.WorkspaceID, workspaceID)
+				assert.Equal(t, tt.request.ID, template.ID)
+				assert.Equal(t, tt.request.Name, template.Name)
+				assert.Equal(t, int64(1), template.Version)
+				assert.Equal(t, tt.request.Channel, template.Channel)
+				assert.Equal(t, tt.request.Email, template.Email)
+				assert.Equal(t, tt.request.Category, template.Category)
+			}
+		})
+	}
+}
+
+func TestGetTemplatesRequest_FromURLParams(t *testing.T) {
+	tests := []struct {
+		name        string
+		queryParams url.Values
+		wantErr     bool
+	}{
+		{
+			name: "valid request",
+			queryParams: url.Values{
+				"workspace_id": []string{"workspace123"},
+			},
+			wantErr: false,
+		},
+		{
+			name:        "missing workspace_id",
+			queryParams: url.Values{},
+			wantErr:     true,
+		},
+		{
+			name: "workspace_id too long",
+			queryParams: url.Values{
+				"workspace_id": []string{"workspace_id_that_is_way_too_long_for_validation"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid request with channel filter",
+			queryParams: url.Values{
+				"workspace_id": []string{"workspace123"},
+				"channel":      []string{"email"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid request with category and channel filters",
+			queryParams: url.Values{
+				"workspace_id": []string{"workspace123"},
+				"category":     []string{"marketing"},
+				"channel":      []string{"web"},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &GetTemplatesRequest{}
+			err := req.FromURLParams(tt.queryParams)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.queryParams.Get("workspace_id"), req.WorkspaceID)
+				if channel := tt.queryParams.Get("channel"); channel != "" {
+					assert.Equal(t, channel, req.Channel)
+				}
+				if category := tt.queryParams.Get("category"); category != "" {
+					assert.Equal(t, category, req.Category)
+				}
+			}
+		})
+	}
+}
+
+func TestGetTemplateRequest_FromURLParams(t *testing.T) {
+	tests := []struct {
+		name        string
+		queryParams url.Values
+		wantErr     bool
+	}{
+		{
+			name: "valid request with ID only",
+			queryParams: url.Values{
+				"workspace_id": []string{"workspace123"},
+				"id":           []string{"template123"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid request with ID and version",
+			queryParams: url.Values{
+				"workspace_id": []string{"workspace123"},
+				"id":           []string{"template123"},
+				"version":      []string{"2"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing workspace_id",
+			queryParams: url.Values{
+				"id": []string{"template123"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing id",
+			queryParams: url.Values{
+				"workspace_id": []string{"workspace123"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "id too long",
+			queryParams: url.Values{
+				"workspace_id": []string{"workspace123"},
+				"id":           []string{"template_id_that_is_way_too_long_for_validation_to_pass_properly"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid version format",
+			queryParams: url.Values{
+				"workspace_id": []string{"workspace123"},
+				"id":           []string{"template123"},
+				"version":      []string{"not-a-number"},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &GetTemplateRequest{}
+			err := req.FromURLParams(tt.queryParams)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.queryParams.Get("workspace_id"), req.WorkspaceID)
+				assert.Equal(t, tt.queryParams.Get("id"), req.ID)
+				if versionStr := tt.queryParams.Get("version"); versionStr != "" {
+					version, _ := strconv.ParseInt(versionStr, 10, 64)
+					assert.Equal(t, version, req.Version)
+				}
+			}
+		})
+	}
+}
+
+func TestUpdateTemplateRequest_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		request *UpdateTemplateRequest
+		wantErr bool
+	}{
+		{
+			name: "valid request",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing workspace ID",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing ID",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+			},
+			wantErr: true,
+		},
+		{
+			name: "ID too long",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "this_id_is_way_too_long_for_the_validation_to_pass_properly",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing name",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing channel",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing category",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing email",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email:       nil,
+				Category:    string(TemplateCategoryMarketing),
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid email template",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email:       &EmailTemplate{},
+				Category:    string(TemplateCategoryMarketing),
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid web template update request",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "web-template",
+				Name:        "Updated Web Template",
+				Channel:     "web",
+				Web: &WebTemplate{
+					Content:   MapOfAny{"type": "doc", "content": []interface{}{}},
+					HTML:      "<div>Updated content</div>",
+					PlainText: "Updated content",
+				},
+				Category: string(TemplateCategoryBlog),
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid web update - missing web field",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "web-template",
+				Name:        "Updated Web Template",
+				Channel:     "web",
+				Web:         nil,
+				Category:    string(TemplateCategoryBlog),
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid update - email channel with web field",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Web: &WebTemplate{
+					Content: MapOfAny{"type": "doc"},
+				},
+				Category: string(TemplateCategoryMarketing),
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid translation language key",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category:     string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{"invalid_lang": {}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid translation language key",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{"fr": {Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Sujet FR",
+					CompiledPreview:  "<html>Contenu FR</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				}}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "empty translation object is rejected",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{
+					"fr": {},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid translation email content",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{
+					"fr": {Email: &EmailTemplate{Subject: ""}},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "email template with web-only translation is channel mismatch",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{
+					"fr": {Web: &WebTemplate{Content: MapOfAny{"type": "doc"}}},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid translation with email content",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Category: string(TemplateCategoryMarketing),
+				Translations: map[string]TemplateTranslation{
+					"fr": {Email: &EmailTemplate{
+						SenderID:         "test123",
+						Subject:          "Sujet FR",
+						CompiledPreview:  "<html>Contenu FR</html>",
+						VisualEditorTree: createValidMJMLBlock(),
+					}},
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			template, workspaceID, err := tt.request.Validate()
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, template)
+				assert.Equal(t, tt.request.WorkspaceID, workspaceID)
+				assert.Equal(t, tt.request.ID, template.ID)
+				assert.Equal(t, tt.request.Name, template.Name)
+				assert.Equal(t, tt.request.Channel, template.Channel)
+				switch tt.request.Channel {
+				case "email":
+					assert.Equal(t, tt.request.Email, template.Email)
+				case "web":
+					assert.Equal(t, tt.request.Web, template.Web)
+				}
+				assert.Equal(t, tt.request.Category, template.Category)
+				// BaseVersion is carried into Template.Version for the stale-base check.
+				assert.Equal(t, tt.request.BaseVersion, template.Version)
+			}
+		})
+	}
+}
+
+func TestUpdateTemplateRequest_Validate_BaseVersion(t *testing.T) {
+	newReq := func() *UpdateTemplateRequest {
+		return &UpdateTemplateRequest{
+			WorkspaceID: "workspace123",
+			ID:          "template123",
+			Name:        "Test Template",
+			Channel:     "email",
+			Email: &EmailTemplate{
+				SenderID:         "test123",
+				Subject:          "Test Subject",
+				CompiledPreview:  "<html>Test content</html>",
+				VisualEditorTree: createValidMJMLBlock(),
+			},
+			Category: string(TemplateCategoryMarketing),
+		}
+	}
+
+	t.Run("base_version carried into Version", func(t *testing.T) {
+		req := newReq()
+		req.BaseVersion = 7
+		template, _, err := req.Validate()
+		assert.NoError(t, err)
+		assert.NotNil(t, template)
+		assert.Equal(t, int64(7), template.Version)
+	})
+
+	t.Run("omitted base_version defaults to 0 (skips check)", func(t *testing.T) {
+		template, _, err := newReq().Validate()
+		assert.NoError(t, err)
+		assert.NotNil(t, template)
+		assert.Equal(t, int64(0), template.Version)
+	})
+}
+
+func TestErrTemplateVersionConflict_Error(t *testing.T) {
+	err := &ErrTemplateVersionConflict{BaseVersion: 4, LatestVersion: 9}
+	assert.Equal(t, "template was modified: edit is based on version 4 but latest is 9", err.Error())
+}
+
+func TestDeleteTemplateRequest_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		request *DeleteTemplateRequest
+		wantErr bool
+	}{
+		{
+			name: "valid request",
+			request: &DeleteTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing workspace ID",
+			request: &DeleteTemplateRequest{
+				WorkspaceID: "",
+				ID:          "template123",
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing ID",
+			request: &DeleteTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "ID too long",
+			request: &DeleteTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "this_id_is_way_too_long_for_the_validation_to_pass_properly",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			workspaceID, id, err := tt.request.Validate()
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.request.WorkspaceID, workspaceID)
+				assert.Equal(t, tt.request.ID, id)
+			}
+		})
+	}
+}
+
+func TestErrTemplateNotFound_Error(t *testing.T) {
+	err := &ErrTemplateNotFound{Message: "template not found"}
+	assert.Equal(t, "template not found", err.Error())
+}
+
+func TestErrTemplateExists_Error(t *testing.T) {
+	err := &ErrTemplateExists{Message: "template id already exists"}
+	assert.Equal(t, "template id already exists", err.Error())
+}
+
+func TestBuildTemplateData(t *testing.T) {
+	t.Run("with complete data", func(t *testing.T) {
+		// Setup test data
+		workspaceID := "ws-123"
+		apiEndpoint := "https://api.example.com"
+		messageID := "msg-456"
+		workspaceSecretKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+		firstName := &NullableString{String: "John", IsNull: false}
+		lastName := &NullableString{String: "Doe", IsNull: false}
+
+		contact := &Contact{
+			Email:     "test@example.com",
+			FirstName: firstName,
+			LastName:  lastName,
+			// Don't use Properties field as it doesn't exist in Contact struct
+		}
+
+		contactWithList := ContactWithList{
+			Contact:  contact,
+			ListID:   "list-789",
+			ListName: "Newsletter",
+		}
+
+		broadcast := &Broadcast{
+			ID:   "broadcast-001",
+			Name: "Test Broadcast",
+		}
+
+		trackingSettings := notifuse_mjml.TrackingSettings{
+			Endpoint:    apiEndpoint,
+			UTMSource:   "newsletter",
+			UTMMedium:   "email",
+			UTMCampaign: "welcome",
+			UTMTerm:     "new-users",
+			UTMContent:  "button-1",
+		}
+
+		// Call the function with the workspace secret key using the new struct
+		req := TemplateDataRequest{
+			WorkspaceID:        workspaceID,
+			WorkspaceSecretKey: workspaceSecretKey,
+			ContactWithList:    contactWithList,
+			MessageID:          messageID,
+			TrackingSettings:   trackingSettings,
+			Broadcast:          broadcast,
+		}
+		data, err := BuildTemplateData(req)
+
+		// Assertions
+		assert.NoError(t, err)
+		assert.NotNil(t, data)
+
+		// Check contact data
+		contactData, ok := data["contact"].(MapOfAny)
+		assert.True(t, ok)
+		assert.Equal(t, "test@example.com", contactData["email"])
+		assert.Equal(t, "John", contactData["first_name"])
+		assert.Equal(t, "Doe", contactData["last_name"])
+
+		// Check broadcast data
+		broadcastData, ok := data["broadcast"].(MapOfAny)
+		assert.True(t, ok)
+		assert.Equal(t, "broadcast-001", broadcastData["id"])
+		assert.Equal(t, "Test Broadcast", broadcastData["name"])
+
+		// Check UTM parameters
+		assert.Equal(t, "newsletter", data["utm_source"])
+		assert.Equal(t, "email", data["utm_medium"])
+		assert.Equal(t, "welcome", data["utm_campaign"])
+		assert.Equal(t, "new-users", data["utm_term"])
+		assert.Equal(t, "button-1", data["utm_content"])
+
+		// Check list data
+		listData, ok := data["list"].(MapOfAny)
+		assert.True(t, ok)
+		assert.Equal(t, "list-789", listData["id"])
+		assert.Equal(t, "Newsletter", listData["name"])
+
+		// Check unsubscribe URL
+		unsubscribeURL, ok := data["unsubscribe_url"].(string)
+		assert.True(t, ok)
+		assert.Contains(t, unsubscribeURL, "https://api.example.com/notification-center?action=unsubscribe")
+		assert.Contains(t, unsubscribeURL, "email=test%40example.com")
+		assert.Contains(t, unsubscribeURL, "lid=list-789")
+		assert.Contains(t, unsubscribeURL, "lname=Newsletter")
+		assert.Contains(t, unsubscribeURL, "wid=ws-123")
+		assert.Contains(t, unsubscribeURL, "mid=msg-456")
+
+		// Check tracking data
+		assert.Equal(t, messageID, data["message_id"])
+
+		// Check workspace base URL
+		workspaceData, ok := data["workspace"].(MapOfAny)
+		assert.True(t, ok)
+		assert.Equal(t, apiEndpoint, workspaceData["base_url"])
+
+		// Check tracking pixel URL
+		trackingPixelURL, ok := data["tracking_opens_url"].(string)
+		assert.True(t, ok)
+		assert.Contains(t, trackingPixelURL, "https://api.example.com/opens")
+		assert.Contains(t, trackingPixelURL, "mid=msg-456")
+		assert.Contains(t, trackingPixelURL, "wid=ws-123")
+
+		// Check confirm subscription URL
+		confirmURL, ok := data["confirm_subscription_url"].(string)
+		assert.True(t, ok)
+		assert.Contains(t, confirmURL, "https://api.example.com/notification-center?action=confirm")
+		assert.Contains(t, confirmURL, "email=test%40example.com")
+		assert.Contains(t, confirmURL, "lid=list-789")
+		assert.Contains(t, confirmURL, "lname=Newsletter")
+		assert.Contains(t, confirmURL, "wid=ws-123")
+		assert.Contains(t, confirmURL, "mid=msg-456")
+
+		// Check notification center URL
+		notificationCenterURL, ok := data["notification_center_url"].(string)
+		assert.True(t, ok)
+		assert.Contains(t, notificationCenterURL, "https://api.example.com/notification-center")
+		assert.Contains(t, notificationCenterURL, "email=test%40example.com")
+		assert.Contains(t, notificationCenterURL, "wid=ws-123")
+		assert.NotContains(t, notificationCenterURL, "action=") // Should not contain action parameter
+		assert.NotContains(t, notificationCenterURL, "lid=")    // Should not contain list ID
+
+		// Check one-click unsubscribe URL (RFC 8058). This is the URL placed in the
+		// List-Unsubscribe header and POSTed by mail clients. It MUST carry email_hmac:
+		// the public /unsubscribe-oneclick endpoint has no bearer token, so the service
+		// authenticates the request by verifying this HMAC against the workspace secret
+		// key. Without it the unsubscribe is rejected (see ListService.UnsubscribeFromLists).
+		oneclickURL, ok := data["oneclick_unsubscribe_url"].(string)
+		assert.True(t, ok)
+		assert.Contains(t, oneclickURL, "https://api.example.com/unsubscribe-oneclick")
+		parsedOneclick, parseErr := url.Parse(oneclickURL)
+		assert.NoError(t, parseErr)
+		oneclickQuery := parsedOneclick.Query()
+		assert.Equal(t, "test@example.com", oneclickQuery.Get("email"))
+		assert.Equal(t, "list-789", oneclickQuery.Get("lids"))
+		assert.Equal(t, "ws-123", oneclickQuery.Get("wid"))
+		assert.Equal(t, "msg-456", oneclickQuery.Get("mid"))
+		assert.Equal(t, ComputeEmailHMAC("test@example.com", workspaceSecretKey), oneclickQuery.Get("email_hmac"),
+			"one-click URL must include a valid email_hmac or the unsubscribe will be rejected by the service")
+	})
+
+	t.Run("with minimal data", func(t *testing.T) {
+		// Setup minimal test data
+		workspaceID := "ws-123"
+		messageID := "msg-456"
+		workspaceSecretKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+		contactWithList := ContactWithList{
+			Contact: nil,
+		}
+		trackingSettings := notifuse_mjml.TrackingSettings{
+			Endpoint:    "https://api.example.com",
+			UTMSource:   "newsletter",
+			UTMMedium:   "email",
+			UTMCampaign: "welcome",
+			UTMTerm:     "new-users",
+			UTMContent:  "button-1",
+		}
+		// Call the function with the workspace secret key using the new struct
+		req := TemplateDataRequest{
+			WorkspaceID:        workspaceID,
+			WorkspaceSecretKey: workspaceSecretKey,
+			ContactWithList:    contactWithList,
+			MessageID:          messageID,
+			TrackingSettings:   trackingSettings,
+			Broadcast:          nil,
+		}
+		data, err := BuildTemplateData(req)
+
+		// Assertions
+		assert.NoError(t, err)
+		assert.NotNil(t, data)
+
+		// Check contact data should be empty
+		contactData, ok := data["contact"].(MapOfAny)
+		assert.True(t, ok)
+		assert.Empty(t, contactData)
+
+		// Check message ID still exists
+		assert.Equal(t, messageID, data["message_id"])
+
+		// Check tracking opens URL still exists even without API endpoint
+		trackingPixelURL, ok := data["tracking_opens_url"].(string)
+		assert.True(t, ok)
+		assert.Contains(t, trackingPixelURL, "/opens")
+		assert.Contains(t, trackingPixelURL, "mid=msg-456")
+		assert.Contains(t, trackingPixelURL, "wid=ws-123")
+
+		// No unsubscribe URL should be present
+		_, exists := data["unsubscribe_url"]
+		assert.False(t, exists)
+
+		// No notification center URL should be present (no contact)
+		_, exists = data["notification_center_url"]
+		assert.False(t, exists)
+	})
+
+	t.Run("with contact but no list (transactional email)", func(t *testing.T) {
+		// Setup test data with contact but no list
+		workspaceID := "ws-123"
+		messageID := "msg-456"
+		workspaceSecretKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+		contactWithList := ContactWithList{
+			Contact: &Contact{
+				Email:     "test@example.com",
+				FirstName: &NullableString{String: "John", IsNull: false},
+				LastName:  &NullableString{String: "Doe", IsNull: false},
+			},
+			ListID:   "", // No list
+			ListName: "",
+		}
+		trackingSettings := notifuse_mjml.TrackingSettings{
+			Endpoint:    "https://api.example.com",
+			UTMSource:   "app",
+			UTMMedium:   "email",
+			UTMCampaign: "transactional",
+		}
+
+		req := TemplateDataRequest{
+			WorkspaceID:        workspaceID,
+			WorkspaceSecretKey: workspaceSecretKey,
+			ContactWithList:    contactWithList,
+			MessageID:          messageID,
+			TrackingSettings:   trackingSettings,
+			Broadcast:          nil,
+		}
+		data, err := BuildTemplateData(req)
+
+		// Assertions
+		assert.NoError(t, err)
+		assert.NotNil(t, data)
+
+		// Check contact data exists
+		contactData, ok := data["contact"].(MapOfAny)
+		assert.True(t, ok)
+		assert.Equal(t, "test@example.com", contactData["email"])
+
+		// Check notification center URL is present even without list
+		notificationCenterURL, ok := data["notification_center_url"].(string)
+		assert.True(t, ok)
+		assert.Contains(t, notificationCenterURL, "https://api.example.com/notification-center")
+		assert.Contains(t, notificationCenterURL, "email=test%40example.com")
+		assert.Contains(t, notificationCenterURL, "wid=ws-123")
+		assert.NotContains(t, notificationCenterURL, "lid=") // Should not contain list ID
+
+		// No list-specific URLs should be present
+		_, exists := data["unsubscribe_url"]
+		assert.False(t, exists)
+		_, exists = data["confirm_subscription_url"]
+		assert.False(t, exists)
+
+		// Workspace base URL is present even without a broadcast
+		workspaceData, ok := data["workspace"].(MapOfAny)
+		assert.True(t, ok)
+		assert.Equal(t, "https://api.example.com", workspaceData["base_url"])
+	})
+
+	t.Run("workspace base url reflects custom endpoint and trims trailing slash", func(t *testing.T) {
+		// When a workspace sets a Custom Endpoint URL, the resolved value is
+		// passed through TrackingSettings.Endpoint and exposed as workspace.base_url.
+		// Any trailing slash is trimmed so templates can compose "{{ workspace.base_url }}/path".
+		req := TemplateDataRequest{
+			WorkspaceID:        "ws-123",
+			WorkspaceSecretKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+			MessageID:          "msg-456",
+			TrackingSettings:   notifuse_mjml.TrackingSettings{Endpoint: "https://links.example.com/"},
+		}
+		data, err := BuildTemplateData(req)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, data)
+
+		workspaceData, ok := data["workspace"].(MapOfAny)
+		assert.True(t, ok)
+		assert.Equal(t, "https://links.example.com", workspaceData["base_url"])
+		// website_url is independent from base_url and empty when not provided
+		assert.Equal(t, "", workspaceData["website_url"])
+	})
+
+	t.Run("workspace website_url is exposed independently and trims trailing slash", func(t *testing.T) {
+		// The workspace Website URL is the public application domain, distinct from the
+		// tracking endpoint (base_url). It is exposed as workspace.website_url so templates
+		// can compose application links like "{{ workspace.website_url }}/users/verify/xxx".
+		// A trailing slash is trimmed for clean concatenation.
+		req := TemplateDataRequest{
+			WorkspaceID:         "ws-123",
+			WorkspaceSecretKey:  "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+			WorkspaceWebsiteURL: "https://my-app.example.com/",
+			MessageID:           "msg-456",
+			TrackingSettings:    notifuse_mjml.TrackingSettings{Endpoint: "https://links.example.com"},
+		}
+		data, err := BuildTemplateData(req)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, data)
+
+		workspaceData, ok := data["workspace"].(MapOfAny)
+		assert.True(t, ok)
+		// base_url stays the tracking endpoint; website_url is the application domain
+		assert.Equal(t, "https://links.example.com", workspaceData["base_url"])
+		assert.Equal(t, "https://my-app.example.com", workspaceData["website_url"])
+	})
+
+	// We'll skip other test cases since they would require mocking
+}
+
+// TestBuildTemplateData_GlobalFeed pins that the global feed payload reaches template data on the
+// strength of the data being there, and nothing else. A broadcast may carry data with the feed
+// switched off — that is how a client supplies its own payload instead of having Notifuse fetch
+// one at scheduling time — so gating the injection on Enabled would silently drop a supported
+// mode. Clearing a payload the client no longer wants is UpdateBroadcastRequest.Validate's job,
+// on the save that switches a live feed off.
+func TestBuildTemplateData_GlobalFeed(t *testing.T) {
+	const secretKey = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	payload := MapOfAny{"headline": "Yesterday's deal"}
+
+	newReq := func(feed *GlobalFeedSettings, data MapOfAny) TemplateDataRequest {
+		return TemplateDataRequest{
+			WorkspaceID:        "ws-123",
+			WorkspaceSecretKey: secretKey,
+			MessageID:          "msg-456",
+			TrackingSettings:   notifuse_mjml.TrackingSettings{Endpoint: "https://api.example.com"},
+			Broadcast: &Broadcast{
+				ID:   "broadcast-001",
+				Name: "Test Broadcast",
+				DataFeed: &DataFeedSettings{
+					GlobalFeed:     feed,
+					GlobalFeedData: data,
+				},
+			},
+		}
+	}
+
+	t.Run("enabled feed renders its fetched payload", func(t *testing.T) {
+		data, err := BuildTemplateData(newReq(&GlobalFeedSettings{Enabled: true, URL: "https://feed.example.com"}, payload))
+		require.NoError(t, err)
+		assert.Equal(t, payload, data["global_feed"])
+	})
+
+	t.Run("disabled feed renders the payload supplied with it", func(t *testing.T) {
+		data, err := BuildTemplateData(newReq(&GlobalFeedSettings{Enabled: false, URL: "https://feed.example.com"}, payload))
+		require.NoError(t, err)
+		assert.Equal(t, payload, data["global_feed"],
+			"a client that supplies its own payload asks for no fetch, not for no data")
+	})
+
+	t.Run("payload supplied without any feed configuration is rendered", func(t *testing.T) {
+		data, err := BuildTemplateData(newReq(nil, payload))
+		require.NoError(t, err)
+		assert.Equal(t, payload, data["global_feed"])
+	})
+
+	t.Run("no payload leaves global_feed unset", func(t *testing.T) {
+		data, err := BuildTemplateData(newReq(&GlobalFeedSettings{Enabled: true, URL: "https://feed.example.com"}, nil))
+		require.NoError(t, err)
+		_, exists := data["global_feed"]
+		assert.False(t, exists)
+	})
+}
+
+// TestGenerateEmailRedirectionEndpoint tests the generation of the URL for tracking email redirections
+func TestGenerateEmailRedirectionEndpoint(t *testing.T) {
+	testTimestamp := int64(1699564800)
+
+	tests := []struct {
+		name           string
+		workspaceID    string
+		messageID      string
+		apiEndpoint    string
+		destinationURL string
+		expectedPrefix string // The encrypted URL starts with this prefix
+	}{
+		{
+			name:           "with all parameters",
+			workspaceID:    "ws-123",
+			messageID:      "msg-456",
+			apiEndpoint:    "https://api.example.com",
+			destinationURL: "https://example.com",
+			expectedPrefix: "https://api.example.com/r/",
+		},
+		{
+			name:           "with empty api endpoint",
+			workspaceID:    "ws-123",
+			messageID:      "msg-456",
+			apiEndpoint:    "",
+			destinationURL: "https://example.com",
+			expectedPrefix: "/r/",
+		},
+		{
+			name:           "with special characters that need encoding",
+			workspaceID:    "ws/123&test=1",
+			messageID:      "msg=456?test=1",
+			apiEndpoint:    "https://api.example.com",
+			destinationURL: "https://example.com/page?param=value&other=test",
+			expectedPrefix: "https://api.example.com/r/",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			url := notifuse_mjml.GenerateEmailRedirectionEndpoint(tt.workspaceID, tt.messageID, tt.apiEndpoint, tt.destinationURL, testTimestamp)
+			assert.True(t, len(url) > len(tt.expectedPrefix), "URL should be longer than prefix")
+			assert.Equal(t, tt.expectedPrefix, url[:len(tt.expectedPrefix)], "URL should start with encrypted redirect prefix")
+		})
+	}
+}
+
+func TestTemplateDataRequest_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		request TemplateDataRequest
+		wantErr bool
+	}{
+		{
+			name: "valid request",
+			request: TemplateDataRequest{
+				WorkspaceID:        "ws-123",
+				WorkspaceSecretKey: "secret-key",
+				MessageID:          "msg-456",
+				ContactWithList:    ContactWithList{},
+				TrackingSettings:   notifuse_mjml.TrackingSettings{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing workspace ID",
+			request: TemplateDataRequest{
+				WorkspaceSecretKey: "secret-key",
+				MessageID:          "msg-456",
+				ContactWithList:    ContactWithList{},
+				TrackingSettings:   notifuse_mjml.TrackingSettings{},
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing workspace secret key",
+			request: TemplateDataRequest{
+				WorkspaceID:      "ws-123",
+				MessageID:        "msg-456",
+				ContactWithList:  ContactWithList{},
+				TrackingSettings: notifuse_mjml.TrackingSettings{},
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing message ID",
+			request: TemplateDataRequest{
+				WorkspaceID:        "ws-123",
+				WorkspaceSecretKey: "secret-key",
+				ContactWithList:    ContactWithList{},
+				TrackingSettings:   notifuse_mjml.TrackingSettings{},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.request.Validate()
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestEmailTemplate_UnmarshalJSON_Minimal_ExistingFile(t *testing.T) {
+	// Minimal JSON with a valid empty mjml root
+	data := []byte(`{"subject":"Hello","compiled_preview":"<mjml></mjml>","visual_editor_tree":{"id":"root","type":"mjml","children":[]}}`)
+	var et EmailTemplate
+	if err := et.UnmarshalJSON(data); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+// TestEmailTemplate_MjRawContent_JSONRoundTrip tests that mj-raw block content is preserved
+// through JSON serialization/deserialization (GitHub issue #229)
+func TestEmailTemplate_MjRawContent_JSONRoundTrip(t *testing.T) {
+	// JSON that represents a template with mj-raw content
+	jsonData := []byte(`{
+		"sender_id": "test-sender",
+		"subject": "Test Subject",
+		"compiled_preview": "<html>test</html>",
+		"visual_editor_tree": {
+			"id": "mjml-1",
+			"type": "mjml",
+			"children": [
+				{
+					"id": "body-1",
+					"type": "mj-body",
+					"children": [
+						{
+							"id": "section-1",
+							"type": "mj-section",
+							"children": [
+								{
+									"id": "column-1",
+									"type": "mj-column",
+									"children": [
+										{
+											"id": "raw-1",
+											"type": "mj-raw",
+											"content": "<table><tr><td>Cell 1</td><td>Cell 2</td></tr></table>",
+											"attributes": {}
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	}`)
+
+	// Unmarshal the JSON
+	var emailTemplate EmailTemplate
+	err := emailTemplate.UnmarshalJSON(jsonData)
+	assert.NoError(t, err, "Failed to unmarshal EmailTemplate")
+
+	// Verify the visual_editor_tree was unmarshaled correctly
+	assert.NotNil(t, emailTemplate.VisualEditorTree, "VisualEditorTree should not be nil")
+	assert.Equal(t, notifuse_mjml.MJMLComponentMjml, emailTemplate.VisualEditorTree.GetType())
+
+	// Find the mj-raw block and verify content
+	var rawBlock notifuse_mjml.EmailBlock
+	bodyBlock := emailTemplate.VisualEditorTree.GetChildren()[0]
+	sectionBlock := bodyBlock.GetChildren()[0]
+	columnBlock := sectionBlock.GetChildren()[0]
+	rawBlock = columnBlock.GetChildren()[0]
+
+	assert.Equal(t, notifuse_mjml.MJMLComponentMjRaw, rawBlock.GetType(), "Expected mj-raw block")
+	content := rawBlock.GetContent()
+	assert.NotNil(t, content, "mj-raw content should not be nil")
+	assert.Equal(t, "<table><tr><td>Cell 1</td><td>Cell 2</td></tr></table>", *content)
+
+	// Marshal back to JSON
+	marshaledJSON, err := emailTemplate.MarshalJSON()
+	assert.NoError(t, err, "Failed to marshal EmailTemplate")
+
+	// Verify the content is preserved in the marshaled JSON
+	assert.Contains(t, string(marshaledJSON), "Cell 1", "Marshaled JSON should contain mj-raw content")
+	assert.Contains(t, string(marshaledJSON), "Cell 2", "Marshaled JSON should contain mj-raw content")
+
+	// Unmarshal again to verify round-trip
+	var emailTemplate2 EmailTemplate
+	err = emailTemplate2.UnmarshalJSON(marshaledJSON)
+	assert.NoError(t, err, "Failed to unmarshal EmailTemplate after round-trip")
+
+	// Find the mj-raw block again and verify content
+	var rawBlock2 notifuse_mjml.EmailBlock
+	bodyBlock2 := emailTemplate2.VisualEditorTree.GetChildren()[0]
+	sectionBlock2 := bodyBlock2.GetChildren()[0]
+	columnBlock2 := sectionBlock2.GetChildren()[0]
+	rawBlock2 = columnBlock2.GetChildren()[0]
+
+	content2 := rawBlock2.GetContent()
+	assert.NotNil(t, content2, "mj-raw content should not be nil after round-trip")
+	assert.Equal(t, "<table><tr><td>Cell 1</td><td>Cell 2</td></tr></table>", *content2)
+}
+
+// TestEmailTemplate_MjRawContent_Value_Scan tests that mj-raw content is preserved
+// when using database Value() and Scan() methods (simulating database save/load)
+func TestEmailTemplate_MjRawContent_Value_Scan(t *testing.T) {
+	// Create an EmailTemplate with mj-raw content
+	rawContent := "<table><tr><td>Cell 1</td><td>Cell 2</td></tr></table>"
+
+	rawBase := notifuse_mjml.NewBaseBlock("raw-1", notifuse_mjml.MJMLComponentMjRaw)
+	rawBase.Content = &rawContent
+	rawBlock := &notifuse_mjml.MJRawBlock{BaseBlock: rawBase}
+
+	columnBlock := &notifuse_mjml.MJColumnBlock{BaseBlock: notifuse_mjml.NewBaseBlock("column-1", notifuse_mjml.MJMLComponentMjColumn)}
+	columnBlock.Children = []notifuse_mjml.EmailBlock{rawBlock}
+
+	sectionBlock := &notifuse_mjml.MJSectionBlock{BaseBlock: notifuse_mjml.NewBaseBlock("section-1", notifuse_mjml.MJMLComponentMjSection)}
+	sectionBlock.Children = []notifuse_mjml.EmailBlock{columnBlock}
+
+	bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: notifuse_mjml.NewBaseBlock("body-1", notifuse_mjml.MJMLComponentMjBody)}
+	bodyBlock.Children = []notifuse_mjml.EmailBlock{sectionBlock}
+
+	mjmlBlock := &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.NewBaseBlock("mjml-1", notifuse_mjml.MJMLComponentMjml)}
+	mjmlBlock.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+
+	emailTemplate := &EmailTemplate{
+		SenderID:         "test-sender",
+		Subject:          "Test Subject",
+		CompiledPreview:  "<html>test</html>",
+		VisualEditorTree: mjmlBlock,
+	}
+
+	// Test Value() - simulates database save
+	value, err := emailTemplate.Value()
+	assert.NoError(t, err, "Value() should not return error")
+	assert.NotNil(t, value, "Value() should return data")
+
+	// Verify the value contains the content
+	valueBytes, ok := value.([]byte)
+	assert.True(t, ok, "Value() should return []byte")
+	assert.Contains(t, string(valueBytes), "Cell 1", "Value() should contain mj-raw content")
+
+	// Test Scan() - simulates database load
+	var emailTemplate2 EmailTemplate
+	err = emailTemplate2.Scan(valueBytes)
+	assert.NoError(t, err, "Scan() should not return error")
+
+	// Verify the visual_editor_tree was scanned correctly
+	assert.NotNil(t, emailTemplate2.VisualEditorTree, "VisualEditorTree should not be nil after Scan")
+
+	// Find the mj-raw block and verify content
+	var rawBlock2 notifuse_mjml.EmailBlock
+	bodyBlock2 := emailTemplate2.VisualEditorTree.GetChildren()[0]
+	sectionBlock2 := bodyBlock2.GetChildren()[0]
+	columnBlock2 := sectionBlock2.GetChildren()[0]
+	rawBlock2 = columnBlock2.GetChildren()[0]
+
+	assert.Equal(t, notifuse_mjml.MJMLComponentMjRaw, rawBlock2.GetType(), "Expected mj-raw block after Scan")
+	content2 := rawBlock2.GetContent()
+	assert.NotNil(t, content2, "mj-raw content should not be nil after Scan")
+	assert.Equal(t, rawContent, *content2, "mj-raw content should be preserved after Value/Scan round-trip")
+}
+
+func TestEmailTemplate_Validate_CodeMode(t *testing.T) {
+	validMjml := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello</mj-text></mj-column></mj-section></mj-body></mjml>"
+	emptyStr := ""
+
+	tests := []struct {
+		name     string
+		template *EmailTemplate
+		testData MapOfAny
+		wantErr  bool
+		errMsg   string
+	}{
+		{
+			name: "code mode with valid mjml_source",
+			template: &EmailTemplate{
+				EditorMode: "code",
+				MjmlSource: &validMjml,
+				Subject:    "Test Subject",
+			},
+			wantErr: false,
+		},
+		{
+			name: "code mode with nil mjml_source",
+			template: &EmailTemplate{
+				EditorMode: "code",
+				MjmlSource: nil,
+				Subject:    "Test Subject",
+			},
+			wantErr: true,
+			errMsg:  "invalid email template: mjml_source is required for code mode",
+		},
+		{
+			name: "code mode with empty mjml_source",
+			template: &EmailTemplate{
+				EditorMode: "code",
+				MjmlSource: &emptyStr,
+				Subject:    "Test Subject",
+			},
+			wantErr: true,
+			errMsg:  "invalid email template: mjml_source is required for code mode",
+		},
+		{
+			name: "invalid editor_mode",
+			template: &EmailTemplate{
+				EditorMode: "invalid",
+				MjmlSource: &validMjml,
+				Subject:    "Test Subject",
+			},
+			wantErr: true,
+			errMsg:  "invalid email template: editor_mode must be 'visual' or 'code'",
+		},
+		{
+			name: "empty editor_mode defaults to visual behavior",
+			template: &EmailTemplate{
+				EditorMode:       "",
+				Subject:          "Test Subject",
+				CompiledPreview:  "<html>Test</html>",
+				VisualEditorTree: createValidMJMLBlock(),
+			},
+			wantErr: false,
+		},
+		{
+			name: "explicit visual mode works as before",
+			template: &EmailTemplate{
+				EditorMode:       "visual",
+				Subject:          "Test Subject",
+				CompiledPreview:  "<html>Test</html>",
+				VisualEditorTree: createValidMJMLBlock(),
+			},
+			wantErr: false,
+		},
+		{
+			name: "code mode sets compiled_preview from mjml_source",
+			template: &EmailTemplate{
+				EditorMode: "code",
+				MjmlSource: &validMjml,
+				Subject:    "Test Subject",
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.template.Validate(tt.testData)
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errMsg != "" {
+					assert.Equal(t, tt.errMsg, err.Error())
+				}
+			} else {
+				assert.NoError(t, err)
+				if tt.template.EditorMode == "code" {
+					assert.NotEmpty(t, tt.template.CompiledPreview, "CompiledPreview should be set for code mode")
+				}
+			}
+		})
+	}
+}
+
+func TestTemplate_Validate_CodeMode(t *testing.T) {
+	now := time.Now()
+	validMjml := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello</mj-text></mj-column></mj-section></mj-body></mjml>"
+
+	t.Run("valid code mode template", func(t *testing.T) {
+		tmpl := &Template{
+			ID:      "test-code",
+			Name:    "Code Template",
+			Version: 1,
+			Channel: "email",
+			Email: &EmailTemplate{
+				EditorMode: "code",
+				MjmlSource: &validMjml,
+				Subject:    "Test Subject",
+			},
+			Category:  string(TemplateCategoryMarketing),
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
+		err := tmpl.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("code mode template missing mjml_source", func(t *testing.T) {
+		tmpl := &Template{
+			ID:      "test-code",
+			Name:    "Code Template",
+			Version: 1,
+			Channel: "email",
+			Email: &EmailTemplate{
+				EditorMode: "code",
+				Subject:    "Test Subject",
+			},
+			Category:  string(TemplateCategoryMarketing),
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
+		err := tmpl.Validate()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "mjml_source is required for code mode")
+	})
+}
+
+func TestEmailTemplate_UnmarshalJSON_CodeMode(t *testing.T) {
+	t.Run("unmarshal code mode template", func(t *testing.T) {
+		jsonData := []byte(`{
+			"editor_mode": "code",
+			"mjml_source": "<mjml><mj-body></mj-body></mjml>",
+			"subject": "Test Subject",
+			"compiled_preview": "<html>test</html>"
+		}`)
+
+		var et EmailTemplate
+		err := et.UnmarshalJSON(jsonData)
+		assert.NoError(t, err)
+		assert.Equal(t, "code", et.EditorMode)
+		assert.NotNil(t, et.MjmlSource)
+		assert.Equal(t, "<mjml><mj-body></mj-body></mjml>", *et.MjmlSource)
+	})
+
+	t.Run("unmarshal visual mode template with no editor_mode", func(t *testing.T) {
+		jsonData := []byte(`{
+			"subject": "Test Subject",
+			"compiled_preview": "<html>test</html>",
+			"visual_editor_tree": {"id":"root","type":"mjml","children":[]}
+		}`)
+
+		var et EmailTemplate
+		err := et.UnmarshalJSON(jsonData)
+		assert.NoError(t, err)
+		assert.Equal(t, "", et.EditorMode)
+		assert.Nil(t, et.MjmlSource)
+	})
+}
+
+func TestTemplate_ResolveEmailContent(t *testing.T) {
+	defaultEmail := &EmailTemplate{Subject: "Default Subject", SenderID: "default-sender"}
+	frEmail := &EmailTemplate{Subject: "Sujet Français", SenderID: "fr-sender"}
+	esEmail := &EmailTemplate{Subject: "Asunto Español", SenderID: "es-sender"}
+
+	template := &Template{
+		Email: defaultEmail,
+		Translations: map[string]TemplateTranslation{
+			"fr": {Email: frEmail},
+			"es": {Email: esEmail},
+		},
+	}
+
+	tests := []struct {
+		name            string
+		contactLang     string
+		defaultLang     string
+		expectedSubject string
+	}{
+		{"empty contact language returns default", "", "en", "Default Subject"},
+		{"contact language matches default returns default", "en", "en", "Default Subject"},
+		{"contact language has translation", "fr", "en", "Sujet Français"},
+		{"contact language has translation (es)", "es", "en", "Asunto Español"},
+		{"contact language has no translation falls back", "de", "en", "Default Subject"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := template.ResolveEmailContent(tc.contactLang, tc.defaultLang)
+			assert.Equal(t, tc.expectedSubject, result.Subject)
+		})
+	}
+
+	t.Run("nil email returns nil", func(t *testing.T) {
+		tmpl := &Template{Email: nil}
+		result := tmpl.ResolveEmailContent("fr", "en")
+		assert.Nil(t, result)
+	})
+
+	t.Run("nil translations returns default", func(t *testing.T) {
+		tmpl := &Template{Email: defaultEmail, Translations: nil}
+		result := tmpl.ResolveEmailContent("fr", "en")
+		assert.Equal(t, "Default Subject", result.Subject)
+	})
+
+	t.Run("translation exists but email is nil falls back", func(t *testing.T) {
+		tmpl := &Template{
+			Email: defaultEmail,
+			Translations: map[string]TemplateTranslation{
+				"fr": {Web: &WebTemplate{}},
+			},
+		}
+		result := tmpl.ResolveEmailContent("fr", "en")
+		assert.Equal(t, "Default Subject", result.Subject)
+	})
+}
+
+func TestTemplate_ResolveWebContent(t *testing.T) {
+	defaultWeb := &WebTemplate{HTML: "<p>Default</p>"}
+	frWeb := &WebTemplate{HTML: "<p>Français</p>"}
+
+	template := &Template{
+		Web: defaultWeb,
+		Translations: map[string]TemplateTranslation{
+			"fr": {Web: frWeb},
+		},
+	}
+
+	t.Run("contact language has web translation", func(t *testing.T) {
+		result := template.ResolveWebContent("fr", "en")
+		assert.Equal(t, "<p>Français</p>", result.HTML)
+	})
+
+	t.Run("no web translation falls back", func(t *testing.T) {
+		result := template.ResolveWebContent("de", "en")
+		assert.Equal(t, "<p>Default</p>", result.HTML)
+	})
+
+	t.Run("nil web returns nil", func(t *testing.T) {
+		tmpl := &Template{Web: nil}
+		result := tmpl.ResolveWebContent("fr", "en")
+		assert.Nil(t, result)
+	})
+}
+
+func TestResolveSubjectPreviewOverride(t *testing.T) {
+	explicit := "explicit override"
+	empty := ""
+	contentPreview := "content preview"
+	content := &EmailTemplate{SubjectPreview: &contentPreview}
+
+	t.Run("explicit override wins", func(t *testing.T) {
+		got := ResolveSubjectPreviewOverride(&explicit, content)
+		assert.NotNil(t, got)
+		assert.Equal(t, "explicit override", *got)
+	})
+
+	t.Run("nil explicit falls back to resolved content", func(t *testing.T) {
+		got := ResolveSubjectPreviewOverride(nil, content)
+		assert.NotNil(t, got)
+		assert.Equal(t, "content preview", *got)
+	})
+
+	t.Run("empty explicit falls back to resolved content", func(t *testing.T) {
+		got := ResolveSubjectPreviewOverride(&empty, content)
+		assert.NotNil(t, got)
+		assert.Equal(t, "content preview", *got)
+	})
+
+	t.Run("nil content yields nil", func(t *testing.T) {
+		assert.Nil(t, ResolveSubjectPreviewOverride(nil, nil))
+	})
+
+	t.Run("content with nil preview yields nil", func(t *testing.T) {
+		assert.Nil(t, ResolveSubjectPreviewOverride(nil, &EmailTemplate{}))
+	})
+}
+
+func TestEmailTemplate_ApplyToCompileRequest(t *testing.T) {
+	preview := "variant preview"
+
+	t.Run("visual mode sets tree and preview override, leaves mjml source nil", func(t *testing.T) {
+		tree := createValidMJMLBlock()
+		e := &EmailTemplate{
+			EditorMode:       EditorModeVisual,
+			VisualEditorTree: tree,
+			SubjectPreview:   &preview,
+		}
+		var req CompileTemplateRequest
+		e.ApplyToCompileRequest(&req, nil)
+
+		assert.Equal(t, tree, req.VisualEditorTree)
+		assert.Nil(t, req.MjmlSource)
+		assert.NotNil(t, req.SubjectPreviewOverride)
+		assert.Equal(t, "variant preview", *req.SubjectPreviewOverride)
+	})
+
+	t.Run("code mode sets mjml source from the variant", func(t *testing.T) {
+		src := "<mjml></mjml>"
+		e := &EmailTemplate{
+			EditorMode:     EditorModeCode,
+			MjmlSource:     &src,
+			SubjectPreview: &preview,
+		}
+		var req CompileTemplateRequest
+		e.ApplyToCompileRequest(&req, nil)
+
+		assert.NotNil(t, req.MjmlSource)
+		assert.Equal(t, "<mjml></mjml>", *req.MjmlSource)
+		assert.NotNil(t, req.SubjectPreviewOverride)
+		assert.Equal(t, "variant preview", *req.SubjectPreviewOverride)
+	})
+
+	t.Run("explicit override takes precedence over variant preview", func(t *testing.T) {
+		explicit := "explicit override"
+		e := &EmailTemplate{SubjectPreview: &preview}
+		var req CompileTemplateRequest
+		e.ApplyToCompileRequest(&req, &explicit)
+
+		assert.NotNil(t, req.SubjectPreviewOverride)
+		assert.Equal(t, "explicit override", *req.SubjectPreviewOverride)
+	})
+}
+
+func TestTemplate_Validate_Translations(t *testing.T) {
+	validTree := createValidMJMLBlock()
+
+	t.Run("valid translation keys", func(t *testing.T) {
+		tmpl := &Template{
+			ID:       "test-template",
+			Name:     "Test",
+			Version:  1,
+			Channel:  "email",
+			Category: "marketing",
+			Email: &EmailTemplate{
+				Subject:          "Test",
+				CompiledPreview:  "<html>test</html>",
+				VisualEditorTree: validTree,
+			},
+			Translations: map[string]TemplateTranslation{
+				"fr": {Email: &EmailTemplate{Subject: "Test FR", CompiledPreview: "<html>fr</html>", VisualEditorTree: validTree}},
+				"es": {Email: &EmailTemplate{Subject: "Test ES", CompiledPreview: "<html>es</html>", VisualEditorTree: validTree}},
+			},
+		}
+		err := tmpl.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("invalid translation key", func(t *testing.T) {
+		tmpl := &Template{
+			ID:       "test-template",
+			Name:     "Test",
+			Version:  1,
+			Channel:  "email",
+			Category: "marketing",
+			Email: &EmailTemplate{
+				Subject:          "Test",
+				CompiledPreview:  "<html>test</html>",
+				VisualEditorTree: validTree,
+			},
+			Translations: map[string]TemplateTranslation{
+				"xx": {Email: &EmailTemplate{Subject: "Test XX", CompiledPreview: "<html>xx</html>", VisualEditorTree: validTree}},
+			},
+		}
+		err := tmpl.Validate()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid translation language code")
+	})
+}
+
+// TestEmailTemplate_Validate_MissingVisualEditorTree covers email payloads whose "email"
+// object omits visual_editor_tree. VisualEditorTree is an interface, so decoding such a
+// payload leaves it nil and every method call on it dereferences a nil pointer. These
+// cases decode from JSON rather than building struct literals, because a struct literal
+// built in a test always assigns a tree and therefore cannot reach the nil state.
+func TestEmailTemplate_Validate_MissingVisualEditorTree(t *testing.T) {
+	t.Run("direct validate with nil tree returns error", func(t *testing.T) {
+		e := &EmailTemplate{Subject: "Test Subject"}
+		err := e.Validate(nil)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "visual_editor_tree is required")
+	})
+
+	t.Run("create request without visual_editor_tree", func(t *testing.T) {
+		payload := `{
+			"workspace_id": "workspace123",
+			"id": "test-template",
+			"name": "Test Template",
+			"category": "transactional",
+			"channel": "email",
+			"email": {
+				"subject": "Test - {{ nombre }}",
+				"html": "<p>Hola {{ nombre }}</p>"
+			}
+		}`
+		var req CreateTemplateRequest
+		require.NoError(t, json.Unmarshal([]byte(payload), &req))
+
+		template, workspaceID, err := req.Validate()
+		assert.Error(t, err)
+		assert.Nil(t, template)
+		assert.Empty(t, workspaceID)
+		assert.Contains(t, err.Error(), "visual_editor_tree is required")
+	})
+
+	t.Run("update request without visual_editor_tree", func(t *testing.T) {
+		payload := `{
+			"workspace_id": "workspace123",
+			"id": "test-template",
+			"name": "Test Template",
+			"category": "transactional",
+			"channel": "email",
+			"email": {"subject": "Test Subject"}
+		}`
+		var req UpdateTemplateRequest
+		require.NoError(t, json.Unmarshal([]byte(payload), &req))
+
+		template, workspaceID, err := req.Validate()
+		assert.Error(t, err)
+		assert.Nil(t, template)
+		assert.Empty(t, workspaceID)
+		assert.Contains(t, err.Error(), "visual_editor_tree is required")
+	})
+
+	t.Run("translation without visual_editor_tree", func(t *testing.T) {
+		payload := `{
+			"workspace_id": "workspace123",
+			"id": "test-template",
+			"name": "Test Template",
+			"category": "transactional",
+			"channel": "email",
+			"email": {
+				"subject": "Test Subject",
+				"visual_editor_tree": {"id": "root", "type": "mjml", "children": []}
+			},
+			"translations": {"fr": {"email": {"subject": "Sujet"}}}
+		}`
+		var req CreateTemplateRequest
+		require.NoError(t, json.Unmarshal([]byte(payload), &req))
+
+		_, _, err := req.Validate()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "visual_editor_tree is required")
+	})
+
+	t.Run("template validate with nil tree", func(t *testing.T) {
+		tmpl := &Template{
+			ID:       "test-template",
+			Name:     "Test",
+			Version:  1,
+			Channel:  ChannelEmail,
+			Category: "marketing",
+			Email:    &EmailTemplate{Subject: "Test Subject"},
+		}
+		err := tmpl.Validate()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "visual_editor_tree is required")
+	})
+
+	t.Run("explicit null tree returns error without panic", func(t *testing.T) {
+		var e EmailTemplate
+		require.NoError(t, json.Unmarshal([]byte(`{"subject":"Test","visual_editor_tree":null}`), &e))
+		err := e.Validate(nil)
+		assert.Error(t, err)
+	})
+
+	t.Run("code mode without tree stays valid", func(t *testing.T) {
+		mjml := "<mjml><mj-body></mj-body></mjml>"
+		payload := `{
+			"workspace_id": "workspace123",
+			"id": "code-template",
+			"name": "Code Template",
+			"category": "transactional",
+			"channel": "email",
+			"email": {
+				"editor_mode": "code",
+				"subject": "Test Subject",
+				"mjml_source": "` + mjml + `"
+			}
+		}`
+		var req CreateTemplateRequest
+		require.NoError(t, json.Unmarshal([]byte(payload), &req))
+
+		template, workspaceID, err := req.Validate()
+		require.NoError(t, err)
+		assert.Equal(t, "workspace123", workspaceID)
+		require.NotNil(t, template)
+		assert.Equal(t, mjml, template.Email.CompiledPreview)
+	})
+}

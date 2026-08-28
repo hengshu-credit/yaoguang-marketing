@@ -1,0 +1,1652 @@
+package service
+
+import (
+	"bytes"
+	"context"
+	"crypto/tls"
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"math/rand"
+	"net/http"
+	"runtime/debug"
+	"strconv"
+	"sync"
+	"time"
+
+	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/Notifuse/notifuse/pkg/tracing"
+)
+
+// Maximum time a task can run before timing out
+const defaultMaxTaskRuntime = 50 // 50 seconds
+
+// taskExecutionGrace is how long past a task's own timeout its execution context
+// is allowed to run before it is hard-cancelled. Processors are expected to stop
+// on their own before their timeout, so this only ever fires on a call that is
+// genuinely stuck (e.g. blocked on a DB lock); the grace ensures a task that
+// merely runs right up to its budget is never cut. The deadline is applied
+// inside ExecuteTask so every entry point gets the same bound: the in-process
+// scheduler (whose batch-wide wait a single stuck task would otherwise freeze
+// forever), the HTTP dispatch handler, and the synchronous segment-service
+// triggers that call with a background context. The stored lease is extended by
+// the same grace so a re-dispatched execution cannot overlap one that is still
+// inside its grace window.
+const taskExecutionGrace = 30 * time.Second
+
+// dispatchResponseMargin is the slack added on top of a task's own execution
+// bound before the dispatcher stops waiting for the handler's reply.
+const dispatchResponseMargin = 10 * time.Second
+
+// dispatchTimeout returns how long a dispatch should wait for /api/tasks.execute
+// to answer. The handler executes the task synchronously and only replies when
+// it is done, so this has to cover the task's whole permitted lifetime:
+// MaxRuntime plus the grace window ExecuteTask applies, plus a little slack for
+// the round trip.
+func dispatchTimeout(t *domain.Task) time.Duration {
+	maxRuntime := t.MaxRuntime
+	if maxRuntime <= 0 {
+		maxRuntime = defaultMaxTaskRuntime
+	}
+	return time.Duration(maxRuntime)*time.Second + taskExecutionGrace + dispatchResponseMargin
+}
+
+// newDispatchHTTPClient builds the client shared by all task dispatches.
+//
+// CheckRedirect: refuse to follow redirects. The dispatch target is our own
+// /api/tasks.execute; any 3xx response means something in front of the API
+// (auth proxy, TLS-upgrading ingress, CDN) has intercepted the request. The
+// Go default would follow a 302 as a GET to the Location URL — if that URL
+// is an auth-wall login page returning 200 HTML, the status check treats it
+// as success and the task never runs. ErrUseLastResponse returns the 3xx
+// response unfollowed so the non-200 branch catches it and logs loudly.
+// See #320 / #317 (Cloudflare Access intercepting dispatch).
+//
+// Timeout is only a backstop against a connection that never answers: every
+// dispatch carries its own, shorter deadline (see newDispatchRequest). It must
+// stay above dispatchTimeout for the longest-running task type, or it becomes
+// the binding constraint again — which is what the old fixed 53s was.
+func newDispatchHTTPClient() *http.Client {
+	return &http.Client{
+		Timeout: 10 * time.Minute,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 100,
+			IdleConnTimeout:     90 * time.Second,
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+}
+
+// newDispatchRequest builds one dispatch bounded by the task's own budget: the
+// handler runs the task to completion before answering, so the dispatcher has
+// to wait at least as long as the task may legitimately run. A fixed timeout
+// here truncated longer task types and left only seconds of margin on a
+// broadcast slice — the gap an enqueue transaction was cancelled in.
+//
+// The returned cancel func must be called by the caller when the dispatch is
+// done. Using NewRequestWithContext (rather than NewRequest) is also what
+// propagates the trace to the handler.
+func (s *TaskService) newDispatchRequest(ctx context.Context, t *domain.Task, body []byte) (*http.Request, context.CancelFunc, error) {
+	reqCtx, cancel := context.WithTimeout(ctx, dispatchTimeout(t))
+
+	endpoint := fmt.Sprintf("%s/api/tasks.execute", s.apiEndpoint)
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, endpoint, bytes.NewBuffer(body))
+	if err != nil {
+		cancel()
+		return nil, nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Task-ID", t.ID) // Add task ID for tracing
+
+	// Sign the dispatch. /api/tasks.execute has no session to authenticate — the
+	// caller is this process talking to itself through the ingress — so the
+	// signature is what tells the handler the request came from the scheduler and
+	// not from anyone who learned a task id. The path signed is the one the
+	// handler sees; the body is in the signed content because every dispatch hits
+	// the same path.
+	if secret := s.signingSecret(); secret != "" {
+		timestamp := time.Now().UTC().Unix()
+		req.Header.Set(domain.TaskExecuteTimestampHeader, strconv.FormatInt(timestamp, 10))
+		req.Header.Set(domain.TaskExecuteSignatureHeader,
+			domain.SignTaskExecuteRequest(domain.TaskExecuteSigningKey(secret), timestamp, req.URL.Path, body))
+	}
+
+	return req, cancel, nil
+}
+
+// TaskService manages task execution and state
+type TaskService struct {
+	repo        domain.TaskRepository
+	settingRepo domain.SettingRepository
+	logger      logger.Logger
+	authService *AuthService
+	processors  map[string]domain.TaskProcessor
+	lock        sync.RWMutex
+	apiEndpoint string
+	// autoExecuteImmediate controls whether tasks are automatically executed when set to immediate
+	// This is mainly used to disable auto-execution during testing
+	autoExecuteImmediate bool
+	// directExecution controls how due tasks are executed by ExecutePendingTasks: when true,
+	// each task runs in-process instead of being dispatched over HTTP to /api/tasks.execute.
+	// Wired from TaskScheduler.Enabled — an instance running its own scheduler executes its
+	// own tasks directly (no self-call); see SetDirectExecution.
+	directExecution bool
+	// secretKey signs HTTP dispatches to /api/tasks.execute. Set through
+	// SetSecretKey rather than taken by the constructor, which has 37 call sites.
+	secretKey string
+}
+
+// WithTransaction executes a function within a transaction
+func (s *TaskService) WithTransaction(ctx context.Context, fn func(*sql.Tx) error) error {
+	// The repository should handle the transaction
+	repo, ok := s.repo.(interface {
+		WithTransaction(ctx context.Context, fn func(*sql.Tx) error) error
+	})
+	if !ok {
+		return fmt.Errorf("repository does not support transactions")
+	}
+
+	return repo.WithTransaction(ctx, fn)
+}
+
+// NewTaskService creates a new task service instance
+func NewTaskService(repository domain.TaskRepository, settingRepo domain.SettingRepository, logger logger.Logger, authService *AuthService, apiEndpoint string) *TaskService {
+
+	return &TaskService{
+		repo:                 repository,
+		settingRepo:          settingRepo,
+		logger:               logger,
+		authService:          authService,
+		processors:           make(map[string]domain.TaskProcessor),
+		apiEndpoint:          apiEndpoint,
+		autoExecuteImmediate: true, // Enable auto-execution by default
+	}
+}
+
+// SetAutoExecuteImmediate sets whether tasks should be automatically executed immediately
+// This is mainly used for testing to disable auto-execution
+func (s *TaskService) SetAutoExecuteImmediate(enabled bool) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.autoExecuteImmediate = enabled
+}
+
+// IsAutoExecuteEnabled returns whether automatic task execution is enabled
+func (s *TaskService) IsAutoExecuteEnabled() bool {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	return s.autoExecuteImmediate
+}
+
+// SetDirectExecution controls how ExecutePendingTasks runs due tasks. When true, each task
+// is executed in-process; when false, it is dispatched over HTTP to {apiEndpoint}/api/tasks.execute.
+// The app wires this from TaskScheduler.Enabled: an instance that runs its own scheduler executes
+// its own tasks directly (avoiding a self-call through the public ingress), while a scale-out node
+// with the scheduler disabled keeps HTTP fan-out. The apiEndpoint=="" fallback to direct execution
+// is preserved independently of this flag.
+func (s *TaskService) SetDirectExecution(enabled bool) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.directExecution = enabled
+}
+
+// SetSecretKey sets the installation's SECRET_KEY, from which the key that signs
+// HTTP dispatches to /api/tasks.execute is derived. A service left without one
+// dispatches unsigned, which the handler rejects — that is the intended failure:
+// an unsigned dispatch is indistinguishable from anyone else's.
+func (s *TaskService) SetSecretKey(secretKey string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.secretKey = secretKey
+}
+
+// signingSecret reads the dispatch signing secret. Dispatches are built from
+// per-task goroutines, so the read is locked like every other field here.
+func (s *TaskService) signingSecret() string {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	return s.secretKey
+}
+
+// IsDirectExecution returns whether in-process (direct) task execution is enabled.
+func (s *TaskService) IsDirectExecution() bool {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	return s.directExecution
+}
+
+// RegisterProcessor registers a task processor for a specific task type
+func (s *TaskService) RegisterProcessor(processor domain.TaskProcessor) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	// Determine which task types this processor can handle
+	for _, taskType := range getTaskTypes() {
+		if processor.CanProcess(taskType) {
+			s.processors[taskType] = processor
+			s.logger.WithField("task_type", taskType).Info("Registered task processor")
+		}
+	}
+}
+
+// getTaskTypes returns all supported task types
+func getTaskTypes() []string {
+	// This could be expanded with more task types as needed
+	return []string{
+		"import_contacts",
+		"export_contacts",
+		"send_broadcast",
+		"generate_report",
+		"build_segment",
+		"process_contact_segment_queue",
+		"check_segment_recompute",
+		"sync_integration",
+		domain.WebAnalyticsBackfillTaskType,
+	}
+}
+
+// GetProcessor returns the processor for a given task type
+func (s *TaskService) GetProcessor(taskType string) (domain.TaskProcessor, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	processor, ok := s.processors[taskType]
+	if !ok {
+		return nil, fmt.Errorf("no processor registered for task type: %s", taskType)
+	}
+
+	return processor, nil
+}
+
+// CreateTask creates a new task
+func (s *TaskService) CreateTask(ctx context.Context, workspace string, task *domain.Task) error {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "CreateTask")
+	defer tracing.EndSpan(span, nil)
+
+	tracing.AddAttribute(ctx, "workspace_id", workspace)
+	if task.BroadcastID != nil {
+		tracing.AddAttribute(ctx, "broadcast_id", *task.BroadcastID)
+	}
+	tracing.AddAttribute(ctx, "task_type", task.Type)
+
+	if task.MaxRuntime <= 0 {
+		task.MaxRuntime = defaultMaxTaskRuntime
+	}
+
+	// Set default retry settings if not provided
+	if task.MaxRetries <= 0 {
+		task.MaxRetries = 3
+	}
+	if task.RetryInterval <= 0 {
+		task.RetryInterval = 60 // Default to 1 minute between retries
+	}
+
+	err := s.repo.Create(ctx, workspace, task)
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+	}
+	return err
+}
+
+// GetTask retrieves a task by ID
+func (s *TaskService) GetTask(ctx context.Context, workspace, id string) (*domain.Task, error) {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "GetTask")
+	defer tracing.EndSpan(span, nil)
+
+	tracing.AddAttribute(ctx, "workspace_id", workspace)
+	tracing.AddAttribute(ctx, "task_id", id)
+
+	task, err := s.repo.Get(ctx, workspace, id)
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+	} else if task != nil && task.BroadcastID != nil {
+		tracing.AddAttribute(ctx, "broadcast_id", *task.BroadcastID)
+	}
+
+	return task, err
+}
+
+// ListTasks lists tasks based on filter criteria
+func (s *TaskService) ListTasks(ctx context.Context, workspace string, filter domain.TaskFilter) (*domain.TaskListResponse, error) {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "ListTasks")
+	defer tracing.EndSpan(span, nil)
+
+	tracing.AddAttribute(ctx, "workspace_id", workspace)
+	tracing.AddAttribute(ctx, "limit", filter.Limit)
+	tracing.AddAttribute(ctx, "offset", filter.Offset)
+
+	// Removed Status and Type tracing attributes to fix compilation issues
+
+	tasks, totalCount, err := s.repo.List(ctx, workspace, filter)
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+		return nil, err
+	}
+
+	// Calculate if there are more results
+	hasMore := (filter.Offset + len(tasks)) < totalCount
+	tracing.AddAttribute(ctx, "total_count", totalCount)
+	tracing.AddAttribute(ctx, "result_count", len(tasks))
+	tracing.AddAttribute(ctx, "has_more", hasMore)
+
+	return &domain.TaskListResponse{
+		Tasks:      tasks,
+		TotalCount: totalCount,
+		Limit:      filter.Limit,
+		Offset:     filter.Offset,
+		HasMore:    hasMore,
+	}, nil
+}
+
+// DeleteTask removes a task
+func (s *TaskService) DeleteTask(ctx context.Context, workspace, id string) error {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "DeleteTask")
+	defer tracing.EndSpan(span, nil)
+
+	tracing.AddAttribute(ctx, "workspace_id", workspace)
+	tracing.AddAttribute(ctx, "task_id", id)
+
+	err := s.repo.Delete(ctx, workspace, id)
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+	}
+	return err
+}
+
+// ExecutePendingTasks processes a batch of pending tasks
+func (s *TaskService) ExecutePendingTasks(ctx context.Context, maxTasks int) error {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "ExecutePendingTasks")
+	defer tracing.EndSpan(span, nil)
+
+	// Set the last cron run timestamp before processing tasks
+	if err := s.settingRepo.SetLastCronRun(ctx); err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithField("error", err.Error()).Error("Failed to set last cron run timestamp")
+		// Continue processing tasks even if setting update fails
+	} else {
+		s.logger.Debug("Updated last cron run timestamp")
+	}
+
+	// Get the next batch of tasks
+	// each workspace has a permanent task to process the contact segment queue
+	// TODO/problem: if new number of workspaces is above 100, this will not work
+	// we need to have a way to scale this
+	if maxTasks <= 0 {
+		maxTasks = 100 // Default value
+	}
+
+	tracing.AddAttribute(ctx, "max_tasks", maxTasks)
+
+	tasks, err := s.repo.GetNextBatch(ctx, maxTasks)
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+		return fmt.Errorf("failed to get next batch of tasks: %w", err)
+	}
+
+	tracing.AddAttribute(ctx, "task_count", len(tasks))
+	s.logger.WithField("task_count", len(tasks)).Info("Retrieved batch of tasks to process")
+
+	// Direct (in-process) execution is used when this instance runs its own scheduler
+	// (directExecution, wired from TaskScheduler.Enabled) or when no API endpoint is
+	// configured. Otherwise tasks are dispatched over HTTP for fan-out across replicas.
+	if s.directExecution || s.apiEndpoint == "" {
+		tracing.AddAttribute(ctx, "execution_mode", "direct")
+		if s.directExecution {
+			s.logger.Debug("Executing pending tasks in-process (direct execution mode)")
+		} else {
+			s.logger.Warn("API endpoint not configured, falling back to direct execution")
+		}
+		return s.executeTasksDirectly(ctx, tasks)
+	}
+
+	tracing.AddAttribute(ctx, "execution_mode", "http")
+
+	// One client shared across dispatches. Per Go docs: "Clients and Transports
+	// are safe for concurrent use by multiple goroutines and for efficiency
+	// should only be created once and re-used." See newDispatchHTTPClient for
+	// the redirect and timeout rationale.
+	httpClient := newDispatchHTTPClient()
+	httpClient = tracing.WrapHTTPClient(httpClient)
+
+	// Fire-and-forget dispatch: each task runs in its own goroutine bounded by
+	// the http.Client's 53s timeout. The scheduler tick doesn't wait for
+	// in-flight dispatches so one slow handler can't delay the next tick.
+	//
+	// Duplicate-dispatch safety: GetNextBatch only picks up pending/paused
+	// tasks (with next_run_after elapsed) or running tasks whose timeout_after
+	// has expired. Once the handler commits MarkAsRunningTx the row becomes
+	// running with a fresh timeout_after and is skipped by subsequent batches.
+	// The narrow race (tick N+1 fires before tick N's handler commits) is
+	// handled server-side by MarkAsRunningTx returning ErrTaskAlreadyRunning,
+	// which the client logs at Debug on a 409.
+	for _, task := range tasks {
+		go func(t *domain.Task) {
+			taskCtx, taskSpan := tracing.StartServiceSpan(ctx, "TaskService", "DispatchTaskExecution")
+			defer tracing.EndSpan(taskSpan, nil)
+
+			tracing.AddAttribute(taskCtx, "task_id", t.ID)
+			tracing.AddAttribute(taskCtx, "workspace_id", t.WorkspaceID)
+			tracing.AddAttribute(taskCtx, "task_type", t.Type)
+			if t.BroadcastID != nil {
+				tracing.AddAttribute(taskCtx, "broadcast_id", *t.BroadcastID)
+			}
+
+			s.logger.WithField("task_id", t.ID).
+				WithField("workspace_id", t.WorkspaceID).
+				Info("Dispatching task execution via HTTP")
+
+			// Create request payload
+			reqBody, err := json.Marshal(domain.ExecuteTaskRequest{
+				WorkspaceID: t.WorkspaceID,
+				ID:          t.ID,
+			})
+			if err != nil {
+				tracing.MarkSpanError(taskCtx, err)
+				s.logger.WithField("task_id", t.ID).
+					WithField("workspace_id", t.WorkspaceID).
+					WithField("error", err.Error()).
+					Error("Failed to marshal task execution request")
+				return
+			}
+
+			req, cancelReq, err := s.newDispatchRequest(taskCtx, t, reqBody)
+			if err != nil {
+				tracing.MarkSpanError(taskCtx, err)
+				s.logger.WithField("task_id", t.ID).
+					WithField("workspace_id", t.WorkspaceID).
+					WithField("error", err.Error()).
+					Error("Failed to create HTTP request for task execution")
+				return
+			}
+			defer cancelReq()
+
+			// Execute request
+			resp, err := httpClient.Do(req)
+			if err != nil {
+				tracing.MarkSpanError(taskCtx, err)
+				s.logger.WithField("task_id", t.ID).
+					WithField("workspace_id", t.WorkspaceID).
+					WithField("error", err.Error()).
+					Error("HTTP request for task execution failed")
+				return
+			}
+			defer func() { _ = resp.Body.Close() }()
+
+			// Check response
+			if resp.StatusCode != http.StatusOK {
+				// Bound the body read — a misrouted dispatch can land on an
+				// auth-wall HTML page of tens of KB, and this path fires every
+				// tick until the misconfig is fixed.
+				body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+
+				// 409 Conflict means task is already running - this is expected in concurrent scenarios
+				if resp.StatusCode == http.StatusConflict {
+					s.logger.WithField("task_id", t.ID).
+						WithField("workspace_id", t.WorkspaceID).
+						Debug("Task already running, skipping duplicate dispatch")
+					return
+				}
+
+				// Other non-OK statuses are actual errors. For 3xx, include the
+				// Location header so an auth-wall / ingress redirect is
+				// immediately obvious in the log.
+				logEntry := s.logger.WithField("task_id", t.ID).
+					WithField("workspace_id", t.WorkspaceID).
+					WithField("status_code", resp.StatusCode).
+					WithField("response", string(body))
+				if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+					logEntry = logEntry.WithField("location", resp.Header.Get("Location"))
+				}
+				err := fmt.Errorf("non-OK status: %d, response: %s", resp.StatusCode, string(body))
+				tracing.MarkSpanError(taskCtx, err)
+				logEntry.Error("HTTP request for task execution returned non-OK status")
+				return
+			}
+
+			s.logger.WithField("task_id", t.ID).
+				WithField("workspace_id", t.WorkspaceID).
+				WithField("status_code", resp.StatusCode).
+				Info("Task execution request dispatched successfully")
+		}(task)
+	}
+
+	return nil
+}
+
+// executeTasksDirectly processes tasks directly without HTTP roundtrips
+// This is used as a fallback when API endpoint is not configured
+func (s *TaskService) executeTasksDirectly(ctx context.Context, tasks []*domain.Task) error {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "executeTasksDirectly")
+	defer tracing.EndSpan(span, nil)
+
+	now := time.Now().UTC()
+
+	tracing.AddAttribute(ctx, "task_count", len(tasks))
+
+	// Use a wait group to wait for all goroutines to complete
+	var wg sync.WaitGroup
+
+	for _, task := range tasks {
+		// Calculate timeout time instead of using context timeout
+		timeoutAt := now.Add(time.Duration(task.MaxRuntime) * time.Second)
+
+		// Add to wait group before launching goroutine
+		wg.Add(1)
+
+		// Handle the task in a goroutine
+		go func(t *domain.Task, timeout time.Time) {
+			defer wg.Done() // Signal completion when goroutine finishes
+
+			execCtx, execSpan := tracing.StartServiceSpan(ctx, "TaskService", "executeTaskDirectly")
+
+			// ExecuteTask bounds its own execution at timeout+taskExecutionGrace,
+			// so a stuck task cannot freeze the batch-wide wg.Wait() below.
+
+			// Set task attributes
+			tracing.AddAttribute(execCtx, "task_id", t.ID)
+			tracing.AddAttribute(execCtx, "workspace_id", t.WorkspaceID)
+			tracing.AddAttribute(execCtx, "task_type", t.Type)
+			tracing.AddAttribute(execCtx, "timeout_at", timeout.Format(time.RFC3339))
+			if t.BroadcastID != nil {
+				tracing.AddAttribute(execCtx, "broadcast_id", *t.BroadcastID)
+			}
+
+			// Ensure we clean up and handle timeout
+			defer func() {
+				tracing.EndSpan(execSpan, nil)
+			}()
+
+			if err := s.ExecuteTask(execCtx, t.WorkspaceID, t.ID, timeout); err != nil {
+				tracing.MarkSpanError(execCtx, err)
+				s.logger.WithField("task_id", t.ID).
+					WithField("workspace_id", t.WorkspaceID).
+					WithField("error", err.Error()).
+					Error("Failed to execute task")
+			}
+		}(task, timeoutAt)
+	}
+
+	// Wait for all goroutines to complete
+	wg.Wait()
+
+	return nil
+}
+
+// ExecuteTask executes a specific task
+func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string, timeoutAt time.Time) error {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "ExecuteTask")
+	defer tracing.EndSpan(span, nil)
+
+	tracing.AddAttribute(ctx, "workspace_id", workspace)
+	tracing.AddAttribute(ctx, "task_id", taskID)
+
+	// First check if the context is already cancelled
+	if ctx.Err() != nil {
+		tracing.MarkSpanError(ctx, ctx.Err())
+		return ctx.Err()
+	}
+
+	// Hard backstop for the whole execution: a processor whose DB call hangs on
+	// a lock is cancelled at timeout+grace instead of blocking its caller
+	// forever. Applied here — the choke point every entry path funnels through —
+	// so the in-process scheduler, the HTTP dispatch handler, and the
+	// synchronous segment-service triggers (which pass a background context) all
+	// get the same bound. If the caller's context carries an earlier deadline,
+	// the earlier one wins. Terminal status writes below use a detached bgCtx
+	// and are unaffected by this cancellation.
+	ctx, cancelExec := context.WithDeadline(ctx, timeoutAt.Add(taskExecutionGrace))
+	defer cancelExec()
+
+	// Get the task
+	var task *domain.Task
+	var processor domain.TaskProcessor
+
+	// Wrap the initial setup operations in a transaction
+	err := s.WithTransaction(ctx, func(tx *sql.Tx) error {
+		txCtx, txSpan := tracing.StartServiceSpan(ctx, "TaskService", "ExecuteTaskTransaction")
+		defer tracing.EndSpan(txSpan, nil)
+
+		var taskErr error
+		task, taskErr = s.repo.GetTx(txCtx, tx, workspace, taskID)
+		if taskErr != nil {
+			tracing.MarkSpanError(txCtx, taskErr)
+			s.logger.WithFields(map[string]interface{}{
+				"task_id":      taskID,
+				"workspace_id": workspace,
+				"error":        taskErr.Error(),
+			}).Error("Failed to get task for execution")
+			return &domain.ErrNotFound{
+				Entity: "task",
+				ID:     taskID,
+			}
+		}
+
+		if task != nil {
+			tracing.AddAttribute(txCtx, "task_type", task.Type)
+			if task.BroadcastID != nil {
+				tracing.AddAttribute(txCtx, "broadcast_id", *task.BroadcastID)
+			}
+		}
+
+		// Get the processor for this task type
+		var procErr error
+		processor, procErr = s.GetProcessor(task.Type)
+		if procErr != nil {
+			tracing.MarkSpanError(txCtx, procErr)
+			s.logger.WithFields(map[string]interface{}{
+				"task_id":      taskID,
+				"workspace_id": workspace,
+				"task_type":    task.Type,
+				"error":        procErr.Error(),
+			}).Error("Failed to get processor for task type")
+			return &domain.ErrTaskExecution{
+				TaskID: taskID,
+				Reason: "no processor registered for task type",
+				Err:    procErr,
+			}
+		}
+
+		// Use the passed timeoutAt parameter
+		tracing.AddAttribute(txCtx, "timeout_at", timeoutAt.Format(time.RFC3339))
+
+		// Mark task as running within the same transaction. The stored lease
+		// extends past the task's own timeout by the same grace as the execution
+		// context: GetNextBatch re-dispatches a running task once its lease
+		// expires, and a lease equal to the bare timeout would let a second
+		// execution start while the first is still inside its grace window —
+		// the graced one would then write terminal state over the row the new
+		// execution owns. With the grace included, the first execution is
+		// hard-cancelled at or before the moment it becomes reapable.
+		if markErr := s.repo.MarkAsRunningTx(txCtx, tx, workspace, taskID, timeoutAt.Add(taskExecutionGrace)); markErr != nil {
+			tracing.MarkSpanError(txCtx, markErr)
+			s.logger.WithFields(map[string]interface{}{
+				"task_id":      taskID,
+				"workspace_id": workspace,
+				"error":        markErr.Error(),
+			}).Error("Failed to mark task as running")
+			return &domain.ErrTaskExecution{
+				TaskID: taskID,
+				Reason: "failed to mark task as running",
+				Err:    markErr,
+			}
+		}
+
+		// Store timeoutAt for later use in processor
+		task.TimeoutAfter = &timeoutAt
+
+		return nil
+	})
+
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+		return err
+	}
+
+	// For non-parallel tasks, use the standard execution flow
+	// Set up completion channel and context handling
+	done := make(chan bool, 1)
+	processErr := make(chan error, 1)
+	bgCtx := context.Background()
+
+	// Process the task in a goroutine
+	go func() {
+		// A panicking processor must fail its task, not kill the server: this
+		// goroutine has no other recover, so without this a panic in any
+		// processor (broadcast send, import, sync, ...) crashes the whole
+		// process and drops every in-flight task and request. The panic is
+		// converted to the normal failed-task path with its stack preserved.
+		defer func() {
+			if r := recover(); r != nil {
+				processErr <- &domain.ErrTaskExecution{
+					TaskID: taskID,
+					Reason: "processor panicked",
+					Err:    fmt.Errorf("%v\n%s", r, debug.Stack()),
+				}
+			}
+		}()
+
+		procCtx, procSpan := tracing.StartServiceSpan(ctx, "TaskService", "ProcessTask")
+		defer tracing.EndSpan(procSpan, nil)
+
+		tracing.AddAttribute(procCtx, "task_id", taskID)
+		tracing.AddAttribute(procCtx, "workspace_id", workspace)
+		tracing.AddAttribute(procCtx, "task_type", task.Type)
+		if task.BroadcastID != nil {
+			tracing.AddAttribute(procCtx, "broadcast_id", *task.BroadcastID)
+		}
+
+		// Check if context was cancelled before we even start
+		if procCtx.Err() != nil {
+			tracing.MarkSpanError(procCtx, procCtx.Err())
+			processErr <- procCtx.Err()
+			return
+		}
+
+		// Track task execution time
+		startTime := time.Now()
+
+		// Call the processor
+		completed, err := processor.Process(procCtx, task, *task.TimeoutAfter)
+
+		// Calculate elapsed time
+		elapsed := time.Since(startTime)
+		tracing.AddAttribute(procCtx, "elapsed_time_ms", elapsed.Milliseconds())
+		tracing.AddAttribute(procCtx, "task_completed", completed)
+
+		if err != nil {
+			tracing.MarkSpanError(procCtx, err)
+			s.logger.WithFields(map[string]interface{}{
+				"task_id":      taskID,
+				"workspace_id": workspace,
+				"elapsed_time": elapsed,
+				"error":        err.Error(),
+			}).Error("Task processing failed")
+			processErr <- &domain.ErrTaskExecution{
+				TaskID: taskID,
+				Reason: "processing failed",
+				Err:    err,
+			}
+			return
+		}
+
+		done <- completed
+	}()
+
+	// Wait for completion, error, or timeout
+	select {
+	case <-ctx.Done():
+		// Two very different situations arrive here.
+		//
+		// context.Canceled means the parent went away — the server is shutting
+		// down, or the dispatcher hung up mid-run. That is not the task's fault
+		// and must not consume its retry budget: three deploys during a long
+		// broadcast used to be enough to kill it. Re-queue it instead.
+		//
+		// Only Canceled counts as an interruption. The data-feed fetchers build
+		// their own WithTimeout sub-contexts, so a feed timing out on its own
+		// surfaces as DeadlineExceeded and must keep counting as a real failure
+		// — as does our own timeout+grace backstop firing on a stuck processor,
+		// handled below.
+		if errors.Is(ctx.Err(), context.Canceled) {
+			// The processor goroutine is still unwinding. Leave a gap before the
+			// task becomes re-dispatchable (GetNextBatch takes any pending task
+			// whose next_run_after has elapsed) so a second execution cannot
+			// start alongside the first.
+			interruptedErr := &domain.ErrTaskExecution{
+				TaskID: taskID,
+				Reason: "execution interrupted",
+				Err:    ctx.Err(),
+			}
+			if relErr := s.repo.ReleaseTask(bgCtx, workspace, taskID, interruptedErr.Error(),
+				time.Now().UTC().Add(taskExecutionGrace)); relErr != nil {
+				if errors.Is(relErr, domain.ErrTaskNotRunning) {
+					// Something else already moved the task on while we were
+					// being cancelled — a cancelled broadcast, a pause. Their
+					// decision wins.
+					s.logger.WithFields(map[string]interface{}{
+						"task_id":      taskID,
+						"workspace_id": workspace,
+					}).Info("Interrupted task was already claimed or finalized elsewhere - leaving it alone")
+					return interruptedErr
+				}
+				s.logger.WithFields(map[string]interface{}{
+					"task_id":      taskID,
+					"workspace_id": workspace,
+					"error":        relErr.Error(),
+				}).Error("Failed to release interrupted task")
+				return fmt.Errorf("failed to release interrupted task: %w", relErr)
+			}
+			s.logger.WithFields(map[string]interface{}{
+				"task_id":      taskID,
+				"workspace_id": workspace,
+			}).Warn("Task execution was interrupted — re-queued without consuming a retry")
+			return interruptedErr
+		}
+
+		// The grace deadline (or an earlier caller deadline) fired while the
+		// processor was still running — a genuinely stuck execution. Release
+		// the task with a detached write so the scheduler can re-dispatch it;
+		// without this case a processor blocked in a call that ignores context
+		// would hold this function (and, from the scheduler path, the whole
+		// batch) forever. The processor goroutine keeps unwinding on its own:
+		// its context-aware calls are cancelled by this same context, and its
+		// eventual channel send lands in a buffered channel nobody reads.
+		timeoutErr := &domain.ErrTaskExecution{
+			TaskID: taskID,
+			Reason: "execution exceeded timeout and grace",
+			Err:    ctx.Err(),
+		}
+		if markErr := s.repo.MarkAsFailed(bgCtx, workspace, taskID, timeoutErr.Error()); markErr != nil {
+			s.logger.WithFields(map[string]interface{}{
+				"task_id":      taskID,
+				"workspace_id": workspace,
+				"error":        markErr.Error(),
+			}).Error("Failed to mark timed-out task as failed")
+			return fmt.Errorf("failed to mark timed-out task as failed: %w", markErr)
+		}
+		s.logger.WithFields(map[string]interface{}{
+			"task_id":      taskID,
+			"workspace_id": workspace,
+		}).Error("Task execution timed out past its grace window")
+		return timeoutErr
+	case completed := <-done:
+		if completed {
+			// Check if this is a recurring task
+			if task.IsRecurring() {
+				// Recurring task: reschedule instead of completing
+				rescheduleCtx, rescheduleSpan := tracing.StartServiceSpan(ctx, "TaskService", "RescheduleRecurringTask")
+				defer tracing.EndSpan(rescheduleSpan, nil)
+
+				tracing.AddAttribute(rescheduleCtx, "task_id", taskID)
+				tracing.AddAttribute(rescheduleCtx, "workspace_id", workspace)
+				tracing.AddAttribute(rescheduleCtx, "recurring_interval", *task.RecurringInterval)
+
+				// Calculate next run with backoff and jitter. The backoff is applied
+				// to a LOCAL copy on purpose: writing it back to
+				// task.RecurringInterval would make a temporary slowdown permanent,
+				// since nothing ever restores the original cadence once the
+				// integration recovers. The stored interval stays the configured one
+				// and the penalty lives in the task state instead.
+				interval := *task.RecurringInterval
+				if task.State != nil && task.State.IntegrationSync != nil {
+					if task.State.IntegrationSync.ConsecErrors > 0 {
+						// Quadratic backoff: errors^2 * 10 seconds, capped at 1 hour
+						backoff := int64(task.State.IntegrationSync.ConsecErrors * task.State.IntegrationSync.ConsecErrors * 10)
+						if backoff > 3600 {
+							backoff = 3600
+						}
+						interval += backoff
+						tracing.AddAttribute(rescheduleCtx, "backoff_seconds", backoff)
+					}
+				}
+
+				// Add jitter (10% of interval) to prevent thundering herd
+				jitter := time.Duration(rand.Int63n(interval/10+1)) * time.Second
+				nextRun := time.Now().UTC().Add(time.Duration(interval)*time.Second + jitter)
+
+				tracing.AddAttribute(rescheduleCtx, "next_run", nextRun.Format(time.RFC3339))
+
+				if err := s.repo.MarkAsPending(bgCtx, workspace, taskID, nextRun, 0, task.State); err != nil {
+					if errors.Is(err, domain.ErrTaskNotFound) {
+						// Task was deleted during execution, this is fine
+						s.logger.WithFields(map[string]interface{}{
+							"task_id":      taskID,
+							"workspace_id": workspace,
+						}).Info("Recurring task deleted during execution")
+						return nil
+					}
+					tracing.MarkSpanError(rescheduleCtx, err)
+					s.logger.WithFields(map[string]interface{}{
+						"task_id":      taskID,
+						"workspace_id": workspace,
+						"error":        err.Error(),
+					}).Error("Failed to reschedule recurring task")
+					return &domain.ErrTaskExecution{
+						TaskID: taskID,
+						Reason: "failed to reschedule recurring task",
+						Err:    err,
+					}
+				}
+				s.logger.WithFields(map[string]interface{}{
+					"task_id":      taskID,
+					"workspace_id": workspace,
+					"next_run":     nextRun,
+					"interval":     interval,
+				}).Info("Recurring task rescheduled")
+			} else {
+				// Non-recurring task: mark as completed
+				completeCtx, completeSpan := tracing.StartServiceSpan(ctx, "TaskService", "MarkTaskCompleted")
+				defer tracing.EndSpan(completeSpan, nil)
+
+				tracing.AddAttribute(completeCtx, "task_id", taskID)
+				tracing.AddAttribute(completeCtx, "workspace_id", workspace)
+
+				if err := s.repo.MarkAsCompleted(bgCtx, workspace, taskID, task.State); err != nil {
+					tracing.MarkSpanError(completeCtx, err)
+					s.logger.WithFields(map[string]interface{}{
+						"task_id":      taskID,
+						"workspace_id": workspace,
+						"error":        err.Error(),
+					}).Error("Failed to mark task as completed")
+					return &domain.ErrTaskExecution{
+						TaskID: taskID,
+						Reason: "failed to mark task as completed",
+						Err:    err,
+					}
+				}
+				s.logger.WithFields(map[string]interface{}{
+					"task_id":      taskID,
+					"workspace_id": workspace,
+				}).Info("Task completed successfully")
+			}
+		} else {
+			// Mark task as pending for next run
+			pendingCtx, pendingSpan := tracing.StartServiceSpan(ctx, "TaskService", "MarkTaskPending")
+			defer tracing.EndSpan(pendingSpan, nil)
+
+			tracing.AddAttribute(pendingCtx, "task_id", taskID)
+			tracing.AddAttribute(pendingCtx, "workspace_id", workspace)
+
+			nextRun := time.Now().UTC()
+			tracing.AddAttribute(pendingCtx, "next_run", nextRun.Format(time.RFC3339))
+			tracing.AddAttribute(pendingCtx, "progress", task.Progress)
+
+			if err := s.repo.MarkAsPending(bgCtx, task.WorkspaceID, task.ID, nextRun, task.Progress, task.State); err != nil {
+				tracing.MarkSpanError(pendingCtx, err)
+				s.logger.WithFields(map[string]interface{}{
+					"task_id":      taskID,
+					"workspace_id": workspace,
+					"error":        err.Error(),
+				}).Error("Failed to mark task as pending")
+				return &domain.ErrTaskExecution{
+					TaskID: taskID,
+					Reason: "failed to mark task as pending",
+					Err:    err,
+				}
+			}
+			s.logger.WithFields(map[string]interface{}{
+				"task_id":      taskID,
+				"workspace_id": workspace,
+				"next_run":     nextRun,
+			}).Info("Task pending and will continue in next run")
+		}
+	case err := <-processErr:
+		// An error that carries a cancellation is an interruption, not a
+		// failure: the processor was cut short by its context going away rather
+		// than by anything wrong with the task. Re-queue it immediately —
+		// unlike the ctx.Done() branch above, the processor goroutine has
+		// already returned, so there is no overlap window to avoid.
+		// The error is not always able to say it was cancelled: a cancellation
+		// that lands inside a transaction surfaces as sql.ErrTxDone, whose chain
+		// carries no context error. So also ask the context itself — but only
+		// about cancellation, since our own deadline firing (DeadlineExceeded)
+		// is a genuinely stuck processor and must still count as a failure.
+		if errors.Is(err, context.Canceled) || errors.Is(ctx.Err(), context.Canceled) {
+			if relErr := s.repo.ReleaseTask(bgCtx, workspace, taskID, err.Error(), time.Now().UTC()); relErr != nil {
+				if errors.Is(relErr, domain.ErrTaskNotRunning) {
+					s.logger.WithFields(map[string]interface{}{
+						"task_id":      taskID,
+						"workspace_id": workspace,
+					}).Info("Interrupted task was already claimed or finalized elsewhere - leaving it alone")
+					return err
+				}
+				s.logger.WithFields(map[string]interface{}{
+					"task_id":      taskID,
+					"workspace_id": workspace,
+					"error":        relErr.Error(),
+				}).Error("Failed to release interrupted task")
+				return fmt.Errorf("failed to release interrupted task: %w", relErr)
+			}
+			s.logger.WithFields(map[string]interface{}{
+				"task_id":      taskID,
+				"workspace_id": workspace,
+				"error":        err.Error(),
+			}).Warn("Task execution was interrupted — re-queued without consuming a retry")
+			return err
+		}
+
+		// Task failed with an error
+		failCtx, failSpan := tracing.StartServiceSpan(ctx, "TaskService", "MarkTaskFailed")
+		defer tracing.EndSpan(failSpan, nil)
+
+		tracing.AddAttribute(failCtx, "task_id", taskID)
+		tracing.AddAttribute(failCtx, "workspace_id", workspace)
+		tracing.AddAttribute(failCtx, "error", err.Error())
+
+		if markErr := s.repo.MarkAsFailed(bgCtx, workspace, taskID, err.Error()); markErr != nil {
+			tracing.MarkSpanError(failCtx, markErr)
+			s.logger.WithFields(map[string]interface{}{
+				"task_id":      taskID,
+				"workspace_id": workspace,
+				"error":        markErr.Error(),
+				"process_err":  err.Error(),
+			}).Error("Failed to mark task as failed")
+			return fmt.Errorf("failed to mark task as failed: %w", markErr)
+		}
+		return err
+	}
+
+	return nil
+}
+
+// GetLastCronRun retrieves the last cron execution timestamp
+func (s *TaskService) GetLastCronRun(ctx context.Context) (*time.Time, error) {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "GetLastCronRun")
+	defer tracing.EndSpan(span, nil)
+
+	lastRun, err := s.settingRepo.GetLastCronRun(ctx)
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithField("error", err.Error()).Error("Failed to get last cron run")
+		return nil, err
+	}
+
+	if lastRun != nil {
+		tracing.AddAttribute(ctx, "last_run", lastRun.Format(time.RFC3339))
+	}
+
+	return lastRun, nil
+}
+
+// SubscribeToBroadcastEvents registers handlers for broadcast-related events
+func (s *TaskService) SubscribeToBroadcastEvents(eventBus domain.EventBus) {
+	// Subscribe to broadcast events
+	eventBus.Subscribe(domain.EventBroadcastScheduled, s.handleBroadcastScheduled)
+	eventBus.Subscribe(domain.EventBroadcastPaused, s.handleBroadcastPaused)
+	eventBus.Subscribe(domain.EventBroadcastResumed, s.handleBroadcastResumed)
+	eventBus.Subscribe(domain.EventBroadcastSent, s.handleBroadcastSent)
+	eventBus.Subscribe(domain.EventBroadcastFailed, s.handleBroadcastFailed)
+	eventBus.Subscribe(domain.EventBroadcastCancelled, s.handleBroadcastCancelled)
+
+	s.logger.Info("TaskService subscribed to broadcast events")
+}
+
+// Event handlers for broadcast events
+func (s *TaskService) handleBroadcastScheduled(ctx context.Context, payload domain.EventPayload) {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "handleBroadcastScheduled")
+	defer tracing.EndSpan(span, nil)
+
+	broadcastID := payload.EntityID
+	tracing.AddAttribute(ctx, "broadcast_id", broadcastID)
+	tracing.AddAttribute(ctx, "workspace_id", payload.WorkspaceID)
+	tracing.AddAttribute(ctx, "event_type", payload.Type)
+
+	s.logger.WithFields(map[string]interface{}{
+		"broadcast_id": broadcastID,
+		"workspace_id": payload.WorkspaceID,
+	}).Info("Handling broadcast scheduled event")
+
+	// Extract payload data before transaction (needed after commit for immediate execution)
+	sendNow, _ := payload.Data["send_now"].(bool)
+	status, _ := payload.Data["status"].(string)
+
+	// Track whether we should trigger immediate execution after commit
+	shouldExecuteImmediately := false
+
+	// Use a transaction for checking and potentially updating/creating task
+	err := s.WithTransaction(ctx, func(tx *sql.Tx) error {
+		txCtx, txSpan := tracing.StartServiceSpan(ctx, "TaskService", "BroadcastScheduledTransaction")
+		defer tracing.EndSpan(txSpan, nil)
+
+		tracing.AddAttribute(txCtx, "send_now", sendNow)
+		tracing.AddAttribute(txCtx, "broadcast_status", status)
+
+		// Try to find the task for this broadcast ID directly
+		existingTask, err := s.repo.GetTaskByBroadcastID(txCtx, payload.WorkspaceID, broadcastID)
+		if err != nil {
+			// If no task exists, we'll create one later
+			tracing.AddAttribute(txCtx, "task_exists", false)
+			s.logger.WithField("broadcast_id", broadcastID).
+				WithField("error", err.Error()).
+				Debug("No existing task found for broadcast, will create new one")
+		}
+
+		// Update existing task if found
+		if existingTask != nil {
+			tracing.AddAttribute(txCtx, "task_exists", true)
+			tracing.AddAttribute(txCtx, "task_id", existingTask.ID)
+			tracing.AddAttribute(txCtx, "current_status", string(existingTask.Status))
+
+			s.logger.WithFields(map[string]interface{}{
+				"broadcast_id": broadcastID,
+				"task_id":      existingTask.ID,
+			}).Info("Task already exists for broadcast, updating status")
+
+			if sendNow && status == string(domain.BroadcastStatusProcessing) {
+				// If broadcast is being sent immediately, mark task as pending and set next run to now
+				nextRunAfter := time.Now()
+				existingTask.NextRunAfter = &nextRunAfter
+				existingTask.Status = domain.TaskStatusPending
+
+				// Ensure BroadcastID is set
+				if existingTask.BroadcastID == nil {
+					broadcastIDCopy := broadcastID
+					existingTask.BroadcastID = &broadcastIDCopy
+				}
+
+				if updateErr := s.repo.Update(txCtx, payload.WorkspaceID, existingTask); updateErr != nil {
+					tracing.MarkSpanError(txCtx, updateErr)
+					s.logger.WithFields(map[string]interface{}{
+						"broadcast_id": broadcastID,
+						"task_id":      existingTask.ID,
+						"error":        updateErr.Error(),
+					}).Error("Failed to update task for scheduled broadcast")
+					return updateErr
+				}
+
+				// Flag for immediate execution after transaction commits
+				shouldExecuteImmediately = true
+			}
+
+			return nil
+		}
+
+		// If no task exists, create one
+		s.logger.WithField("broadcast_id", broadcastID).Info("Creating new task for scheduled broadcast")
+
+		tracing.AddAttribute(txCtx, "creating_new_task", true)
+
+		// Create a copy of the broadcast ID for the pointer
+		broadcastIDCopy := broadcastID
+
+		task := &domain.Task{
+			WorkspaceID: payload.WorkspaceID,
+			Type:        "send_broadcast",
+			Status:      domain.TaskStatusPending,
+			BroadcastID: &broadcastIDCopy,
+			State: &domain.TaskState{
+				Progress: 0,
+				Message:  "Starting broadcast",
+				SendBroadcast: &domain.SendBroadcastState{
+					BroadcastID:     broadcastID,
+					ChannelType:     "email",
+					EnqueuedCount:   0,
+					FailedCount:     0,
+					RecipientOffset: 0,
+				},
+			},
+			MaxRuntime:    50, // 50 seconds
+			MaxRetries:    3,
+			RetryInterval: 300, // 5 minutes
+		}
+
+		// If the broadcast is set to send immediately, we don't need to set NextRunAfter
+		// If it's scheduled for the future, we should set NextRunAfter based on the schedule
+		if !sendNow && status == string(domain.BroadcastStatusScheduled) {
+
+			// Get broadcast schedule info from payload
+			if scheduledTimeStr, hasTime := payload.Data["scheduled_time"].(string); hasTime {
+
+				// Parse the scheduled time string
+				if scheduledTime, parseErr := time.Parse(time.RFC3339, scheduledTimeStr); parseErr == nil {
+					// Use the actual scheduled time from the broadcast
+					task.NextRunAfter = &scheduledTime
+					tracing.AddAttribute(txCtx, "next_run_after", scheduledTime.Format(time.RFC3339))
+					tracing.AddAttribute(txCtx, "scheduled_time_source", "payload")
+				} else {
+					log.Printf("Failed to parse scheduled_time: %v", parseErr)
+				}
+			}
+		}
+
+		if createErr := s.CreateTask(txCtx, payload.WorkspaceID, task); createErr != nil {
+			tracing.MarkSpanError(txCtx, createErr)
+			s.logger.WithFields(map[string]interface{}{
+				"broadcast_id": broadcastID,
+				"error":        createErr.Error(),
+			}).Error("Failed to create task for scheduled broadcast")
+			return createErr
+		}
+
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"workspace_id": payload.WorkspaceID,
+		}).Info("Successfully created task for scheduled broadcast")
+
+		// Flag for immediate execution if this is a send-now broadcast
+		if sendNow && status == string(domain.BroadcastStatusProcessing) {
+			shouldExecuteImmediately = true
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"workspace_id": payload.WorkspaceID,
+			"error":        err.Error(),
+		}).Error("Failed to handle broadcast scheduled event")
+		return
+	}
+
+	// Trigger immediate task execution after transaction commits (no sleep needed)
+	if shouldExecuteImmediately && s.autoExecuteImmediate {
+		go func() {
+			if execErr := s.ExecutePendingTasks(context.Background(), 1); execErr != nil {
+				s.logger.WithFields(map[string]interface{}{
+					"broadcast_id": broadcastID,
+					"error":        execErr.Error(),
+				}).Error("Failed to trigger immediate task execution")
+			}
+		}()
+	}
+}
+
+func (s *TaskService) handleBroadcastPaused(ctx context.Context, payload domain.EventPayload) {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "handleBroadcastPaused")
+	defer tracing.EndSpan(span, nil)
+
+	tracing.AddAttribute(ctx, "workspace_id", payload.WorkspaceID)
+	tracing.AddAttribute(ctx, "event_type", payload.Type)
+
+	broadcastID, ok := payload.Data["broadcast_id"].(string)
+	if !ok || broadcastID == "" {
+		err := fmt.Errorf("missing or invalid broadcast_id")
+		tracing.MarkSpanError(ctx, err)
+		s.logger.Error("Failed to handle broadcast paused event: missing or invalid broadcast_id")
+		return
+	}
+
+	tracing.AddAttribute(ctx, "broadcast_id", broadcastID)
+
+	s.logger.WithFields(map[string]interface{}{
+		"broadcast_id": broadcastID,
+		"workspace_id": payload.WorkspaceID,
+	}).Info("Handling broadcast paused event")
+
+	// Find associated task by broadcast ID
+	task, err := s.repo.GetTaskByBroadcastID(ctx, payload.WorkspaceID, broadcastID)
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithField("error", err.Error()).Debug("No task found for paused broadcast")
+		return
+	}
+
+	tracing.AddAttribute(ctx, "task_id", task.ID)
+	tracing.AddAttribute(ctx, "current_status", string(task.Status))
+
+	// Phase-2 pause: task already completed (orchestrator done enqueueing).
+	// Leave the task alone — we only want to pause the queue rows, which the
+	// service layer handled via PauseBySourceTx before publishing this event.
+	if task.Status == domain.TaskStatusCompleted {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+		}).Info("Broadcast paused after task completion - leaving task completed")
+		return
+	}
+
+	// Pause the task. UTC is mandatory because tasks.next_run_after is
+	// TIMESTAMP WITHOUT TIME ZONE — see task_handler.go timeoutAt comment.
+	nextRunAfter := time.Now().UTC().Add(24 * time.Hour) // Pause for 24 hours
+	tracing.AddAttribute(ctx, "next_run_after", nextRunAfter.Format(time.RFC3339))
+
+	if err := s.repo.MarkAsPaused(ctx, payload.WorkspaceID, task.ID, nextRunAfter, task.Progress, task.State); err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+			"error":        err.Error(),
+		}).Error("Failed to pause task for paused broadcast")
+	} else {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+		}).Info("Successfully paused task for paused broadcast")
+	}
+}
+
+func (s *TaskService) handleBroadcastResumed(ctx context.Context, payload domain.EventPayload) {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "handleBroadcastResumed")
+	defer tracing.EndSpan(span, nil)
+
+	tracing.AddAttribute(ctx, "workspace_id", payload.WorkspaceID)
+	tracing.AddAttribute(ctx, "event_type", payload.Type)
+
+	broadcastID, ok := payload.Data["broadcast_id"].(string)
+	if !ok || broadcastID == "" {
+		err := fmt.Errorf("missing or invalid broadcast_id")
+		tracing.MarkSpanError(ctx, err)
+		s.logger.Error("Failed to handle broadcast resumed event: missing or invalid broadcast_id")
+		return
+	}
+
+	tracing.AddAttribute(ctx, "broadcast_id", broadcastID)
+
+	s.logger.WithFields(map[string]interface{}{
+		"broadcast_id": broadcastID,
+		"workspace_id": payload.WorkspaceID,
+	}).Info("Handling broadcast resumed event")
+
+	// Find associated task by broadcast ID
+	task, err := s.repo.GetTaskByBroadcastID(ctx, payload.WorkspaceID, broadcastID)
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithField("error", err.Error()).Debug("No task found for resumed broadcast")
+		return
+	}
+
+	tracing.AddAttribute(ctx, "task_id", task.ID)
+	tracing.AddAttribute(ctx, "current_status", string(task.Status))
+
+	// Phase-2 resume: task already completed (orchestrator done enqueueing).
+	// CRITICAL: do not flip the task back to Pending — the next ExecutePendingTasks
+	// tick would re-run the orchestrator and re-enqueue every recipient.
+	// The queue-row resume is handled by the service layer before this event fires.
+	if task.Status == domain.TaskStatusCompleted {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+		}).Info("Broadcast resumed after task completion - leaving task completed")
+		return
+	}
+
+	// Resume the task with a fresh retry budget. repo.Update writes retry_count
+	// verbatim, so without this a broadcast that was paused after burning
+	// retries on transient failures came back one failure from being marked
+	// failed for good — and the console offers no other way to clear it.
+	nextRunAfter := time.Now().UTC()
+	task.NextRunAfter = &nextRunAfter
+	task.Status = domain.TaskStatusPending
+	task.RetryCount = 0
+	task.ErrorMessage = nil
+
+	tracing.AddAttribute(ctx, "next_run_after", nextRunAfter.Format(time.RFC3339))
+	tracing.AddAttribute(ctx, "new_status", string(task.Status))
+
+	if err := s.repo.Update(ctx, payload.WorkspaceID, task); err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+			"error":        err.Error(),
+		}).Error("Failed to resume task for resumed broadcast")
+	} else {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+		}).Info("Successfully resumed task for resumed broadcast")
+
+		// Check if broadcast should start immediately
+		startNow, _ := payload.Data["start_now"].(bool)
+		if startNow && s.autoExecuteImmediate {
+			// Immediately trigger task execution
+			go func() {
+				// Small delay to ensure transaction is committed
+				time.Sleep(100 * time.Millisecond)
+				if execErr := s.ExecutePendingTasks(context.Background(), 1); execErr != nil {
+					s.logger.WithFields(map[string]interface{}{
+						"broadcast_id": broadcastID,
+						"task_id":      task.ID,
+						"error":        execErr.Error(),
+					}).Error("Failed to trigger immediate task execution for resumed broadcast")
+				}
+			}()
+		}
+	}
+}
+
+func (s *TaskService) handleBroadcastSent(ctx context.Context, payload domain.EventPayload) {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "handleBroadcastSent")
+	defer tracing.EndSpan(span, nil)
+
+	tracing.AddAttribute(ctx, "workspace_id", payload.WorkspaceID)
+	tracing.AddAttribute(ctx, "event_type", payload.Type)
+
+	broadcastID, ok := payload.Data["broadcast_id"].(string)
+	if !ok || broadcastID == "" {
+		err := fmt.Errorf("missing or invalid broadcast_id")
+		tracing.MarkSpanError(ctx, err)
+		s.logger.Error("Failed to handle broadcast sent event: missing or invalid broadcast_id")
+		return
+	}
+
+	tracing.AddAttribute(ctx, "broadcast_id", broadcastID)
+
+	s.logger.WithFields(map[string]interface{}{
+		"broadcast_id": broadcastID,
+		"workspace_id": payload.WorkspaceID,
+	}).Info("Handling broadcast sent event")
+
+	// Find associated task by broadcast ID
+	task, err := s.repo.GetTaskByBroadcastID(ctx, payload.WorkspaceID, broadcastID)
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithField("error", err.Error()).Debug("No task found for sent broadcast")
+		return
+	}
+
+	tracing.AddAttribute(ctx, "task_id", task.ID)
+	tracing.AddAttribute(ctx, "current_status", string(task.Status))
+
+	// Mark the task as completed
+	if err := s.repo.MarkAsCompleted(ctx, payload.WorkspaceID, task.ID, task.State); err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+			"error":        err.Error(),
+		}).Error("Failed to complete task for sent broadcast")
+	} else {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+		}).Info("Successfully completed task for sent broadcast")
+	}
+}
+
+func (s *TaskService) handleBroadcastFailed(ctx context.Context, payload domain.EventPayload) {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "handleBroadcastFailed")
+	defer tracing.EndSpan(span, nil)
+
+	tracing.AddAttribute(ctx, "workspace_id", payload.WorkspaceID)
+	tracing.AddAttribute(ctx, "event_type", payload.Type)
+
+	broadcastID, ok := payload.Data["broadcast_id"].(string)
+	if !ok || broadcastID == "" {
+		err := fmt.Errorf("missing or invalid broadcast_id")
+		tracing.MarkSpanError(ctx, err)
+		s.logger.Error("Failed to handle broadcast failed event: missing or invalid broadcast_id")
+		return
+	}
+
+	tracing.AddAttribute(ctx, "broadcast_id", broadcastID)
+
+	reason, _ := payload.Data["reason"].(string)
+	if reason == "" {
+		reason = "Broadcast failed"
+	}
+
+	tracing.AddAttribute(ctx, "failure_reason", reason)
+
+	s.logger.WithFields(map[string]interface{}{
+		"broadcast_id": broadcastID,
+		"workspace_id": payload.WorkspaceID,
+		"reason":       reason,
+	}).Info("Handling broadcast failed event")
+
+	// Find associated task by broadcast ID
+	task, err := s.repo.GetTaskByBroadcastID(ctx, payload.WorkspaceID, broadcastID)
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithField("error", err.Error()).Debug("No task found for failed broadcast")
+		return
+	}
+
+	tracing.AddAttribute(ctx, "task_id", task.ID)
+	tracing.AddAttribute(ctx, "current_status", string(task.Status))
+
+	// Mark the task as failed
+	if err := s.repo.MarkAsFailed(ctx, payload.WorkspaceID, task.ID, reason); err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+			"error":        err.Error(),
+		}).Error("Failed to mark task as failed for failed broadcast")
+	} else {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+		}).Info("Successfully marked task as failed for failed broadcast")
+	}
+}
+
+func (s *TaskService) handleBroadcastCancelled(ctx context.Context, payload domain.EventPayload) {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "handleBroadcastCancelled")
+	defer tracing.EndSpan(span, nil)
+
+	tracing.AddAttribute(ctx, "workspace_id", payload.WorkspaceID)
+	tracing.AddAttribute(ctx, "event_type", payload.Type)
+
+	broadcastID, ok := payload.Data["broadcast_id"].(string)
+	if !ok || broadcastID == "" {
+		err := fmt.Errorf("missing or invalid broadcast_id")
+		tracing.MarkSpanError(ctx, err)
+		s.logger.Error("Failed to handle broadcast cancelled event: missing or invalid broadcast_id")
+		return
+	}
+
+	tracing.AddAttribute(ctx, "broadcast_id", broadcastID)
+
+	s.logger.WithFields(map[string]interface{}{
+		"broadcast_id": broadcastID,
+		"workspace_id": payload.WorkspaceID,
+	}).Info("Handling broadcast cancelled event")
+
+	// Find associated task by broadcast ID
+	task, err := s.repo.GetTaskByBroadcastID(ctx, payload.WorkspaceID, broadcastID)
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithField("error", err.Error()).Debug("No task found for cancelled broadcast")
+		return
+	}
+
+	tracing.AddAttribute(ctx, "task_id", task.ID)
+	tracing.AddAttribute(ctx, "current_status", string(task.Status))
+
+	// Phase-2 cancel: the enqueue task genuinely succeeded; don't overwrite its
+	// status to Failed. Queue-row deletion is handled by the service layer.
+	if task.Status == domain.TaskStatusCompleted {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+		}).Info("Broadcast cancelled after task completion - leaving task completed")
+		return
+	}
+
+	// Mark the task as failed with cancellation reason
+	cancelReason := "Broadcast was cancelled"
+	tracing.AddAttribute(ctx, "cancel_reason", cancelReason)
+
+	if err := s.repo.MarkAsFailed(ctx, payload.WorkspaceID, task.ID, cancelReason); err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+			"error":        err.Error(),
+		}).Error("Failed to mark task as failed for cancelled broadcast")
+	} else {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+		}).Info("Successfully marked task as failed for cancelled broadcast")
+	}
+}
+
+// ResetTask resets a failed recurring task, clearing error state and rescheduling for immediate execution
+func (s *TaskService) ResetTask(ctx context.Context, workspace, taskID string) error {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "ResetTask")
+	defer func() { tracing.EndSpan(span, nil) }()
+
+	tracing.AddAttribute(ctx, "task_id", taskID)
+	tracing.AddAttribute(ctx, "workspace_id", workspace)
+
+	// Get the task
+	task, err := s.repo.Get(ctx, workspace, taskID)
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+		return domain.ErrTaskNotFound
+	}
+
+	// Verify task is in failed state
+	if task.Status != domain.TaskStatusFailed {
+		return fmt.Errorf("task is not in failed state, current status: %s", task.Status)
+	}
+
+	// Verify task is recurring
+	if !task.IsRecurring() {
+		return fmt.Errorf("task is not a recurring task")
+	}
+
+	// Reset error state in IntegrationSync
+	if task.State != nil && task.State.IntegrationSync != nil {
+		task.State.IntegrationSync.ConsecErrors = 0
+		task.State.IntegrationSync.LastError = nil
+		task.State.IntegrationSync.LastErrorType = ""
+	}
+
+	// Schedule for immediate execution
+	nextRun := time.Now().UTC()
+
+	if err := s.repo.MarkAsPending(ctx, workspace, taskID, nextRun, 0, task.State); err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithFields(map[string]interface{}{
+			"task_id":      taskID,
+			"workspace_id": workspace,
+			"error":        err.Error(),
+		}).Error("Failed to reset task")
+		return fmt.Errorf("failed to reset task: %w", err)
+	}
+
+	s.logger.WithFields(map[string]interface{}{
+		"task_id":      taskID,
+		"workspace_id": workspace,
+	}).Info("Task reset successfully")
+
+	return nil
+}
+
+// TriggerTask triggers an immediate execution of a recurring task
+func (s *TaskService) TriggerTask(ctx context.Context, workspace, taskID string) error {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "TriggerTask")
+	defer func() { tracing.EndSpan(span, nil) }()
+
+	tracing.AddAttribute(ctx, "task_id", taskID)
+	tracing.AddAttribute(ctx, "workspace_id", workspace)
+
+	// Get the task
+	task, err := s.repo.Get(ctx, workspace, taskID)
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+		return domain.ErrTaskNotFound
+	}
+
+	// Verify task is recurring
+	if !task.IsRecurring() {
+		return fmt.Errorf("task is not a recurring task")
+	}
+
+	// Check if task is already running
+	if task.Status == domain.TaskStatusRunning {
+		return &domain.ErrTaskAlreadyRunning{TaskID: taskID}
+	}
+
+	// Check if task is in a state that can be triggered
+	if task.Status != domain.TaskStatusPending && task.Status != domain.TaskStatusPaused {
+		return fmt.Errorf("task cannot be triggered in current status: %s", task.Status)
+	}
+
+	// Schedule for immediate execution
+	nextRun := time.Now().UTC()
+
+	if err := s.repo.MarkAsPending(ctx, workspace, taskID, nextRun, task.Progress, task.State); err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithFields(map[string]interface{}{
+			"task_id":      taskID,
+			"workspace_id": workspace,
+			"error":        err.Error(),
+		}).Error("Failed to trigger task")
+		return fmt.Errorf("failed to trigger task: %w", err)
+	}
+
+	s.logger.WithFields(map[string]interface{}{
+		"task_id":      taskID,
+		"workspace_id": workspace,
+	}).Info("Task triggered for immediate execution")
+
+	return nil
+}

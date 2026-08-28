@@ -1,0 +1,1346 @@
+package service
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/Notifuse/notifuse/pkg/safehttpclient"
+	"github.com/Notifuse/notifuse/pkg/tracing"
+	"github.com/google/uuid"
+)
+
+// InboundWebhookEventService implements the domain.InboundWebhookEventServiceInterface
+type InboundWebhookEventService struct {
+	repo               domain.InboundWebhookEventRepository
+	authService        domain.AuthService
+	logger             logger.Logger
+	workspaceRepo      domain.WorkspaceRepository
+	messageHistoryRepo domain.MessageHistoryRepository
+	contactRepo        domain.ContactRepository
+	automationRepo     domain.AutomationRepository
+	replyParsers       map[domain.EmailProviderKind]domain.ReplyParser
+	// httpClient fetches the SNS SubscribeURL. It is SSRF-safe because that URL
+	// arrives in the request body of a public endpoint — see confirmSNSSubscription.
+	httpClient *http.Client
+}
+
+// NewInboundWebhookEventService creates a new InboundWebhookEventService
+func NewInboundWebhookEventService(
+	repo domain.InboundWebhookEventRepository,
+	authService domain.AuthService,
+	logger logger.Logger,
+	workspaceRepo domain.WorkspaceRepository,
+	messageHistoryRepo domain.MessageHistoryRepository,
+	contactRepo domain.ContactRepository,
+	automationRepo domain.AutomationRepository,
+) *InboundWebhookEventService {
+	return &InboundWebhookEventService{
+		repo:               repo,
+		authService:        authService,
+		logger:             logger,
+		workspaceRepo:      workspaceRepo,
+		messageHistoryRepo: messageHistoryRepo,
+		contactRepo:        contactRepo,
+		automationRepo:     automationRepo,
+		httpClient:         safehttpclient.New(),
+		replyParsers: map[domain.EmailProviderKind]domain.ReplyParser{
+			domain.EmailProviderKindMailgun: &MailgunReplyParser{},
+			// SES delivers replies via SNS (signed); the parser needs an SSRF-safe client
+			// to fetch the signing cert and confirm the subscription.
+			domain.EmailProviderKindSES: NewSESReplyParser(safehttpclient.New()),
+		},
+	}
+}
+
+// ProcessInboundReply ingests an inbound reply forwarded by a provider's inbound
+// parsing feature. See the interface doc for the contract.
+func (s *InboundWebhookEventService) ProcessInboundReply(ctx context.Context, workspaceID, integrationID string, req *domain.InboundRequest) error {
+	ctx, span := tracing.StartServiceSpan(ctx, "InboundWebhookEventService", "ProcessInboundReply")
+	defer tracing.EndSpan(span, nil)
+	tracing.AddAttribute(ctx, "workspaceID", workspaceID)
+	tracing.AddAttribute(ctx, "integrationID", integrationID)
+
+	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace: %w", err)
+	}
+	var integration domain.Integration
+	found := false
+	for _, i := range workspace.Integrations {
+		if i.ID == integrationID {
+			integration = i
+			found = true
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("%q: %w", integrationID, domain.ErrInboundIntegrationNotFound)
+	}
+	// Integration secrets (provider signing key) are already decrypted by
+	// workspaceRepo.GetByID (AfterLoad), so no decryption is needed here.
+
+	// Resolve the provider parser.
+	parser, ok := s.replyParsers[integration.EmailProvider.Kind]
+	if !ok {
+		return fmt.Errorf("%q: %w", integration.EmailProvider.Kind, domain.ErrInboundProviderUnsupported)
+	}
+
+	// Authenticate via the provider's native signature (e.g. Mailgun HMAC, SNS RSA).
+	if err := parser.Verify(req, &integration); err != nil {
+		// A provider control message (e.g. an SNS subscription confirmation) is handled by
+		// the parser itself — there is no reply to ingest; acknowledge with 200.
+		if errors.Is(err, domain.ErrInboundControlMessage) {
+			s.logger.WithField("workspace_id", workspaceID).
+				WithField("integration_id", integrationID).
+				Info("Acknowledged inbound provider control message")
+			return nil
+		}
+		return fmt.Errorf("inbound reply verification failed: %w", err)
+	}
+
+	reply, err := parser.Parse(req)
+	if err != nil {
+		return fmt.Errorf("failed to parse inbound reply: %w", err)
+	}
+
+	// Classify: drop bounces/unsubscribes; auto-replies are recorded but never exit.
+	class := domain.Classify(reply)
+	if class == domain.ReplyBounce || class == domain.ReplyUnsubscribe {
+		return nil
+	}
+
+	// Match the reply to a contact (and, via Message-ID, an exact automation).
+	contactEmail, automationID, err := s.matchReply(ctx, workspaceID, reply)
+	if err != nil {
+		return err // real error → non-2xx → provider retries
+	}
+	if contactEmail == "" {
+		// An SES-style In-Reply-To that matched no stored send is logged at WARN so the miss is
+		// observable. It is almost always a reply to mail we didn't send/track (a transactional
+		// email, or a pruned history row), but it could in theory be the narrow send→store race
+		// for capture providers: SES returns the Message-ID only AFTER send, so the smtp_message_id
+		// is persisted post-dispatch. In practice the inbound SNS delivery latency (seconds) far
+		// exceeds that store latency (ms), so the row is present by the time a reply arrives. We
+		// deliberately do NOT return 5xx here: that would make SNS retry every genuinely-unknown
+		// reply on its full schedule until it dead-letters.
+		if replyHasSESShapedThreading(reply) {
+			s.logger.WithField("workspace_id", workspaceID).
+				WithField("sender", reply.FromEmail).
+				WithField("in_reply_to", reply.InReplyTo).
+				Warn("Inbound SES-threaded reply matched no stored send")
+			return nil
+		}
+		s.logger.WithField("workspace_id", workspaceID).
+			WithField("sender", reply.FromEmail).
+			Info("Ignoring inbound reply from unknown contact")
+		return nil
+	}
+
+	// Record the event (the type drives the timeline kind via the DB trigger).
+	eventType := domain.EmailEventReply
+	if class == domain.ReplyAutoResponder {
+		eventType = domain.EmailEventAutoReply
+	}
+	// Dedup key: a reply usually carries its own Message-Id; when it doesn't, synthesize a
+	// stable one from its content so the (message_id) dedup index still catches provider
+	// retries. Truncate to the column width (VARCHAR(255)) so an oversized client-supplied
+	// id can't cause a permanent 22001 -> 500 -> infinite-retry loop.
+	replyMessageID := reply.MessageID
+	if replyMessageID == "" {
+		replyMessageID = syntheticReplyMessageID(reply)
+	}
+	if len(replyMessageID) > 255 {
+		replyMessageID = replyMessageID[:255]
+	}
+	event := domain.NewInboundWebhookEvent(
+		uuid.New().String(),
+		eventType,
+		parser.Source(),
+		integrationID,
+		contactEmail,
+		&replyMessageID,
+		reply.ReceivedAt,
+		compactReplyPayload(reply, parser.Source()),
+	)
+	inserted, err := s.repo.StoreReplyEvent(ctx, workspaceID, event)
+	if err != nil {
+		return fmt.Errorf("failed to store inbound reply event: %w", err)
+	}
+
+	// Only a genuine human reply exits the journey, and only when this reply was NEWLY
+	// stored — a deduped provider retry must not re-fire the exit, or a replay that lands
+	// after the contact re-enrolled would wrongly kill the fresh journey instance. The exit
+	// is also bounded to journeys entered before the reply was received (you cannot reply to
+	// an email from a journey instance that did not exist yet).
+	if class == domain.ReplyGenuine && inserted {
+		n, err := s.automationRepo.ExitContactJourneysOnReply(ctx, workspaceID, contactEmail, automationID, "replied", reply.ReceivedAt)
+		if err != nil {
+			return fmt.Errorf("failed to exit journeys on reply: %w", err)
+		}
+		s.logger.WithField("workspace_id", workspaceID).
+			WithField("contact", contactEmail).
+			WithField("exited", n).
+			Info("Processed inbound reply")
+	}
+
+	return nil
+}
+
+// replyHasSESShapedThreading reports whether the reply threads to an SES-stamped Message-ID
+// (an "...@*.amazonses.com" In-Reply-To/References), used to flag a capture-provider miss.
+func replyHasSESShapedThreading(reply *domain.InboundReply) bool {
+	if domain.SESReplyCandidate(reply.InReplyTo) != "" {
+		return true
+	}
+	for _, ref := range reply.References {
+		if domain.SESReplyCandidate(ref) != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// matchReply resolves the contact and the exact automation for a reply, strictly via
+// RFC threading headers (In-Reply-To / References) matched against the Message-ID we
+// stored at send time. Returns an empty contactEmail when no stored send is referenced.
+//
+// The previous sender-address fallback was removed deliberately: matching by the From
+// address alone cannot tell which send was replied to, so it over-exited every flagged
+// journey for the contact (including automations the replied-to email never belonged to).
+// Replies that carry no usable threading header are intended to be recovered by a
+// header-independent but send-precise signal (a per-send Reply-To/VERP token, or a body
+// watermark) so the exit stays scoped to the exact send — not yet implemented.
+func (s *InboundWebhookEventService) matchReply(ctx context.Context, workspaceID string, reply *domain.InboundReply) (string, *string, error) {
+	threaded := append([]string{reply.InReplyTo}, reply.References...)
+	candidates := make([]string, 0, len(threaded)*2)
+	for _, mid := range threaded {
+		if mid == "" {
+			continue
+		}
+		candidates = append(candidates, mid)
+		// SES overwrites the Message-ID with "<localpart@<sub>.amazonses.com>" and the host
+		// it uses is not contractually stable, so also try the host-independent local part
+		// (the bare MessageId we stored). No-op for non-SES threading headers.
+		if local := domain.SESReplyCandidate(mid); local != "" && local != mid {
+			candidates = append(candidates, local)
+		}
+	}
+	for _, mid := range candidates {
+		mh, err := s.messageHistoryRepo.GetBySMTPMessageID(ctx, workspaceID, mid)
+		if err != nil {
+			return "", nil, fmt.Errorf("failed to look up message by smtp_message_id: %w", err)
+		}
+		if mh != nil {
+			return mh.ContactEmail, mh.AutomationID, nil
+		}
+	}
+	return "", nil, nil
+}
+
+// compactReplyPayload serializes only the canonical reply fields (no body) for
+// storage, minimizing stored PII.
+func compactReplyPayload(reply *domain.InboundReply, source domain.WebhookSource) string {
+	b, _ := json.Marshal(map[string]interface{}{
+		"from":        reply.FromEmail,
+		"to":          reply.ToEmail,
+		"subject":     reply.Subject,
+		"message_id":  reply.MessageID,
+		"in_reply_to": reply.InReplyTo,
+		"references":  reply.References,
+		"received_at": reply.ReceivedAt,
+		"source":      string(source),
+	})
+	return string(b)
+}
+
+// ProcessWebhook processes a webhook event from an email provider
+func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspaceID string, integrationID string, rawPayload []byte) error {
+	// codecov:ignore:start
+	ctx, span := tracing.StartServiceSpan(ctx, "InboundWebhookEventService", "ProcessWebhook")
+	defer tracing.EndSpan(span, nil)
+	tracing.AddAttribute(ctx, "workspaceID", workspaceID)
+	tracing.AddAttribute(ctx, "integrationID", integrationID)
+	// codecov:ignore:end
+
+	// get workspace and integration
+	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
+	if err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return fmt.Errorf("failed to get workspace: %w", err)
+	}
+	var integration domain.Integration
+	for _, i := range workspace.Integrations {
+		if i.ID == integrationID {
+			integration = i
+			break
+		}
+	}
+	var events []*domain.InboundWebhookEvent
+
+	switch integration.EmailProvider.Kind {
+	case domain.EmailProviderKindSES:
+		events, err = s.processSESWebhook(integration.ID, rawPayload)
+	case domain.EmailProviderKindPostmark:
+		events, err = s.processPostmarkWebhook(integration.ID, rawPayload)
+	case domain.EmailProviderKindMailgun:
+		events, err = s.processMailgunWebhook(integration.ID, rawPayload)
+	case domain.EmailProviderKindSparkPost:
+		events, err = s.processSparkPostWebhook(integration.ID, rawPayload)
+	case domain.EmailProviderKindMailjet:
+		events, err = s.processMailjetWebhook(integration.ID, rawPayload)
+	case domain.EmailProviderKindSMTP:
+		events, err = s.processSMTPWebhook(integration.ID, rawPayload)
+	case domain.EmailProviderKindSendGrid:
+		events, err = s.processSendGridWebhook(integration.ID, rawPayload)
+	default:
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, fmt.Errorf("unsupported email provider kind: %s", integration.EmailProvider.Kind))
+		// codecov:ignore:end
+		return fmt.Errorf("unsupported email provider kind: %s", integration.EmailProvider.Kind)
+	}
+
+	if err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return fmt.Errorf("failed to process webhook: %w", err)
+	}
+
+	// Store the event
+	// No authentication needed for webhook events as they come from external providers
+	if err := s.repo.StoreEvents(ctx, workspaceID, events); err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return fmt.Errorf("failed to store inbound webhook events: %w", err)
+	}
+
+	updates := []domain.MessageEventUpdate{}
+	var hardEmails []string
+	var softCountEmails []string
+
+	for _, event := range events {
+		switch event.Type {
+		case domain.EmailEventDelivered:
+			if event.MessageID != nil && *event.MessageID != "" {
+				updates = append(updates, domain.MessageEventUpdate{
+					ID:        *event.MessageID,
+					Event:     domain.MessageEventDelivered,
+					Timestamp: event.Timestamp,
+				})
+			}
+
+		case domain.EmailEventBounce:
+			class := domain.ClassifyBounce(domain.BounceInput{
+				Provider:   integration.EmailProvider.Kind,
+				Type:       event.BounceType,
+				Subtype:    event.BounceCategory,
+				Diagnostic: event.BounceDiagnostic,
+			})
+			switch class {
+			case domain.BounceClassificationHard:
+				hardEmails = append(hardEmails, event.RecipientEmail)
+				if event.MessageID != nil && *event.MessageID != "" {
+					reason := fmt.Sprintf("%s %s %s", event.BounceType, event.BounceCategory, event.BounceDiagnostic)
+					if len(reason) > 255 {
+						reason = reason[:255]
+					}
+					updates = append(updates, domain.MessageEventUpdate{
+						ID:         *event.MessageID,
+						Event:      domain.MessageEventBounced,
+						Timestamp:  event.Timestamp,
+						StatusInfo: &reason,
+					})
+				}
+
+			case domain.BounceClassificationSoftCount:
+				softCountEmails = append(softCountEmails, event.RecipientEmail)
+				s.logger.WithField("recipient_email", event.RecipientEmail).
+					WithField("bounce_type", event.BounceType).
+					WithField("bounce_category", event.BounceCategory).
+					Debug("counting soft bounce toward threshold")
+
+			case domain.BounceClassificationSoftIgnore:
+				s.logger.WithField("recipient_email", event.RecipientEmail).
+					WithField("bounce_type", event.BounceType).
+					WithField("bounce_category", event.BounceCategory).
+					Debug("ignoring message-level soft bounce")
+			}
+
+		case domain.EmailEventComplaint:
+			if event.MessageID != nil && *event.MessageID != "" {
+				reason := event.ComplaintFeedbackType
+				if len(reason) > 255 {
+					reason = reason[:255]
+				}
+				updates = append(updates, domain.MessageEventUpdate{
+					ID:         *event.MessageID,
+					Event:      domain.MessageEventComplained,
+					Timestamp:  event.Timestamp,
+					StatusInfo: &reason,
+				})
+			}
+		}
+	}
+
+	if err := s.messageHistoryRepo.SetStatusesIfNotSet(ctx, workspaceID, updates); err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return fmt.Errorf("failed to update message status: %w", err)
+	}
+
+	if len(softCountEmails) > 0 {
+		threshold := domain.DefaultSoftBounceThreshold
+		counts, err := s.repo.CountConsecutiveSoftBounces(ctx, workspaceID, softCountEmails)
+		if err != nil {
+			// codecov:ignore:start
+			tracing.MarkSpanError(ctx, err)
+			// codecov:ignore:end
+			return fmt.Errorf("failed to count consecutive soft bounces: %w", err)
+		}
+		for email, n := range counts {
+			if n >= threshold {
+				hardEmails = append(hardEmails, email)
+			}
+		}
+	}
+
+	if len(hardEmails) > 0 {
+		if err := s.contactRepo.MarkEmailsAsBounced(ctx, workspaceID, dedupeStrings(hardEmails), time.Now().UTC()); err != nil {
+			// codecov:ignore:start
+			tracing.MarkSpanError(ctx, err)
+			// codecov:ignore:end
+			return fmt.Errorf("failed to mark emails as bounced: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// dedupeStrings returns a new slice with duplicates removed, preserving the
+// order of first occurrence.
+func dedupeStrings(in []string) []string {
+	if len(in) <= 1 {
+		return in
+	}
+	seen := make(map[string]struct{}, len(in))
+	out := make([]string, 0, len(in))
+	for _, s := range in {
+		if _, ok := seen[s]; ok {
+			continue
+		}
+		seen[s] = struct{}{}
+		out = append(out, s)
+	}
+	return out
+}
+
+// extractXMessageIDFromHeaders searches for the X-Message-ID header in SES mail headers.
+// This is used as a fallback when notifuse_message_id tag is not present
+// (e.g., for emails sent via SendRawEmail before tags were added).
+func extractXMessageIDFromHeaders(headers []domain.SESHeader) string {
+	for _, header := range headers {
+		if strings.EqualFold(header.Name, "X-Message-ID") {
+			return header.Value
+		}
+	}
+	return ""
+}
+
+// confirmSNSSubscription fetches an SNS SubscribeURL to complete a topic subscription.
+//
+// The URL is attacker-supplied — it arrives in the body of a public webhook endpoint
+// and nothing upstream has authenticated it — so it gets the same two guards the SES
+// reply parser applies: validateSNSURL restricts it to an https AWS SNS host, and the
+// SSRF-safe client refuses to connect to private or loopback addresses. Neither alone
+// is sufficient; keep both.
+//
+// The context is bounded but not the caller's: confirming a subscription is a side
+// effect worth finishing, and abandoning it because the client hung up would leave the
+// topic unconfirmed with nothing to retry it.
+func (s *InboundWebhookEventService) confirmSNSSubscription(subscribeURL string) (*http.Response, error) {
+	if err := validateSNSURL(subscribeURL); err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), sesInboundFetchTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, subscribeURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	client := s.httpClient
+	if client == nil {
+		client = safehttpclient.New()
+	}
+	return client.Do(req)
+}
+
+// processSESWebhook processes a webhook event from Amazon SES
+func (s *InboundWebhookEventService) processSESWebhook(integrationID string, rawPayload []byte) (events []*domain.InboundWebhookEvent, err error) {
+
+	// First, parse the SNS message wrapper
+	var snsPayload domain.SESWebhookPayload
+	if err := json.Unmarshal(rawPayload, &snsPayload); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal SES webhook payload: %w", err)
+	}
+
+	// Handle subscription confirmation
+	if snsPayload.Type == "SubscriptionConfirmation" {
+		s.logger.WithField("integration_id", integrationID).
+			WithField("topic_arn", snsPayload.TopicARN).
+			Info("Processing SNS subscription confirmation")
+
+		// Confirm the subscription by fetching the SubscribeURL. That URL comes
+		// straight out of the request body on a public endpoint, so it is treated as
+		// hostile input: it must be an https AWS SNS host, and the fetch goes through
+		// the SSRF-safe client so it cannot be aimed at a private address.
+		resp, err := s.confirmSNSSubscription(snsPayload.SubscribeURL)
+		if err != nil {
+			s.logger.WithField("error", err.Error()).
+				WithField("integration_id", integrationID).
+				Error("Failed to confirm subscription")
+			return nil, fmt.Errorf("failed to confirm subscription: %w", err)
+		}
+		defer func() { _ = resp.Body.Close() }()
+
+		s.logger.WithField("integration_id", integrationID).
+			WithField("topic_arn", snsPayload.TopicARN).
+			WithField("status_code", resp.StatusCode).
+			Info("SNS subscription confirmed successfully")
+
+		// Return empty events slice for subscription confirmations
+		return []*domain.InboundWebhookEvent{}, nil
+	}
+
+	// Handle unsubscribe confirmation
+	if snsPayload.Type == "UnsubscribeConfirmation" {
+		s.logger.WithField("integration_id", integrationID).
+			WithField("topic_arn", snsPayload.TopicARN).
+			Info("Received SNS unsubscribe confirmation")
+		return []*domain.InboundWebhookEvent{}, nil
+	}
+
+	if strings.Contains(snsPayload.Message, "Successfully validated SNS topic") {
+		return []*domain.InboundWebhookEvent{}, nil
+	}
+
+	// // Only process "Notification" type messages for actual email events
+	// if snsPayload.Type != "Notification" {
+	// 	s.logger.WithField("integration_id", integrationID).
+	// 		WithField("message_type", snsPayload.Type).
+	// 		Warn("Received unsupported SNS message type")
+	// 	return []*domain.InboundWebhookEvent{}, nil
+	// }
+
+	// Then, parse the actual notification based on the message type
+	messageBytes := []byte(snsPayload.Message)
+
+	// Determine the type of notification
+	var eventType domain.EmailEventType
+	var recipientEmail, messageID string
+	var bounceType, bounceCategory, bounceDiagnostic, complaintFeedbackType string
+	var timestamp time.Time
+	var notifuseMessageID string
+
+	// Try to unmarshal as bounce notification
+	var bounceNotification domain.SESBounceNotification
+	if err := json.Unmarshal(messageBytes, &bounceNotification); err == nil && bounceNotification.EventType == "Bounce" {
+		eventType = domain.EmailEventBounce
+		if len(bounceNotification.Bounce.BouncedRecipients) > 0 {
+			recipientEmail = bounceNotification.Bounce.BouncedRecipients[0].EmailAddress
+			bounceDiagnostic = bounceNotification.Bounce.BouncedRecipients[0].DiagnosticCode
+		}
+		messageID = bounceNotification.Mail.MessageID
+		bounceType = bounceNotification.Bounce.BounceType
+		bounceCategory = bounceNotification.Bounce.BounceSubType
+
+		// Check for notifuse_message_id in tags
+		if len(bounceNotification.Mail.Tags) > 0 {
+			if ids, ok := bounceNotification.Mail.Tags["notifuse_message_id"]; ok && len(ids) > 0 {
+				notifuseMessageID = ids[0]
+			}
+		}
+		// Fallback to X-Message-ID header if tag not found
+		if notifuseMessageID == "" {
+			notifuseMessageID = extractXMessageIDFromHeaders(bounceNotification.Mail.Headers)
+		}
+
+		// Parse timestamp
+		if t, err := time.Parse(time.RFC3339, bounceNotification.Bounce.Timestamp); err == nil {
+			timestamp = t
+		} else {
+			timestamp = time.Now()
+		}
+	} else {
+		// Try to unmarshal as complaint notification
+		var complaintNotification domain.SESComplaintNotification
+		if err := json.Unmarshal(messageBytes, &complaintNotification); err == nil && complaintNotification.EventType == "Complaint" {
+			eventType = domain.EmailEventComplaint
+			if len(complaintNotification.Complaint.ComplainedRecipients) > 0 {
+				recipientEmail = complaintNotification.Complaint.ComplainedRecipients[0].EmailAddress
+			}
+			messageID = complaintNotification.Mail.MessageID
+			complaintFeedbackType = complaintNotification.Complaint.ComplaintFeedbackType
+
+			// Check for notifuse_message_id in tags
+			if len(complaintNotification.Mail.Tags) > 0 {
+				if ids, ok := complaintNotification.Mail.Tags["notifuse_message_id"]; ok && len(ids) > 0 {
+					notifuseMessageID = ids[0]
+				}
+			}
+			// Fallback to X-Message-ID header if tag not found
+			if notifuseMessageID == "" {
+				notifuseMessageID = extractXMessageIDFromHeaders(complaintNotification.Mail.Headers)
+			}
+
+			// Parse timestamp
+			if t, err := time.Parse(time.RFC3339, complaintNotification.Complaint.Timestamp); err == nil {
+				timestamp = t
+			} else {
+				timestamp = time.Now()
+			}
+		} else {
+			// Try to unmarshal as delivery notification
+			var deliveryNotification domain.SESDeliveryNotification
+			if err := json.Unmarshal(messageBytes, &deliveryNotification); err == nil && deliveryNotification.EventType == "Delivery" {
+				eventType = domain.EmailEventDelivered
+				if len(deliveryNotification.Delivery.Recipients) > 0 {
+					recipientEmail = deliveryNotification.Delivery.Recipients[0]
+				}
+				messageID = deliveryNotification.Mail.MessageID
+
+				// Check for notifuse_message_id in tags
+				if len(deliveryNotification.Mail.Tags) > 0 {
+					if ids, ok := deliveryNotification.Mail.Tags["notifuse_message_id"]; ok && len(ids) > 0 {
+						notifuseMessageID = ids[0]
+					}
+				}
+				// Fallback to X-Message-ID header if tag not found
+				if notifuseMessageID == "" {
+					notifuseMessageID = extractXMessageIDFromHeaders(deliveryNotification.Mail.Headers)
+				}
+
+				// Parse timestamp
+				if t, err := time.Parse(time.RFC3339, deliveryNotification.Delivery.Timestamp); err == nil {
+					timestamp = t
+				} else {
+					timestamp = time.Now()
+				}
+			} else {
+				// fail silently to avoid SNS subscription pause
+				s.logger.WithField("integration_id", integrationID).
+					WithField("payload", string(rawPayload)).
+					Warn("unrecognized SES notification")
+				return []*domain.InboundWebhookEvent{}, nil
+			}
+		}
+	}
+
+	// Use notifuseMessageID if available, otherwise fallback to provider's messageID
+	if notifuseMessageID != "" {
+		messageID = notifuseMessageID
+	}
+
+	// Create the webhook event
+	event := domain.NewInboundWebhookEvent(
+		uuid.New().String(),
+		eventType,
+		domain.WebhookSourceSES,
+		integrationID,
+		recipientEmail,
+		&messageID,
+		timestamp,
+		string(rawPayload),
+	)
+
+	// Set event-specific information
+	switch eventType {
+	case domain.EmailEventBounce:
+		event.BounceType = bounceType
+		event.BounceCategory = bounceCategory
+		event.BounceDiagnostic = bounceDiagnostic
+	case domain.EmailEventComplaint:
+		event.ComplaintFeedbackType = complaintFeedbackType
+	}
+
+	return []*domain.InboundWebhookEvent{event}, nil
+}
+
+// processPostmarkWebhook processes a webhook event from Postmark
+func (s *InboundWebhookEventService) processPostmarkWebhook(integrationID string, rawPayload []byte) (events []*domain.InboundWebhookEvent, err error) {
+
+	// First, unmarshal into a map to extract the fields directly
+	var jsonData map[string]interface{}
+	if err := json.Unmarshal(rawPayload, &jsonData); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal Postmark webhook payload: %w", err)
+	}
+
+	// Then unmarshal into our struct
+	var payload domain.PostmarkWebhookPayload
+	if err := json.Unmarshal(rawPayload, &payload); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal Postmark webhook payload: %w", err)
+	}
+
+	var eventType domain.EmailEventType
+	var recipientEmail, messageID string
+	var bounceType, bounceCategory, bounceDiagnostic, complaintFeedbackType string
+	var timestamp time.Time
+	var notifuseMessageID string
+
+	// Check for notifuse_message_id in metadata
+	if payload.Metadata != nil {
+		if msgID, ok := payload.Metadata["notifuse_message_id"]; ok {
+			notifuseMessageID = msgID
+		}
+	}
+
+	// Determine the event type based on RecordType
+	switch payload.RecordType {
+	case "Delivery":
+		eventType = domain.EmailEventDelivered
+
+		// Extract Delivered fields from the raw JSON
+		if deliveryData, ok := jsonData["Recipient"].(string); ok {
+			recipientEmail = deliveryData
+		}
+
+		if t, ok := jsonData["DeliveredAt"].(string); ok && t != "" {
+			if parsedTime, err := time.Parse(time.RFC3339, t); err == nil {
+				timestamp = parsedTime
+			} else {
+				timestamp = time.Now()
+			}
+		} else {
+			timestamp = time.Now()
+		}
+
+	case "Bounce":
+		eventType = domain.EmailEventBounce
+
+		// Extract Bounce fields from the raw JSON
+		if email, ok := jsonData["Email"].(string); ok {
+			recipientEmail = email
+		}
+
+		if typeStr, ok := jsonData["Type"].(string); ok {
+			bounceType = typeStr
+			bounceCategory = typeStr // Use the same value for both in Postmark
+		}
+
+		if details, ok := jsonData["Details"].(string); ok {
+			bounceDiagnostic = details
+		}
+
+		if t, ok := jsonData["BouncedAt"].(string); ok && t != "" {
+			if parsedTime, err := time.Parse(time.RFC3339, t); err == nil {
+				timestamp = parsedTime
+			} else {
+				timestamp = time.Now()
+			}
+		} else {
+			timestamp = time.Now()
+		}
+
+	case "SpamComplaint":
+		eventType = domain.EmailEventComplaint
+
+		// Extract Complaint fields from the raw JSON
+		if email, ok := jsonData["Email"].(string); ok {
+			recipientEmail = email
+		}
+
+		if typeStr, ok := jsonData["Type"].(string); ok {
+			complaintFeedbackType = typeStr
+		}
+
+		if t, ok := jsonData["ComplainedAt"].(string); ok && t != "" {
+			if parsedTime, err := time.Parse(time.RFC3339, t); err == nil {
+				timestamp = parsedTime
+			} else {
+				timestamp = time.Now()
+			}
+		} else {
+			timestamp = time.Now()
+		}
+
+	default:
+		return nil, fmt.Errorf("unsupported Postmark record type: %s", payload.RecordType)
+	}
+
+	messageID = payload.MessageID
+
+	// Use notifuseMessageID if available, otherwise fallback to provider's messageID
+	if notifuseMessageID != "" {
+		messageID = notifuseMessageID
+	}
+
+	// Create the webhook event
+	event := domain.NewInboundWebhookEvent(
+		uuid.New().String(),
+		eventType,
+		domain.WebhookSourcePostmark,
+		integrationID,
+		recipientEmail,
+		&messageID,
+		timestamp,
+		string(rawPayload),
+	)
+
+	// Set event-specific information
+	switch eventType {
+	case domain.EmailEventBounce:
+		event.BounceType = bounceType
+		event.BounceCategory = bounceCategory
+		event.BounceDiagnostic = bounceDiagnostic
+	case domain.EmailEventComplaint:
+		event.ComplaintFeedbackType = complaintFeedbackType
+	}
+
+	return []*domain.InboundWebhookEvent{event}, nil
+}
+
+// processMailgunWebhook processes a webhook event from Mailgun
+func (s *InboundWebhookEventService) processMailgunWebhook(integrationID string, rawPayload []byte) (events []*domain.InboundWebhookEvent, err error) {
+
+	// First unmarshal into a map to access all fields
+	var jsonData map[string]interface{}
+	if err := json.Unmarshal(rawPayload, &jsonData); err != nil {
+		log.Printf("failed to unmarshal Mailgun webhook payload: %v, %v", err, string(rawPayload))
+		return nil, fmt.Errorf("failed to unmarshal Mailgun webhook payload: %w", err)
+	}
+
+	var payload domain.MailgunWebhookPayload
+	if err := json.Unmarshal(rawPayload, &payload); err != nil {
+		log.Printf("failed to unmarshal Mailgun webhook payload: %v, %v", err, string(rawPayload))
+		return nil, fmt.Errorf("failed to unmarshal Mailgun webhook payload: %w", err)
+	}
+
+	var eventType domain.EmailEventType
+	var recipientEmail, messageID string
+	var bounceType, bounceCategory, bounceDiagnostic, complaintFeedbackType string
+	var timestamp time.Time
+	var notifuseMessageID string
+
+	// Set timestamp from event data
+	timestamp = time.Unix(int64(payload.EventData.Timestamp), 0)
+
+	// Check for notifuse_message_id in the custom variables
+	if eventData, ok := jsonData["event-data"].(map[string]interface{}); ok {
+		if userVariables, ok := eventData["user-variables"].(map[string]interface{}); ok {
+			if id, ok := userVariables["notifuse_message_id"]; ok {
+				notifuseMessageID = fmt.Sprintf("%v", id)
+			}
+		}
+	}
+
+	// Map Mailgun event types to our event types
+	switch payload.EventData.Event {
+	case "delivered":
+		eventType = domain.EmailEventDelivered
+		recipientEmail = payload.EventData.Recipient
+		messageID = payload.EventData.Message.Headers.MessageID
+	case "failed":
+		eventType = domain.EmailEventBounce
+		recipientEmail = payload.EventData.Recipient
+		messageID = payload.EventData.Message.Headers.MessageID
+
+		// Set bounce details
+		bounceType = "Failed"
+		if payload.EventData.Severity == "permanent" {
+			bounceCategory = "HardBounce"
+		} else {
+			bounceCategory = "SoftBounce"
+		}
+		bounceDiagnostic = payload.EventData.Reason
+	case "complained":
+		eventType = domain.EmailEventComplaint
+		recipientEmail = payload.EventData.Recipient
+		messageID = payload.EventData.Message.Headers.MessageID
+		complaintFeedbackType = "abuse"
+	default:
+		return nil, fmt.Errorf("unsupported Mailgun event type: %s", payload.EventData.Event)
+	}
+
+	// Use notifuseMessageID if available, otherwise fallback to provider's messageID
+	if notifuseMessageID != "" {
+		messageID = notifuseMessageID
+	}
+
+	// Create the webhook event
+	event := domain.NewInboundWebhookEvent(
+		uuid.New().String(),
+		eventType,
+		domain.WebhookSourceMailgun,
+		integrationID,
+		recipientEmail,
+		&messageID,
+		timestamp,
+		string(rawPayload),
+	)
+
+	// Set event-specific information
+	switch eventType {
+	case domain.EmailEventBounce:
+		event.BounceType = bounceType
+		event.BounceCategory = bounceCategory
+		event.BounceDiagnostic = bounceDiagnostic
+	case domain.EmailEventComplaint:
+		event.ComplaintFeedbackType = complaintFeedbackType
+	}
+
+	return []*domain.InboundWebhookEvent{event}, nil
+}
+
+// processSparkPostWebhook processes a webhook event from SparkPost
+func (s *InboundWebhookEventService) processSparkPostWebhook(integrationID string, rawPayload []byte) (events []*domain.InboundWebhookEvent, err error) {
+	events = []*domain.InboundWebhookEvent{}
+
+	// payload can contain multiple events
+	var payload []*domain.SparkPostWebhookPayload
+
+	if err := json.Unmarshal(rawPayload, &payload); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal SparkPost webhook payload: %w", err)
+	}
+
+	for _, payload := range payload {
+		var eventType domain.EmailEventType
+		var recipientEmail, messageID string
+		var bounceType, bounceCategory, bounceDiagnostic, complaintFeedbackType string
+		var timestamp time.Time
+		var notifuseMessageID string
+
+		if payload.MSys.MessageEvent == nil {
+			return nil, fmt.Errorf("no message_event found in SparkPost webhook payload")
+		}
+
+		if id, ok := payload.MSys.MessageEvent.RecipientMeta["notifuse_message_id"]; ok {
+			notifuseMessageID = fmt.Sprintf("%v", id)
+		}
+
+		// Set common fields
+		recipientEmail = payload.MSys.MessageEvent.RecipientTo
+		messageID = payload.MSys.MessageEvent.MessageID
+
+		// Parse timestamp - SparkPost may send Unix timestamp as a string
+		if payload.MSys.MessageEvent.Timestamp != "" {
+			// First try parsing as RFC3339
+			if t, err := time.Parse(time.RFC3339, payload.MSys.MessageEvent.Timestamp); err == nil {
+				timestamp = t
+			} else {
+				// If RFC3339 parsing fails, try parsing as Unix timestamp
+				if unixTimestamp, err := strconv.ParseInt(payload.MSys.MessageEvent.Timestamp, 10, 64); err == nil {
+					timestamp = time.Unix(unixTimestamp, 0)
+				} else {
+					// Fall back to current time if parsing fails
+					timestamp = time.Now()
+					s.logger.WithFields(map[string]interface{}{
+						"timestamp_string": payload.MSys.MessageEvent.Timestamp,
+						"parse_error":      err.Error(),
+					}).Warn("Failed to parse SparkPost timestamp")
+				}
+			}
+		} else {
+			timestamp = time.Now()
+		}
+
+		// Determine event type based on the type field
+		switch payload.MSys.MessageEvent.Type {
+		case "delivery":
+			eventType = domain.EmailEventDelivered
+
+		case "bounce":
+			eventType = domain.EmailEventBounce
+			bounceType = "Bounce"
+			bounceCategory = payload.MSys.MessageEvent.BounceClass
+			bounceDiagnostic = payload.MSys.MessageEvent.Reason
+
+		case "spam_complaint":
+			eventType = domain.EmailEventComplaint
+			complaintFeedbackType = payload.MSys.MessageEvent.FeedbackType
+
+		default:
+			return nil, fmt.Errorf("unsupported SparkPost event type: %s", payload.MSys.MessageEvent.Type)
+		}
+
+		// Use notifuseMessageID if available, otherwise fallback to provider's messageID
+		if notifuseMessageID != "" {
+			messageID = notifuseMessageID
+		}
+
+		// Create the webhook event
+		event := domain.NewInboundWebhookEvent(
+			uuid.New().String(),
+			eventType,
+			domain.WebhookSourceSparkPost,
+			integrationID,
+			recipientEmail,
+			&messageID,
+			timestamp,
+			string(rawPayload),
+		)
+
+		// Set event-specific information
+		switch eventType {
+		case domain.EmailEventBounce:
+			event.BounceType = bounceType
+			event.BounceCategory = bounceCategory
+			event.BounceDiagnostic = bounceDiagnostic
+		case domain.EmailEventComplaint:
+			event.ComplaintFeedbackType = complaintFeedbackType
+		}
+
+		events = append(events, event)
+	}
+
+	return events, nil
+}
+
+// processMailjetWebhook processes a webhook event from Mailjet
+func (s *InboundWebhookEventService) processMailjetWebhook(integrationID string, rawPayload []byte) (events []*domain.InboundWebhookEvent, err error) {
+	// Mailjet can send either a single object or an array of events
+	// First try to unmarshal as an array
+	var payloadArray []domain.MailjetWebhookPayload
+	if err := json.Unmarshal(rawPayload, &payloadArray); err == nil {
+		// Successfully unmarshaled as array, process each event
+		var allEvents []*domain.InboundWebhookEvent
+		for _, payload := range payloadArray {
+			event, err := s.processSingleMailjetEvent(integrationID, payload, rawPayload)
+			if err != nil {
+				return nil, err
+			}
+			allEvents = append(allEvents, event)
+		}
+		return allEvents, nil
+	}
+
+	// If array unmarshal failed, try as single object
+	var payload domain.MailjetWebhookPayload
+	if err := json.Unmarshal(rawPayload, &payload); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal Mailjet webhook payload as single object or array: %w", err)
+	}
+
+	// Process single event
+	event, err := s.processSingleMailjetEvent(integrationID, payload, rawPayload)
+	if err != nil {
+		return nil, err
+	}
+	return []*domain.InboundWebhookEvent{event}, nil
+}
+
+func (s *InboundWebhookEventService) processSingleMailjetEvent(integrationID string, payload domain.MailjetWebhookPayload, rawPayload []byte) (*domain.InboundWebhookEvent, error) {
+	var eventType domain.EmailEventType
+	var recipientEmail, messageID string
+	var bounceType, bounceCategory, bounceDiagnostic, complaintFeedbackType string
+	var timestamp time.Time
+	var notifuseMessageID string
+
+	// Set timestamp from Unix timestamp
+	timestamp = time.Unix(payload.Time, 0)
+
+	// Convert message ID to string
+	messageID = fmt.Sprintf("%d", payload.MessageID)
+	recipientEmail = payload.Email
+
+	// Check for X-MJ-CustomID in the custom variables
+	if payload.CustomID != "" {
+		notifuseMessageID = payload.CustomID
+	}
+
+	// Map Mailjet event types to our event types
+	// According to Mailjet documentation at https://dev.mailjet.com/email/guides/webhooks/
+	switch payload.Event {
+	case "sent":
+		// Mailjet's "sent" event means the message was successfully delivered
+		eventType = domain.EmailEventDelivered
+	case "bounce":
+		eventType = domain.EmailEventBounce
+
+		// Set bounce details based on Mailjet's bounce classification
+		if payload.HardBounce {
+			bounceType = "HardBounce"
+			bounceCategory = "Permanent"
+		} else {
+			bounceType = "SoftBounce"
+			bounceCategory = "Temporary"
+		}
+
+		bounceDiagnostic = payload.Comment
+		if payload.Error != "" {
+			if bounceDiagnostic != "" {
+				bounceDiagnostic += ": "
+			}
+			bounceDiagnostic += payload.Error
+		}
+	case "blocked":
+		// Blocked messages are treated as bounces
+		eventType = domain.EmailEventBounce
+		bounceType = "Blocked"
+		bounceCategory = "Blocked"
+		bounceDiagnostic = payload.Comment
+		if payload.Error != "" {
+			if bounceDiagnostic != "" {
+				bounceDiagnostic += ": "
+			}
+			bounceDiagnostic += payload.Error
+		}
+	case "spam":
+		eventType = domain.EmailEventComplaint
+		complaintFeedbackType = "spam"
+		if payload.Source != "" {
+			complaintFeedbackType = payload.Source
+		}
+	case "unsub":
+		// Unsubscribe events can be treated as complaints for tracking purposes
+		eventType = domain.EmailEventComplaint
+		complaintFeedbackType = "unsubscribe"
+	default:
+		return nil, fmt.Errorf("unsupported Mailjet event type: %s", payload.Event)
+	}
+
+	// Use notifuseMessageID if available, otherwise fallback to provider's messageID
+	if notifuseMessageID != "" {
+		messageID = notifuseMessageID
+	}
+
+	// Create the webhook event
+	event := domain.NewInboundWebhookEvent(
+		uuid.New().String(),
+		eventType,
+		domain.WebhookSourceMailjet,
+		integrationID,
+		recipientEmail,
+		&messageID,
+		timestamp,
+		string(rawPayload),
+	)
+
+	// Set event-specific information
+	switch eventType {
+	case domain.EmailEventBounce:
+		event.BounceType = bounceType
+		event.BounceCategory = bounceCategory
+		event.BounceDiagnostic = bounceDiagnostic
+	case domain.EmailEventComplaint:
+		event.ComplaintFeedbackType = complaintFeedbackType
+	}
+
+	return event, nil
+}
+
+// processSMTPWebhook processes a webhook event from a generic SMTP provider
+func (s *InboundWebhookEventService) processSMTPWebhook(integrationID string, rawPayload []byte) (events []*domain.InboundWebhookEvent, err error) {
+
+	var payload domain.SMTPWebhookPayload
+	if err := json.Unmarshal(rawPayload, &payload); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal SMTP webhook payload: %w", err)
+	}
+
+	var eventType domain.EmailEventType
+	var timestamp time.Time
+
+	// Parse timestamp
+	if t, err := time.Parse(time.RFC3339, payload.Timestamp); err == nil {
+		timestamp = t
+	} else {
+		timestamp = time.Now()
+	}
+
+	// Map event types
+	switch payload.Event {
+	case "delivered":
+		eventType = domain.EmailEventDelivered
+	case "bounce":
+		eventType = domain.EmailEventBounce
+	case "complaint":
+		eventType = domain.EmailEventComplaint
+	default:
+		return nil, fmt.Errorf("unsupported SMTP event type: %s", payload.Event)
+	}
+
+	// Create the webhook event
+	event := domain.NewInboundWebhookEvent(
+		uuid.New().String(),
+		eventType,
+		domain.WebhookSourceSMTP,
+		integrationID,
+		payload.Recipient,
+		&payload.MessageID,
+		timestamp,
+		string(rawPayload),
+	)
+
+	// Set event-specific information
+	switch eventType {
+	case domain.EmailEventBounce:
+		event.BounceType = "Bounce"
+		event.BounceCategory = payload.BounceCategory
+		event.BounceDiagnostic = payload.DiagnosticCode
+	case domain.EmailEventComplaint:
+		event.ComplaintFeedbackType = payload.ComplaintType
+	}
+
+	return []*domain.InboundWebhookEvent{event}, nil
+}
+
+// processSendGridWebhook processes webhook events from SendGrid
+// SendGrid sends events as a JSON array with custom_args flattened into top-level fields
+func (s *InboundWebhookEventService) processSendGridWebhook(integrationID string, rawPayload []byte) (events []*domain.InboundWebhookEvent, err error) {
+	// SendGrid sends webhooks as a JSON array of events
+	var payload []domain.SendGridWebhookEvent
+	if err := json.Unmarshal(rawPayload, &payload); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal SendGrid webhook payload: %w", err)
+	}
+
+	events = []*domain.InboundWebhookEvent{}
+
+	for _, sgEvent := range payload {
+		var eventType domain.EmailEventType
+		var bounceType, bounceCategory, bounceDiagnostic, complaintFeedbackType string
+
+		timestamp := time.Unix(sgEvent.Timestamp, 0)
+		recipientEmail := sgEvent.Email
+
+		// Use notifuse_message_id if present (flattened at top level by SendGrid)
+		// Otherwise fall back to SendGrid's message ID
+		messageID := sgEvent.SGMessageID
+		if sgEvent.NotifuseMessageID != "" {
+			messageID = sgEvent.NotifuseMessageID
+		}
+
+		// Map SendGrid event types to our event types
+		// Reference: https://docs.sendgrid.com/for-developers/tracking-events/event
+		switch sgEvent.Event {
+		case "delivered":
+			eventType = domain.EmailEventDelivered
+
+		case "bounce":
+			// type="bounce" indicates a hard/permanent bounce
+			eventType = domain.EmailEventBounce
+			bounceType = "bounce"
+			bounceCategory = sgEvent.BounceClassification
+			bounceDiagnostic = sgEvent.Reason
+			if sgEvent.Status != "" {
+				bounceDiagnostic = fmt.Sprintf("%s: %s", sgEvent.Status, sgEvent.Reason)
+			}
+
+		case "blocked":
+			// type="blocked" indicates a soft/temporary bounce
+			eventType = domain.EmailEventBounce
+			bounceType = "blocked"
+			bounceCategory = sgEvent.BounceClassification
+			bounceDiagnostic = sgEvent.Reason
+			if sgEvent.Status != "" {
+				bounceDiagnostic = fmt.Sprintf("%s: %s", sgEvent.Status, sgEvent.Reason)
+			}
+
+		case "dropped":
+			// Dropped messages were not sent due to prior issues
+			eventType = domain.EmailEventBounce
+			bounceType = "dropped"
+			bounceCategory = "Dropped"
+			bounceDiagnostic = sgEvent.Reason
+
+		case "spamreport":
+			eventType = domain.EmailEventComplaint
+			complaintFeedbackType = "spam"
+
+		default:
+			// Skip event types we don't track (processed, deferred, open, click, unsubscribe, etc.)
+			continue
+		}
+
+		// Create the webhook event
+		event := domain.NewInboundWebhookEvent(
+			uuid.New().String(),
+			eventType,
+			domain.WebhookSourceSendGrid,
+			integrationID,
+			recipientEmail,
+			&messageID,
+			timestamp,
+			string(rawPayload),
+		)
+
+		// Set event-specific information
+		switch eventType {
+		case domain.EmailEventBounce:
+			event.BounceType = bounceType
+			event.BounceCategory = bounceCategory
+			event.BounceDiagnostic = bounceDiagnostic
+		case domain.EmailEventComplaint:
+			event.ComplaintFeedbackType = complaintFeedbackType
+		}
+
+		events = append(events, event)
+	}
+
+	return events, nil
+}
+
+// ListEvents retrieves all webhook events for a workspace
+func (s *InboundWebhookEventService) ListEvents(ctx context.Context, workspaceID string, params domain.InboundWebhookEventListParams) (*domain.InboundWebhookEventListResult, error) {
+	// codecov:ignore:start
+	ctx, span := tracing.StartServiceSpan(ctx, "InboundWebhookEventService", "ListEvents")
+	defer tracing.EndSpan(span, nil)
+	tracing.AddAttribute(ctx, "workspaceID", workspaceID)
+	// codecov:ignore:end
+
+	// Authenticate user for workspace
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// These rows carry recipient addresses and provider diagnostics, so membership
+	// alone is not enough. A nil membership denies: skipping the check on nil would
+	// be a silent bypass rather than a nil-pointer guard.
+	if userWorkspace == nil || !userWorkspace.HasPermission(domain.PermissionResourceWebhookEvents, domain.PermissionTypeRead) {
+		permErr := domain.NewPermissionError(
+			domain.PermissionResourceWebhookEvents,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to webhook events required",
+		)
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, permErr)
+		// codecov:ignore:end
+		return nil, permErr
+	}
+
+	// Validate params
+	if err := params.Validate(); err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return nil, fmt.Errorf("invalid parameters: %w", err)
+	}
+
+	// Call repository method
+	result, err := s.repo.ListEvents(ctx, workspaceID, params)
+	if err != nil {
+		s.logger.WithField("workspace_id", workspaceID).
+			WithField("params", params).
+			Error(fmt.Sprintf("Failed to list inbound webhook events: %v", err))
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return nil, fmt.Errorf("failed to list inbound webhook events: %w", err)
+	}
+
+	return result, nil
+}

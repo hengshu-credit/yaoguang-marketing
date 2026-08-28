@@ -1,0 +1,294 @@
+openapi: 3.0.3
+info:
+  title: Notifuse API
+  description: API for Notifuse - a transactional email and newsletter management platform
+  version: 1.0.0
+  contact:
+    name: Notifuse Support
+    url: https://www.notifuse.com/support
+    email: hello@notifuse.com
+servers:
+  - url: https://{notifuseDomain}
+    description: Customer-specific Notifuse API server
+    variables:
+      notifuseDomain:
+        description: Your unique Notifuse domain
+        default: demo.notifuse.com
+paths:
+  /track:
+    $ref: './paths/web-analytics.yaml#/~1track'
+  /api/workspaces.setWebAnalyticsSettings:
+    $ref: './paths/web-analytics.yaml#/~1api~1workspaces.setWebAnalyticsSettings'
+  /api/webAnalytics.backfillStart:
+    $ref: './paths/web-analytics.yaml#/~1api~1webAnalytics.backfillStart'
+  /api/webAnalytics.backfillStatus:
+    $ref: './paths/web-analytics.yaml#/~1api~1webAnalytics.backfillStatus'
+  /api/webAnalytics.backfillCancel:
+    $ref: './paths/web-analytics.yaml#/~1api~1webAnalytics.backfillCancel'
+  /api/annotations.list:
+    $ref: './paths/annotations.yaml#/~1api~1annotations.list'
+  /api/annotations.get:
+    $ref: './paths/annotations.yaml#/~1api~1annotations.get'
+  /api/annotations.create:
+    $ref: './paths/annotations.yaml#/~1api~1annotations.create'
+  /api/annotations.update:
+    $ref: './paths/annotations.yaml#/~1api~1annotations.update'
+  /api/annotations.delete:
+    $ref: './paths/annotations.yaml#/~1api~1annotations.delete'
+  /api/transactional.send:
+    $ref: './paths/transactional.yaml#/~1api~1transactional.send'
+  /api/contacts.list:
+    $ref: './paths/contacts.yaml#/~1api~1contacts.list'
+  /api/contacts.count:
+    $ref: './paths/contacts.yaml#/~1api~1contacts.count'
+  /api/contacts.upsert:
+    $ref: './paths/contacts.yaml#/~1api~1contacts.upsert'
+  /api/contacts.getByEmail:
+    $ref: './paths/contacts.yaml#/~1api~1contacts.getByEmail'
+  /api/contacts.getByExternalID:
+    $ref: './paths/contacts.yaml#/~1api~1contacts.getByExternalID'
+  /api/contacts.import:
+    $ref: './paths/contacts.yaml#/~1api~1contacts.import'
+  /api/contacts.delete:
+    $ref: './paths/contacts.yaml#/~1api~1contacts.delete'
+  /api/contactLists.updateStatus:
+    $ref: './paths/contact-lists.yaml#/~1api~1contactLists.updateStatus'
+  /api/broadcasts.list:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.list'
+  /api/broadcasts.get:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.get'
+  /api/broadcasts.create:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.create'
+  /api/broadcasts.update:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.update'
+  /api/broadcasts.schedule:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.schedule'
+  /api/broadcasts.pause:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.pause'
+  /api/broadcasts.resume:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.resume'
+  /api/broadcasts.cancel:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.cancel'
+  /api/broadcasts.sendToIndividual:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.sendToIndividual'
+  /api/broadcasts.delete:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.delete'
+  /api/broadcasts.getTestResults:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.getTestResults'
+  /api/broadcasts.selectWinner:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.selectWinner'
+  /api/broadcasts.refreshGlobalFeed:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.refreshGlobalFeed'
+  /api/broadcasts.testRecipientFeed:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.testRecipientFeed'
+  /api/templates.list:
+    $ref: './paths/templates.yaml#/~1api~1templates.list'
+  /api/templates.get:
+    $ref: './paths/templates.yaml#/~1api~1templates.get'
+  /api/templates.create:
+    $ref: './paths/templates.yaml#/~1api~1templates.create'
+  /api/templates.update:
+    $ref: './paths/templates.yaml#/~1api~1templates.update'
+  /api/templates.delete:
+    $ref: './paths/templates.yaml#/~1api~1templates.delete'
+  /api/templates.compile:
+    $ref: './paths/templates.yaml#/~1api~1templates.compile'
+  /api/customEvents.import:
+    $ref: './paths/custom-events.yaml#/~1api~1customEvents.import'
+  /api/webhookSubscriptions.create:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.create'
+  /api/webhookSubscriptions.list:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.list'
+  /api/webhookSubscriptions.get:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.get'
+  /api/webhookSubscriptions.update:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.update'
+  /api/webhookSubscriptions.delete:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.delete'
+  /api/webhookSubscriptions.toggle:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.toggle'
+  /api/webhookSubscriptions.regenerateSecret:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.regenerateSecret'
+  /api/webhookSubscriptions.deliveries:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.deliveries'
+  /api/webhookSubscriptions.test:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.test'
+  /api/webhookSubscriptions.eventTypes:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.eventTypes'
+  /subscribe:
+    $ref: './paths/subscribe.yaml#/~1subscribe'
+  /api/lists.subscribe:
+    $ref: './paths/subscribe.yaml#/~1api~1lists.subscribe'
+  /api/user.rootSignin:
+    $ref: './paths/user.yaml#/~1api~1user.rootSignin'
+components:
+  securitySchemes:
+    BearerAuth:
+      $ref: './components/security.yaml#/BearerAuth'
+  schemas:
+    ErrorResponse:
+      $ref: './components/schemas/common.yaml#/ErrorResponse'
+    SendTransactionalRequest:
+      $ref: './components/schemas/transactional.yaml#/SendTransactionalRequest'
+    TransactionalNotificationSendParams:
+      $ref: './components/schemas/transactional.yaml#/TransactionalNotificationSendParams'
+    Contact:
+      $ref: './components/schemas/contact.yaml#/Contact'
+    ContactInput:
+      $ref: './components/schemas/contact.yaml#/ContactInput'
+    ContactList:
+      $ref: './components/schemas/contact.yaml#/ContactList'
+    ContactSegment:
+      $ref: './components/schemas/contact.yaml#/ContactSegment'
+    SubscribeToListsRequest:
+      $ref: './components/schemas/contact.yaml#/SubscribeToListsRequest'
+    SubscriptionContact:
+      $ref: './components/schemas/contact.yaml#/SubscriptionContact'
+    UpsertContactRequest:
+      $ref: './components/schemas/contact.yaml#/UpsertContactRequest'
+    UpsertContactResponse:
+      $ref: './components/schemas/contact.yaml#/UpsertContactResponse'
+    DeleteContactRequest:
+      $ref: './components/schemas/contact.yaml#/DeleteContactRequest'
+    BatchImportContactsRequest:
+      $ref: './components/schemas/contact.yaml#/BatchImportContactsRequest'
+    BatchImportContactsResponse:
+      $ref: './components/schemas/contact.yaml#/BatchImportContactsResponse'
+    UpsertContactOperation:
+      $ref: './components/schemas/contact.yaml#/UpsertContactOperation'
+    UpdateContactListStatusRequest:
+      $ref: './components/schemas/contact.yaml#/UpdateContactListStatusRequest'
+    UpdateContactListStatusResponse:
+      $ref: './components/schemas/contact.yaml#/UpdateContactListStatusResponse'
+    ListContactsResponse:
+      $ref: './components/schemas/contact.yaml#/ListContactsResponse'
+    CountContactsResponse:
+      $ref: './components/schemas/contact.yaml#/CountContactsResponse'
+    EmailAttachment:
+      $ref: './components/schemas/transactional.yaml#/EmailAttachment'
+    Broadcast:
+      $ref: './components/schemas/broadcast.yaml#/Broadcast'
+    BroadcastTestSettings:
+      $ref: './components/schemas/broadcast.yaml#/BroadcastTestSettings'
+    BroadcastVariation:
+      $ref: './components/schemas/broadcast.yaml#/BroadcastVariation'
+    VariationMetrics:
+      $ref: './components/schemas/broadcast.yaml#/VariationMetrics'
+    AudienceSettings:
+      $ref: './components/schemas/broadcast.yaml#/AudienceSettings'
+    AudienceSettingsPatch:
+      $ref: './components/schemas/broadcast.yaml#/AudienceSettingsPatch'
+    ScheduleSettings:
+      $ref: './components/schemas/broadcast.yaml#/ScheduleSettings'
+    UTMParameters:
+      $ref: './components/schemas/broadcast.yaml#/UTMParameters'
+    CreateBroadcastRequest:
+      $ref: './components/schemas/broadcast.yaml#/CreateBroadcastRequest'
+    UpdateBroadcastRequest:
+      $ref: './components/schemas/broadcast.yaml#/UpdateBroadcastRequest'
+    ScheduleBroadcastRequest:
+      $ref: './components/schemas/broadcast.yaml#/ScheduleBroadcastRequest'
+    PauseBroadcastRequest:
+      $ref: './components/schemas/broadcast.yaml#/PauseBroadcastRequest'
+    ResumeBroadcastRequest:
+      $ref: './components/schemas/broadcast.yaml#/ResumeBroadcastRequest'
+    CancelBroadcastRequest:
+      $ref: './components/schemas/broadcast.yaml#/CancelBroadcastRequest'
+    DeleteBroadcastRequest:
+      $ref: './components/schemas/broadcast.yaml#/DeleteBroadcastRequest'
+    SendToIndividualRequest:
+      $ref: './components/schemas/broadcast.yaml#/SendToIndividualRequest'
+    SelectWinnerRequest:
+      $ref: './components/schemas/broadcast.yaml#/SelectWinnerRequest'
+    BroadcastListResponse:
+      $ref: './components/schemas/broadcast.yaml#/BroadcastListResponse'
+    VariationResult:
+      $ref: './components/schemas/broadcast.yaml#/VariationResult'
+    TestResultsResponse:
+      $ref: './components/schemas/broadcast.yaml#/TestResultsResponse'
+    DataFeedHeader:
+      $ref: './components/schemas/broadcast.yaml#/DataFeedHeader'
+    GlobalFeedSettings:
+      $ref: './components/schemas/broadcast.yaml#/GlobalFeedSettings'
+    RecipientFeedSettings:
+      $ref: './components/schemas/broadcast.yaml#/RecipientFeedSettings'
+    DataFeedSettings:
+      $ref: './components/schemas/broadcast.yaml#/DataFeedSettings'
+    RefreshGlobalFeedRequest:
+      $ref: './components/schemas/broadcast.yaml#/RefreshGlobalFeedRequest'
+    RefreshGlobalFeedResponse:
+      $ref: './components/schemas/broadcast.yaml#/RefreshGlobalFeedResponse'
+    TestRecipientFeedRequest:
+      $ref: './components/schemas/broadcast.yaml#/TestRecipientFeedRequest'
+    TestRecipientFeedResponse:
+      $ref: './components/schemas/broadcast.yaml#/TestRecipientFeedResponse'
+    Template:
+      $ref: './components/schemas/template.yaml#/Template'
+    EmailTemplate:
+      $ref: './components/schemas/template.yaml#/EmailTemplate'
+    WebTemplate:
+      $ref: './components/schemas/template.yaml#/WebTemplate'
+    CreateTemplateRequest:
+      $ref: './components/schemas/template.yaml#/CreateTemplateRequest'
+    UpdateTemplateRequest:
+      $ref: './components/schemas/template.yaml#/UpdateTemplateRequest'
+    DeleteTemplateRequest:
+      $ref: './components/schemas/template.yaml#/DeleteTemplateRequest'
+    CompileTemplateRequest:
+      $ref: './components/schemas/template.yaml#/CompileTemplateRequest'
+    CompileTemplateResponse:
+      $ref: './components/schemas/template.yaml#/CompileTemplateResponse'
+    TrackingSettings:
+      $ref: './components/schemas/template.yaml#/TrackingSettings'
+    CustomEvent:
+      $ref: './components/schemas/custom-event.yaml#/CustomEvent'
+    ImportCustomEventsRequest:
+      $ref: './components/schemas/custom-event.yaml#/ImportCustomEventsRequest'
+    ImportCustomEventsResponse:
+      $ref: './components/schemas/custom-event.yaml#/ImportCustomEventsResponse'
+    WebhookSubscription:
+      $ref: './components/schemas/webhook-subscription.yaml#/WebhookSubscription'
+    WebhookDelivery:
+      $ref: './components/schemas/webhook-subscription.yaml#/WebhookDelivery'
+    WebhookEventType:
+      $ref: './components/schemas/webhook-subscription.yaml#/WebhookEventType'
+    CustomEventFilters:
+      $ref: './components/schemas/webhook-subscription.yaml#/CustomEventFilters'
+    WebhookSubscriptionSettings:
+      $ref: './components/schemas/webhook-subscription.yaml#/WebhookSubscriptionSettings'
+    CreateWebhookSubscriptionRequest:
+      $ref: './components/schemas/webhook-subscription.yaml#/CreateWebhookSubscriptionRequest'
+    CreateWebhookSubscriptionResponse:
+      $ref: './components/schemas/webhook-subscription.yaml#/CreateWebhookSubscriptionResponse'
+    UpdateWebhookSubscriptionRequest:
+      $ref: './components/schemas/webhook-subscription.yaml#/UpdateWebhookSubscriptionRequest'
+    UpdateWebhookSubscriptionResponse:
+      $ref: './components/schemas/webhook-subscription.yaml#/UpdateWebhookSubscriptionResponse'
+    DeleteWebhookSubscriptionRequest:
+      $ref: './components/schemas/webhook-subscription.yaml#/DeleteWebhookSubscriptionRequest'
+    ToggleWebhookSubscriptionRequest:
+      $ref: './components/schemas/webhook-subscription.yaml#/ToggleWebhookSubscriptionRequest'
+    ToggleWebhookSubscriptionResponse:
+      $ref: './components/schemas/webhook-subscription.yaml#/ToggleWebhookSubscriptionResponse'
+    RegenerateWebhookSecretRequest:
+      $ref: './components/schemas/webhook-subscription.yaml#/RegenerateWebhookSecretRequest'
+    RegenerateWebhookSecretResponse:
+      $ref: './components/schemas/webhook-subscription.yaml#/RegenerateWebhookSecretResponse'
+    ListWebhookSubscriptionsResponse:
+      $ref: './components/schemas/webhook-subscription.yaml#/ListWebhookSubscriptionsResponse'
+    GetWebhookSubscriptionResponse:
+      $ref: './components/schemas/webhook-subscription.yaml#/GetWebhookSubscriptionResponse'
+    ListWebhookDeliveriesResponse:
+      $ref: './components/schemas/webhook-subscription.yaml#/ListWebhookDeliveriesResponse'
+    TestWebhookRequest:
+      $ref: './components/schemas/webhook-subscription.yaml#/TestWebhookRequest'
+    TestWebhookResponse:
+      $ref: './components/schemas/webhook-subscription.yaml#/TestWebhookResponse'
+    ListWebhookEventTypesResponse:
+      $ref: './components/schemas/webhook-subscription.yaml#/ListWebhookEventTypesResponse'
+    RootSigninRequest:
+      $ref: './components/schemas/user.yaml#/RootSigninRequest'
+    RootSigninResponse:
+      $ref: './components/schemas/user.yaml#/RootSigninResponse'
+    User:
+      $ref: './components/schemas/user.yaml#/User'

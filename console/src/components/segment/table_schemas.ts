@@ -1,0 +1,683 @@
+import { TableSchema } from '../../services/api/segment'
+import { CountriesFormOptions } from '../../lib/countries_timezones'
+import { TIMEZONE_OPTIONS } from '../../lib/timezones'
+import { Languages } from '../../lib/languages'
+import { faUser, faFolderOpen } from '@fortawesome/free-regular-svg-icons'
+import { faMousePointer, faBullseye } from '@fortawesome/free-solid-svg-icons'
+
+/**
+ * Database table schemas for segmentation engine
+ * Based on the actual database structure from internal/database/init.go
+ */
+
+export const ContactsTableSchema: TableSchema = {
+  name: 'contacts',
+  title: 'Contact property',
+  description: 'Contact profile and custom fields',
+  icon: faUser,
+  fields: {
+    email: {
+      name: 'email',
+      title: 'Email',
+      description: 'Contact email address',
+      type: 'string',
+      shown: true
+    },
+    external_id: {
+      name: 'external_id',
+      title: 'External ID',
+      description: 'External identifier from your system',
+      type: 'string',
+      shown: true
+    },
+    first_name: {
+      name: 'first_name',
+      title: 'First Name',
+      description: 'Contact first name',
+      type: 'string',
+      shown: true
+    },
+    last_name: {
+      name: 'last_name',
+      title: 'Last Name',
+      description: 'Contact last name',
+      type: 'string',
+      shown: true
+    },
+    phone: {
+      name: 'phone',
+      title: 'Phone',
+      description: 'Contact phone number',
+      type: 'string',
+      shown: true
+    },
+    country: {
+      name: 'country',
+      title: 'Country',
+      description: 'Contact country',
+      type: 'string',
+      shown: true,
+      options: CountriesFormOptions
+    },
+    language: {
+      name: 'language',
+      title: 'Language',
+      description: 'Contact language preference',
+      type: 'string',
+      shown: true,
+      options: Languages.map((lang) => ({ value: lang.value, label: lang.name }))
+    },
+    timezone: {
+      name: 'timezone',
+      title: 'Timezone',
+      description: 'Contact timezone',
+      type: 'string',
+      shown: true,
+      options: TIMEZONE_OPTIONS
+    },
+    address_line_1: {
+      name: 'address_line_1',
+      title: 'Address Line 1',
+      description: 'Contact address line 1',
+      type: 'string',
+      shown: true
+    },
+    address_line_2: {
+      name: 'address_line_2',
+      title: 'Address Line 2',
+      description: 'Contact address line 2',
+      type: 'string',
+      shown: false
+    },
+    postcode: {
+      name: 'postcode',
+      title: 'Postcode',
+      description: 'Contact postal code',
+      type: 'string',
+      shown: true
+    },
+    state: {
+      name: 'state',
+      title: 'State',
+      description: 'Contact state/province',
+      type: 'string',
+      shown: true
+    },
+    job_title: {
+      name: 'job_title',
+      title: 'Job Title',
+      description: 'Contact job title',
+      type: 'string',
+      shown: true
+    },
+    // Custom string fields
+    custom_string_1: {
+      name: 'custom_string_1',
+      title: 'Custom String 1',
+      description: 'Custom string field 1',
+      type: 'string',
+      shown: true
+    },
+    custom_string_2: {
+      name: 'custom_string_2',
+      title: 'Custom String 2',
+      description: 'Custom string field 2',
+      type: 'string',
+      shown: true
+    },
+    custom_string_3: {
+      name: 'custom_string_3',
+      title: 'Custom String 3',
+      description: 'Custom string field 3',
+      type: 'string',
+      shown: true
+    },
+    custom_string_4: {
+      name: 'custom_string_4',
+      title: 'Custom String 4',
+      description: 'Custom string field 4',
+      type: 'string',
+      shown: true
+    },
+    custom_string_5: {
+      name: 'custom_string_5',
+      title: 'Custom String 5',
+      description: 'Custom string field 5',
+      type: 'string',
+      shown: true
+    },
+    // Custom number fields
+    custom_number_1: {
+      name: 'custom_number_1',
+      title: 'Custom Number 1',
+      description: 'Custom number field 1',
+      type: 'number',
+      shown: true
+    },
+    custom_number_2: {
+      name: 'custom_number_2',
+      title: 'Custom Number 2',
+      description: 'Custom number field 2',
+      type: 'number',
+      shown: true
+    },
+    custom_number_3: {
+      name: 'custom_number_3',
+      title: 'Custom Number 3',
+      description: 'Custom number field 3',
+      type: 'number',
+      shown: true
+    },
+    custom_number_4: {
+      name: 'custom_number_4',
+      title: 'Custom Number 4',
+      description: 'Custom number field 4',
+      type: 'number',
+      shown: true
+    },
+    custom_number_5: {
+      name: 'custom_number_5',
+      title: 'Custom Number 5',
+      description: 'Custom number field 5',
+      type: 'number',
+      shown: true
+    },
+    // Custom datetime fields
+    custom_datetime_1: {
+      name: 'custom_datetime_1',
+      title: 'Custom Date 1',
+      description: 'Custom datetime field 1',
+      type: 'time',
+      shown: true
+    },
+    custom_datetime_2: {
+      name: 'custom_datetime_2',
+      title: 'Custom Date 2',
+      description: 'Custom datetime field 2',
+      type: 'time',
+      shown: true
+    },
+    custom_datetime_3: {
+      name: 'custom_datetime_3',
+      title: 'Custom Date 3',
+      description: 'Custom datetime field 3',
+      type: 'time',
+      shown: true
+    },
+    custom_datetime_4: {
+      name: 'custom_datetime_4',
+      title: 'Custom Date 4',
+      description: 'Custom datetime field 4',
+      type: 'time',
+      shown: true
+    },
+    custom_datetime_5: {
+      name: 'custom_datetime_5',
+      title: 'Custom Date 5',
+      description: 'Custom datetime field 5',
+      type: 'time',
+      shown: true
+    },
+    created_at: {
+      name: 'created_at',
+      title: 'Created At',
+      description: 'Contact creation date',
+      type: 'time',
+      shown: true
+    },
+    updated_at: {
+      name: 'updated_at',
+      title: 'Updated At',
+      description: 'Contact last update date',
+      type: 'time',
+      shown: false
+    },
+    // Custom JSON fields
+    custom_json_1: {
+      name: 'custom_json_1',
+      title: 'Custom JSON 1',
+      description: 'Custom JSON field 1',
+      type: 'json',
+      shown: true
+    },
+    custom_json_2: {
+      name: 'custom_json_2',
+      title: 'Custom JSON 2',
+      description: 'Custom JSON field 2',
+      type: 'json',
+      shown: true
+    },
+    custom_json_3: {
+      name: 'custom_json_3',
+      title: 'Custom JSON 3',
+      description: 'Custom JSON field 3',
+      type: 'json',
+      shown: true
+    },
+    custom_json_4: {
+      name: 'custom_json_4',
+      title: 'Custom JSON 4',
+      description: 'Custom JSON field 4',
+      type: 'json',
+      shown: true
+    },
+    custom_json_5: {
+      name: 'custom_json_5',
+      title: 'Custom JSON 5',
+      description: 'Custom JSON field 5',
+      type: 'json',
+      shown: true
+    }
+  }
+}
+
+export const ContactListsTableSchema: TableSchema = {
+  name: 'contact_lists',
+  title: 'List subscription',
+  description: 'Contact list subscription status',
+  icon: faFolderOpen,
+  fields: {
+    list_id: {
+      name: 'list_id',
+      title: 'List ID',
+      description: 'List identifier',
+      type: 'string',
+      shown: true
+    },
+    status: {
+      name: 'status',
+      title: 'Status',
+      description: 'Subscription status',
+      type: 'string',
+      shown: true,
+      options: [
+        { value: 'active', label: 'Active' },
+        { value: 'unsubscribed', label: 'Unsubscribed' },
+        { value: 'pending', label: 'Pending' },
+        { value: 'bounced', label: 'Bounced' },
+        { value: 'complained', label: 'Complained' }
+      ]
+    },
+    created_at: {
+      name: 'created_at',
+      title: 'Subscribed At',
+      description: 'Date when contact was added to list',
+      type: 'time',
+      shown: true
+    },
+    updated_at: {
+      name: 'updated_at',
+      title: 'Updated At',
+      description: 'Last status update date',
+      type: 'time',
+      shown: false
+    },
+    deleted_at: {
+      name: 'deleted_at',
+      title: 'Deleted At',
+      description: 'Date when contact was removed from list',
+      type: 'time',
+      shown: false
+    }
+  }
+}
+
+export const ContactTimelineTableSchema: TableSchema = {
+  name: 'contact_timeline',
+  title: 'Activity',
+  description: 'Contact activity and change history',
+  icon: faMousePointer,
+  fields: {
+    operation: {
+      name: 'operation',
+      title: 'Operation',
+      description: 'Type of operation performed',
+      type: 'string',
+      shown: true,
+      options: [
+        { value: 'insert', label: 'Insert' },
+        { value: 'update', label: 'Update' }
+      ]
+    },
+    entity_type: {
+      name: 'entity_type',
+      title: 'Entity Type',
+      description: 'Type of entity that changed',
+      type: 'string',
+      shown: true,
+      // Every entity_type a trigger or the web analytics projection writes into
+      // contact_timeline. Kept in step with the writers, not with what the UI
+      // happens to render — a missing value here is a filter nobody can build.
+      options: [
+        { value: 'contact', label: 'Contact' },
+        { value: 'contact_list', label: 'Contact List' },
+        { value: 'contact_segment', label: 'Segment' },
+        { value: 'message_history', label: 'Message History' },
+        { value: 'inbound_webhook_event', label: 'Inbound Webhook Event' },
+        { value: 'custom_event', label: 'Custom Event' },
+        { value: 'automation', label: 'Automation' },
+        { value: 'web_session', label: 'Web Visit' },
+        { value: 'web_page', label: 'Page View' }
+      ]
+    },
+    entity_id: {
+      name: 'entity_id',
+      title: 'Entity ID',
+      description: 'ID of the related entity',
+      type: 'string',
+      shown: true
+    },
+    created_at: {
+      name: 'created_at',
+      title: 'Event Date',
+      description: 'When the event occurred',
+      type: 'time',
+      shown: true
+    }
+  }
+}
+
+export const CustomEventsGoalsTableSchema: TableSchema = {
+  name: 'custom_events_goals',
+  title: 'Custom Events Goal',
+  description: 'Aggregated custom events data (LTV, transaction counts, etc.)',
+  icon: faBullseye,
+  fields: {
+    goal_type: {
+      name: 'goal_type',
+      title: 'Goal Type',
+      description: 'Type of goal (purchase, subscription, lead, etc.)',
+      type: 'string',
+      shown: true,
+      options: [
+        { value: '*', label: 'All types' },
+        { value: 'purchase', label: 'Purchase' },
+        { value: 'subscription', label: 'Subscription' },
+        { value: 'lead', label: 'Lead' },
+        { value: 'signup', label: 'Signup' },
+        { value: 'booking', label: 'Booking' },
+        { value: 'trial', label: 'Trial' },
+        { value: 'other', label: 'Other' }
+      ]
+    },
+    goal_name: {
+      name: 'goal_name',
+      title: 'Goal Name',
+      description: 'Optional specific goal name to filter by',
+      type: 'string',
+      shown: true
+    },
+    aggregate_operator: {
+      name: 'aggregate_operator',
+      title: 'Aggregate',
+      description: 'How to aggregate the goal values',
+      type: 'string',
+      shown: true,
+      options: [
+        { value: 'sum', label: 'Sum' },
+        { value: 'count', label: 'Count' },
+        { value: 'avg', label: 'Average' },
+        { value: 'min', label: 'Minimum' },
+        { value: 'max', label: 'Maximum' }
+      ]
+    },
+    operator: {
+      name: 'operator',
+      title: 'Comparison',
+      description: 'Comparison operator',
+      type: 'string',
+      shown: true,
+      options: [
+        { value: 'gte', label: 'Greater than or equal' },
+        { value: 'lte', label: 'Less than or equal' },
+        { value: 'eq', label: 'Equal to' },
+        { value: 'between', label: 'Between' }
+      ]
+    },
+    value: {
+      name: 'value',
+      title: 'Value',
+      description: 'Comparison value',
+      type: 'number',
+      shown: true
+    },
+    value_2: {
+      name: 'value_2',
+      title: 'Value 2',
+      description: 'Second value for between operator',
+      type: 'number',
+      shown: true
+    }
+  }
+}
+
+// Export all schemas as a map
+/**
+ * The `changes` keys of the web navigation timeline rows.
+ *
+ * These are NOT columns. A contact_timeline filter compiles to
+ * `ct.changes->'<field>'->>'new'`, so the field list has to be the keys the web
+ * analytics projection writes into `changes` — not the table's own columns,
+ * which is why the Activity condition cannot reuse ContactTimelineTableSchema
+ * for its filters. Keep each list in step with
+ * internal/repository/web_analytics_timeline_projection.go.
+ *
+ * Boolean keys (is_landing, is_exit, is_direct) are deliberately absent. The
+ * filter UI has no boolean renderer and never reads a field's `options`, so they
+ * would render as free text matching only the literals 'true'/'false' — and
+ * each is already expressible as a string: entry and exit pages through the
+ * visit's landing_path / exit_path, a direct visit through channel.
+ */
+
+export const WebPageviewChangesSchema: TableSchema = {
+  name: 'web_pageview_changes',
+  title: 'Page view',
+  description: 'A page an identified visitor viewed',
+  icon: faMousePointer,
+  fields: {
+    path: {
+      name: 'path',
+      title: 'Path',
+      description: 'Path of the page viewed, without the domain',
+      type: 'string',
+      shown: true
+    },
+    duration_ms: {
+      name: 'duration_ms',
+      title: 'Time on page (ms)',
+      description: 'Engaged time on the page, in milliseconds',
+      type: 'number',
+      shown: true
+    },
+    max_scroll: {
+      name: 'max_scroll',
+      title: 'Scroll depth (%)',
+      description: 'Furthest scroll position reached, as a percentage',
+      type: 'number',
+      shown: true
+    },
+    page_number: {
+      name: 'page_number',
+      title: 'Page number in visit',
+      description: 'Position of the page within the visit, starting at 1',
+      type: 'number',
+      shown: true
+    },
+    entry_type: {
+      name: 'entry_type',
+      title: 'Entry type',
+      description: 'How the visitor arrived on the page',
+      type: 'string',
+      shown: true
+    },
+    session_id: {
+      name: 'session_id',
+      title: 'Visit ID',
+      description: 'Identifier of the visit the page belongs to',
+      type: 'string',
+      shown: true
+    },
+    landing_domain: {
+      name: 'landing_domain',
+      title: 'Domain',
+      description: 'Domain the visit started on, which the path belongs to',
+      type: 'string',
+      shown: true
+    }
+  }
+}
+
+export const WebSessionChangesSchema: TableSchema = {
+  name: 'web_session_changes',
+  title: 'Web visit',
+  description: 'A visit by an identified visitor',
+  icon: faMousePointer,
+  fields: {
+    landing_path: {
+      name: 'landing_path',
+      title: 'Entry page',
+      description: 'Path of the first page of the visit',
+      type: 'string',
+      shown: true
+    },
+    exit_path: {
+      name: 'exit_path',
+      title: 'Exit page',
+      description: 'Path of the last page of the visit',
+      type: 'string',
+      shown: true
+    },
+    pageview_count: {
+      name: 'pageview_count',
+      title: 'Pages viewed',
+      description: 'Number of pages viewed during the visit',
+      type: 'number',
+      shown: true
+    },
+    duration_ms: {
+      name: 'duration_ms',
+      title: 'Visit duration (ms)',
+      description: 'Engaged time across the whole visit, in milliseconds',
+      type: 'number',
+      shown: true
+    },
+    max_scroll: {
+      name: 'max_scroll',
+      title: 'Scroll depth (%)',
+      description: 'Deepest scroll reached on any page of the visit',
+      type: 'number',
+      shown: true
+    },
+    goal_count: {
+      name: 'goal_count',
+      title: 'Goals reached',
+      description: 'Number of goals fired during the visit',
+      type: 'number',
+      shown: true
+    },
+    goal_value: {
+      name: 'goal_value',
+      title: 'Goal value',
+      description: 'Total value of the goals fired during the visit',
+      type: 'number',
+      shown: true
+    },
+    referrer_domain: {
+      name: 'referrer_domain',
+      title: 'Referrer domain',
+      description: 'Domain the visitor arrived from',
+      type: 'string',
+      shown: true
+    },
+    utm_source: {
+      name: 'utm_source',
+      title: 'UTM source',
+      description: 'utm_source of the visit',
+      type: 'string',
+      shown: true
+    },
+    utm_medium: {
+      name: 'utm_medium',
+      title: 'UTM medium',
+      description: 'utm_medium of the visit',
+      type: 'string',
+      shown: true
+    },
+    utm_campaign: {
+      name: 'utm_campaign',
+      title: 'UTM campaign',
+      description: 'utm_campaign of the visit',
+      type: 'string',
+      shown: true
+    },
+    utm_content: {
+      name: 'utm_content',
+      title: 'UTM content',
+      description: 'utm_content of the visit, which names the creative',
+      type: 'string',
+      shown: true
+    },
+    channel: {
+      name: 'channel',
+      title: 'Channel',
+      description: 'Acquisition channel resolved from the attribution rules',
+      type: 'string',
+      shown: true
+    },
+    channel_group: {
+      name: 'channel_group',
+      title: 'Channel group',
+      description: 'Group the acquisition channel belongs to',
+      type: 'string',
+      shown: true
+    },
+    device: {
+      name: 'device',
+      title: 'Device',
+      description: 'Device category of the visit',
+      type: 'string',
+      shown: true
+    },
+    browser: {
+      name: 'browser',
+      title: 'Browser',
+      description: 'Browser used for the visit',
+      type: 'string',
+      shown: true
+    },
+    os: {
+      name: 'os',
+      title: 'Operating system',
+      description: 'Operating system used for the visit',
+      type: 'string',
+      shown: true
+    },
+    country: {
+      name: 'country',
+      title: 'Country',
+      description: 'Country the visit came from',
+      type: 'string',
+      shown: true
+    }
+  }
+}
+
+/**
+ * The filter schema for an Activity condition, or undefined when the kind has
+ * none. Only the web kinds are supported: their `changes` payload is written by
+ * the projection and therefore known, whereas the other kinds come from
+ * database triggers with a different shape per kind.
+ */
+export const timelineChangesSchema = (kind?: string): TableSchema | undefined => {
+  if (kind === 'web.pageview') return WebPageviewChangesSchema
+  if (kind === 'web.session') return WebSessionChangesSchema
+  return undefined
+}
+
+export const TableSchemas: { [key: string]: TableSchema } = {
+
+  contacts: ContactsTableSchema,
+  contact_lists: ContactListsTableSchema,
+  contact_timeline: ContactTimelineTableSchema,
+  custom_events_goals: CustomEventsGoalsTableSchema
+}

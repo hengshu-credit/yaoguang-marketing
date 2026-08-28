@@ -1,0 +1,126 @@
+/* TiptapToolbar button color overrides to fix Ant Design reset.css */
+/* These rules override the Ant Design reset that sets "color: inherit" on buttons */
+.tiptap-toolbar button,
+.tiptap-toolbar .ant-btn {
+    color: #ffffff !important;
+    /* White text for toolbar buttons */
+}
+
+/* Ensure FontAwesome icons inherit the button color */
+.tiptap-toolbar button svg,
+.tiptap-toolbar .ant-btn svg {
+    color: inherit !important;
+}
+
+/* ColorPicker trigger button inside toolbar */
+.tiptap-toolbar .ant-color-picker-trigger {
+    color: #ffffff !important;
+}
+
+/* Popover content buttons (for link and emoji popovers) */
+/* Only apply to default buttons, not primary/danger which need white text */
+.tiptap-link-popover .ant-btn-default,
+.tiptap-emoji-popover .ant-btn-default {
+    color: rgba(0, 0, 0, 0.88) !important;
+}
+
+.tiptap-link-popover .ant-btn-primary,
+.tiptap-link-popover .ant-btn-dangerous,
+.tiptap-emoji-popover .ant-btn-primary,
+.tiptap-emoji-popover .ant-btn-dangerous {
+    color: #fff !important;
+}
+
+/* Input elements inside TiptapToolbar popovers */
+.tiptap-link-popover input,
+.tiptap-link-popover select {
+    color: #000000 !important;
+    /* Dark text for form inputs */
+}
+
+/* Paragraph spacing to match MJML compiled output */
+.email-text-preview p {
+    margin: 13px 0;
+}
+
+.email-text-preview ol {
+    margin: 1em 0;
+    padding-left: 40px;
+    list-style-type: decimal;
+}
+
+.email-text-preview ul {
+    margin: 1em 0;
+    padding-left: 40px;
+    list-style-type: disc;
+}
+
+.email-text-preview li {
+    margin: 0.5em 0;
+    display: list-item;
+}
+
+.email-text-preview ol ol {
+    list-style-type: lower-alpha;
+}
+
+.email-text-preview ol ol ol {
+    list-style-type: lower-roman;
+}
+
+.email-text-preview ul ul {
+    list-style-type: circle;
+}
+
+.email-text-preview ul ul ul {
+    list-style-type: square;
+}
+
+/* Default styles for common formatting tags */
+.email-text-preview strong,
+.email-text-preview b {
+    font-weight: bold;
+}
+
+.email-text-preview em,
+.email-text-preview i {
+    font-style: italic;
+}
+
+.email-text-preview u {
+    text-decoration: underline;
+}
+
+.email-text-preview s,
+.email-text-preview strike {
+    text-decoration: line-through;
+}
+
+.email-text-preview a {
+    color: #0066cc;
+    text-decoration: underline;
+}
+
+.email-text-preview a:hover {
+    color: #004499;
+}
+
+.email-text-preview br {
+    line-height: 1;
+}
+
+.email-text-preview sup {
+    vertical-align: super;
+    font-size: smaller;
+    line-height: 0;
+}
+
+.email-text-preview sub {
+    vertical-align: sub;
+    font-size: smaller;
+    line-height: 0;
+}
+
+.email-text-preview small {
+    font-size: smaller;
+}

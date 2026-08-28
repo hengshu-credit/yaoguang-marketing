@@ -1,0 +1,107 @@
+# Test Infrastructure Makefile
+# This file contains commands for managing test infrastructure
+
+.PHONY: help start stop restart clean status logs test test-blog test-quick test-full health
+
+# Default target
+help:
+	@echo "Test Infrastructure Management Commands:"
+	@echo "  start       - Start test infrastructure"
+	@echo "  stop        - Stop test infrastructure"
+	@echo "  restart     - Restart test infrastructure"
+	@echo "  clean       - Stop and remove all test volumes"
+	@echo "  status      - Show status of test services"
+	@echo "  logs        - Show logs from test services"
+	@echo "  health      - Check health of test services"
+	@echo "  test        - Run integration tests"
+	@echo "  test-blog   - Run blog integration tests"
+	@echo "  test-quick  - Run quick integration tests"
+	@echo "  test-full   - Run full test cycle (clean, start, test, stop)"
+
+
+# Start test infrastructure
+start:
+	@echo "🚀 Starting test infrastructure..."
+	docker compose -f compose.test.yaml up -d
+	@echo "⏳ Waiting for services to be ready..."
+	@sleep 8
+	@echo "✅ Test infrastructure is ready!"
+	@echo "   - PostgreSQL: localhost:5433"
+	@echo "   - Mailpit SMTP: localhost:1025"
+	@echo "   - Mailpit Web UI: http://localhost:8025"
+
+# Stop test infrastructure
+stop:
+	@echo "🛑 Stopping test infrastructure..."
+	docker compose -f compose.test.yaml down
+	@echo "✅ Test infrastructure stopped!"
+
+# Restart test infrastructure
+restart: stop start
+
+# Clean test infrastructure (remove volumes)
+clean:
+	@echo "🧹 Cleaning test infrastructure..."
+	docker compose -f compose.test.yaml down -v --remove-orphans
+	@echo "✅ Test infrastructure cleaned!"
+
+# Show status of test services
+status:
+	@echo "📊 Test infrastructure status:"
+	docker compose -f compose.test.yaml ps
+
+# Show logs from test services
+logs:
+	@echo "📋 Test infrastructure logs:"
+	docker compose -f compose.test.yaml logs -f
+
+# Check health of test services
+health:
+	@echo "🏥 Checking test infrastructure health..."
+	@echo "PostgreSQL:"
+	@timeout 5s bash -c 'until nc -z localhost 5433; do sleep 1; done' && echo "✅ PostgreSQL is ready" || echo "❌ PostgreSQL is not ready"
+	@echo "Mailpit SMTP:"
+	@timeout 5s bash -c 'until nc -z localhost 1025; do sleep 1; done' && echo "✅ Mailpit SMTP is ready" || echo "❌ Mailpit SMTP is not ready"
+	@echo "Mailpit Web UI:"
+	@timeout 5s bash -c 'until nc -z localhost 8025; do sleep 1; done' && echo "✅ Mailpit Web UI is ready" || echo "❌ Mailpit Web UI is not ready"
+
+# Run integration tests
+test:
+	@echo "🧪 Running integration tests..."
+	@echo "Make sure test infrastructure is running (run 'make start' first)"
+	INTEGRATION_TESTS=true \
+	TEST_DB_HOST=localhost \
+	TEST_DB_PORT=5433 \
+	TEST_DB_USER=notifuse_test \
+	TEST_DB_PASSWORD=test_password \
+	ENVIRONMENT=test \
+	go test -v -timeout 10m ../tests/integration/...
+
+
+
+# Quick test (subset of tests)
+test-quick:
+	@echo "⚡ Running quick integration tests..."
+	INTEGRATION_TESTS=true \
+	TEST_DB_HOST=localhost \
+	TEST_DB_PORT=5433 \
+	TEST_DB_USER=notifuse_test \
+	TEST_DB_PASSWORD=test_password \
+	ENVIRONMENT=test \
+	go test -v -timeout 5m -short ../tests/integration/...
+
+# Blog integration tests
+test-blog:
+	@echo "📝 Running blog integration tests..."
+	@echo "Make sure test infrastructure is running (run 'make start' first)"
+	INTEGRATION_TESTS=true \
+	TEST_DB_HOST=localhost \
+	TEST_DB_PORT=5433 \
+	TEST_DB_USER=notifuse_test \
+	TEST_DB_PASSWORD=test_password \
+	ENVIRONMENT=test \
+	go test -v -timeout 10m -run TestBlog ../tests/integration/...
+
+# Full test cycle
+test-full: clean start test stop
+	@echo "🎉 Full test cycle completed!" 

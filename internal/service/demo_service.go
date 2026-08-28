@@ -1,0 +1,2455 @@
+package service
+
+import (
+	"context"
+	"fmt"
+	"math"
+	"math/rand"
+	"strings"
+	"time"
+
+	"github.com/Notifuse/notifuse/config"
+	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/google/uuid"
+)
+
+// DemoService handles demo workspace operations
+type DemoService struct {
+	logger                           logger.Logger
+	config                           *config.Config
+	workspaceService                 *WorkspaceService
+	userService                      *UserService
+	contactService                   *ContactService
+	listService                      *ListService
+	contactListService               *ContactListService
+	templateService                  *TemplateService
+	emailService                     *EmailService
+	broadcastService                 *BroadcastService
+	taskService                      *TaskService
+	transactionalNotificationService *TransactionalNotificationService
+	inboundWebhookEventService       *InboundWebhookEventService
+	webhookRegistrationService       *WebhookRegistrationService
+	messageHistoryService            *MessageHistoryService
+	notificationCenterService        *NotificationCenterService
+	segmentService                   domain.SegmentService
+	workspaceRepo                    domain.WorkspaceRepository
+	taskRepo                         domain.TaskRepository
+	messageHistoryRepo               domain.MessageHistoryRepository
+	inboundWebhookEventRepo          domain.InboundWebhookEventRepository
+	broadcastRepo                    domain.BroadcastRepository
+	customEventRepo                  domain.CustomEventRepository
+	webAnalyticsRepo                 domain.WebAnalyticsRepository
+	annotationRepo                   domain.AnnotationRepository
+	webhookSubscriptionService       *WebhookSubscriptionService
+	// Interface-typed, like segmentService above, so the seeded-automation guard tests can build a
+	// DemoService with a generated mock. *AutomationService satisfies it, so app.go passes its own.
+	automationService domain.AutomationService
+}
+
+// Sample data arrays for contact generation
+var (
+	firstNames = []string{
+		"James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", "Linda",
+		"William", "Elizabeth", "David", "Barbara", "Richard", "Susan", "Joseph", "Jessica",
+		"Thomas", "Sarah", "Charles", "Karen", "Christopher", "Nancy", "Daniel", "Lisa",
+		"Matthew", "Betty", "Anthony", "Margaret", "Mark", "Sandra", "Donald", "Ashley",
+		"Steven", "Kimberly", "Paul", "Emily", "Andrew", "Donna", "Joshua", "Michelle",
+		"Kenneth", "Dorothy", "Kevin", "Carol", "Brian", "Amanda", "George", "Melissa",
+		"Edward", "Deborah", "Ronald", "Stephanie", "Timothy", "Rebecca", "Jason", "Sharon",
+		"Jeffrey", "Laura", "Ryan", "Cynthia", "Jacob", "Kathleen", "Gary", "Amy",
+		"Nicholas", "Angela", "Eric", "Shirley", "Jonathan", "Anna", "Stephen", "Ruth",
+	}
+
+	lastNames = []string{
+		"Smith", "Johnson", "Williams", "Jones", "Brown", "Davis", "Miller", "Wilson",
+		"Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin",
+		"Thompson", "Garcia", "Martinez", "Robinson", "Clark", "Rodriguez", "Lewis", "Lee",
+		"Walker", "Hall", "Allen", "Young", "Hernandez", "King", "Wright", "Lopez",
+		"Hill", "Scott", "Green", "Adams", "Baker", "Gonzalez", "Nelson", "Carter",
+		"Mitchell", "Perez", "Roberts", "Turner", "Phillips", "Campbell", "Parker", "Evans",
+		"Edwards", "Collins", "Stewart", "Sanchez", "Morris", "Rogers", "Reed", "Cook",
+		"Morgan", "Bell", "Murphy", "Bailey", "Rivera", "Cooper", "Richardson", "Cox",
+		"Howard", "Ward", "Torres", "Peterson", "Gray", "Ramirez", "James", "Watson",
+	}
+
+	emailDomains = []string{
+		"gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com",
+		"aol.com", "protonmail.com", "mail.com", "zoho.com", "example.com",
+	}
+
+	timezones = []string{
+		"UTC", "America/New_York", "America/Los_Angeles", "America/Chicago",
+		"Europe/London", "Europe/Paris", "Europe/Berlin", "Asia/Tokyo",
+		"Asia/Shanghai", "Australia/Sydney",
+	}
+
+	languages = []string{
+		"en", "es", "fr", "de", "it", "pt", "ru", "zh", "ja", "ko",
+	}
+
+	countries = []string{
+		"US", "CA", "GB", "DE", "FR",
+		"ES", "IT", "AU", "JP", "BR",
+	}
+)
+
+// NewDemoService creates a new demo service instance
+func NewDemoService(
+	logger logger.Logger,
+	config *config.Config,
+	workspaceService *WorkspaceService,
+	userService *UserService,
+	contactService *ContactService,
+	listService *ListService,
+	contactListService *ContactListService,
+	templateService *TemplateService,
+	emailService *EmailService,
+	broadcastService *BroadcastService,
+	taskService *TaskService,
+	transactionalNotificationService *TransactionalNotificationService,
+	inboundWebhookEventService *InboundWebhookEventService,
+	webhookRegistrationService *WebhookRegistrationService,
+	messageHistoryService *MessageHistoryService,
+	notificationCenterService *NotificationCenterService,
+	segmentService domain.SegmentService,
+	workspaceRepo domain.WorkspaceRepository,
+	taskRepo domain.TaskRepository,
+	messageHistoryRepo domain.MessageHistoryRepository,
+	inboundWebhookEventRepo domain.InboundWebhookEventRepository,
+	broadcastRepo domain.BroadcastRepository,
+	customEventRepo domain.CustomEventRepository,
+	webAnalyticsRepo domain.WebAnalyticsRepository,
+	annotationRepo domain.AnnotationRepository,
+	webhookSubscriptionService *WebhookSubscriptionService,
+	automationService domain.AutomationService,
+) *DemoService {
+	return &DemoService{
+		logger:                           logger,
+		config:                           config,
+		workspaceService:                 workspaceService,
+		userService:                      userService,
+		contactService:                   contactService,
+		listService:                      listService,
+		contactListService:               contactListService,
+		templateService:                  templateService,
+		emailService:                     emailService,
+		broadcastService:                 broadcastService,
+		taskService:                      taskService,
+		transactionalNotificationService: transactionalNotificationService,
+		inboundWebhookEventService:       inboundWebhookEventService,
+		webhookRegistrationService:       webhookRegistrationService,
+		messageHistoryService:            messageHistoryService,
+		notificationCenterService:        notificationCenterService,
+		segmentService:                   segmentService,
+		workspaceRepo:                    workspaceRepo,
+		taskRepo:                         taskRepo,
+		messageHistoryRepo:               messageHistoryRepo,
+		inboundWebhookEventRepo:          inboundWebhookEventRepo,
+		broadcastRepo:                    broadcastRepo,
+		customEventRepo:                  customEventRepo,
+		webAnalyticsRepo:                 webAnalyticsRepo,
+		annotationRepo:                   annotationRepo,
+		webhookSubscriptionService:       webhookSubscriptionService,
+		automationService:                automationService,
+	}
+}
+
+// VerifyRootEmailHMAC verifies the HMAC of the root email
+func (s *DemoService) VerifyRootEmailHMAC(providedHMAC string) bool {
+	// Demo mode is single-root; use the primary configured root email.
+	rootEmail := s.config.PrimaryRootEmail()
+	if rootEmail == "" {
+		s.logger.Error("Root email not configured")
+		return false
+	}
+
+	// Use the domain function to verify HMAC with constant-time comparison
+	return domain.VerifyEmailHMAC(rootEmail, providedHMAC, s.config.Security.SecretKey)
+}
+
+// ResetDemo deletes all existing workspaces and tasks, then creates a new demo workspace
+func (s *DemoService) ResetDemo(ctx context.Context) error {
+	s.logger.Info("Starting demo reset process")
+
+	// Step 1: Delete all existing workspaces
+	if err := s.deleteAllWorkspaces(ctx); err != nil {
+		return fmt.Errorf("failed to delete existing workspaces: %w", err)
+	}
+
+	// Step 2: Create a new demo workspace
+	if err := s.createDemoWorkspace(ctx); err != nil {
+		return fmt.Errorf("failed to create demo workspace: %w", err)
+	}
+
+	s.logger.Info("Demo reset completed successfully")
+	return nil
+}
+
+// deleteAllWorkspaces deletes all workspaces from the system
+func (s *DemoService) deleteAllWorkspaces(ctx context.Context) error {
+	s.logger.Info("Deleting all existing workspaces")
+
+	// Get all workspaces
+	workspaces, err := s.workspaceRepo.List(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to list workspaces: %w", err)
+	}
+
+	// Delete each workspace
+	for _, workspace := range workspaces {
+		s.logger.WithField("workspace_id", workspace.ID).Info("Deleting workspace")
+		if err := s.workspaceRepo.Delete(ctx, workspace.ID); err != nil {
+			s.logger.WithField("workspace_id", workspace.ID).WithField("error", err.Error()).Error("Failed to delete workspace")
+			// Continue with other workspaces even if one fails
+		}
+		if err := s.taskRepo.DeleteAll(ctx, workspace.ID); err != nil {
+			s.logger.WithField("workspace_id", workspace.ID).WithField("error", err.Error()).Error("Failed to delete tasks")
+			// Continue with other workspaces even if one fails
+		}
+	}
+
+	s.logger.WithField("count", len(workspaces)).Info("Finished deleting workspaces")
+	return nil
+}
+
+// createDemoWorkspace creates a new demo workspace with sample data
+func (s *DemoService) createDemoWorkspace(ctx context.Context) error {
+	s.logger.Info("Creating demo workspace")
+
+	// Get the root user to create the workspace (demo mode is single-root)
+	rootEmail := s.config.PrimaryRootEmail()
+	s.logger.WithField("root_email", rootEmail).Info("Looking up root user for demo workspace creation")
+
+	rootUser, err := s.userService.GetUserByEmail(ctx, rootEmail)
+	if err != nil {
+		s.logger.WithField("root_email", rootEmail).WithField("error", err.Error()).Error("Failed to get root user")
+		return fmt.Errorf("failed to get root user with email '%s': %w", rootEmail, err)
+	}
+
+	s.logger.WithField("root_user_id", rootUser.ID).WithField("root_user_type", rootUser.Type).Info("Found root user for demo workspace creation")
+
+	// Create authenticated context with root user
+	// For UserTypeUser, we need to create a temporary session or use API key approach
+	authenticatedCtx := context.WithValue(ctx, domain.UserIDKey, rootUser.ID)
+	if rootUser.Type == domain.UserTypeUser {
+		// For demo purposes, treat root user as API key to avoid session complexity
+		authenticatedCtx = context.WithValue(authenticatedCtx, domain.UserTypeKey, string(domain.UserTypeAPIKey))
+	} else {
+		authenticatedCtx = context.WithValue(authenticatedCtx, domain.UserTypeKey, string(rootUser.Type))
+	}
+
+	// Use hardcoded demo workspace ID
+	workspaceID := "demo"
+
+	// Create workspace settings with readonly demo bucket
+	fileManagerSettings := domain.FileManagerSettings{
+		Endpoint:  s.config.Demo.FileManagerEndpoint,
+		Bucket:    s.config.Demo.FileManagerBucket,
+		AccessKey: s.config.Demo.FileManagerAccessKey,
+		SecretKey: s.config.Demo.FileManagerSecretKey,
+	}
+
+	// Create the demo workspace
+	workspace, err := s.workspaceService.CreateWorkspace(
+		authenticatedCtx,
+		workspaceID,
+		"Apple",
+		"https://www.apple.com",
+		"https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+		"https://demo.notifuse.com/cover.png",
+		"UTC",
+		fileManagerSettings,
+		domain.DefaultLanguageCode, []string{"en", "fr", "es"},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create demo workspace: %w", err)
+	}
+
+	s.logger.WithField("workspace_id", workspace.ID).Info("Demo workspace created successfully")
+
+	// Create SMTP integration for demo emails
+	if err := s.createDemoSMTPIntegration(authenticatedCtx, workspace.ID); err != nil {
+		s.logger.WithField("workspace_id", workspace.ID).WithField("error", err.Error()).Warn("Failed to create SMTP integration")
+		// Don't fail the entire operation if SMTP integration creation fails
+	}
+
+	// Add comprehensive sample data to the workspace.
+	//
+	// Detached from the caller's connection for its whole length, not just for
+	// the web analytics step. A reset takes tens of seconds and the server sets
+	// no request timeouts, so the only way this context dies is the operator
+	// closing the tab or a proxy giving up — and every step here aborts the rest
+	// on error. Half a demo, silently, is the worst outcome available; the reset
+	// is manually triggered, HMAC-gated and behind a five-minute rate limit, so
+	// there is nobody for cancellation to protect.
+	if err := s.addSampleData(context.WithoutCancel(authenticatedCtx), workspace.ID); err != nil {
+		s.logger.WithField("workspace_id", workspace.ID).WithField("error", err.Error()).Warn("Failed to add sample data to demo workspace")
+		// Don't fail the entire operation if sample data creation fails
+	}
+
+	// Create webhook subscription AFTER sample data so DB triggers don't fire
+	// for all the seed data, avoiding thousands of unnecessary webhook deliveries
+	if err := s.createDemoWebhookSubscription(authenticatedCtx, workspace.ID); err != nil {
+		s.logger.WithField("workspace_id", workspace.ID).WithField("error", err.Error()).Warn("Failed to create demo webhook subscription")
+		// Non-fatal - continue with demo setup
+	} else {
+		s.logger.WithField("workspace_id", workspace.ID).Info("Demo webhook subscription created")
+	}
+
+	return nil
+}
+
+// createDemoWebhookSubscription adds the demo's webhook subscription, switched off.
+//
+// It exists so the console has one to show — subscribing to every event type, so
+// the event list is worth reading — but it must not deliver. The trigger
+// functions fan out to `enabled = true` subscriptions only, so an enabled one
+// would write a webhook_deliveries row for every contact, event and message the
+// demo produces, and the delivery worker would then retry each of them up to ten
+// times against a placeholder URL that answers nothing. Anyone who wants to watch
+// it work can point it at their own endpoint and toggle it on.
+//
+// Created enabled and then switched off, because Create has no say in it. If the
+// switch-off fails the subscription is removed rather than left running: shipping
+// an enabled firehose is the one outcome this function exists to prevent, and a
+// demo without a webhook example is a much smaller loss.
+func (s *DemoService) createDemoWebhookSubscription(ctx context.Context, workspaceID string) error {
+	const (
+		name = "Demo Webhook"
+		url  = "https://webhook.site/demo"
+	)
+
+	subscription, err := s.webhookSubscriptionService.Create(
+		ctx, workspaceID, name, url,
+		domain.WebhookEventTypes, // Subscribe to all event types
+		nil,
+		// User-created, and unfiltered on both lists and segments: the demo
+		// subscription exists to show the console what the full event surface
+		// looks like, so narrowing it would defeat the point.
+		domain.WebhookSubscriptionSourceUser, nil, nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	disabled := false
+	if _, err := s.webhookSubscriptionService.Update(
+		ctx, workspaceID, subscription.ID, name, url, domain.WebhookEventTypes, nil, &disabled, nil, nil,
+	); err != nil {
+		if deleteErr := s.webhookSubscriptionService.Delete(ctx, workspaceID, subscription.ID); deleteErr != nil {
+			s.logger.WithField("workspace_id", workspaceID).
+				WithField("subscription_id", subscription.ID).
+				WithField("error", deleteErr.Error()).
+				Error("Demo webhook subscription is enabled and could not be removed")
+		}
+		return fmt.Errorf("failed to disable the demo webhook subscription: %w", err)
+	}
+
+	return nil
+}
+
+// addSampleData adds comprehensive sample data including 1000 contacts, templates, and broadcasts
+func (s *DemoService) addSampleData(ctx context.Context, workspaceID string) error {
+	s.logger.WithField("workspace_id", workspaceID).Info("Adding comprehensive sample data to demo workspace")
+
+	// One clock for the whole run. The traffic window (step 3b) and the launch
+	// annotation that marks its spike (step 10) are separated by the broadcasts,
+	// a thousand contacts' message history, the segments and the automations —
+	// long enough for a reset started just before UTC midnight to read two
+	// different days and leave the marker a day off the peak it explains.
+	now := time.Now().UTC()
+
+	// Step 1: Create sample templates first
+	if err := s.createSampleTemplates(ctx, workspaceID); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create sample templates")
+		return err
+	}
+
+	// Step 2: Create sample lists
+	if err := s.createSampleLists(ctx, workspaceID); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create sample lists")
+		return err
+	}
+
+	// Step 3: Generate and add 1000 sample contacts
+	if err := s.generateAndAddSampleContacts(ctx, workspaceID, 1000); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create sample contacts")
+		return err
+	}
+
+	// Step 3b: Generate the web analytics history, which is also where the demo's
+	// e-commerce transactions come from — every purchase belongs to a session, on
+	// a product page, at the end of a funnel the visitor actually walked.
+	//
+	// Runs after contacts because a share of the sessions are attributed to them,
+	// and before segments (step 8) because a segment built against an empty event
+	// table is only populated later, asynchronously, by the recomputation queue —
+	// which shows up as a demo whose audiences are empty for the first minute
+	// after a reset.
+	//
+	// It stays synchronous deliberately. At this volume the write is seconds, not
+	// minutes, and a goroutine whose only purpose is to let a manually-triggered
+	// admin endpoint return sooner is complexity with no user behind it. The point
+	// where that changes is a measured one: if seeding on the demo host ever runs
+	// past roughly 45 seconds, split it rather than backgrounding it wholesale —
+	// write the most recent ~35 days synchronously, since the default view is the
+	// last 7 days and the demo is complete the moment the response returns, and
+	// finish the older months behind the reset mutex.
+	if err := s.seedWebAnalytics(ctx, workspaceID, now); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to generate demo web analytics")
+		// Non-fatal: the rest of the demo is still usable without it.
+	}
+
+	// Step 4: Subscribe all contacts to the newsletter list
+	if err := s.subscribeContactsToList(ctx, workspaceID, "newsletter"); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to subscribe contacts to newsletter list")
+		return err
+	}
+
+	// Step 5: Create sample broadcast campaigns and get their IDs
+	broadcastIDs, err := s.createSampleBroadcasts(ctx, workspaceID)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create sample broadcasts")
+		return err
+	}
+
+	// Step 6: Create sample transactional notifications
+	if err := s.createSampleTransactionalNotifications(ctx, workspaceID); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create sample transactional notifications")
+		return err
+	}
+
+	// Step 7: Generate sample message history with realistic engagement rates using real broadcast IDs
+	if err := s.generateSampleMessageHistory(ctx, workspaceID, broadcastIDs); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to generate sample message history")
+		return err
+	}
+
+	// Step 8: Create sample segments, last, so every one of them is built against
+	// data that is already in place.
+	if err := s.createSampleSegments(ctx, workspaceID); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create sample segments")
+		return err
+	}
+
+	// Step 9: Create the showcase automations, last of all. Two reasons for the position, and both
+	// are load-bearing.
+	//
+	// After segments (step 8), because two of the five trigger on segment ids that do not exist
+	// until then. And after everything else, because activating an automation installs an AFTER
+	// INSERT trigger on contact_timeline: installed any earlier it would enroll a contact for every
+	// row the rest of the seed writes, and with every_time frequency and repeat buyers that burst
+	// collides with contact_automations' UNIQUE(automation_id, contact_email, entered_at) inside the
+	// custom-events batch transaction — which would abort it and take the demo's whole conversion
+	// history with it.
+	if err := s.createSampleAutomations(ctx, workspaceID); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create sample automations")
+		// Non-fatal: the rest of the demo is still usable without them.
+	}
+
+	// Step 10: Annotate the charts. It has to run after the web analytics (step 3b),
+	// which is what puts the launch spike on the chart the manual annotation points
+	// at, and after the broadcasts (step 5), because one annotation per broadcast is
+	// read back from the broadcast rows.
+	if err := s.seedAnnotations(ctx, workspaceID, now); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to seed demo annotations")
+		// Non-fatal: the rest of the demo is still usable without them.
+	}
+
+	s.logger.WithField("workspace_id", workspaceID).Info("Comprehensive sample data added successfully")
+	return nil
+}
+
+// generateAndAddSampleContacts creates realistic sample contacts
+func (s *DemoService) generateAndAddSampleContacts(ctx context.Context, workspaceID string, count int) error {
+	s.logger.WithField("workspace_id", workspaceID).WithField("count", count).Info("Generating sample contacts")
+
+	// Create contacts in batches to avoid overwhelming the system
+	batchSize := 100
+	for i := 0; i < count; i += batchSize {
+		remaining := count - i
+		currentBatchSize := batchSize
+		if remaining < batchSize {
+			currentBatchSize = remaining
+		}
+
+		batch := s.generateSampleContactsBatch(currentBatchSize, i)
+
+		// Add batch to workspace
+		for _, contact := range batch {
+			operation := s.contactService.UpsertContact(ctx, workspaceID, contact)
+			if operation.Action == domain.UpsertContactOperationError {
+				s.logger.WithField("email", contact.Email).WithField("error", operation.Error).Debug("Failed to create sample contact")
+			}
+		}
+
+		s.logger.WithField("batch", i/batchSize+1).WithField("processed", i+currentBatchSize).Info("Processed contact batch")
+	}
+
+	s.logger.WithField("workspace_id", workspaceID).WithField("total_contacts", count).Info("Sample contacts generation completed")
+	return nil
+}
+
+// createDemoSMTPIntegration creates the demo SMTP integration
+func (s *DemoService) createDemoSMTPIntegration(ctx context.Context, workspaceID string) error {
+	s.logger.WithField("workspace_id", workspaceID).Info("Creating demo SMTP integration")
+
+	// Create SMTP provider configuration
+	smtpProvider := domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: &domain.SMTPSettings{
+			Host:     "mailpit.notifuse.com",
+			Port:     1025,
+			Username: "admin",
+			Password: "", // No password needed for demo Mailpit
+			UseTLS:   false,
+		},
+		Senders: []domain.EmailSender{
+			{
+				ID:        uuid.New().String(),
+				Email:     "demo@notifuse.com",
+				Name:      "Notifuse Demo",
+				IsDefault: true,
+			},
+		},
+		RateLimitPerMinute: 25,
+	}
+
+	// Create the integration
+	integrationID, err := s.workspaceService.CreateIntegration(ctx, domain.CreateIntegrationRequest{
+		WorkspaceID: workspaceID,
+		Name:        "Demo SMTP Integration",
+		Type:        domain.IntegrationTypeEmail,
+		Provider:    smtpProvider,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create SMTP integration: %w", err)
+	}
+
+	// Get current workspace to update settings
+	workspace, err := s.workspaceService.GetWorkspace(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace for settings update: %w", err)
+	}
+
+	// Update workspace settings to use this integration for both transactional and marketing emails
+	workspace.Settings.TransactionalEmailProviderID = integrationID
+	workspace.Settings.MarketingEmailProviderID = integrationID
+
+	// Update the workspace with the new settings
+	_, err = s.workspaceService.UpdateWorkspace(ctx, workspaceID, workspace.Name, workspace.Settings)
+	if err != nil {
+		return fmt.Errorf("failed to update workspace settings with email provider IDs: %w", err)
+	}
+
+	s.logger.WithField("workspace_id", workspaceID).WithField("integration_id", integrationID).Info("Demo SMTP integration created and set as transactional and marketing email provider")
+	return nil
+}
+
+// generateSampleContactsBatch creates a batch of sample contacts
+func (s *DemoService) generateSampleContactsBatch(count int, startIndex int) []*domain.Contact {
+	contacts := make([]*domain.Contact, count)
+
+	for i := 0; i < count; i++ {
+		firstName := getRandomElement(firstNames)
+		lastName := getRandomElement(lastNames)
+		email := generateEmail(firstName, lastName, startIndex+i)
+
+		// Spread over the same window the web analytics history covers. Six
+		// months used to be enough because the purchase history was invented
+		// alongside the contact; now it comes from the site's own traffic, and a
+		// list that is younger than the traffic leaves contacts whose first
+		// recorded visit predates their own "Contact created" entry.
+		//
+		// Weighted towards the older end (the square root of a uniform draw), so
+		// the list looks like one that grew fast and then settled rather than one
+		// where a third of the members joined last month. It also decides how
+		// much of the demo is worth opening: a contact can only be attributed
+		// visits made after they signed up, so a list skewed recent would leave
+		// half the workspace with an empty browsing history.
+		age := math.Sqrt(rand.Float64()) * float64(demoWebAnalyticsDays) * 24
+		createdAt := time.Now().Add(-time.Duration(age) * time.Hour)
+
+		contact := &domain.Contact{
+			Email:     email,
+			FirstName: &domain.NullableString{String: firstName, IsNull: false},
+			LastName:  &domain.NullableString{String: lastName, IsNull: false},
+			Timezone:  &domain.NullableString{String: getRandomElement(timezones), IsNull: false},
+			Language:  &domain.NullableString{String: getRandomElement(languages), IsNull: false},
+			Country:   &domain.NullableString{String: getRandomElement(countries), IsNull: false},
+			CreatedAt: createdAt,
+			UpdatedAt: createdAt,
+		}
+
+		contacts[i] = contact
+	}
+
+	return contacts
+}
+
+// The demo used to invent its purchase history here: a loop that gave 70% of
+// contacts one to five orders with a random product and a random date. It was
+// deleted when the web analytics funnel started producing real ones. An order
+// with no session, no product page and no cart behind it cannot appear on a
+// timeline next to the visit that produced it, and it made the abandoned-cart
+// audiences meaningless — every contact already had a purchase, so nobody had
+// abandoned anything. See seedDemoWebGoalEvents in demo_web_analytics.go.
+
+// generateEmail creates a realistic email address
+func generateEmail(firstName, lastName string, index int) string {
+	domain := getRandomElement(emailDomains)
+
+	// Various email formats to make it realistic
+	switch rand.Intn(4) {
+	case 0:
+		return fmt.Sprintf("%s.%s@%s", strings.ToLower(firstName), strings.ToLower(lastName), domain)
+	case 1:
+		return fmt.Sprintf("%s%s@%s", strings.ToLower(firstName), strings.ToLower(lastName), domain)
+	case 2:
+		return fmt.Sprintf("%s%s%d@%s", strings.ToLower(firstName), strings.ToLower(lastName), rand.Intn(100), domain)
+	default:
+		return fmt.Sprintf("%s.%s%d@%s", strings.ToLower(firstName), strings.ToLower(lastName), index, domain)
+	}
+}
+
+// getRandomElement returns a random element from a string slice
+func getRandomElement(slice []string) string {
+	return slice[rand.Intn(len(slice))]
+}
+
+// createSampleLists creates the demo lists
+func (s *DemoService) createSampleLists(ctx context.Context, workspaceID string) error {
+	s.logger.WithField("workspace_id", workspaceID).Info("Creating sample lists")
+
+	// Create the main newsletter list that will contain all 1000 contacts
+	newsletterList := &domain.List{
+		ID:            "newsletter",
+		Name:          "Newsletter",
+		IsDoubleOptin: false, // Disable double opt-in for demo to simplify
+		IsPublic:      true,
+		Description:   "Weekly newsletter subscription list - Demo data with 1000 subscribers",
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+
+	if err := s.listService.CreateList(ctx, workspaceID, newsletterList); err != nil {
+		return fmt.Errorf("failed to create newsletter list: %w", err)
+	}
+
+	// A second list, so the automations that move contacts between audiences have somewhere to move
+	// them. With one list, add_to_list, remove_from_list and list_status_branch are all either no-ops
+	// or self-referential.
+	//
+	// The ID has to be alphanumeric — no hyphens, no underscores (domain/list.go, govalidator
+	// .IsAlphanumeric). "vip-club" fails validation here, and because this function returns its error
+	// that would abort the whole seed at step 2: no contacts, no analytics, no segments.
+	vipList := &domain.List{
+		ID:            "vipclub",
+		Name:          "VIP Club",
+		IsDoubleOptin: false,
+		IsPublic:      false,
+		Description:   "Top customers, promoted automatically after their first purchase",
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+
+	if err := s.listService.CreateList(ctx, workspaceID, vipList); err != nil {
+		return fmt.Errorf("failed to create VIP club list: %w", err)
+	}
+
+	s.logger.WithField("workspace_id", workspaceID).Info("Sample lists created successfully")
+	return nil
+}
+
+// subscribeContactsToList subscribes all contacts to the specified list
+func (s *DemoService) subscribeContactsToList(ctx context.Context, workspaceID, listID string) error {
+	s.logger.WithField("workspace_id", workspaceID).WithField("list_id", listID).Info("Subscribing contacts to list")
+
+	// Get all contacts (this is simplified - in production you'd paginate)
+	contactsReq := &domain.GetContactsRequest{
+		WorkspaceID: workspaceID,
+		Limit:       1000,
+	}
+
+	contactsResp, err := s.contactService.GetContacts(ctx, contactsReq)
+	if err != nil {
+		return fmt.Errorf("failed to get contacts: %w", err)
+	}
+
+	// Subscribe each contact to the list
+	for _, contact := range contactsResp.Contacts {
+		subscribeReq := &domain.SubscribeToListsRequest{
+			WorkspaceID: workspaceID,
+			Contact: domain.Contact{
+				Email: contact.Email,
+			},
+			ListIDs: []string{listID},
+		}
+
+		if err := s.listService.SubscribeToLists(ctx, subscribeReq, false); err != nil {
+			s.logger.WithField("email", contact.Email).WithField("error", err.Error()).Debug("Failed to subscribe contact to list")
+		}
+	}
+
+	s.logger.WithField("workspace_id", workspaceID).WithField("list_id", listID).WithField("count", len(contactsResp.Contacts)).Info("Contacts subscribed to list successfully")
+	return nil
+}
+
+// createSampleTemplates creates the demo email templates
+func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID string) error {
+	s.logger.WithField("workspace_id", workspaceID).Info("Creating sample templates")
+
+	// Create newsletter template
+	nlContents := getNewsletterContents()
+	newsletterMJML := s.createNewsletterMJMLStructure(nlContents["en"])
+	newsletterTestData := domain.MapOfAny{
+		"contact": domain.MapOfAny{
+			"first_name": "John",
+			"last_name":  "Doe",
+			"email":      "john.doe@example.com",
+		},
+	}
+	newsletterHTML := s.compileTemplateToHTML(workspaceID, "newsletter-preview", newsletterMJML, newsletterTestData)
+
+	nlSubjects := map[string]string{
+		"fr": "{{contact.first_name}}, Votre mise à jour hebdomadaire est arrivée ! 📧",
+		"es": "{{contact.first_name}}, ¡Tu actualización semanal está aquí! 📧",
+	}
+	nlMJMLStructures := map[string]notifuse_mjml.EmailBlock{
+		"fr": s.createNewsletterMJMLStructure(nlContents["fr"]),
+		"es": s.createNewsletterMJMLStructure(nlContents["es"]),
+	}
+	nlTranslations := s.buildEmailTranslations(workspaceID, "newsletter", nlSubjects, nlMJMLStructures, newsletterTestData)
+
+	newsletterTemplate := &domain.Template{
+		ID:       "newsletter-weekly",
+		Name:     "Weekly Newsletter",
+		Version:  1,
+		Channel:  "email",
+		Category: string(domain.TemplateCategoryMarketing),
+		Email: &domain.EmailTemplate{
+			Subject:          "{{contact.first_name}}, Your Weekly Update is Here! 📧",
+			CompiledPreview:  newsletterHTML,
+			VisualEditorTree: newsletterMJML,
+		},
+		TestData:     newsletterTestData,
+		Translations: nlTranslations,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+
+	if err := s.templateService.CreateTemplate(ctx, workspaceID, newsletterTemplate); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create newsletter template")
+	}
+
+	// Create newsletter template v2
+	nlV2Contents := getNewsletterV2Contents()
+	newsletterV2MJML := s.createNewsletterV2MJMLStructure(nlV2Contents["en"])
+	newsletterV2TestData := domain.MapOfAny{
+		"contact": domain.MapOfAny{
+			"first_name": "Sarah",
+			"last_name":  "Wilson",
+			"email":      "sarah.wilson@example.com",
+		},
+	}
+	newsletterV2HTML := s.compileTemplateToHTML(workspaceID, "newsletter-v2-preview", newsletterV2MJML, newsletterV2TestData)
+
+	nlV2Subjects := map[string]string{
+		"fr": "🚀 {{contact.first_name}}, Les articles et nouveautés de la semaine !",
+		"es": "🚀 {{contact.first_name}}, ¡Las mejores historias y novedades de la semana!",
+	}
+	nlV2MJMLStructures := map[string]notifuse_mjml.EmailBlock{
+		"fr": s.createNewsletterV2MJMLStructure(nlV2Contents["fr"]),
+		"es": s.createNewsletterV2MJMLStructure(nlV2Contents["es"]),
+	}
+	nlV2Translations := s.buildEmailTranslations(workspaceID, "newsletter-v2", nlV2Subjects, nlV2MJMLStructures, newsletterV2TestData)
+
+	newsletterV2Template := &domain.Template{
+		ID:       "newsletter-weekly-v2",
+		Name:     "Weekly Newsletter v2",
+		Version:  1,
+		Channel:  "email",
+		Category: string(domain.TemplateCategoryMarketing),
+		Email: &domain.EmailTemplate{
+			Subject:          "🚀 {{contact.first_name}}, This Week's Top Stories & Updates!",
+			CompiledPreview:  newsletterV2HTML,
+			VisualEditorTree: newsletterV2MJML,
+		},
+		TestData:     newsletterV2TestData,
+		Translations: nlV2Translations,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+
+	if err := s.templateService.CreateTemplate(ctx, workspaceID, newsletterV2Template); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create newsletter v2 template")
+	}
+
+	// Create welcome email template
+	wContents := getWelcomeContents()
+	welcomeMJML := s.createWelcomeMJMLStructure(wContents["en"])
+	welcomeTestData := domain.MapOfAny{
+		"contact": domain.MapOfAny{
+			"first_name": "Jane",
+			"last_name":  "Smith",
+			"email":      "jane.smith@example.com",
+		},
+	}
+	welcomeHTML := s.compileTemplateToHTML(workspaceID, "welcome-preview", welcomeMJML, welcomeTestData)
+
+	wSubjects := map[string]string{
+		"fr": "Bienvenue dans notre communauté, {{contact.first_name}} ! 🎉",
+		"es": "¡Bienvenido/a a nuestra comunidad, {{contact.first_name}}! 🎉",
+	}
+	wMJMLStructures := map[string]notifuse_mjml.EmailBlock{
+		"fr": s.createWelcomeMJMLStructure(wContents["fr"]),
+		"es": s.createWelcomeMJMLStructure(wContents["es"]),
+	}
+	wTranslations := s.buildEmailTranslations(workspaceID, "welcome", wSubjects, wMJMLStructures, welcomeTestData)
+
+	welcomeTemplate := &domain.Template{
+		ID:       "welcome-email",
+		Name:     "Welcome Email",
+		Version:  1,
+		Channel:  "email",
+		Category: string(domain.TemplateCategoryWelcome),
+		Email: &domain.EmailTemplate{
+			Subject:          "Welcome to our community, {{contact.first_name}}! 🎉",
+			CompiledPreview:  welcomeHTML,
+			VisualEditorTree: welcomeMJML,
+		},
+		TestData:     welcomeTestData,
+		Translations: wTranslations,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+
+	if err := s.templateService.CreateTemplate(ctx, workspaceID, welcomeTemplate); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create welcome template")
+	}
+
+	// Create password reset template
+	prContents := getPasswordResetContents()
+	passwordResetMJML := s.createPasswordResetMJMLStructure(prContents["en"])
+	passwordResetTestData := domain.MapOfAny{
+		"contact": domain.MapOfAny{
+			"first_name": "Alex",
+			"last_name":  "Johnson",
+			"email":      "alex.johnson@example.com",
+		},
+		"reset_url": "https://demo.notifuse.com/reset-password?token=demo_token_123",
+	}
+	passwordResetHTML := s.compileTemplateToHTML(workspaceID, "password-reset-preview", passwordResetMJML, passwordResetTestData)
+
+	prSubjects := map[string]string{
+		"fr": "Réinitialisez votre mot de passe, {{contact.first_name}}",
+		"es": "Restablece tu contraseña, {{contact.first_name}}",
+	}
+	prMJMLStructures := map[string]notifuse_mjml.EmailBlock{
+		"fr": s.createPasswordResetMJMLStructure(prContents["fr"]),
+		"es": s.createPasswordResetMJMLStructure(prContents["es"]),
+	}
+	prTranslations := s.buildEmailTranslations(workspaceID, "password-reset", prSubjects, prMJMLStructures, passwordResetTestData)
+
+	passwordResetTemplate := &domain.Template{
+		ID:       "password-reset",
+		Name:     "Password Reset",
+		Version:  1,
+		Channel:  "email",
+		Category: string(domain.TemplateCategoryTransactional),
+		Email: &domain.EmailTemplate{
+			Subject:          "Reset your password, {{contact.first_name}}",
+			CompiledPreview:  passwordResetHTML,
+			VisualEditorTree: passwordResetMJML,
+		},
+		TestData:     passwordResetTestData,
+		Translations: prTranslations,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+
+	if err := s.templateService.CreateTemplate(ctx, workspaceID, passwordResetTemplate); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create password reset template")
+	}
+
+	// The templates the showcase automations send. They live in their own file because they share one
+	// MJML builder rather than carrying a bespoke one each.
+	if err := s.createAutomationTemplates(ctx, workspaceID); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create automation templates")
+	}
+
+	s.logger.WithField("workspace_id", workspaceID).Info("Sample templates created successfully")
+	return nil
+}
+
+// compileTemplateToHTML compiles an MJML structure to HTML using the notifuse_mjml package
+func (s *DemoService) compileTemplateToHTML(workspaceID, messageID string, mjmlStructure notifuse_mjml.EmailBlock, testData domain.MapOfAny) string {
+	// Convert domain.MapOfAny to notifuse_mjml.MapOfAny
+	mjmlTestData := make(notifuse_mjml.MapOfAny)
+	for k, v := range testData {
+		mjmlTestData[k] = v
+	}
+
+	// Create compile request
+	compileReq := notifuse_mjml.CompileTemplateRequest{
+		WorkspaceID:      workspaceID,
+		MessageID:        messageID,
+		VisualEditorTree: mjmlStructure,
+		TemplateData:     mjmlTestData,
+		TrackingSettings: notifuse_mjml.TrackingSettings{
+			EnableTracking: false, // Disable tracking for demo templates
+		},
+	}
+
+	// Compile the template
+	resp, err := notifuse_mjml.CompileTemplate(compileReq)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Error("Failed to compile MJML template")
+		return s.createFallbackHTML() // Return fallback HTML on error
+	}
+
+	if !resp.Success || resp.HTML == nil {
+		errorMsg := "Unknown compilation error"
+		if resp.Error != nil {
+			errorMsg = resp.Error.Message
+		}
+		s.logger.WithField("error", errorMsg).Error("MJML compilation failed")
+		return s.createFallbackHTML() // Return fallback HTML on error
+	}
+
+	return *resp.HTML
+}
+
+// buildEmailTranslations builds translation entries for fr and es languages
+func (s *DemoService) buildEmailTranslations(
+	workspaceID, messageIDPrefix string,
+	subjects map[string]string,
+	mjmlStructures map[string]notifuse_mjml.EmailBlock,
+	testData domain.MapOfAny,
+) map[string]domain.TemplateTranslation {
+	translations := make(map[string]domain.TemplateTranslation)
+	for lang, mjml := range mjmlStructures {
+		html := s.compileTemplateToHTML(workspaceID, messageIDPrefix+"-"+lang, mjml, testData)
+		translations[lang] = domain.TemplateTranslation{
+			Email: &domain.EmailTemplate{
+				Subject:          subjects[lang],
+				CompiledPreview:  html,
+				VisualEditorTree: mjml,
+			},
+		}
+	}
+	return translations
+}
+
+// createFallbackHTML creates a simple fallback HTML when MJML compilation fails
+func (s *DemoService) createFallbackHTML() string {
+	return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Demo Template</title>
+</head>
+<body style="margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #f8f9fa;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 8px;">
+        <h1 style="color: #2c3e50; text-align: center;">Demo Template</h1>
+        <p style="color: #34495e; line-height: 1.6;">This is a demo email template.</p>
+    </div>
+</body>
+</html>`
+}
+
+// Content structs for multi-language template support
+
+type newsletterContent struct {
+	lang       string
+	title      string
+	preview    string
+	headerText string
+	mainText   string
+	highlights string
+	listItems  string
+	buttonText string
+	footerText string
+}
+
+type newsletterV2Content struct {
+	lang            string
+	title           string
+	preview         string
+	hero            string
+	intro           string
+	feature1Title   string
+	feature1Content string
+	feature2Title   string
+	feature2Content string
+	feature3Title   string
+	feature3Content string
+	buttonText      string
+	footerText      string
+}
+
+type welcomeContent struct {
+	lang        string
+	title       string
+	preview     string
+	welcome     string
+	mainContent string
+	buttonText  string
+	footerText  string
+}
+
+type passwordResetContent struct {
+	lang        string
+	title       string
+	preview     string
+	header      string
+	mainContent string
+	buttonText  string
+	expireText  string
+	footerText  string
+}
+
+func getNewsletterContents() map[string]newsletterContent {
+	return map[string]newsletterContent{
+		"en": {
+			lang:       "en",
+			title:      "Weekly Newsletter",
+			preview:    "Your weekly dose of updates and insights",
+			headerText: "Weekly Newsletter",
+			mainText:   "Hi {{contact.first_name}},<br><br>Welcome to this week's newsletter! Here are the latest updates and insights we thought you'd find interesting.",
+			highlights: "📈 This Week's Highlights",
+			listItems:  "• New feature releases and improvements<br>• Industry insights and trends<br>• Community highlights and success stories",
+			buttonText: "Read Full Newsletter",
+			footerText: "You received this email because you're subscribed to our newsletter.<br><a href=\"{{unsubscribe_url}}\">Unsubscribe</a> | <a href=\"https://demo.notifuse.com\">Visit our website</a>",
+		},
+		"fr": {
+			lang:       "fr",
+			title:      "Newsletter Hebdomadaire",
+			preview:    "Votre dose hebdomadaire de mises à jour et d'informations",
+			headerText: "Newsletter Hebdomadaire",
+			mainText:   "Bonjour {{contact.first_name}},<br><br>Bienvenue dans la newsletter de cette semaine ! Voici les dernières mises à jour et informations qui pourraient vous intéresser.",
+			highlights: "📈 Les Temps Forts de la Semaine",
+			listItems:  "• Nouvelles fonctionnalités et améliorations<br>• Analyses et tendances du secteur<br>• Moments forts de la communauté et succès",
+			buttonText: "Lire la Newsletter Complète",
+			footerText: "Vous recevez cet e-mail car vous êtes abonné(e) à notre newsletter.<br><a href=\"{{unsubscribe_url}}\">Se désabonner</a> | <a href=\"https://demo.notifuse.com\">Visiter notre site</a>",
+		},
+		"es": {
+			lang:       "es",
+			title:      "Boletín Semanal",
+			preview:    "Tu dosis semanal de novedades e información",
+			headerText: "Boletín Semanal",
+			mainText:   "Hola {{contact.first_name}},<br><br>¡Bienvenido/a al boletín de esta semana! Aquí tienes las últimas novedades e información que creemos te resultarán interesantes.",
+			highlights: "📈 Destacados de la Semana",
+			listItems:  "• Nuevas funcionalidades y mejoras<br>• Análisis y tendencias del sector<br>• Momentos destacados de la comunidad y casos de éxito",
+			buttonText: "Leer el Boletín Completo",
+			footerText: "Recibes este correo porque estás suscrito/a a nuestro boletín.<br><a href=\"{{unsubscribe_url}}\">Cancelar suscripción</a> | <a href=\"https://demo.notifuse.com\">Visitar nuestro sitio</a>",
+		},
+	}
+}
+
+func getNewsletterV2Contents() map[string]newsletterV2Content {
+	return map[string]newsletterV2Content{
+		"en": {
+			lang:            "en",
+			title:           "Weekly Digest",
+			preview:         "Your personalized weekly roundup of insights and updates",
+			hero:            "Stay Ahead of the Curve 📈",
+			intro:           "Hey {{contact.first_name}},<br><br>Here's your curated weekly digest packed with the latest trends, insights, and updates tailored just for you.",
+			feature1Title:   "🎯 Featured Story",
+			feature1Content: "Breaking: New industry standards are reshaping how we approach digital transformation. Here's what you need to know.",
+			feature2Title:   "💡 Quick Tips",
+			feature2Content: "5 productivity hacks that successful professionals swear by. Simple changes, big impact.",
+			feature3Title:   "🔥 Trending Now",
+			feature3Content: "The tools and strategies everyone's talking about this week. Don't miss out on the conversation.",
+			buttonText:      "Explore More",
+			footerText:      "You're receiving this because you subscribed to our weekly digest.<br><a href=\"{{unsubscribe_url}}\">Unsubscribe</a> | <a href=\"https://demo.notifuse.com/preferences\">Manage Preferences</a>",
+		},
+		"fr": {
+			lang:            "fr",
+			title:           "Résumé Hebdomadaire",
+			preview:         "Votre sélection hebdomadaire personnalisée d'informations et de mises à jour",
+			hero:            "Gardez une longueur d'avance 📈",
+			intro:           "Bonjour {{contact.first_name}},<br><br>Voici votre résumé hebdomadaire avec les dernières tendances, informations et mises à jour sélectionnées pour vous.",
+			feature1Title:   "🎯 Article Vedette",
+			feature1Content: "Exclusif : De nouvelles normes industrielles redéfinissent notre approche de la transformation numérique. Voici ce qu'il faut savoir.",
+			feature2Title:   "💡 Astuces Rapides",
+			feature2Content: "5 astuces de productivité adoptées par les professionnels qui réussissent. De petits changements, un grand impact.",
+			feature3Title:   "🔥 Tendances du Moment",
+			feature3Content: "Les outils et stratégies dont tout le monde parle cette semaine. Ne manquez pas la conversation.",
+			buttonText:      "En Savoir Plus",
+			footerText:      "Vous recevez ceci car vous êtes abonné(e) à notre résumé hebdomadaire.<br><a href=\"{{unsubscribe_url}}\">Se désabonner</a> | <a href=\"https://demo.notifuse.com/preferences\">Gérer les préférences</a>",
+		},
+		"es": {
+			lang:            "es",
+			title:           "Resumen Semanal",
+			preview:         "Tu selección semanal personalizada de novedades y actualizaciones",
+			hero:            "Mantente a la vanguardia 📈",
+			intro:           "Hola {{contact.first_name}},<br><br>Aquí tienes tu resumen semanal con las últimas tendencias, novedades y actualizaciones seleccionadas especialmente para ti.",
+			feature1Title:   "🎯 Artículo Destacado",
+			feature1Content: "Última hora: Nuevos estándares de la industria están transformando nuestra forma de abordar la transformación digital. Esto es lo que debes saber.",
+			feature2Title:   "💡 Consejos Rápidos",
+			feature2Content: "5 trucos de productividad que los profesionales exitosos utilizan. Cambios sencillos, gran impacto.",
+			feature3Title:   "🔥 Tendencias del Momento",
+			feature3Content: "Las herramientas y estrategias de las que todos hablan esta semana. No te pierdas la conversación.",
+			buttonText:      "Explorar Más",
+			footerText:      "Recibes esto porque te suscribiste a nuestro resumen semanal.<br><a href=\"{{unsubscribe_url}}\">Cancelar suscripción</a> | <a href=\"https://demo.notifuse.com/preferences\">Gestionar preferencias</a>",
+		},
+	}
+}
+
+func getWelcomeContents() map[string]welcomeContent {
+	return map[string]welcomeContent{
+		"en": {
+			lang:        "en",
+			title:       "Welcome to our community!",
+			preview:     "Thank you for joining us, {{contact.first_name}}!",
+			welcome:     "Welcome, {{contact.first_name}}! 🎉",
+			mainContent: "Thank you for joining our community! We're excited to have you on board and can't wait to share amazing content with you.",
+			buttonText:  "Get Started",
+			footerText:  "If you have any questions, feel free to reach out to our support team.<br><br>Best regards,<br>The Demo Team",
+		},
+		"fr": {
+			lang:        "fr",
+			title:       "Bienvenue dans notre communauté !",
+			preview:     "Merci de nous rejoindre, {{contact.first_name}} !",
+			welcome:     "Bienvenue, {{contact.first_name}} ! 🎉",
+			mainContent: "Merci d'avoir rejoint notre communauté ! Nous sommes ravis de vous accueillir et avons hâte de partager du contenu passionnant avec vous.",
+			buttonText:  "Commencer",
+			footerText:  "Si vous avez des questions, n'hésitez pas à contacter notre équipe d'assistance.<br><br>Cordialement,<br>L'Équipe Démo",
+		},
+		"es": {
+			lang:        "es",
+			title:       "¡Bienvenido/a a nuestra comunidad!",
+			preview:     "Gracias por unirte, {{contact.first_name}}!",
+			welcome:     "¡Bienvenido/a, {{contact.first_name}}! 🎉",
+			mainContent: "¡Gracias por unirte a nuestra comunidad! Estamos encantados de tenerte y no podemos esperar para compartir contenido increíble contigo.",
+			buttonText:  "Comenzar",
+			footerText:  "Si tienes alguna pregunta, no dudes en contactar a nuestro equipo de soporte.<br><br>Un saludo,<br>El Equipo Demo",
+		},
+	}
+}
+
+func getPasswordResetContents() map[string]passwordResetContent {
+	return map[string]passwordResetContent{
+		"en": {
+			lang:        "en",
+			title:       "Reset Your Password",
+			preview:     "You requested a password reset for your account",
+			header:      "Reset Your Password 🔐",
+			mainContent: "Hi {{contact.first_name}},<br><br>We received a request to reset the password for your account. If you made this request, click the button below to set a new password:",
+			buttonText:  "Reset Password",
+			expireText:  "This link will expire in 24 hours for security reasons.",
+			footerText:  "If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.<br><br>If you're having trouble with the button above, copy and paste the URL below into your web browser:<br>{{reset_url}}",
+		},
+		"fr": {
+			lang:        "fr",
+			title:       "Réinitialisation de votre mot de passe",
+			preview:     "Vous avez demandé la réinitialisation de votre mot de passe",
+			header:      "Réinitialisez votre mot de passe 🔐",
+			mainContent: "Bonjour {{contact.first_name}},<br><br>Nous avons reçu une demande de réinitialisation du mot de passe de votre compte. Si vous êtes à l'origine de cette demande, cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe :",
+			buttonText:  "Réinitialiser le mot de passe",
+			expireText:  "Ce lien expirera dans 24 heures pour des raisons de sécurité.",
+			footerText:  "Si vous n'avez pas demandé la réinitialisation de votre mot de passe, vous pouvez ignorer cet e-mail en toute sécurité. Votre mot de passe restera inchangé.<br><br>Si vous avez des difficultés avec le bouton ci-dessus, copiez et collez l'URL ci-dessous dans votre navigateur :<br>{{reset_url}}",
+		},
+		"es": {
+			lang:        "es",
+			title:       "Restablece tu contraseña",
+			preview:     "Solicitaste restablecer la contraseña de tu cuenta",
+			header:      "Restablece tu contraseña 🔐",
+			mainContent: "Hola {{contact.first_name}},<br><br>Recibimos una solicitud para restablecer la contraseña de tu cuenta. Si realizaste esta solicitud, haz clic en el botón de abajo para establecer una nueva contraseña:",
+			buttonText:  "Restablecer contraseña",
+			expireText:  "Este enlace caducará en 24 horas por motivos de seguridad.",
+			footerText:  "Si no solicitaste el restablecimiento de tu contraseña, puedes ignorar este correo con tranquilidad. Tu contraseña no se modificará.<br><br>Si tienes problemas con el botón de arriba, copia y pega la URL de abajo en tu navegador:<br>{{reset_url}}",
+		},
+	}
+}
+
+// createNewsletterMJMLStructure creates the MJML structure for the newsletter template
+func (s *DemoService) createNewsletterMJMLStructure(c newsletterContent) notifuse_mjml.EmailBlock {
+	// Create the text content block
+	textContent := c.mainText
+	highlightsContent := c.highlights
+	listContent := c.listItems
+	buttonContent := c.buttonText
+	titleContent := c.title
+	previewContent := c.preview
+	headerTextContent := c.headerText
+
+	// Create header text block
+	headerTextBase := notifuse_mjml.NewBaseBlock("header-text", notifuse_mjml.MJMLComponentMjText)
+	headerTextBase.Content = &headerTextContent
+	headerText := &notifuse_mjml.MJTextBlock{BaseBlock: headerTextBase}
+
+	// Create main text block
+	mainTextBase := notifuse_mjml.NewBaseBlock("main-text", notifuse_mjml.MJMLComponentMjText)
+	mainTextBase.Content = &textContent
+	mainText := &notifuse_mjml.MJTextBlock{BaseBlock: mainTextBase}
+
+	// Create divider
+	divider := &notifuse_mjml.MJDividerBlock{
+		BaseBlock: notifuse_mjml.NewBaseBlock("divider", notifuse_mjml.MJMLComponentMjDivider),
+	}
+
+	// Create highlights title
+	highlightsTextBase := notifuse_mjml.NewBaseBlock("highlights-title", notifuse_mjml.MJMLComponentMjText)
+	highlightsTextBase.Content = &highlightsContent
+	highlightsText := &notifuse_mjml.MJTextBlock{BaseBlock: highlightsTextBase}
+
+	// Create highlights list
+	highlightsListBase := notifuse_mjml.NewBaseBlock("highlights-list", notifuse_mjml.MJMLComponentMjText)
+	highlightsListBase.Content = &listContent
+	highlightsList := &notifuse_mjml.MJTextBlock{BaseBlock: highlightsListBase}
+
+	// Create button
+	buttonBase := notifuse_mjml.NewBaseBlock("cta-button", notifuse_mjml.MJMLComponentMjButton)
+	buttonBase.Attributes["background-color"] = "#3498db"
+	buttonBase.Attributes["color"] = "#ffffff"
+	buttonBase.Attributes["font-size"] = "16px"
+	buttonBase.Attributes["padding"] = "12px 24px"
+	buttonBase.Attributes["border-radius"] = "6px"
+	buttonBase.Attributes["href"] = "https://demo.notifuse.com/newsletter?utm_source={{utm_source}}&utm_medium={{utm_medium}}&utm_campaign={{utm_campaign}}"
+	buttonBase.Content = &buttonContent
+	button := &notifuse_mjml.MJButtonBlock{BaseBlock: buttonBase}
+
+	// Create title and preview blocks
+	titleBase := notifuse_mjml.NewBaseBlock("title", notifuse_mjml.MJMLComponentMjTitle)
+	titleBase.Content = &titleContent
+	title := &notifuse_mjml.MJTitleBlock{BaseBlock: titleBase}
+
+	previewBase := notifuse_mjml.NewBaseBlock("preview", notifuse_mjml.MJMLComponentMjPreview)
+	previewBase.Content = &previewContent
+	preview := &notifuse_mjml.MJPreviewBlock{BaseBlock: previewBase}
+
+	// Create footer text
+	footerContent := c.footerText
+	footerTextBase := notifuse_mjml.NewBaseBlock("footer-text", notifuse_mjml.MJMLComponentMjText)
+	footerTextBase.Content = &footerContent
+	footerText := &notifuse_mjml.MJTextBlock{BaseBlock: footerTextBase}
+
+	// Create columns for layout
+	headerColumnBase := notifuse_mjml.NewBaseBlock("header-column", notifuse_mjml.MJMLComponentMjColumn)
+	headerColumnBase.Children = []notifuse_mjml.EmailBlock{headerText}
+	headerColumn := &notifuse_mjml.MJColumnBlock{BaseBlock: headerColumnBase}
+
+	contentColumnBase := notifuse_mjml.NewBaseBlock("content-column", notifuse_mjml.MJMLComponentMjColumn)
+	contentColumnBase.Children = []notifuse_mjml.EmailBlock{mainText, divider, highlightsText, highlightsList, button}
+	contentColumn := &notifuse_mjml.MJColumnBlock{BaseBlock: contentColumnBase}
+
+	footerColumnBase := notifuse_mjml.NewBaseBlock("footer-column", notifuse_mjml.MJMLComponentMjColumn)
+	footerColumnBase.Children = []notifuse_mjml.EmailBlock{footerText}
+	footerColumn := &notifuse_mjml.MJColumnBlock{BaseBlock: footerColumnBase}
+
+	// Create sections
+	headerSectionBase := notifuse_mjml.NewBaseBlock("header-section", notifuse_mjml.MJMLComponentMjSection)
+	headerSectionBase.Children = []notifuse_mjml.EmailBlock{headerColumn}
+	headerSection := &notifuse_mjml.MJSectionBlock{BaseBlock: headerSectionBase}
+
+	contentSectionBase := notifuse_mjml.NewBaseBlock("content-section", notifuse_mjml.MJMLComponentMjSection)
+	contentSectionBase.Children = []notifuse_mjml.EmailBlock{contentColumn}
+	contentSection := &notifuse_mjml.MJSectionBlock{BaseBlock: contentSectionBase}
+
+	footerSectionBase := notifuse_mjml.NewBaseBlock("footer-section", notifuse_mjml.MJMLComponentMjSection)
+	footerSectionBase.Children = []notifuse_mjml.EmailBlock{footerColumn}
+	footerSection := &notifuse_mjml.MJSectionBlock{BaseBlock: footerSectionBase}
+
+	// Create head and body
+	headBase := notifuse_mjml.NewBaseBlock("head", notifuse_mjml.MJMLComponentMjHead)
+	headBase.Children = []notifuse_mjml.EmailBlock{title, preview}
+	head := &notifuse_mjml.MJHeadBlock{BaseBlock: headBase}
+
+	bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+	bodyBase.Children = []notifuse_mjml.EmailBlock{headerSection, contentSection, footerSection}
+	body := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+
+	// Create root MJML block
+	rootBase := notifuse_mjml.NewBaseBlock("mjml-root", notifuse_mjml.MJMLComponentMjml)
+	rootBase.Attributes["lang"] = c.lang
+	rootBase.Children = []notifuse_mjml.EmailBlock{head, body}
+	return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
+}
+
+// createNewsletterV2MJMLStructure creates the MJML structure for the newsletter v2 template (modern card-based design)
+func (s *DemoService) createNewsletterV2MJMLStructure(c newsletterV2Content) notifuse_mjml.EmailBlock {
+	// Create the text content blocks with different styling and content
+	titleContent := c.title
+	previewContent := c.preview
+	heroContent := c.hero
+	introContent := c.intro
+
+	// Feature stories content
+	feature1Title := c.feature1Title
+	feature1Content := c.feature1Content
+
+	feature2Title := c.feature2Title
+	feature2Content := c.feature2Content
+
+	feature3Title := c.feature3Title
+	feature3Content := c.feature3Content
+
+	buttonContent := c.buttonText
+
+	// Create title and preview blocks
+	titleBase := notifuse_mjml.NewBaseBlock("title", notifuse_mjml.MJMLComponentMjTitle)
+	titleBase.Content = &titleContent
+	title := &notifuse_mjml.MJTitleBlock{BaseBlock: titleBase}
+
+	previewBase := notifuse_mjml.NewBaseBlock("preview", notifuse_mjml.MJMLComponentMjPreview)
+	previewBase.Content = &previewContent
+	preview := &notifuse_mjml.MJPreviewBlock{BaseBlock: previewBase}
+
+	// Create hero section
+	heroTextBase := notifuse_mjml.NewBaseBlock("hero-text", notifuse_mjml.MJMLComponentMjText)
+	heroTextBase.Content = &heroContent
+	heroText := &notifuse_mjml.MJTextBlock{BaseBlock: heroTextBase}
+
+	introTextBase := notifuse_mjml.NewBaseBlock("intro-text", notifuse_mjml.MJMLComponentMjText)
+	introTextBase.Content = &introContent
+	introText := &notifuse_mjml.MJTextBlock{BaseBlock: introTextBase}
+
+	// Create feature cards
+	feature1TitleTextBase := notifuse_mjml.NewBaseBlock("feature1-title", notifuse_mjml.MJMLComponentMjText)
+	feature1TitleTextBase.Content = &feature1Title
+	feature1TitleText := &notifuse_mjml.MJTextBlock{BaseBlock: feature1TitleTextBase}
+
+	feature1ContentTextBase := notifuse_mjml.NewBaseBlock("feature1-content", notifuse_mjml.MJMLComponentMjText)
+	feature1ContentTextBase.Content = &feature1Content
+	feature1ContentText := &notifuse_mjml.MJTextBlock{BaseBlock: feature1ContentTextBase}
+
+	feature2TitleTextBase := notifuse_mjml.NewBaseBlock("feature2-title", notifuse_mjml.MJMLComponentMjText)
+	feature2TitleTextBase.Content = &feature2Title
+	feature2TitleText := &notifuse_mjml.MJTextBlock{BaseBlock: feature2TitleTextBase}
+
+	feature2ContentTextBase := notifuse_mjml.NewBaseBlock("feature2-content", notifuse_mjml.MJMLComponentMjText)
+	feature2ContentTextBase.Content = &feature2Content
+	feature2ContentText := &notifuse_mjml.MJTextBlock{BaseBlock: feature2ContentTextBase}
+
+	feature3TitleTextBase := notifuse_mjml.NewBaseBlock("feature3-title", notifuse_mjml.MJMLComponentMjText)
+	feature3TitleTextBase.Content = &feature3Title
+	feature3TitleText := &notifuse_mjml.MJTextBlock{BaseBlock: feature3TitleTextBase}
+
+	feature3ContentTextBase := notifuse_mjml.NewBaseBlock("feature3-content", notifuse_mjml.MJMLComponentMjText)
+	feature3ContentTextBase.Content = &feature3Content
+	feature3ContentText := &notifuse_mjml.MJTextBlock{BaseBlock: feature3ContentTextBase}
+
+	// Create CTA button
+	buttonBase2 := notifuse_mjml.NewBaseBlock("cta-button", notifuse_mjml.MJMLComponentMjButton)
+	buttonBase2.Attributes["background-color"] = "#667eea"
+	buttonBase2.Attributes["color"] = "#ffffff"
+	buttonBase2.Attributes["font-size"] = "16px"
+	buttonBase2.Attributes["font-weight"] = "bold"
+	buttonBase2.Attributes["padding"] = "15px 30px"
+	buttonBase2.Attributes["border-radius"] = "8px"
+	buttonBase2.Attributes["href"] = "https://demo.notifuse.com/weekly-digest?utm_source={{utm_source}}&utm_medium={{utm_medium}}&utm_campaign={{utm_campaign}}"
+	buttonBase2.Content = &buttonContent
+	button := &notifuse_mjml.MJButtonBlock{BaseBlock: buttonBase2}
+
+	// Create footer
+	footerContent := c.footerText
+	footerTextBase := notifuse_mjml.NewBaseBlock("footer-text", notifuse_mjml.MJMLComponentMjText)
+	footerTextBase.Content = &footerContent
+	footerText := &notifuse_mjml.MJTextBlock{BaseBlock: footerTextBase}
+
+	// Create columns and sections
+	heroColumnBase := notifuse_mjml.NewBaseBlock("hero-column", notifuse_mjml.MJMLComponentMjColumn)
+	heroColumnBase.Children = []notifuse_mjml.EmailBlock{heroText, introText}
+	heroColumn := &notifuse_mjml.MJColumnBlock{BaseBlock: heroColumnBase}
+
+	// Create feature columns (side by side layout)
+	feature1ColumnBase := notifuse_mjml.NewBaseBlock("feature1-column", notifuse_mjml.MJMLComponentMjColumn)
+	feature1ColumnBase.Children = []notifuse_mjml.EmailBlock{feature1TitleText, feature1ContentText}
+	feature1Column := &notifuse_mjml.MJColumnBlock{BaseBlock: feature1ColumnBase}
+
+	feature2ColumnBase := notifuse_mjml.NewBaseBlock("feature2-column", notifuse_mjml.MJMLComponentMjColumn)
+	feature2ColumnBase.Children = []notifuse_mjml.EmailBlock{feature2TitleText, feature2ContentText}
+	feature2Column := &notifuse_mjml.MJColumnBlock{BaseBlock: feature2ColumnBase}
+
+	feature3ColumnBase := notifuse_mjml.NewBaseBlock("feature3-column", notifuse_mjml.MJMLComponentMjColumn)
+	feature3ColumnBase.Children = []notifuse_mjml.EmailBlock{feature3TitleText, feature3ContentText}
+	feature3Column := &notifuse_mjml.MJColumnBlock{BaseBlock: feature3ColumnBase}
+
+	ctaColumnBase := notifuse_mjml.NewBaseBlock("cta-column", notifuse_mjml.MJMLComponentMjColumn)
+	ctaColumnBase.Children = []notifuse_mjml.EmailBlock{button}
+	ctaColumn := &notifuse_mjml.MJColumnBlock{BaseBlock: ctaColumnBase}
+
+	footerColumnBase := notifuse_mjml.NewBaseBlock("footer-column", notifuse_mjml.MJMLComponentMjColumn)
+	footerColumnBase.Children = []notifuse_mjml.EmailBlock{footerText}
+	footerColumn := &notifuse_mjml.MJColumnBlock{BaseBlock: footerColumnBase}
+
+	// Create sections
+	heroSectionBase := notifuse_mjml.NewBaseBlock("hero-section", notifuse_mjml.MJMLComponentMjSection)
+	heroSectionBase.Children = []notifuse_mjml.EmailBlock{heroColumn}
+	heroSection := &notifuse_mjml.MJSectionBlock{BaseBlock: heroSectionBase}
+
+	featuresSectionBase := notifuse_mjml.NewBaseBlock("features-section", notifuse_mjml.MJMLComponentMjSection)
+	featuresSectionBase.Children = []notifuse_mjml.EmailBlock{feature1Column, feature2Column}
+	featuresSection := &notifuse_mjml.MJSectionBlock{BaseBlock: featuresSectionBase}
+
+	feature3SectionBase := notifuse_mjml.NewBaseBlock("feature3-section", notifuse_mjml.MJMLComponentMjSection)
+	feature3SectionBase.Children = []notifuse_mjml.EmailBlock{feature3Column}
+	feature3Section := &notifuse_mjml.MJSectionBlock{BaseBlock: feature3SectionBase}
+
+	ctaSectionBase := notifuse_mjml.NewBaseBlock("cta-section", notifuse_mjml.MJMLComponentMjSection)
+	ctaSectionBase.Children = []notifuse_mjml.EmailBlock{ctaColumn}
+	ctaSection := &notifuse_mjml.MJSectionBlock{BaseBlock: ctaSectionBase}
+
+	footerSectionBase := notifuse_mjml.NewBaseBlock("footer-section", notifuse_mjml.MJMLComponentMjSection)
+	footerSectionBase.Children = []notifuse_mjml.EmailBlock{footerColumn}
+	footerSection := &notifuse_mjml.MJSectionBlock{BaseBlock: footerSectionBase}
+
+	// Create head and body
+	headBase := notifuse_mjml.NewBaseBlock("head", notifuse_mjml.MJMLComponentMjHead)
+	headBase.Children = []notifuse_mjml.EmailBlock{title, preview}
+	head := &notifuse_mjml.MJHeadBlock{BaseBlock: headBase}
+
+	bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+	bodyBase.Children = []notifuse_mjml.EmailBlock{heroSection, featuresSection, feature3Section, ctaSection, footerSection}
+	body := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+
+	// Create root MJML block
+	rootBase := notifuse_mjml.NewBaseBlock("mjml-root", notifuse_mjml.MJMLComponentMjml)
+	rootBase.Attributes["lang"] = c.lang
+	rootBase.Children = []notifuse_mjml.EmailBlock{head, body}
+	return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
+}
+
+// createWelcomeMJMLStructure creates the MJML structure for the welcome template
+func (s *DemoService) createWelcomeMJMLStructure(c welcomeContent) notifuse_mjml.EmailBlock {
+	// Create content strings
+	titleContent := c.title
+	previewContent := c.preview
+	welcomeText := c.welcome
+	mainContentText := c.mainContent
+	buttonContent := c.buttonText
+	footerContent := c.footerText
+
+	// Create blocks using concrete types
+	titleBase := notifuse_mjml.NewBaseBlock("title", notifuse_mjml.MJMLComponentMjTitle)
+	titleBase.Content = &titleContent
+	title := &notifuse_mjml.MJTitleBlock{BaseBlock: titleBase}
+
+	previewBase := notifuse_mjml.NewBaseBlock("preview", notifuse_mjml.MJMLComponentMjPreview)
+	previewBase.Content = &previewContent
+	preview := &notifuse_mjml.MJPreviewBlock{BaseBlock: previewBase}
+
+	welcomeTextBase := notifuse_mjml.NewBaseBlock("welcome-text", notifuse_mjml.MJMLComponentMjText)
+	welcomeTextBase.Content = &welcomeText
+	welcomeTextBlock := &notifuse_mjml.MJTextBlock{BaseBlock: welcomeTextBase}
+
+	mainTextBase := notifuse_mjml.NewBaseBlock("main-text", notifuse_mjml.MJMLComponentMjText)
+	mainTextBase.Content = &mainContentText
+	mainText := &notifuse_mjml.MJTextBlock{BaseBlock: mainTextBase}
+
+	buttonBase3 := notifuse_mjml.NewBaseBlock("get-started-button", notifuse_mjml.MJMLComponentMjButton)
+	buttonBase3.Attributes["background-color"] = "#27ae60"
+	buttonBase3.Attributes["color"] = "#ffffff"
+	buttonBase3.Attributes["font-size"] = "16px"
+	buttonBase3.Attributes["padding"] = "12px 24px"
+	buttonBase3.Attributes["border-radius"] = "6px"
+	buttonBase3.Attributes["href"] = "https://demo.notifuse.com/getting-started?utm_source={{utm_source}}&utm_medium={{utm_medium}}&utm_campaign={{utm_campaign}}"
+	buttonBase3.Content = &buttonContent
+	button := &notifuse_mjml.MJButtonBlock{BaseBlock: buttonBase3}
+
+	divider := &notifuse_mjml.MJDividerBlock{
+		BaseBlock: notifuse_mjml.NewBaseBlock("divider", notifuse_mjml.MJMLComponentMjDivider),
+	}
+
+	footerTextBase := notifuse_mjml.NewBaseBlock("footer-text", notifuse_mjml.MJMLComponentMjText)
+	footerTextBase.Content = &footerContent
+	footerText := &notifuse_mjml.MJTextBlock{BaseBlock: footerTextBase}
+
+	columnBase := notifuse_mjml.NewBaseBlock("main-column", notifuse_mjml.MJMLComponentMjColumn)
+	columnBase.Children = []notifuse_mjml.EmailBlock{welcomeTextBlock, mainText, button, divider, footerText}
+	column := &notifuse_mjml.MJColumnBlock{BaseBlock: columnBase}
+
+	sectionBase := notifuse_mjml.NewBaseBlock("main-section", notifuse_mjml.MJMLComponentMjSection)
+	sectionBase.Children = []notifuse_mjml.EmailBlock{column}
+	section := &notifuse_mjml.MJSectionBlock{BaseBlock: sectionBase}
+
+	headBase := notifuse_mjml.NewBaseBlock("head", notifuse_mjml.MJMLComponentMjHead)
+	headBase.Children = []notifuse_mjml.EmailBlock{title, preview}
+	head := &notifuse_mjml.MJHeadBlock{BaseBlock: headBase}
+
+	bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+	bodyBase.Children = []notifuse_mjml.EmailBlock{section}
+	body := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+
+	rootBase7 := notifuse_mjml.NewBaseBlock("mjml-root", notifuse_mjml.MJMLComponentMjml)
+	rootBase7.Attributes["lang"] = c.lang
+	rootBase7.Children = []notifuse_mjml.EmailBlock{head, body}
+	return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase7}
+}
+
+// demoBroadcastUTMSource is the utm_source the sample broadcasts tag their
+// links with.
+const demoBroadcastUTMSource = "demo.notifuse.com"
+
+// demoBroadcastCampaigns are the sample broadcasts, the utm_campaign each one
+// tags its links with, and the template behind each of its variations.
+//
+// The web analytics seeder emits sessions under these same campaign names, one
+// per variation carrying the template id as utm_content, exactly as a real send
+// stamps it (demo_web_analytics_catalog.go). The two seeders ran independently
+// and each picked its own names, which left every broadcast pointing at an
+// empty report.
+var demoBroadcastCampaigns = []struct {
+	Name     string
+	Campaign string
+	// One template id per variation. A send writes utm_content from it, so
+	// these are what a per-variation report filters on.
+	Templates []string
+}{
+	{"Weekly Newsletter #1", "weekly_newsletter_1", []string{"newsletter-weekly"}},
+	{"Weekly Newsletter #2", "weekly_newsletter_2", []string{"newsletter-weekly-v2"}},
+	{"Weekly Newsletter #3", "weekly_newsletter_3", []string{"newsletter-weekly"}},
+	{"Weekly Newsletter #4 - A/B Test", "weekly_newsletter_4",
+		[]string{"newsletter-weekly", "newsletter-weekly-v2"}},
+}
+
+// createSampleBroadcasts creates multiple sample broadcast campaigns and returns their IDs
+func (s *DemoService) createSampleBroadcasts(ctx context.Context, workspaceID string) ([]string, error) {
+	s.logger.WithField("workspace_id", workspaceID).Info("Creating sample broadcasts")
+
+	var broadcastIDs []string
+
+	broadcasts := demoBroadcastCampaigns
+
+	for i, bc := range broadcasts {
+		// Variations follow the templates declared alongside the campaign, so the
+		// utm_content a send stamps stays in step with the seeded sessions.
+		variations := make([]domain.BroadcastVariation, 0, len(bc.Templates))
+		for v, templateID := range bc.Templates {
+			variations = append(variations, domain.BroadcastVariation{
+				VariationName: fmt.Sprintf("variation-%c", 'a'+rune(v)),
+				TemplateID:    templateID,
+			})
+		}
+
+		broadcastReq := &domain.CreateBroadcastRequest{
+			WorkspaceID: workspaceID,
+			Name:        bc.Name,
+			Audience: domain.AudienceSettings{
+				List:                "newsletter",
+				Segments:            []string{},
+				ExcludeUnsubscribed: true,
+			},
+			TestSettings: domain.BroadcastTestSettings{
+				Enabled:          len(bc.Templates) > 1, // A broadcast with more than one template is the A/B test
+				SamplePercentage: 10,
+				AutoSendWinner:   false,
+				Variations:       variations,
+			},
+			UTMParameters: &domain.UTMParameters{
+				Source:   demoBroadcastUTMSource,
+				Medium:   "email",
+				Campaign: bc.Campaign,
+				Term:     "",
+				Content:  "",
+			},
+		}
+
+		broadcast, err := s.broadcastService.CreateBroadcast(ctx, broadcastReq)
+		if err != nil {
+			s.logger.WithField("error", err.Error()).Warn("Failed to create sample broadcast")
+			continue
+		}
+
+		// Update broadcast status to "processed" since we're generating message history for it
+		// Set timestamps to simulate that it was processed in the past (10-1 days ago based on campaign)
+		daysAgo := 10 - (i * 2) // Spread broadcasts over last 10 days
+		if daysAgo < 1 {
+			daysAgo = 1
+		}
+		sentTime := time.Now().AddDate(0, 0, -daysAgo)
+		completedTime := sentTime.Add(2 * time.Hour) // Completed 2 hours after processing started
+
+		broadcast.Status = domain.BroadcastStatusProcessed
+		broadcast.StartedAt = &sentTime
+		broadcast.CompletedAt = &completedTime
+		broadcast.UpdatedAt = completedTime
+
+		// The last broadcast is the A/B test; record its final variation as the selected
+		// winner (all of its messages were sent with that variation) so the Variations
+		// table highlights it. Derive the template id from the variation rather than
+		// hardcoding it, and set the test/winner phase timestamps so the record matches a
+		// genuine winner selection. WinningTemplate/*SentAt are top-level columns
+		// persisted by UpdateBroadcast below.
+		if len(variations) > 1 {
+			winner := variations[len(variations)-1].TemplateID
+			winnerSentTime := sentTime.Add(1 * time.Hour)
+			broadcast.WinningTemplate = &winner
+			broadcast.TestSentAt = &sentTime
+			broadcast.WinnerSentAt = &winnerSentTime
+		}
+
+		// Update the broadcast in the repository to reflect processed status
+		if err := s.broadcastRepo.UpdateBroadcast(ctx, broadcast); err != nil {
+			s.logger.WithField("broadcast_id", broadcast.ID).WithField("error", err.Error()).Warn("Failed to update broadcast status to processed")
+			// Continue anyway - the broadcast was created, just not marked as processed
+		}
+
+		broadcastIDs = append(broadcastIDs, broadcast.ID)
+		s.logger.WithField("broadcast_id", broadcast.ID).WithField("name", bc.Name).WithField("status", "sent").Info("Sample broadcast created and marked as sent")
+	}
+
+	if len(broadcastIDs) == 0 {
+		return nil, fmt.Errorf("failed to create any sample broadcasts")
+	}
+
+	s.logger.WithField("workspace_id", workspaceID).WithField("count", len(broadcastIDs)).Info("Sample broadcasts created successfully")
+	return broadcastIDs, nil
+}
+
+// createPasswordResetMJMLStructure creates the MJML structure for the password reset template
+func (s *DemoService) createPasswordResetMJMLStructure(c passwordResetContent) notifuse_mjml.EmailBlock {
+	// Create content strings
+	titleContent := c.title
+	previewContent := c.preview
+	headerContent := c.header
+	mainContent := c.mainContent
+	buttonContent := c.buttonText
+	expireContent := c.expireText
+	footerContent := c.footerText
+
+	// Create blocks using concrete types
+	titleBase := notifuse_mjml.NewBaseBlock("title", notifuse_mjml.MJMLComponentMjTitle)
+	titleBase.Content = &titleContent
+	title := &notifuse_mjml.MJTitleBlock{BaseBlock: titleBase}
+
+	previewBase := notifuse_mjml.NewBaseBlock("preview", notifuse_mjml.MJMLComponentMjPreview)
+	previewBase.Content = &previewContent
+	preview := &notifuse_mjml.MJPreviewBlock{BaseBlock: previewBase}
+
+	headerTextBase := notifuse_mjml.NewBaseBlock("header-text", notifuse_mjml.MJMLComponentMjText)
+	headerTextBase.Content = &headerContent
+	headerText := &notifuse_mjml.MJTextBlock{BaseBlock: headerTextBase}
+
+	mainTextBase := notifuse_mjml.NewBaseBlock("main-text", notifuse_mjml.MJMLComponentMjText)
+	mainTextBase.Content = &mainContent
+	mainText := &notifuse_mjml.MJTextBlock{BaseBlock: mainTextBase}
+
+	buttonBase4 := notifuse_mjml.NewBaseBlock("reset-button", notifuse_mjml.MJMLComponentMjButton)
+	buttonBase4.Attributes["background-color"] = "#e74c3c"
+	buttonBase4.Attributes["color"] = "#ffffff"
+	buttonBase4.Attributes["font-size"] = "16px"
+	buttonBase4.Attributes["font-weight"] = "bold"
+	buttonBase4.Attributes["padding"] = "15px 30px"
+	buttonBase4.Attributes["border-radius"] = "6px"
+	buttonBase4.Attributes["href"] = "{{reset_url}}"
+	buttonBase4.Content = &buttonContent
+	button := &notifuse_mjml.MJButtonBlock{BaseBlock: buttonBase4}
+
+	expireTextBase := notifuse_mjml.NewBaseBlock("expire-text", notifuse_mjml.MJMLComponentMjText)
+	expireTextBase.Content = &expireContent
+	expireText := &notifuse_mjml.MJTextBlock{BaseBlock: expireTextBase}
+
+	divider := &notifuse_mjml.MJDividerBlock{
+		BaseBlock: notifuse_mjml.NewBaseBlock("divider", notifuse_mjml.MJMLComponentMjDivider),
+	}
+
+	footerTextBase := notifuse_mjml.NewBaseBlock("footer-text", notifuse_mjml.MJMLComponentMjText)
+	footerTextBase.Content = &footerContent
+	footerText := &notifuse_mjml.MJTextBlock{BaseBlock: footerTextBase}
+
+	columnBase := notifuse_mjml.NewBaseBlock("main-column", notifuse_mjml.MJMLComponentMjColumn)
+	columnBase.Children = []notifuse_mjml.EmailBlock{headerText, mainText, button, expireText, divider, footerText}
+	column := &notifuse_mjml.MJColumnBlock{BaseBlock: columnBase}
+
+	sectionBase := notifuse_mjml.NewBaseBlock("main-section", notifuse_mjml.MJMLComponentMjSection)
+	sectionBase.Children = []notifuse_mjml.EmailBlock{column}
+	section := &notifuse_mjml.MJSectionBlock{BaseBlock: sectionBase}
+
+	headBase := notifuse_mjml.NewBaseBlock("head", notifuse_mjml.MJMLComponentMjHead)
+	headBase.Children = []notifuse_mjml.EmailBlock{title, preview}
+	head := &notifuse_mjml.MJHeadBlock{BaseBlock: headBase}
+
+	bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+	bodyBase.Children = []notifuse_mjml.EmailBlock{section}
+	body := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+
+	rootBase6 := notifuse_mjml.NewBaseBlock("mjml-root", notifuse_mjml.MJMLComponentMjml)
+	rootBase6.Attributes["lang"] = c.lang
+	rootBase6.Children = []notifuse_mjml.EmailBlock{head, body}
+	return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase6}
+}
+
+// createSampleTransactionalNotifications creates sample transactional notifications
+func (s *DemoService) createSampleTransactionalNotifications(ctx context.Context, workspaceID string) error {
+	s.logger.WithField("workspace_id", workspaceID).Info("Creating sample transactional notifications")
+
+	// Create password reset transactional notification
+	passwordResetNotification := domain.TransactionalNotificationCreateParams{
+		ID:          "password_reset",
+		Name:        "Password Reset Email",
+		Description: "Sent when a user requests to reset their password",
+		Channels: domain.ChannelTemplates{
+			domain.TransactionalChannelEmail: domain.ChannelTemplate{
+				TemplateID: "password-reset",
+			},
+		},
+		TrackingSettings: notifuse_mjml.TrackingSettings{
+			EnableTracking: true,
+		},
+		Metadata: domain.MapOfAny{
+			"category": "security",
+			"priority": "high",
+		},
+	}
+
+	_, err := s.transactionalNotificationService.CreateNotification(ctx, workspaceID, passwordResetNotification)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create password reset transactional notification")
+	}
+
+	s.logger.WithField("workspace_id", workspaceID).Info("Sample transactional notifications created successfully")
+	return nil
+}
+
+// generateSampleMessageHistory creates realistic message history with specified engagement rates:
+// 90% delivered, 5% failed, 5% bounce, 20% opened, 10% click, 1% unsubscribed
+// Each contact receives approximately 3 emails (2-4 range)
+func (s *DemoService) generateSampleMessageHistory(ctx context.Context, workspaceID string, broadcastIDs []string) error {
+	s.logger.WithField("workspace_id", workspaceID).Info("Generating sample message history with ~3 emails per contact")
+
+	// Get workspace to retrieve secret key
+	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace: %w", err)
+	}
+
+	// Get all contacts to create message history for
+	contactsReq := &domain.GetContactsRequest{
+		WorkspaceID: workspaceID,
+		Limit:       1000,
+	}
+
+	contactsResp, err := s.contactService.GetContacts(ctx, contactsReq)
+	if err != nil {
+		return fmt.Errorf("failed to get contacts for message history: %w", err)
+	}
+
+	if len(contactsResp.Contacts) == 0 {
+		s.logger.WithField("workspace_id", workspaceID).Info("No contacts found, skipping message history generation")
+		return nil
+	}
+
+	// Generate messages per contact (2-4 emails each)
+	// This also generates webhook events and updates for engagement (delivered, opened, clicked)
+	totalMessages, err := s.generateMessagesPerContact(ctx, workspaceID, workspace.Settings.SecretKey, contactsResp.Contacts, broadcastIDs)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to generate message history")
+		return err
+	}
+
+	s.logger.WithField("workspace_id", workspaceID).WithField("total_messages", totalMessages).WithField("contacts", len(contactsResp.Contacts)).WithField("avg_per_contact", float64(totalMessages)/float64(len(contactsResp.Contacts))).Info("Sample message history generation completed")
+	return nil
+}
+
+// messageEngagement holds engagement timestamps for a message
+type messageEngagement struct {
+	shouldDeliver bool
+	shouldOpen    bool
+	shouldClick   bool
+	deliveredTime time.Time
+	openedTime    time.Time
+	clickedTime   time.Time
+}
+
+// generateMessagesPerContact creates message history by assigning 2-4 emails to each contact
+func (s *DemoService) generateMessagesPerContact(ctx context.Context, workspaceID string, secretKey string, contacts []*domain.Contact, broadcastIDs []string) (int, error) {
+	s.logger.WithField("workspace_id", workspaceID).Info("Generating messages per contact")
+
+	// Define available campaign/message templates over the last 10 days
+	type campaignTemplate struct {
+		templateID      string
+		templateVersion int64
+		broadcastID     *string // nil for transactional
+		messageType     string  // "newsletter", "welcome", "password-reset"
+		daysAgo         int
+	}
+
+	campaigns := []campaignTemplate{
+		// Transactional messages
+		{templateID: "welcome-email", templateVersion: 1, broadcastID: nil, messageType: "welcome", daysAgo: 2},
+		{templateID: "welcome-email", templateVersion: 1, broadcastID: nil, messageType: "welcome", daysAgo: 5},
+		{templateID: "password-reset", templateVersion: 1, broadcastID: nil, messageType: "password-reset", daysAgo: 3},
+		{templateID: "password-reset", templateVersion: 1, broadcastID: nil, messageType: "password-reset", daysAgo: 8},
+	}
+
+	// Add newsletter campaigns using real broadcast IDs
+	if len(broadcastIDs) >= 4 {
+		campaigns = append(campaigns,
+			campaignTemplate{templateID: "newsletter-weekly", templateVersion: 1, broadcastID: &broadcastIDs[0], messageType: "newsletter", daysAgo: 1},
+			campaignTemplate{templateID: "newsletter-weekly-v2", templateVersion: 1, broadcastID: &broadcastIDs[1], messageType: "newsletter", daysAgo: 4},
+			campaignTemplate{templateID: "newsletter-weekly", templateVersion: 1, broadcastID: &broadcastIDs[2], messageType: "newsletter", daysAgo: 7},
+			campaignTemplate{templateID: "newsletter-weekly-v2", templateVersion: 1, broadcastID: &broadcastIDs[3], messageType: "newsletter", daysAgo: 10},
+		)
+	}
+
+	totalMessages := 0
+	batchSize := 50
+
+	for i := 0; i < len(contacts); i += batchSize {
+		end := i + batchSize
+		if end > len(contacts) {
+			end = len(contacts)
+		}
+		batch := contacts[i:end]
+
+		// Collect engagement data for sequential processing
+		var messagesWithEngagement []messageEngagementData
+
+		for _, contact := range batch {
+			// Each contact gets 2-4 emails
+			numEmails := 2 + rand.Intn(3) // 2, 3, or 4 emails
+
+			// Randomly select campaigns for this contact
+			selectedCampaigns := make([]campaignTemplate, numEmails)
+			selectedIndexes := rand.Perm(len(campaigns))[:numEmails]
+			for j, idx := range selectedIndexes {
+				selectedCampaigns[j] = campaigns[idx]
+			}
+
+			// Create message history for each selected campaign
+			for _, campaign := range selectedCampaigns {
+				campaignTime := time.Now().AddDate(0, 0, -campaign.daysAgo)
+
+				var message *domain.MessageHistory
+				var engagement messageEngagement
+				if campaign.broadcastID != nil {
+					// Newsletter/broadcast message
+					message, engagement = s.generateMessageHistoryForContact(contact, campaign.templateID, campaign.templateVersion, *campaign.broadcastID, campaignTime)
+				} else {
+					// Transactional message
+					message, engagement = s.generateTransactionalMessageHistoryForContact(contact, campaign.templateID, campaign.templateVersion, campaign.messageType, campaignTime)
+				}
+
+				if err := s.messageHistoryRepo.Create(ctx, workspaceID, secretKey, message); err != nil {
+					s.logger.WithField("contact_email", contact.Email).WithField("error", err.Error()).Debug("Failed to create message history record")
+					continue
+				}
+
+				messagesWithEngagement = append(messagesWithEngagement, messageEngagementData{
+					message:    message,
+					engagement: engagement,
+				})
+
+				totalMessages++
+			}
+		}
+
+		// Apply engagement events sequentially to simulate realistic event flow
+		// 1. First, generate inbound webhook events for delivered messages
+		if err := s.generateDeliveredInboundWebhookEventsForBatch(ctx, workspaceID, messagesWithEngagement); err != nil {
+			s.logger.WithField("error", err.Error()).Debug("Failed to generate delivered inbound webhook events")
+		}
+
+		// 2. Then, update message_history for opened messages (triggers timeline entries)
+		if err := s.updateOpenedMessagesForBatch(ctx, workspaceID, messagesWithEngagement); err != nil {
+			s.logger.WithField("error", err.Error()).Debug("Failed to update opened messages")
+		}
+
+		// 3. Finally, update message_history for clicked messages (triggers timeline entries)
+		if err := s.updateClickedMessagesForBatch(ctx, workspaceID, messagesWithEngagement); err != nil {
+			s.logger.WithField("error", err.Error()).Debug("Failed to update clicked messages")
+		}
+	}
+
+	s.logger.WithField("workspace_id", workspaceID).WithField("total_messages", totalMessages).Info("Messages per contact generation completed")
+	return totalMessages, nil
+}
+
+// messageEngagementData holds a message and its engagement info
+type messageEngagementData struct {
+	message    *domain.MessageHistory
+	engagement messageEngagement
+}
+
+// generateDeliveredInboundWebhookEventsForBatch creates inbound webhook events for delivered messages
+func (s *DemoService) generateDeliveredInboundWebhookEventsForBatch(ctx context.Context, workspaceID string, messagesData []messageEngagementData) error {
+	// Skip if workspace service or inbound webhook event repo is not available
+	if s.workspaceService == nil || s.inboundWebhookEventRepo == nil {
+		s.logger.Debug("Workspace service or inbound webhook event repo not available, skipping inbound webhook events")
+		return nil
+	}
+
+	// Get the integration ID from the workspace
+	workspace, err := s.workspaceService.GetWorkspace(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace: %w", err)
+	}
+
+	integrationID := workspace.Settings.TransactionalEmailProviderID
+	if integrationID == "" {
+		s.logger.WithField("workspace_id", workspaceID).Debug("No transactional email provider configured, skipping inbound webhook events")
+		return nil
+	}
+
+	// Collect inbound webhook events for delivered messages
+	var inboundWebhookEvents []*domain.InboundWebhookEvent
+	for _, data := range messagesData {
+		if !data.engagement.shouldDeliver {
+			continue
+		}
+
+		inboundWebhookEventID := uuid.New().String()
+		rawPayload := fmt.Sprintf(`{"event":"delivered","message_id":"%s","recipient":"%s","timestamp":"%s"}`,
+			data.message.ID, data.message.ContactEmail, data.engagement.deliveredTime.Format(time.RFC3339))
+
+		inboundWebhookEvent := &domain.InboundWebhookEvent{
+			ID:             inboundWebhookEventID,
+			Type:           domain.EmailEventDelivered,
+			Source:         domain.WebhookSourceSMTP,
+			IntegrationID:  integrationID,
+			RecipientEmail: data.message.ContactEmail,
+			MessageID:      &data.message.ID,
+			Timestamp:      data.engagement.deliveredTime,
+			RawPayload:     rawPayload,
+			CreatedAt:      data.engagement.deliveredTime,
+		}
+
+		inboundWebhookEvents = append(inboundWebhookEvents, inboundWebhookEvent)
+	}
+
+	// Store inbound webhook events
+	if len(inboundWebhookEvents) > 0 {
+		if err := s.inboundWebhookEventRepo.StoreEvents(ctx, workspaceID, inboundWebhookEvents); err != nil {
+			return fmt.Errorf("failed to store inbound webhook events: %w", err)
+		}
+		s.logger.WithField("count", len(inboundWebhookEvents)).Debug("Generated delivered inbound webhook events")
+	}
+
+	return nil
+}
+
+// updateOpenedMessagesForBatch updates message_history records with opened_at timestamps
+func (s *DemoService) updateOpenedMessagesForBatch(ctx context.Context, workspaceID string, messagesData []messageEngagementData) error {
+	for _, data := range messagesData {
+		if !data.engagement.shouldOpen {
+			continue
+		}
+
+		// Use SetOpened to update the message (triggers timeline entry)
+		if err := s.messageHistoryRepo.SetOpened(ctx, workspaceID, data.message.ID, data.engagement.openedTime); err != nil {
+			s.logger.WithField("message_id", data.message.ID).WithField("error", err.Error()).Debug("Failed to set opened status")
+		}
+	}
+
+	return nil
+}
+
+// demoClickedURLs are deterministic destination URLs recorded with demo clicks
+// so demo workspaces show a populated per-link click table
+var demoClickedURLs = []string{
+	"https://example.com/products/new-arrivals",
+	"https://example.com/blog/getting-started",
+	"https://example.com/pricing",
+}
+
+// updateClickedMessagesForBatch updates message_history records with clicked_at timestamps
+func (s *DemoService) updateClickedMessagesForBatch(ctx context.Context, workspaceID string, messagesData []messageEngagementData) error {
+	for i, data := range messagesData {
+		if !data.engagement.shouldClick {
+			continue
+		}
+
+		// Use SetClicked to update the message (triggers timeline entry)
+		// SetClicked also sets opened_at if not already set
+		clickedURL := demoClickedURLs[i%len(demoClickedURLs)]
+		if err := s.messageHistoryRepo.SetClicked(ctx, workspaceID, data.message.ID, data.engagement.clickedTime, clickedURL); err != nil {
+			s.logger.WithField("message_id", data.message.ID).WithField("error", err.Error()).Debug("Failed to set clicked status")
+		}
+	}
+
+	return nil
+}
+
+// generateTransactionalMessageHistoryForContact creates a realistic transactional message history record for a contact
+// Transactional messages have no broadcast ID and different engagement patterns
+// Engagement rates: 100% delivered, 60% open rate, 20% click rate
+func (s *DemoService) generateTransactionalMessageHistoryForContact(contact *domain.Contact, templateID string, templateVersion int64, messageType string, baseTime time.Time) (*domain.MessageHistory, messageEngagement) {
+	messageID := fmt.Sprintf("demo_%s_%s_%d", contact.Email, messageType, baseTime.Unix())
+
+	// Create message data for transactional message
+	messageData := domain.MessageData{
+		Data: map[string]interface{}{
+			"contact": map[string]interface{}{
+				"email":      contact.Email,
+				"first_name": getStringValue(contact.FirstName),
+				"last_name":  getStringValue(contact.LastName),
+			},
+		},
+		Metadata: map[string]interface{}{
+			"demo_generated":   true,
+			"message_type":     messageType,
+			"is_transactional": true,
+		},
+	}
+
+	// Add specific data for password reset messages
+	if messageType == "password-reset" {
+		messageData.Data["reset_url"] = "https://demo.notifuse.com/reset-password?token=demo_token_123"
+	}
+
+	// Base transactional message with sent status
+	sentTime := baseTime.Add(time.Duration(rand.Intn(3600)) * time.Second) // Random time within first hour
+	message := &domain.MessageHistory{
+		ID:              messageID,
+		ContactEmail:    contact.Email,
+		BroadcastID:     nil, // Transactional messages have no broadcast ID
+		TemplateID:      templateID,
+		TemplateVersion: templateVersion,
+		Channel:         "email",
+		MessageData:     messageData,
+		SentAt:          sentTime,
+		CreatedAt:       sentTime,
+		UpdatedAt:       sentTime,
+	}
+
+	// Initialize engagement
+	engagement := messageEngagement{}
+
+	// 100% delivery rate - all messages delivered successfully
+	deliveredTime := sentTime.Add(time.Duration(rand.Intn(1800)) * time.Second) // Within 30 minutes
+	engagement.shouldDeliver = true
+	engagement.deliveredTime = deliveredTime
+
+	// 60% open rate
+	if rand.Float64() < 0.60 {
+		openedTime := deliveredTime.Add(time.Duration(rand.Intn(24*3600)) * time.Second) // Within 24 hours
+		engagement.shouldOpen = true
+		engagement.openedTime = openedTime
+
+		// 20% click rate (of all messages, so 20/60 = 33.33% of opened messages)
+		if rand.Float64() < 0.20/0.60 {
+			clickedTime := openedTime.Add(time.Duration(rand.Intn(1800)) * time.Second) // Within 30 minutes of opening
+			engagement.shouldClick = true
+			engagement.clickedTime = clickedTime
+		}
+
+		// Very low unsubscribe rates for transactional messages
+		if rand.Float64() < 0.001 {
+			unsubscribeTime := openedTime.Add(time.Duration(rand.Intn(3600)) * time.Second) // Within 1 hour of opening
+			message.UnsubscribedAt = &unsubscribeTime
+		}
+	}
+
+	return message, engagement
+}
+
+// generateMessageHistoryForContact creates a realistic message history record for a contact
+// with the specified engagement rates: 100% delivered, 60% open rate, 20% click rate
+func (s *DemoService) generateMessageHistoryForContact(contact *domain.Contact, templateID string, templateVersion int64, broadcastID string, baseTime time.Time) (*domain.MessageHistory, messageEngagement) {
+	messageID := fmt.Sprintf("demo_%s_%s_%d", contact.Email, broadcastID, baseTime.Unix())
+
+	// Determine campaign type based on broadcastID
+	var campaignType string
+	utmMedium := "email"
+
+	if strings.Contains(broadcastID, "transactional") {
+		campaignType = "transactional"
+		switch templateID {
+		case "password-reset":
+			campaignType = "password_reset"
+		case "welcome-email":
+			campaignType = "welcome"
+		}
+	} else {
+		campaignType = "newsletter"
+	}
+
+	// Create base message data
+	messageData := domain.MessageData{
+		Data: map[string]interface{}{
+			"contact": map[string]interface{}{
+				"email":      contact.Email,
+				"first_name": getStringValue(contact.FirstName),
+				"last_name":  getStringValue(contact.LastName),
+			},
+			"utm_source":   "demo.notifuse.com",
+			"utm_medium":   utmMedium,
+			"utm_campaign": broadcastID,
+		},
+		Metadata: map[string]interface{}{
+			"demo_generated": true,
+			"campaign_type":  campaignType,
+		},
+	}
+
+	// Base message with sent status
+	sentTime := baseTime.Add(time.Duration(rand.Intn(3600)) * time.Second) // Random time within first hour
+	message := &domain.MessageHistory{
+		ID:              messageID,
+		ContactEmail:    contact.Email,
+		BroadcastID:     &broadcastID,
+		TemplateID:      templateID,
+		TemplateVersion: templateVersion,
+		Channel:         "email",
+		MessageData:     messageData,
+		SentAt:          sentTime,
+		CreatedAt:       sentTime,
+		UpdatedAt:       sentTime,
+	}
+
+	// Initialize engagement
+	engagement := messageEngagement{}
+
+	// 100% delivery rate - all messages delivered successfully
+	deliveredTime := sentTime.Add(time.Duration(rand.Intn(1800)) * time.Second) // Within 30 minutes
+	engagement.shouldDeliver = true
+	engagement.deliveredTime = deliveredTime
+
+	// 60% open rate
+	if rand.Float64() < 0.60 {
+		openedTime := deliveredTime.Add(time.Duration(rand.Intn(7*24*3600)) * time.Second) // Within 7 days
+		engagement.shouldOpen = true
+		engagement.openedTime = openedTime
+
+		// 20% click rate (of all messages, so 20/60 = 33.33% of opened messages)
+		if rand.Float64() < 0.20/0.60 {
+			clickedTime := openedTime.Add(time.Duration(rand.Intn(3600)) * time.Second) // Within 1 hour of opening
+			engagement.shouldClick = true
+			engagement.clickedTime = clickedTime
+		}
+
+		// 1% unsubscribed (of all messages, not just opened)
+		if rand.Float64() < 0.01/0.60 {
+			unsubscribeTime := openedTime.Add(time.Duration(rand.Intn(1800)) * time.Second) // Within 30 minutes of opening
+			message.UnsubscribedAt = &unsubscribeTime
+		}
+	}
+
+	return message, engagement
+}
+
+// Helper function to get string value from NullableString
+func getStringValue(ns *domain.NullableString) string {
+	if ns != nil && !ns.IsNull {
+		return ns.String
+	}
+	return ""
+}
+
+// createSampleSegments creates demo segments for showcasing the segmentation feature
+func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID string) error {
+	s.logger.WithField("workspace_id", workspaceID).Info("Creating sample segments")
+
+	// Segment 1: VIP Customers (high lifetime value and orders) - demonstrates AND logic with custom events goals
+	vipSegment := &domain.CreateSegmentRequest{
+		WorkspaceID: workspaceID,
+		ID:          "vip_customers",
+		Name:        "VIP Customers",
+		Color:       "gold",
+		Timezone:    "UTC",
+		Tree: &domain.TreeNode{
+			Kind: "branch",
+			Branch: &domain.TreeNodeBranch{
+				Operator: "and",
+				Leaves: []*domain.TreeNode{
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Source: "custom_events_goals",
+							CustomEventsGoal: &domain.CustomEventsGoalCondition{
+								GoalType:          "purchase",
+								AggregateOperator: "sum",
+								Operator:          "gte",
+								Value:             800.0,
+								TimeframeOperator: "anytime",
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Source: "custom_events_goals",
+							CustomEventsGoal: &domain.CustomEventsGoalCondition{
+								GoalType:          "purchase",
+								AggregateOperator: "count",
+								Operator:          "gte",
+								Value:             3.0,
+								TimeframeOperator: "anytime",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if _, err := s.segmentService.CreateSegment(ctx, vipSegment); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create VIP Customers segment")
+	} else {
+		s.logger.Info("Created VIP Customers segment")
+	}
+
+	// Segment 2: European Market (complex OR logic) - demonstrates OR logic
+	europeSegment := &domain.CreateSegmentRequest{
+		WorkspaceID: workspaceID,
+		ID:          "european_market",
+		Name:        "European Market",
+		Color:       "geekblue",
+		Timezone:    "UTC",
+		Tree: &domain.TreeNode{
+			Kind: "branch",
+			Branch: &domain.TreeNodeBranch{
+				Operator: "or",
+				Leaves: []*domain.TreeNode{
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Source: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"GB"},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Source: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"FR"},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Source: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"DE"},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Source: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"ES"},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Source: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"IT"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if _, err := s.segmentService.CreateSegment(ctx, europeSegment); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create European Market segment")
+	} else {
+		s.logger.Info("Created European Market segment")
+	}
+
+	// Segment 3: Engaged Users (behavioral - email opens) - demonstrates timeline-based filtering
+	timeframeOperator := "anytime"
+	engagedSegment := &domain.CreateSegmentRequest{
+		WorkspaceID: workspaceID,
+		ID:          "engaged_users",
+		Name:        "Engaged Users",
+		Color:       "green",
+		Timezone:    "UTC",
+		Tree: &domain.TreeNode{
+			Kind: "branch",
+			Branch: &domain.TreeNodeBranch{
+				Operator: "and",
+				Leaves: []*domain.TreeNode{
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Source: "contact_timeline",
+							ContactTimeline: &domain.ContactTimelineCondition{
+								Kind:              "email.opened",
+								CountOperator:     "at_least",
+								CountValue:        3,
+								TimeframeOperator: &timeframeOperator,
+								TimeframeValues:   []string{},
+								Filters:           []*domain.DimensionFilter{},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if _, err := s.segmentService.CreateSegment(ctx, engagedSegment); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create Engaged Users segment")
+	} else {
+		s.logger.Info("Created Engaged Users segment")
+	}
+
+	// Segment 4: Win-back Opportunities (negated goal) - demonstrates "has not done X in the last
+	// N days", combined with the positive condition that makes it a win-back rather than a
+	// prospecting list: someone who bought at some point, and has not bought since.
+	//
+	// The negated leaf carries the interesting half. Its aggregation compiles to a subquery grouped
+	// by contact, so a contact with zero matching events produces no group and can never satisfy
+	// the comparison however it is written — NOT EXISTS is the only form that also matches the
+	// people who never converted, which is what "has not purchased" has to mean.
+	//
+	// The "anytime" leaf then excludes those never-buyers again. Without it the segment is every
+	// contact who is not a recent customer, which on this demo is over 90% of the workspace: the
+	// purchase history now comes from the web funnel (see seedDemoWebGoalEvents), where a few
+	// hundred contacts have ever bought rather than the 700 the old invented order rows gave
+	// everybody.
+	winbackSegment := &domain.CreateSegmentRequest{
+		WorkspaceID: workspaceID,
+		ID:          "winback_opportunities",
+		Name:        "Win-back Opportunities",
+		Color:       "volcano",
+		Timezone:    "UTC",
+		Tree: demoSegmentAllOf(
+			// Bought at least once, ever.
+			demoGoalLeaf(&domain.CustomEventsGoalCondition{
+				GoalType:          domain.GoalTypePurchase,
+				AggregateOperator: "count",
+				Operator:          "gte",
+				Value:             1.0,
+				TimeframeOperator: "anytime",
+			}),
+			demoNoPurchaseInLast90Days(),
+		),
+	}
+
+	if _, err := s.segmentService.CreateSegment(ctx, winbackSegment); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create Win-back Opportunities segment")
+	} else {
+		s.logger.Info("Created Win-back Opportunities segment")
+	}
+
+	// Segments 5 and 6: the abandonment audiences, the pair that shows what web analytics is for.
+	// Both are goals the visitor fired on the site — recorded as custom events by the same bridge
+	// that records live traffic — crossed with the absence of the goal that would have completed
+	// the funnel.
+	//
+	// Matched on event_name rather than goal_type: add_to_cart and checkout_start are both typed
+	// "other" (only a purchase carries revenue), so the type alone cannot tell a cart from a
+	// checkout.
+	abandonment := []struct {
+		id, name, color, eventName string
+	}{
+		{"cart_abandoners", "Cart Abandoners", "orange", "add_to_cart"},
+		{"checkout_abandoners", "Checkout Abandoners", "magenta", "checkout_start"},
+	}
+
+	for _, segment := range abandonment {
+		eventName := segment.eventName
+		request := &domain.CreateSegmentRequest{
+			WorkspaceID: workspaceID,
+			ID:          segment.id,
+			Name:        segment.name,
+			Color:       segment.color,
+			Timezone:    "UTC",
+			Tree: demoSegmentAllOf(
+				demoGoalLeaf(&domain.CustomEventsGoalCondition{
+					// Any type: the cart and checkout steps carry no revenue and so are
+					// typed "other", which "*" covers without naming it.
+					GoalType:          "*",
+					EventName:         &eventName,
+					AggregateOperator: "count",
+					Operator:          "gte",
+					Value:             1.0,
+					TimeframeOperator: "in_the_last_days",
+					TimeframeValues:   []string{"90"},
+				}),
+				demoNoPurchaseInLast90Days(),
+			),
+		}
+
+		if _, err := s.segmentService.CreateSegment(ctx, request); err != nil {
+			s.logger.WithField("segment", segment.id).WithField("error", err.Error()).
+				Warn("Failed to create abandonment segment")
+		} else {
+			s.logger.WithField("segment", segment.id).Info("Created abandonment segment")
+		}
+	}
+
+	s.logger.WithField("workspace_id", workspaceID).Info("Sample segments created successfully")
+	return nil
+}
+
+// demoNoPurchaseInLast90Days is the leaf every abandonment audience hangs on, and the one the
+// win-back segment reuses. Shared so the three cannot drift apart: an audience of people who did
+// not buy is only meaningful next to the others if they all agree on what "did not buy" means.
+func demoNoPurchaseInLast90Days() *domain.TreeNode {
+	return demoGoalLeaf(&domain.CustomEventsGoalCondition{
+		GoalType:          domain.GoalTypePurchase,
+		AggregateOperator: "count",
+		Operator:          "gte",
+		Value:             1.0,
+		TimeframeOperator: "in_the_last_days",
+		TimeframeValues:   []string{"90"},
+		Negate:            true,
+	})
+}
+
+func demoGoalLeaf(condition *domain.CustomEventsGoalCondition) *domain.TreeNode {
+	return &domain.TreeNode{
+		Kind: "leaf",
+		Leaf: &domain.TreeNodeLeaf{
+			Source:           "custom_events_goals",
+			CustomEventsGoal: condition,
+		},
+	}
+}
+
+// demoSegmentAllOf wraps conditions in an AND branch. The root has to be a branch even for a single
+// condition: the console's segment builder renders the root as a branch unconditionally, so a bare
+// leaf compiles and runs correctly but cannot be opened for editing.
+func demoSegmentAllOf(leaves ...*domain.TreeNode) *domain.TreeNode {
+	return &domain.TreeNode{
+		Kind: "branch",
+		Branch: &domain.TreeNodeBranch{
+			Operator: "and",
+			Leaves:   leaves,
+		},
+	}
+}

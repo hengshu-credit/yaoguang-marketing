@@ -1,0 +1,253 @@
+CustomEvent:
+  type: object
+  description: >-
+    The current state of an external resource, identified by the (event_name, external_id) pair rather than by a
+    server-generated id. Writing the same pair again updates the stored resource instead of appending a new event.
+  required:
+    - event_name
+    - external_id
+    - email
+  properties:
+    event_name:
+      type: string
+      description: Event type name (lowercase letters, numbers, underscores, dots, and slashes only)
+      example: orders/fulfilled
+      maxLength: 100
+      pattern: ^[a-z0-9_./-]+$
+    external_id:
+      type: string
+      description: External system identifier for this event
+      example: shopify_order_12345
+      maxLength: 255
+    email:
+      type: string
+      format: email
+      description: Contact email address
+      example: customer@example.com
+    properties:
+      type: object
+      additionalProperties: true
+      description: >-
+        The complete current state of the resource, as arbitrary JSON. Replaced wholesale by any write that includes
+        it, so send every property you want kept, not only the ones that changed. Omit the field to leave the stored
+        properties untouched; send an empty object to clear them all. Always an object on the way back, never null:
+        a write answers with the properties the row holds afterwards, not with the ones the request carried.
+      example:
+        order_total: 129.99
+        product_name: Premium Subscription
+        quantity: 1
+    occurred_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: >-
+        When this version of the resource was produced (allows backdating). Also acts as the ordering guard on an
+        existing resource: unless deleted_at also changes, a write whose occurred_at is not strictly newer than the
+        stored one is discarded in full — including its goal fields — and still answers success. Omitting the field
+        defaults it to the time of the request, which always passes the guard.
+      example: '2023-05-15T14:30:00Z'
+    source:
+      type: string
+      enum:
+        - api
+        - integration
+        - import
+        - web_analytics
+      description: >-
+        Origin of the event, set by the server on the write that creates it and never moved afterwards, so a later
+        write from another channel cannot relabel where a resource came from. Read-only.
+      example: api
+      default: api
+    integration_id:
+      type: string
+      nullable: true
+      description: >-
+        Optional reference to the integration that created the event. Preserved when a later write omits it, so an
+        API call cannot accidentally unlink a resource from the integration that owns it.
+      example: shopify_integration_123
+    goal_type:
+      type: string
+      enum:
+        - purchase
+        - subscription
+        - lead
+        - signup
+        - booking
+        - trial
+        - other
+      nullable: true
+      description: >-
+        Type of goal for conversion tracking. Required for goal_value to have meaning. Kept when a later write omits
+        it, so a resource can be promoted to a goal after the fact; once set it can be changed but not cleared.
+      example: purchase
+    goal_name:
+      type: string
+      nullable: true
+      maxLength: 100
+      description: >-
+        Optional goal name for categorization (e.g., 'first_purchase', 'monthly_subscription'). Kept when a later
+        write omits it; once set it can be changed but not cleared.
+      example: first_purchase
+    goal_value:
+      type: number
+      format: double
+      nullable: true
+      description: >-
+        Monetary value of the goal. Required for 'purchase' and 'subscription' goal types. Can be negative for
+        refunds/chargebacks. Kept when a later write omits it; once set it can be changed but not cleared.
+      example: 99.99
+    deleted_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: Soft delete timestamp. Set to delete an event, set to null to restore.
+      example: null
+    created_at:
+      type: string
+      format: date-time
+      description: When the event was created in the system
+      example: '2023-05-15T14:30:00Z'
+    updated_at:
+      type: string
+      format: date-time
+      description: When the event was last updated
+      example: '2023-05-15T14:30:00Z'
+
+ImportCustomEventsRequest:
+  type: object
+  required:
+    - workspace_id
+    - events
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    events:
+      type: array
+      description: Array of custom events to import (1-50 events)
+      minItems: 1
+      maxItems: 50
+      items:
+        type: object
+        description: >-
+          Each entry is an upsert on the (event_name, external_id) pair, not an append: an entry naming a resource
+          that already exists updates it. Fields the entry leaves out keep the value already stored, so a partial
+          entry is a safe way to correct one attribute. The exception is properties, which is replaced wholesale
+          whenever the entry includes it.
+        required:
+          - event_name
+          - external_id
+          - email
+        properties:
+          event_name:
+            type: string
+            description: Event type name
+            example: orders/fulfilled
+            maxLength: 100
+            pattern: ^[a-z0-9_./-]+$
+          external_id:
+            type: string
+            description: External system identifier
+            example: shopify_order_12345
+            maxLength: 255
+          email:
+            type: string
+            format: email
+            description: Contact email address
+            example: customer@example.com
+          properties:
+            type: object
+            additionalProperties: true
+            description: >-
+              The complete state of the resource. Omit the field to leave the stored properties untouched; send an
+              empty object to clear them all. Including it replaces the stored set rather than merging into it, so
+              restate every property you want kept.
+            example:
+              order_total: 129.99
+              product_name: Premium Subscription
+          occurred_at:
+            type: string
+            format: date-time
+            description: >-
+              When this version of the resource was produced. On an entry naming an existing resource it is also the
+              ordering guard: unless deleted_at also changes, an entry whose occurred_at is not strictly newer than
+              the stored one is discarded in full and still counted as imported. Defaults to the time of the request.
+            example: '2023-05-15T14:30:00Z'
+          source:
+            type: string
+            enum:
+              - api
+              - integration
+              - import
+            description: >-
+              Origin to record, defaulting to 'api' when the entry omits it. It applies only where the entry creates
+              the resource: an entry naming one that already exists leaves the stored origin alone, so re-importing
+              cannot relabel a resource an integration created.
+            example: api
+          integration_id:
+            type: string
+            description: >-
+              Integration reference. Preserved when the entry omits it, so re-importing does not unlink a resource
+              from the integration that owns it.
+            example: shopify_integration_123
+          goal_type:
+            type: string
+            enum:
+              - purchase
+              - subscription
+              - lead
+              - signup
+              - booking
+              - trial
+              - other
+            description: Type of goal for conversion tracking. Kept when the entry omits it; once set it can be changed but not cleared.
+            example: purchase
+          goal_name:
+            type: string
+            maxLength: 100
+            description: Optional goal name for categorization. Kept when the entry omits it; once set it can be changed but not cleared.
+            example: first_purchase
+          goal_value:
+            type: number
+            format: double
+            description: >-
+              Monetary value (required for purchase/subscription, can be negative for refunds). Kept when the entry
+              omits it; once set it can be changed but not cleared.
+            example: 99.99
+          deleted_at:
+            type: string
+            format: date-time
+            description: Soft delete timestamp
+            example: null
+      example:
+        - event_name: orders/fulfilled
+          external_id: shopify_order_12345
+          email: customer@example.com
+          properties:
+            order_total: 129.99
+            product_name: Premium Subscription
+          occurred_at: '2023-05-15T14:30:00Z'
+        - event_name: payment/succeeded
+          external_id: stripe_payment_67890
+          email: customer@example.com
+          properties:
+            amount: 129.99
+            currency: USD
+          occurred_at: '2023-05-15T14:29:00Z'
+
+ImportCustomEventsResponse:
+  type: object
+  properties:
+    event_ids:
+      type: array
+      description: External IDs of successfully imported events
+      items:
+        type: string
+      example:
+        - shopify_order_12345
+        - stripe_payment_67890
+    count:
+      type: integer
+      description: Number of events created
+      example: 2

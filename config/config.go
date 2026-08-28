@@ -1,0 +1,1074 @@
+package config
+
+import (
+	"context"
+	"database/sql"
+	"encoding/base64"
+	"fmt"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/Notifuse/notifuse/pkg/smtp_bridge"
+	_ "github.com/lib/pq" // PostgreSQL driver
+	"github.com/spf13/viper"
+)
+
+const VERSION = "39.0"
+
+type Config struct {
+	Server              ServerConfig
+	Database            DatabaseConfig
+	Security            SecurityConfig
+	Tracing             TracingConfig
+	SMTP                SMTPConfig
+	SMTPBridge          SMTPBridgeConfig
+	OIDC                OIDCConfig
+	Demo                DemoConfig
+	Broadcast           BroadcastConfig
+	TaskScheduler       TaskSchedulerConfig
+	AutomationScheduler AutomationSchedulerConfig
+	Plan                PlanLimitsConfig
+	Telemetry           bool
+	CheckForUpdates     bool
+	RootEmail           string
+	Environment         string
+	APIEndpoint         string
+	WebhookEndpoint     string
+	LogLevel            string
+	GeoIPDBPath         string // MaxMind GeoLite2/GeoIP2 City .mmdb for web analytics; empty falls back to the shipped database (geoip.DefaultPaths)
+	AnalyticsWorkMem    string // per-query work_mem for analytics aggregations (e.g. "64MB")
+	Version             string
+	IsInstalled         bool // NEW: Indicates if setup wizard has been completed
+	MaxUsers            int  // 0 = unlimited (backward compat for self-hosted)
+	MaxWorkspaces       int  // 0 = unlimited (backward compat for self-hosted)
+
+	// Track which values came from actual environment variables (not database, not generated)
+	EnvValues EnvValues
+}
+
+// EnvValues tracks configuration that came from actual environment variables
+type EnvValues struct {
+	RootEmail               string
+	APIEndpoint             string
+	SMTPHost                string
+	SMTPPort                int
+	SMTPUsername            string
+	SMTPPassword            string
+	SMTPFromEmail           string
+	SMTPFromName            string
+	SMTPUseTLS              string // "true", "false", or "" (empty = not set, defaults to true)
+	SMTPEHLOHostname        string
+	SMTPBridgeEnabled       string // "true", "false", or "" (empty = not set, allows setup wizard to configure)
+	SMTPBridgeDomain        string
+	SMTPBridgePort          int
+	SMTPBridgeTLSCertBase64 string
+	SMTPBridgeTLSKeyBase64  string
+	SMTPBridgeTLSMode       string // "off", "starttls", "implicit", or "" (empty = auto-resolve)
+
+	// OIDC env values. Enabled/AutoCreateUsers use the string "tri-state" pattern
+	// ("true"/"false"/"") so an explicit env value can lock out the DB setting.
+	OIDCEnabled         string // "true"/"false"/"" (unset → DB may set)
+	OIDCIssuerURL       string
+	OIDCClientID        string
+	OIDCClientSecret    string
+	OIDCRedirectURI     string
+	OIDCScopes          string // raw space/comma/semicolon-separated
+	OIDCButtonLabel     string
+	OIDCAutoCreateUsers string // "true"/"false"/""
+	OIDCAllowedDomains  string // raw comma/semicolon/space list
+
+	// OIDCAllowUnverifiedEmail is env-only: no DB fallback, so it is NOT tri-state
+	// and is parsed at the config edge with GetBool semantics (unset == false).
+	// See OIDCConfig.AllowUnverifiedEmail.
+	OIDCAllowUnverifiedEmail bool
+}
+
+type DemoConfig struct {
+	FileManagerEndpoint  string
+	FileManagerBucket    string
+	FileManagerAccessKey string
+	FileManagerSecretKey string
+}
+
+type ServerConfig struct {
+	Port int
+	Host string
+	SSL  SSLConfig
+}
+
+type DatabaseConfig struct {
+	Host                  string
+	Port                  int
+	User                  string
+	Password              string
+	DBName                string
+	Prefix                string
+	SSLMode               string
+	MaxConnections        int           // Total max connections across all databases
+	MaxConnectionsPerDB   int           // Max connections per individual workspace database
+	ConnectionMaxLifetime time.Duration // Maximum lifetime of a connection
+	ConnectionMaxIdleTime time.Duration // Maximum idle time before closing
+}
+
+type SecurityConfig struct {
+	// JWTSecret for token signing (derived from SecretKey)
+	JWTSecret []byte
+
+	// SecretKey for DB encryption AND JWT signing
+	SecretKey string
+}
+
+type SSLConfig struct {
+	Enabled  bool
+	CertFile string
+	KeyFile  string
+}
+
+type TracingConfig struct {
+	Enabled             bool
+	ServiceName         string
+	SamplingProbability float64
+
+	// Trace exporter configuration
+	TraceExporter string // "jaeger", "stackdriver", "zipkin", "azure", "datadog", "xray", "none"
+
+	// Jaeger settings
+	JaegerEndpoint string
+
+	// Zipkin settings
+	ZipkinEndpoint string
+
+	// Stackdriver settings
+	StackdriverProjectID string
+
+	// Azure Monitor settings
+	AzureInstrumentationKey string
+
+	// Datadog settings
+	DatadogAgentAddress string
+	DatadogAPIKey       string
+
+	// AWS X-Ray settings
+	XRayRegion string
+
+	// General agent endpoint (for exporters that support a common agent)
+	AgentEndpoint string
+
+	// Metrics exporter configuration
+	MetricsExporter string // "prometheus", "stackdriver", "datadog", "none" or comma-separated list
+	PrometheusPort  int
+}
+
+type SMTPConfig struct {
+	Host         string
+	Port         int
+	Username     string
+	Password     string
+	FromEmail    string
+	FromName     string
+	UseTLS       bool
+	EHLOHostname string
+}
+
+type SMTPBridgeConfig struct {
+	Enabled       bool   // Enable SMTP bridge server for receiving emails
+	Port          int    // Port to listen on (default: 587)
+	Host          string // Host to bind to (default: "0.0.0.0")
+	Domain        string // Server domain name for SMTP greeting
+	TLSCertBase64 string // Base64 encoded TLS certificate
+	TLSKeyBase64  string // Base64 encoded TLS private key
+	TLSMode       string // "off", "starttls", or "implicit" — resolved at Load time
+}
+
+type BroadcastConfig struct {
+	DefaultRateLimit int // Default rate limit per minute for broadcasts (0 means use service default)
+
+	// AllowPrivateDataFeedHosts disables SSRF protection on broadcast data-feed
+	// requests, allowing feeds to target private/loopback/link-local addresses.
+	// Off by default. Only enable in trusted, self-hosted deployments that
+	// intentionally fetch data feeds from services on their internal network.
+	AllowPrivateDataFeedHosts bool
+}
+
+type TaskSchedulerConfig struct {
+	Enabled  bool          // Enable/disable internal scheduler
+	Interval time.Duration // Tick interval (default: 20s)
+	MaxTasks int           // Max tasks per execution (default: 100)
+}
+
+type AutomationSchedulerConfig struct {
+	Delay     time.Duration // Delay before scheduler starts (default: 30s)
+	Interval  time.Duration // Polling interval (default: 10s)
+	BatchSize int           // Contacts per batch (default: 50)
+}
+
+// PlanLimitsConfig holds the quotas of the subscribed plan. Notifuse Cloud sets
+// these on every tenant container; self-hosted installs leave them unset, which
+// keeps every limit at 0 = unlimited.
+type PlanLimitsConfig struct {
+	MaxActiveContacts   int // 0 = unlimited
+	MaxStoredContacts   int // 0 = unlimited
+	MaxMonthlyEvents    int // 0 = unlimited
+	MaxMonthlyPageviews int // 0 = unlimited
+	DataRetentionMonths int // 0 = unlimited (data is never expired)
+}
+
+// LoadOptions contains options for loading configuration
+type LoadOptions struct {
+	EnvFile string // Optional environment file to load (e.g., ".env", ".env.test")
+}
+
+// SystemSettings holds configuration loaded from database
+type SystemSettings struct {
+	IsInstalled             bool
+	RootEmail               string
+	APIEndpoint             string
+	SMTPHost                string
+	SMTPPort                int
+	SMTPUsername            string
+	SMTPPassword            string
+	SMTPFromEmail           string
+	SMTPFromName            string
+	SMTPUseTLS              bool
+	SMTPEHLOHostname        string
+	TelemetryEnabled        bool
+	CheckForUpdates         bool
+	SMTPBridgeEnabled       bool
+	SMTPBridgeDomain        string
+	SMTPBridgePort          int
+	SMTPBridgeTLSCertBase64 string
+	SMTPBridgeTLSKeyBase64  string
+
+	// OIDC settings loaded from the DB (used only when the matching env var is unset).
+	OIDCEnabled         bool
+	OIDCIssuerURL       string
+	OIDCClientID        string
+	OIDCClientSecret    string // decrypted from encrypted_oidc_client_secret
+	OIDCRedirectURI     string
+	OIDCScopes          string
+	OIDCButtonLabel     string
+	OIDCAutoCreateUsers bool
+	OIDCAllowedDomains  string
+}
+
+// getSystemDSN constructs the database connection string for the system database
+func getSystemDSN(cfg *DatabaseConfig) string {
+	sslMode := cfg.SSLMode
+	if sslMode == "" {
+		sslMode = "require"
+	}
+
+	// Build DSN, omitting password if empty
+	var dsn string
+	if cfg.Password == "" {
+		dsn = fmt.Sprintf(
+			"host=%s port=%d user=%s dbname=%s sslmode=%s",
+			cfg.Host,
+			cfg.Port,
+			cfg.User,
+			cfg.DBName,
+			sslMode,
+		)
+	} else {
+		dsn = fmt.Sprintf(
+			"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+			cfg.Host,
+			cfg.Port,
+			cfg.User,
+			cfg.Password,
+			cfg.DBName,
+			sslMode,
+		)
+	}
+
+	return dsn
+}
+
+// loadSystemSettings loads configuration from the database settings table
+func loadSystemSettings(db *sql.DB, secretKey string) (*SystemSettings, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	settings := &SystemSettings{
+		IsInstalled: false, // Default to false if not found
+		SMTPPort:    587,   // Default SMTP port
+		SMTPUseTLS:  true,  // Default to TLS enabled
+	}
+
+	// Load all settings from database
+	rows, err := db.QueryContext(ctx, "SELECT key, value FROM settings")
+	if err != nil {
+		// If settings table doesn't exist yet, return default settings
+		return settings, nil
+	}
+	defer func() { _ = rows.Close() }()
+
+	settingsMap := make(map[string]string)
+	for rows.Next() {
+		var key, value string
+		if err := rows.Scan(&key, &value); err != nil {
+			return nil, fmt.Errorf("failed to scan setting: %w", err)
+		}
+		settingsMap[key] = value
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating settings: %w", err)
+	}
+
+	// Parse is_installed
+	if val, ok := settingsMap["is_installed"]; ok && val == "true" {
+		settings.IsInstalled = true
+	}
+
+	// Load other settings if installed
+	if settings.IsInstalled {
+		settings.RootEmail = settingsMap["root_email"]
+		settings.APIEndpoint = settingsMap["api_endpoint"]
+
+		// Load SMTP settings
+		settings.SMTPHost = settingsMap["smtp_host"]
+		if port, ok := settingsMap["smtp_port"]; ok && port != "" {
+			_, _ = fmt.Sscanf(port, "%d", &settings.SMTPPort)
+		}
+		settings.SMTPFromEmail = settingsMap["smtp_from_email"]
+		settings.SMTPFromName = settingsMap["smtp_from_name"]
+
+		// Load SMTP TLS setting (default to true if not set)
+		if smtpUseTLS, ok := settingsMap["smtp_use_tls"]; ok {
+			settings.SMTPUseTLS = smtpUseTLS != "false"
+		}
+
+		settings.SMTPEHLOHostname = settingsMap["smtp_ehlo_hostname"]
+
+		// Decrypt SMTP username if present
+		if encryptedUsername, ok := settingsMap["encrypted_smtp_username"]; ok && encryptedUsername != "" {
+			if decrypted, err := crypto.DecryptFromHexString(encryptedUsername, secretKey); err == nil {
+				settings.SMTPUsername = decrypted
+			}
+		}
+
+		// Decrypt SMTP password if present
+		if encryptedPassword, ok := settingsMap["encrypted_smtp_password"]; ok && encryptedPassword != "" {
+			if decrypted, err := crypto.DecryptFromHexString(encryptedPassword, secretKey); err == nil {
+				settings.SMTPPassword = decrypted
+			}
+		}
+
+		// Load telemetry setting
+		if telemetry, ok := settingsMap["telemetry_enabled"]; ok {
+			settings.TelemetryEnabled = telemetry == "true"
+		}
+
+		// Load check for updates setting
+		if checkUpdates, ok := settingsMap["check_for_updates"]; ok {
+			settings.CheckForUpdates = checkUpdates == "true"
+		}
+
+		// Load SMTP Bridge settings
+		if smtpBridgeEnabled, ok := settingsMap["smtp_bridge_enabled"]; ok {
+			settings.SMTPBridgeEnabled = smtpBridgeEnabled == "true"
+		}
+
+		settings.SMTPBridgeDomain = settingsMap["smtp_bridge_domain"]
+		if port, ok := settingsMap["smtp_bridge_port"]; ok && port != "" {
+			_, _ = fmt.Sscanf(port, "%d", &settings.SMTPBridgePort)
+		}
+
+		// Decrypt SMTP Bridge TLS certificate if present
+		if encryptedCert, ok := settingsMap["encrypted_smtp_bridge_tls_cert_base64"]; ok && encryptedCert != "" {
+			if decrypted, err := crypto.DecryptFromHexString(encryptedCert, secretKey); err == nil {
+				settings.SMTPBridgeTLSCertBase64 = decrypted
+			}
+		}
+
+		// Decrypt SMTP Bridge TLS key if present
+		if encryptedKey, ok := settingsMap["encrypted_smtp_bridge_tls_key_base64"]; ok && encryptedKey != "" {
+			if decrypted, err := crypto.DecryptFromHexString(encryptedKey, secretKey); err == nil {
+				settings.SMTPBridgeTLSKeyBase64 = decrypted
+			}
+		}
+
+		// OIDC settings
+		if v, ok := settingsMap["oidc_enabled"]; ok {
+			settings.OIDCEnabled = v == "true"
+		}
+		settings.OIDCIssuerURL = settingsMap["oidc_issuer_url"]
+		settings.OIDCClientID = settingsMap["oidc_client_id"]
+		settings.OIDCRedirectURI = settingsMap["oidc_redirect_uri"]
+		settings.OIDCScopes = settingsMap["oidc_scopes"]
+		settings.OIDCButtonLabel = settingsMap["oidc_button_label"]
+		if v, ok := settingsMap["oidc_auto_create_users"]; ok {
+			settings.OIDCAutoCreateUsers = v == "true"
+		}
+		settings.OIDCAllowedDomains = settingsMap["oidc_allowed_domains"]
+
+		// Decrypt OIDC client secret if present (mirror encrypted_smtp_password)
+		if enc, ok := settingsMap["encrypted_oidc_client_secret"]; ok && enc != "" {
+			if dec, err := crypto.DecryptFromHexString(enc, secretKey); err == nil {
+				settings.OIDCClientSecret = dec
+			}
+		}
+	}
+
+	return settings, nil
+}
+
+// Load loads the configuration with default options
+func Load() (*Config, error) {
+	// Try to load .env file but don't require it
+	return LoadWithOptions(LoadOptions{EnvFile: ".env"})
+}
+
+// LoadWithOptions loads the configuration with the specified options
+func LoadWithOptions(opts LoadOptions) (*Config, error) {
+	v := viper.New()
+
+	// Set default values
+	v.SetDefault("SERVER_PORT", 8080)
+	v.SetDefault("SERVER_HOST", "0.0.0.0")
+	v.SetDefault("DB_HOST", "localhost")
+	v.SetDefault("DB_PORT", 5432)
+	v.SetDefault("DB_USER", "postgres")
+	v.SetDefault("DB_PASSWORD", "postgres")
+	v.SetDefault("DB_PREFIX", "notifuse")
+	v.SetDefault("DB_NAME", "notifuse_system")
+	v.SetDefault("DB_SSLMODE", "require")
+	v.SetDefault("DB_MAX_CONNECTIONS", 100)
+	v.SetDefault("DB_MAX_CONNECTIONS_PER_DB", 3)
+	v.SetDefault("DB_CONNECTION_MAX_LIFETIME", "10m")
+	v.SetDefault("DB_CONNECTION_MAX_IDLE_TIME", "5m")
+	v.SetDefault("ENVIRONMENT", "production")
+	v.SetDefault("GEOIP_DB_PATH", "")
+	v.SetDefault("ANALYTICS_WORK_MEM", "64MB")
+	v.SetDefault("LOG_LEVEL", "info")
+	v.SetDefault("VERSION", VERSION)
+
+	// SMTP defaults
+	v.SetDefault("SMTP_FROM_NAME", "Notifuse")
+
+	// SMTP Bridge defaults (formerly SMTP Relay)
+	// NOTE: Don't set default for SMTP_BRIDGE_ENABLED - we need to detect when it's truly unset
+	v.SetDefault("SMTP_BRIDGE_PORT", 587)
+
+	// OIDC: deliberately NO viper SetDefault. A viper default would make
+	// v.GetString("OIDC_SCOPES"/"OIDC_BUTTON_LABEL") non-empty even when unset,
+	// shadowing the DB value and defeating the env-wins-else-DB overlay. Defaults
+	// (openid scopes, "Sign in with SSO") are applied inside resolveOIDCConfig
+	// instead, which is the single source of truth. OIDC_ENABLED /
+	// OIDC_AUTO_CREATE_USERS likewise have no default (IsSet detects "unset").
+
+	// Default tracing config
+	v.SetDefault("TRACING_ENABLED", false)
+	v.SetDefault("TRACING_SERVICE_NAME", "notifuse-api")
+	v.SetDefault("TRACING_SAMPLING_PROBABILITY", 0.1)
+
+	// Default trace exporter config
+	v.SetDefault("TRACING_TRACE_EXPORTER", "none")
+
+	// Jaeger settings
+	v.SetDefault("TRACING_JAEGER_ENDPOINT", "http://localhost:14268/api/traces")
+
+	// Zipkin settings
+	v.SetDefault("TRACING_ZIPKIN_ENDPOINT", "http://localhost:9411/api/v2/spans")
+
+	// Stackdriver settings
+	v.SetDefault("TRACING_STACKDRIVER_PROJECT_ID", "")
+
+	// Azure Monitor settings
+	v.SetDefault("TRACING_AZURE_INSTRUMENTATION_KEY", "")
+
+	// Datadog settings
+	v.SetDefault("TRACING_DATADOG_AGENT_ADDRESS", "localhost:8126")
+	v.SetDefault("TRACING_DATADOG_API_KEY", "")
+
+	// AWS X-Ray settings
+	v.SetDefault("TRACING_XRAY_REGION", "us-west-2")
+
+	// General agent endpoint (for exporters that support a common agent)
+	v.SetDefault("TRACING_AGENT_ENDPOINT", "localhost:8126")
+
+	// Default metrics exporter config
+	v.SetDefault("TRACING_METRICS_EXPORTER", "none")
+	v.SetDefault("TRACING_PROMETHEUS_PORT", 9464)
+
+	// Task scheduler defaults
+	v.SetDefault("TASK_SCHEDULER_ENABLED", true)
+	v.SetDefault("TASK_SCHEDULER_INTERVAL", "20s")
+	v.SetDefault("TASK_SCHEDULER_MAX_TASKS", 100)
+
+	// Automation scheduler defaults
+	v.SetDefault("AUTOMATION_SCHEDULER_DELAY", "30s")
+	v.SetDefault("AUTOMATION_SCHEDULER_INTERVAL", "10s")
+	v.SetDefault("AUTOMATION_SCHEDULER_BATCH_SIZE", 50)
+
+	// Plan limit defaults: 0 = unlimited, so a self-hosted install that sets none
+	// of them is unaffected. Unlike SMTP_BRIDGE_ENABLED/OIDC_*, these have no
+	// database fallback, so a viper default shadows nothing.
+	v.SetDefault("PLAN_MAX_ACTIVE_CONTACTS", 0)
+	v.SetDefault("PLAN_MAX_STORED_CONTACTS", 0)
+	v.SetDefault("PLAN_MAX_MONTHLY_EVENTS", 0)
+	v.SetDefault("PLAN_MAX_MONTHLY_PAGEVIEWS", 0)
+	v.SetDefault("PLAN_DATA_RETENTION_MONTHS", 0)
+
+	// Load environment file if specified
+	if opts.EnvFile != "" {
+		v.SetConfigName(opts.EnvFile)
+		v.SetConfigType("env")
+
+		currentPath, err := os.Getwd()
+		if err != nil {
+			return nil, fmt.Errorf("error getting current directory: %w", err)
+		}
+
+		v.AddConfigPath(currentPath)
+
+		if err := v.ReadInConfig(); err != nil {
+			// It's okay if config file doesn't exist
+			if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+				return nil, fmt.Errorf("error reading config file: %w", err)
+			}
+		}
+	}
+
+	// Read environment variables
+	v.AutomaticEnv()
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	// Build database config first (needed to load system settings)
+	dbConfig := DatabaseConfig{
+		Host:                  v.GetString("DB_HOST"),
+		Port:                  v.GetInt("DB_PORT"),
+		User:                  v.GetString("DB_USER"),
+		Password:              v.GetString("DB_PASSWORD"),
+		DBName:                v.GetString("DB_NAME"),
+		Prefix:                v.GetString("DB_PREFIX"),
+		SSLMode:               v.GetString("DB_SSLMODE"),
+		MaxConnections:        v.GetInt("DB_MAX_CONNECTIONS"),
+		MaxConnectionsPerDB:   v.GetInt("DB_MAX_CONNECTIONS_PER_DB"),
+		ConnectionMaxLifetime: v.GetDuration("DB_CONNECTION_MAX_LIFETIME"),
+		ConnectionMaxIdleTime: v.GetDuration("DB_CONNECTION_MAX_IDLE_TIME"),
+	}
+
+	// Validate database connection settings
+	if dbConfig.MaxConnections < 20 {
+		return nil, fmt.Errorf("DB_MAX_CONNECTIONS must be at least 20 (got %d)", dbConfig.MaxConnections)
+	}
+	if dbConfig.MaxConnections > 10000 {
+		return nil, fmt.Errorf("DB_MAX_CONNECTIONS cannot exceed 10000 (got %d)", dbConfig.MaxConnections)
+	}
+	if dbConfig.MaxConnectionsPerDB < 1 {
+		return nil, fmt.Errorf("DB_MAX_CONNECTIONS_PER_DB must be at least 1 (got %d)", dbConfig.MaxConnectionsPerDB)
+	}
+	if dbConfig.MaxConnectionsPerDB > 50 {
+		return nil, fmt.Errorf("DB_MAX_CONNECTIONS_PER_DB cannot exceed 50 (got %d)", dbConfig.MaxConnectionsPerDB)
+	}
+
+	// SECRET_KEY resolution (CRITICAL for decryption and JWT signing)
+	secretKey := v.GetString("SECRET_KEY")
+	if secretKey == "" {
+		// Fallback for backward compatibility
+		secretKey = v.GetString("PASETO_PRIVATE_KEY")
+	}
+	if secretKey == "" {
+		// REQUIRED - fail fast if both are empty
+		return nil, fmt.Errorf("SECRET_KEY (or PASETO_PRIVATE_KEY for backward compatibility) must be set")
+	}
+
+	// Try to load system settings from database
+	var systemSettings *SystemSettings
+	var isInstalled bool
+
+	db, err := sql.Open("postgres", getSystemDSN(&dbConfig))
+	if err == nil {
+		defer func() { _ = db.Close() }()
+		if err := db.Ping(); err == nil {
+			// Database is accessible, try to load settings
+			systemSettings, err = loadSystemSettings(db, secretKey)
+			if err == nil && systemSettings != nil {
+				isInstalled = systemSettings.IsInstalled
+			}
+		}
+	}
+
+	// Track env var values from viper (before any database fallbacks are applied)
+	// Note: These come from environment variables or .env file, not from defaults or database
+	var smtpUseTLSStr string
+	if v.IsSet("SMTP_USE_TLS") {
+		smtpUseTLSStr = v.GetString("SMTP_USE_TLS")
+	} // else: leave empty string (not set, defaults to true)
+
+	// SMTP Bridge env var resolution (new SMTP_BRIDGE_* names, fall back to old SMTP_RELAY_* for backward compat)
+	var smtpBridgeEnabledStr string
+	if v.IsSet("SMTP_BRIDGE_ENABLED") {
+		smtpBridgeEnabledStr = v.GetString("SMTP_BRIDGE_ENABLED")
+	} else if v.IsSet("SMTP_RELAY_ENABLED") {
+		smtpBridgeEnabledStr = v.GetString("SMTP_RELAY_ENABLED") // backward compat
+	} // else: leave empty string (not set)
+
+	smtpBridgeDomain := v.GetString("SMTP_BRIDGE_DOMAIN")
+	if smtpBridgeDomain == "" {
+		smtpBridgeDomain = v.GetString("SMTP_RELAY_DOMAIN") // backward compat
+	}
+
+	smtpBridgePort := v.GetInt("SMTP_BRIDGE_PORT")
+	if smtpBridgePort == 0 && v.IsSet("SMTP_RELAY_PORT") {
+		smtpBridgePort = v.GetInt("SMTP_RELAY_PORT") // backward compat
+	}
+
+	smtpBridgeTLSCertBase64 := v.GetString("SMTP_BRIDGE_TLS_CERT_BASE64")
+	if smtpBridgeTLSCertBase64 == "" {
+		smtpBridgeTLSCertBase64 = v.GetString("SMTP_RELAY_TLS_CERT_BASE64") // backward compat
+	}
+
+	smtpBridgeTLSKeyBase64 := v.GetString("SMTP_BRIDGE_TLS_KEY_BASE64")
+	if smtpBridgeTLSKeyBase64 == "" {
+		smtpBridgeTLSKeyBase64 = v.GetString("SMTP_RELAY_TLS_KEY_BASE64") // backward compat
+	}
+
+	smtpBridgeTLSMode := v.GetString("SMTP_BRIDGE_TLS")
+	if smtpBridgeTLSMode == "" {
+		smtpBridgeTLSMode = v.GetString("SMTP_RELAY_TLS") // backward compat
+	}
+
+	// OIDC tri-state reads: only capture an explicit env value so an unset var lets
+	// the DB setting take effect (mirrors smtpBridgeEnabledStr above).
+	var oidcEnabledStr string
+	if v.IsSet("OIDC_ENABLED") {
+		oidcEnabledStr = v.GetString("OIDC_ENABLED")
+	}
+	var oidcAutoCreateStr string
+	if v.IsSet("OIDC_AUTO_CREATE_USERS") {
+		oidcAutoCreateStr = v.GetString("OIDC_AUTO_CREATE_USERS")
+	}
+
+	envVals := EnvValues{
+		RootEmail:               v.GetString("ROOT_EMAIL"),
+		APIEndpoint:             v.GetString("API_ENDPOINT"),
+		SMTPHost:                v.GetString("SMTP_HOST"),
+		SMTPPort:                v.GetInt("SMTP_PORT"),
+		SMTPUsername:            v.GetString("SMTP_USERNAME"),
+		SMTPPassword:            v.GetString("SMTP_PASSWORD"),
+		SMTPFromEmail:           v.GetString("SMTP_FROM_EMAIL"),
+		SMTPFromName:            v.GetString("SMTP_FROM_NAME"),
+		SMTPUseTLS:              smtpUseTLSStr, // "true", "false", or "" (empty = not set, defaults to true)
+		SMTPEHLOHostname:        v.GetString("SMTP_EHLO_HOSTNAME"),
+		SMTPBridgeEnabled:       smtpBridgeEnabledStr, // "true", "false", or "" (empty = not set)
+		SMTPBridgeDomain:        smtpBridgeDomain,
+		SMTPBridgePort:          smtpBridgePort,
+		SMTPBridgeTLSCertBase64: smtpBridgeTLSCertBase64,
+		SMTPBridgeTLSKeyBase64:  smtpBridgeTLSKeyBase64,
+		SMTPBridgeTLSMode:       smtpBridgeTLSMode,
+
+		OIDCEnabled:         oidcEnabledStr,
+		OIDCIssuerURL:       v.GetString("OIDC_ISSUER_URL"),
+		OIDCClientID:        v.GetString("OIDC_CLIENT_ID"),
+		OIDCClientSecret:    v.GetString("OIDC_CLIENT_SECRET"),
+		OIDCRedirectURI:     v.GetString("OIDC_REDIRECT_URI"),
+		OIDCScopes:          v.GetString("OIDC_SCOPES"),
+		OIDCButtonLabel:     v.GetString("OIDC_BUTTON_LABEL"),
+		OIDCAutoCreateUsers: oidcAutoCreateStr,
+		OIDCAllowedDomains:  v.GetString("OIDC_ALLOWED_DOMAINS"),
+
+		OIDCAllowUnverifiedEmail: v.GetBool("OIDC_ALLOW_UNVERIFIED_EMAIL"),
+	}
+
+	// Derive JWT secret from SECRET_KEY
+	// Try base64 decode first (for PASETO_PRIVATE_KEY compatibility), otherwise use raw bytes
+	var jwtSecret []byte
+	decoded, err := base64.StdEncoding.DecodeString(secretKey)
+	if err == nil && len(decoded) >= 32 {
+		// Valid base64-encoded key (likely from PASETO_PRIVATE_KEY backward compatibility)
+		jwtSecret = decoded
+	} else {
+		// Use raw string bytes
+		jwtSecret = []byte(secretKey)
+	}
+
+	// Warn if secret is less than recommended length
+	if len(jwtSecret) < 32 {
+		fmt.Fprintf(os.Stderr, "⚠️  WARNING: SECRET_KEY is only %d bytes. For production use, it should be at least 32 bytes (256 bits) for secure JWT signing.\n", len(jwtSecret))
+		fmt.Fprintf(os.Stderr, "   Generate a secure key with: openssl rand -base64 32\n")
+	}
+
+	// Load config values with database override logic
+	var rootEmail, apiEndpoint string
+	var smtpConfig SMTPConfig
+	var smtpBridgeConfig SMTPBridgeConfig
+
+	if isInstalled && systemSettings != nil {
+		// Prefer env vars, fall back to database
+		rootEmail = envVals.RootEmail
+		if rootEmail == "" {
+			rootEmail = systemSettings.RootEmail
+		}
+
+		apiEndpoint = envVals.APIEndpoint
+		if apiEndpoint == "" {
+			apiEndpoint = systemSettings.APIEndpoint
+		}
+
+		// SMTP settings - env vars override database
+		smtpConfig = SMTPConfig{
+			Host:         envVals.SMTPHost,
+			Port:         envVals.SMTPPort,
+			Username:     envVals.SMTPUsername,
+			Password:     envVals.SMTPPassword,
+			FromEmail:    envVals.SMTPFromEmail,
+			FromName:     envVals.SMTPFromName,
+			UseTLS:       envVals.SMTPUseTLS != "false", // Default to true unless explicitly set to false
+			EHLOHostname: envVals.SMTPEHLOHostname,
+		}
+
+		// Use database values as fallback
+		if smtpConfig.Host == "" {
+			smtpConfig.Host = systemSettings.SMTPHost
+		}
+		if smtpConfig.Port == 0 {
+			smtpConfig.Port = systemSettings.SMTPPort
+		}
+		if smtpConfig.Port == 0 {
+			smtpConfig.Port = 587 // Default
+		}
+		if smtpConfig.Username == "" {
+			smtpConfig.Username = systemSettings.SMTPUsername
+		}
+		if smtpConfig.Password == "" {
+			smtpConfig.Password = systemSettings.SMTPPassword
+		}
+		if smtpConfig.FromEmail == "" {
+			smtpConfig.FromEmail = systemSettings.SMTPFromEmail
+		}
+		if smtpConfig.FromName == "" {
+			smtpConfig.FromName = systemSettings.SMTPFromName
+		}
+		if smtpConfig.FromName == "" {
+			smtpConfig.FromName = "Notifuse" // Default
+		}
+		// Use database value for TLS if env var is not set
+		if envVals.SMTPUseTLS == "" {
+			smtpConfig.UseTLS = systemSettings.SMTPUseTLS
+		}
+		if smtpConfig.EHLOHostname == "" {
+			smtpConfig.EHLOHostname = systemSettings.SMTPEHLOHostname
+		}
+
+		// SMTP Bridge settings - env vars override database
+		smtpBridgeConfig = SMTPBridgeConfig{
+			Enabled:       envVals.SMTPBridgeEnabled == "true",
+			Port:          envVals.SMTPBridgePort,
+			Host:          "0.0.0.0",
+			Domain:        envVals.SMTPBridgeDomain,
+			TLSCertBase64: envVals.SMTPBridgeTLSCertBase64,
+			TLSKeyBase64:  envVals.SMTPBridgeTLSKeyBase64,
+			TLSMode:       envVals.SMTPBridgeTLSMode,
+		}
+
+		// Use database values as fallback
+		if envVals.SMTPBridgeEnabled == "" {
+			// Only use DB value if env var is not set (empty string)
+			smtpBridgeConfig.Enabled = systemSettings.SMTPBridgeEnabled
+		}
+		if smtpBridgeConfig.Domain == "" {
+			smtpBridgeConfig.Domain = systemSettings.SMTPBridgeDomain
+		}
+		if smtpBridgeConfig.Port == 0 {
+			smtpBridgeConfig.Port = systemSettings.SMTPBridgePort
+		}
+		if smtpBridgeConfig.Port == 0 {
+			smtpBridgeConfig.Port = 587 // Default
+		}
+		if smtpBridgeConfig.TLSCertBase64 == "" {
+			smtpBridgeConfig.TLSCertBase64 = systemSettings.SMTPBridgeTLSCertBase64
+		}
+		if smtpBridgeConfig.TLSKeyBase64 == "" {
+			smtpBridgeConfig.TLSKeyBase64 = systemSettings.SMTPBridgeTLSKeyBase64
+		}
+		// TLS mode deliberately has no database fallback: it is environment-only,
+		// via SMTP_BRIDGE_TLS. Unset means auto-resolve from the certs below.
+	} else {
+		// First-run: use env vars only
+		rootEmail = envVals.RootEmail
+		apiEndpoint = envVals.APIEndpoint
+		smtpConfig = SMTPConfig{
+			Host:         envVals.SMTPHost,
+			Port:         envVals.SMTPPort,
+			Username:     envVals.SMTPUsername,
+			Password:     envVals.SMTPPassword,
+			FromEmail:    envVals.SMTPFromEmail,
+			FromName:     envVals.SMTPFromName,
+			UseTLS:       envVals.SMTPUseTLS != "false", // Default to true unless explicitly set to false
+			EHLOHostname: envVals.SMTPEHLOHostname,
+		}
+		// Apply defaults for first-run
+		if smtpConfig.Port == 0 {
+			smtpConfig.Port = 587
+		}
+		if smtpConfig.FromName == "" {
+			smtpConfig.FromName = "Notifuse"
+		}
+
+		smtpBridgeConfig = SMTPBridgeConfig{
+			Enabled:       envVals.SMTPBridgeEnabled == "true",
+			Port:          envVals.SMTPBridgePort,
+			Host:          "0.0.0.0",
+			Domain:        envVals.SMTPBridgeDomain,
+			TLSCertBase64: envVals.SMTPBridgeTLSCertBase64,
+			TLSKeyBase64:  envVals.SMTPBridgeTLSKeyBase64,
+			TLSMode:       envVals.SMTPBridgeTLSMode,
+		}
+		// Apply defaults for first-run
+		if smtpBridgeConfig.Port == 0 {
+			smtpBridgeConfig.Port = 587
+		}
+		if smtpBridgeConfig.Domain == "" {
+			smtpBridgeConfig.Domain = "localhost"
+		}
+	}
+
+	// Resolve + validate SMTP bridge TLS mode (only when bridge is enabled).
+	// This replaces the runtime "TLS required in production" check that used to
+	// live in pkg/smtp_bridge/server.go, moved up so startup fails early with
+	// a clear message.
+	if smtpBridgeConfig.Enabled {
+		resolved, err := resolveSMTPBridgeTLSMode(smtpBridgeConfig, v.GetString("ENVIRONMENT"))
+		if err != nil {
+			return nil, err
+		}
+		smtpBridgeConfig.TLSMode = resolved
+	}
+
+	// Telemetry and check for updates settings - env var overrides database
+	var telemetryEnabled, checkForUpdates bool
+	if isInstalled && systemSettings != nil {
+		// Check if env var is set (IsSet checks if the key exists, not if it's true)
+		if v.IsSet("TELEMETRY") {
+			telemetryEnabled = v.GetBool("TELEMETRY")
+		} else {
+			telemetryEnabled = systemSettings.TelemetryEnabled
+		}
+
+		if v.IsSet("CHECK_FOR_UPDATES") {
+			checkForUpdates = v.GetBool("CHECK_FOR_UPDATES")
+		} else {
+			checkForUpdates = systemSettings.CheckForUpdates
+		}
+	} else {
+		// First-run: use env vars only (defaults to false if not set)
+		telemetryEnabled = v.GetBool("TELEMETRY")
+		checkForUpdates = v.GetBool("CHECK_FOR_UPDATES")
+	}
+
+	// Sanitize API endpoint - strip trailing slashes to prevent double-slash URL issues
+	apiEndpoint = strings.TrimRight(apiEndpoint, "/")
+
+	// Resolve OIDC config (env-wins-else-DB). Built AFTER the apiEndpoint trim so the
+	// derived redirect URI uses the final endpoint, and validated to fail boot fast
+	// on static misconfiguration (issuer reachability is a runtime concern).
+	oidcConfig := resolveOIDCConfig(envVals, systemSettings, isInstalled, apiEndpoint)
+	if err := oidcConfig.Validate(); err != nil {
+		return nil, err
+	}
+
+	// Plan limits, as pushed by the Notifuse Cloud control plane. Unset means 0,
+	// which means unlimited.
+	planConfig := PlanLimitsConfig{
+		MaxActiveContacts:   v.GetInt("PLAN_MAX_ACTIVE_CONTACTS"),
+		MaxStoredContacts:   v.GetInt("PLAN_MAX_STORED_CONTACTS"),
+		MaxMonthlyEvents:    v.GetInt("PLAN_MAX_MONTHLY_EVENTS"),
+		MaxMonthlyPageviews: v.GetInt("PLAN_MAX_MONTHLY_PAGEVIEWS"),
+		DataRetentionMonths: v.GetInt("PLAN_DATA_RETENTION_MONTHS"),
+	}
+
+	// Validate plan limits. v.GetInt returns 0 on a value it cannot parse and 0
+	// means unlimited, so without this a typo would silently remove the quota
+	// instead of failing the boot.
+	if planConfig.MaxActiveContacts < 0 {
+		return nil, fmt.Errorf("PLAN_MAX_ACTIVE_CONTACTS cannot be negative (got %d)", planConfig.MaxActiveContacts)
+	}
+	if planConfig.MaxStoredContacts < 0 {
+		return nil, fmt.Errorf("PLAN_MAX_STORED_CONTACTS cannot be negative (got %d)", planConfig.MaxStoredContacts)
+	}
+	if planConfig.MaxMonthlyEvents < 0 {
+		return nil, fmt.Errorf("PLAN_MAX_MONTHLY_EVENTS cannot be negative (got %d)", planConfig.MaxMonthlyEvents)
+	}
+	if planConfig.MaxMonthlyPageviews < 0 {
+		return nil, fmt.Errorf("PLAN_MAX_MONTHLY_PAGEVIEWS cannot be negative (got %d)", planConfig.MaxMonthlyPageviews)
+	}
+	if planConfig.DataRetentionMonths < 0 {
+		return nil, fmt.Errorf("PLAN_DATA_RETENTION_MONTHS cannot be negative (got %d)", planConfig.DataRetentionMonths)
+	}
+
+	config := &Config{
+		Server: ServerConfig{
+			Port: v.GetInt("SERVER_PORT"),
+			Host: v.GetString("SERVER_HOST"),
+			SSL: SSLConfig{
+				Enabled:  v.GetBool("SSL_ENABLED"),
+				CertFile: v.GetString("SSL_CERT_FILE"),
+				KeyFile:  v.GetString("SSL_KEY_FILE"),
+			},
+		},
+		Database:   dbConfig,
+		SMTP:       smtpConfig,
+		SMTPBridge: smtpBridgeConfig,
+		OIDC:       oidcConfig,
+		Security: SecurityConfig{
+			JWTSecret: jwtSecret,
+			SecretKey: secretKey,
+		},
+		Demo: DemoConfig{
+			FileManagerEndpoint:  v.GetString("DEMO_FILE_MANAGER_ENDPOINT"),
+			FileManagerBucket:    v.GetString("DEMO_FILE_MANAGER_BUCKET"),
+			FileManagerAccessKey: v.GetString("DEMO_FILE_MANAGER_ACCESS_KEY"),
+			FileManagerSecretKey: v.GetString("DEMO_FILE_MANAGER_SECRET_KEY"),
+		},
+		Telemetry:       telemetryEnabled,
+		CheckForUpdates: checkForUpdates,
+		Tracing: TracingConfig{
+			Enabled:             v.GetBool("TRACING_ENABLED"),
+			ServiceName:         v.GetString("TRACING_SERVICE_NAME"),
+			SamplingProbability: v.GetFloat64("TRACING_SAMPLING_PROBABILITY"),
+
+			// Trace exporter configuration
+			TraceExporter: v.GetString("TRACING_TRACE_EXPORTER"),
+
+			// Jaeger settings
+			JaegerEndpoint: v.GetString("TRACING_JAEGER_ENDPOINT"),
+
+			// Zipkin settings
+			ZipkinEndpoint: v.GetString("TRACING_ZIPKIN_ENDPOINT"),
+
+			// Stackdriver settings
+			StackdriverProjectID: v.GetString("TRACING_STACKDRIVER_PROJECT_ID"),
+
+			// Azure Monitor settings
+			AzureInstrumentationKey: v.GetString("TRACING_AZURE_INSTRUMENTATION_KEY"),
+
+			// Datadog settings
+			DatadogAgentAddress: v.GetString("TRACING_DATADOG_AGENT_ADDRESS"),
+			DatadogAPIKey:       v.GetString("TRACING_DATADOG_API_KEY"),
+
+			// AWS X-Ray settings
+			XRayRegion: v.GetString("TRACING_XRAY_REGION"),
+
+			// General agent endpoint (for exporters that support a common agent)
+			AgentEndpoint: v.GetString("TRACING_AGENT_ENDPOINT"),
+
+			// Metrics exporter configuration
+			MetricsExporter: v.GetString("TRACING_METRICS_EXPORTER"),
+			PrometheusPort:  v.GetInt("TRACING_PROMETHEUS_PORT"),
+		},
+		Broadcast: BroadcastConfig{
+			DefaultRateLimit:          v.GetInt("BROADCAST_DEFAULT_RATE_LIMIT"),
+			AllowPrivateDataFeedHosts: v.GetBool("BROADCAST_DATA_FEED_ALLOW_PRIVATE_HOSTS"),
+		},
+		TaskScheduler: TaskSchedulerConfig{
+			Enabled:  v.GetBool("TASK_SCHEDULER_ENABLED"),
+			Interval: v.GetDuration("TASK_SCHEDULER_INTERVAL"),
+			MaxTasks: v.GetInt("TASK_SCHEDULER_MAX_TASKS"),
+		},
+		AutomationScheduler: AutomationSchedulerConfig{
+			Delay:     v.GetDuration("AUTOMATION_SCHEDULER_DELAY"),
+			Interval:  v.GetDuration("AUTOMATION_SCHEDULER_INTERVAL"),
+			BatchSize: v.GetInt("AUTOMATION_SCHEDULER_BATCH_SIZE"),
+		},
+		Plan: planConfig,
+
+		RootEmail:        rootEmail,
+		Environment:      v.GetString("ENVIRONMENT"),
+		APIEndpoint:      apiEndpoint,
+		WebhookEndpoint:  v.GetString("WEBHOOK_ENDPOINT"),
+		LogLevel:         v.GetString("LOG_LEVEL"),
+		GeoIPDBPath:      v.GetString("GEOIP_DB_PATH"),
+		AnalyticsWorkMem: v.GetString("ANALYTICS_WORK_MEM"),
+		Version:          v.GetString("VERSION"),
+		IsInstalled:      isInstalled,
+		MaxUsers:         v.GetInt("MAX_USERS"),
+		MaxWorkspaces:    v.GetInt("MAX_WORKSPACES"),
+		EnvValues:        envVals, // Store env values for setup service
+	}
+
+	if config.WebhookEndpoint == "" {
+		config.WebhookEndpoint = config.APIEndpoint
+	}
+
+	return config, nil
+}
+
+// resolveSMTPBridgeTLSMode returns the final TLS mode for the SMTP bridge or
+// an error if the explicit/implicit configuration is invalid.
+//
+// Precedence:
+//  1. Explicit SMTP_BRIDGE_TLS value wins (validated).
+//  2. Otherwise: cert+key present → "starttls".
+//  3. Otherwise + production → error (preserves the historical prod-TLS guard;
+//     operators who really want plaintext behind a proxy must set SMTP_BRIDGE_TLS=off).
+//  4. Otherwise → "off".
+//
+// "starttls" and "implicit" require both TLS cert and key to be non-empty.
+func resolveSMTPBridgeTLSMode(cfg SMTPBridgeConfig, environment string) (string, error) {
+	if cfg.TLSMode != "" {
+		if err := smtp_bridge.ValidateMode(cfg.TLSMode); err != nil {
+			return "", fmt.Errorf("SMTP_BRIDGE_TLS: %w", err)
+		}
+		if cfg.TLSMode == smtp_bridge.ModeSTARTTLS || cfg.TLSMode == smtp_bridge.ModeImplicit {
+			if cfg.TLSCertBase64 == "" || cfg.TLSKeyBase64 == "" {
+				return "", fmt.Errorf(
+					"SMTP_BRIDGE_TLS=%s requires both SMTP_BRIDGE_TLS_CERT_BASE64 and SMTP_BRIDGE_TLS_KEY_BASE64 to be set",
+					cfg.TLSMode,
+				)
+			}
+		}
+		return cfg.TLSMode, nil
+	}
+
+	// Auto-resolve when unset.
+	if cfg.TLSCertBase64 != "" && cfg.TLSKeyBase64 != "" {
+		return smtp_bridge.ModeSTARTTLS, nil
+	}
+
+	if environment == "production" {
+		return "", fmt.Errorf(
+			"SMTP bridge is enabled but no TLS is configured. In production you must either " +
+				"provide SMTP_BRIDGE_TLS_CERT_BASE64 and SMTP_BRIDGE_TLS_KEY_BASE64, or explicitly " +
+				"set SMTP_BRIDGE_TLS=off if running behind a TLS-terminating reverse proxy",
+		)
+	}
+
+	return smtp_bridge.ModeOff, nil
+}
+
+// IsDevelopment returns true if the environment is set to development
+func (c *Config) IsDevelopment() bool {
+	return c.Environment == "development"
+}
+
+func (c *Config) IsDemo() bool {
+	return c.Environment == "demo"
+}
+
+func (c *Config) IsProduction() bool {
+	return c.Environment == "production"
+}
+
+// GetEnvValues returns configuration values that came from actual environment variables
+// This is used by the setup service to determine which settings are already configured
+func (c *Config) GetEnvValues() (rootEmail, apiEndpoint, smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName string, smtpPort int, smtpUseTLS string, smtpBridgeEnabled string, smtpBridgeDomain, smtpBridgeTLSCertBase64, smtpBridgeTLSKeyBase64 string, smtpBridgePort int) {
+	return c.EnvValues.RootEmail,
+		c.EnvValues.APIEndpoint,
+		c.EnvValues.SMTPHost,
+		c.EnvValues.SMTPUsername,
+		c.EnvValues.SMTPPassword,
+		c.EnvValues.SMTPFromEmail,
+		c.EnvValues.SMTPFromName,
+		c.EnvValues.SMTPPort,
+		c.EnvValues.SMTPUseTLS,
+		c.EnvValues.SMTPBridgeEnabled,
+		c.EnvValues.SMTPBridgeDomain,
+		c.EnvValues.SMTPBridgeTLSCertBase64,
+		c.EnvValues.SMTPBridgeTLSKeyBase64,
+		c.EnvValues.SMTPBridgePort
+}
