@@ -5,7 +5,8 @@ import {
   SettingOutlined,
   ExclamationCircleOutlined,
   LineChartOutlined,
-  MailOutlined
+  MailOutlined,
+  TranslationOutlined
 } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 
@@ -21,6 +22,7 @@ export const SETTINGS_SECTIONS = [
   'general',
   'blog',
   'web-analytics',
+  'languages',
   'danger-zone'
 ] as const
 
@@ -127,8 +129,13 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
     }
   ]
 
-  // Add danger zone only for owners
+  // Translation overrides and destructive workspace controls are owner-only.
   if (isOwner) {
+    menuItems.push({
+      key: 'languages',
+      icon: <TranslationOutlined />,
+      label: t`Languages`
+    })
     menuItems.push({
       key: 'danger-zone',
       icon: <ExclamationCircleOutlined />,

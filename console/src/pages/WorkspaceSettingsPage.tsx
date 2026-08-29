@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from '@tanstack/react-router'
 import { Layout } from 'antd'
 import { useLingui } from '@lingui/react/macro'
+import { locales, type Locale } from '../i18n'
 import { workspaceService } from '../services/api/workspace'
 import { Workspace, WorkspaceMember } from '../services/api/types'
 import { WorkspaceMembers } from '../components/settings/WorkspaceMembers'
@@ -12,6 +13,7 @@ import { CustomFieldsConfiguration } from '../components/settings/CustomFieldsCo
 import { BlogSettings } from '../components/settings/BlogSettings'
 import { WebAnalyticsSettings } from '../components/settings/WebAnalyticsSettings'
 import { WebhooksSettings } from '../components/settings/WebhooksSettings'
+import { UITranslationsSettings } from '../components/settings/UITranslationsSettings'
 import { useAuth } from '../contexts/AuthContext'
 import { DeleteWorkspaceSection } from '../components/settings/DeleteWorkspace'
 import {
@@ -23,19 +25,23 @@ import {
 const { Sider, Content } = Layout
 
 export function WorkspaceSettingsPage() {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const { workspaceId, section } = useParams({
     from: '/console/workspace/$workspaceId/settings/$section'
   })
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [members, setMembers] = useState<WorkspaceMember[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
+  const [membersLoaded, setMembersLoaded] = useState(false)
   const [isOwner, setIsOwner] = useState(false)
   const [canManageCustomFields, setCanManageCustomFields] = useState(false)
   const [canManageBlog, setCanManageBlog] = useState(false)
   const [canManageWebAnalytics, setCanManageWebAnalytics] = useState(false)
   const { refreshWorkspaces, user, workspaces } = useAuth()
   const navigate = useNavigate()
+  const currentLocale = locales.includes(i18n.locale as Locale)
+    ? (i18n.locale as Locale)
+    : 'en'
 
   // Get active section from URL or default to 'team'
   const activeSection: SettingsSection = SETTINGS_SECTIONS.includes(section as SettingsSection)
@@ -54,9 +60,19 @@ export function WorkspaceSettingsPage() {
   }, [section, workspaceId, navigate])
 
   useEffect(() => {
+    if (section !== 'languages' || !membersLoaded || isOwner) return
+    navigate({
+      to: '/console/workspace/$workspaceId/settings/$section',
+      params: { workspaceId, section: 'team' },
+      replace: true
+    })
+  }, [isOwner, membersLoaded, navigate, section, workspaceId])
+
+  useEffect(() => {
     // Find the workspace from the auth context
     const currentWorkspace = workspaces.find((w) => w.id === workspaceId) || null
     setWorkspace(currentWorkspace)
+    setMembersLoaded(false)
 
     fetchMembers()
   // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchMembers is stable
@@ -96,6 +112,7 @@ export function WorkspaceSettingsPage() {
       console.error(t`Failed to fetch workspace members`, error)
     } finally {
       setLoadingMembers(false)
+      setMembersLoaded(true)
     }
   }
 
@@ -174,6 +191,15 @@ export function WorkspaceSettingsPage() {
             canManage={canManageWebAnalytics}
           />
         )
+      case 'languages':
+        return workspace && isOwner ? (
+          <UITranslationsSettings
+            workspace={workspace}
+            isOwner={isOwner}
+            refreshWorkspaces={refreshWorkspaces}
+            currentLocale={currentLocale}
+          />
+        ) : null
       case 'danger-zone':
         return workspace && isOwner ? (
           <DeleteWorkspaceSection workspace={workspace} onDeleteSuccess={handleWorkspaceDelete} />
@@ -200,7 +226,11 @@ export function WorkspaceSettingsPage() {
       </Sider>
       <Layout>
         <Content>
-          <div style={{ maxWidth: '700px', padding: '24px' }}>{renderSection()}</div>
+          <div
+            style={{ maxWidth: activeSection === 'languages' ? '100%' : '700px', padding: '24px' }}
+          >
+            {renderSection()}
+          </div>
         </Content>
       </Layout>
     </Layout>

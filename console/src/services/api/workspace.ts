@@ -48,7 +48,7 @@ export interface WorkspaceSettings {
   template_blocks?: TemplateBlock[]
   custom_endpoint_url?: string
   custom_field_labels?: Record<string, string>
-  ui_translations?: Record<string, Record<string, string>>
+  ui_translations?: UITranslations
   blog_enabled?: boolean
   blog_settings?: BlogSettings
   web_analytics?: import('./web_analytics').WebAnalyticsSettings
@@ -503,9 +503,11 @@ export interface SetCustomFieldLabelsResponse {
   message: string
 }
 
+export type UITranslations = Record<string, Record<string, string>>
+
 export interface SetUITranslationsRequest {
   workspace_id: string
-  ui_translations: Record<string, Record<string, string>>
+  ui_translations: UITranslations
 }
 
 export interface SetUITranslationsResponse {

@@ -12,6 +12,12 @@ const renderSidebar = () => {
   return onSectionChange
 }
 
+const renderMemberSidebar = () => {
+  const onSectionChange = vi.fn<(section: SettingsSection) => void>()
+  render(<SettingsSidebar activeSection="team" onSectionChange={onSectionChange} isOwner={false} />)
+  return onSectionChange
+}
+
 describe('SettingsSidebar', () => {
   it('reports a valid section for every entry it renders', () => {
     const onSectionChange = renderSidebar()
@@ -31,5 +37,19 @@ describe('SettingsSidebar', () => {
     fireEvent.click(screen.getByText('Integrations'))
 
     expect(onSectionChange).toHaveBeenCalledWith('integrations')
+  })
+
+  it('routes owners to the Languages section', () => {
+    const onSectionChange = renderSidebar()
+
+    fireEvent.click(screen.getByText('Languages'))
+
+    expect(onSectionChange).toHaveBeenCalledWith('languages')
+  })
+
+  it('does not expose Languages to non-owners', () => {
+    renderMemberSidebar()
+
+    expect(screen.queryByText('Languages')).not.toBeInTheDocument()
   })
 })
