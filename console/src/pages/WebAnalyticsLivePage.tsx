@@ -2,7 +2,8 @@ import { Link, useParams } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
 import { ArrowLeft } from 'lucide-react'
 import { Dayjs } from 'dayjs'
-import { WebAnalyticsProvider, useWebAnalytics } from '../components/web_analytics/context'
+import { WebAnalyticsProvider } from '../components/web_analytics/context'
+import { useWebAnalytics } from '../components/web_analytics/useWebAnalytics'
 import { WebAnalyticsGate } from '../components/web_analytics/InstallOverlay'
 import {
   ColumnConfig,

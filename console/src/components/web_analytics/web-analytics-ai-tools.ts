@@ -218,7 +218,7 @@ const PERIOD_CHOICES: string[] = [
  * or `annotations`.
  *
  * The assistant is HIDDEN on both (shouldHideAssistant in
- * WebAnalyticsAIAssistant.tsx, passed as `hidden`, which sets display:'none' on the
+ * web-analytics-ai-visibility.ts, passed as `hidden`, which sets display:'none' on the
  * whole panel at AIAssistantChat.tsx:176). Offering either value would let the model
  * honour "show me the attribution rules" by making itself disappear mid-turn, with the
  * continuation round then writing its answer into an element nobody can see. The same

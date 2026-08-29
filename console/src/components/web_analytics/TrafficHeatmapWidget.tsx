@@ -1,9 +1,8 @@
 import { ReactNode, useCallback, useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { Empty, Spin } from 'antd'
-import { i18n } from '@lingui/core'
 import { useLingui } from '@lingui/react/macro'
-import { useWebAnalytics } from './context'
+import { useWebAnalytics } from './useWebAnalytics'
 import { WidgetTabs } from './WidgetTabs'
 import { HOUR_LABELS, weekdayLabel } from './lib/dictionaries'
 import { formatValue, toNumber } from './lib/format'
@@ -44,7 +43,7 @@ function coordinates(
 
 export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNode {
   const { title, schema = 'web_sessions', extraFilters, emptyText } = props
-  const { t } = useLingui()
+  const { i18n, t } = useLingui()
   const { workspaceId, resolved, timezone, filters, toggleFilter } = useWebAnalytics()
   const [activeKey, setActiveKey] = useState<string | null>(null)
 
@@ -114,9 +113,10 @@ export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNod
   // Built here rather than at module scope: the labels follow the console's
   // locale, which is not known when the module is first evaluated. Memoized on
   // the locale so the option below keeps its own memo.
+  const locale = i18n.locale
   const dayLabels = useMemo(
-    () => [1, 2, 3, 4, 5, 6, 7].map((day) => weekdayLabel(day, i18n.locale, 'short') ?? String(day)),
-    [i18n.locale]
+    () => [1, 2, 3, 4, 5, 6, 7].map((day) => weekdayLabel(day, locale, 'short') ?? String(day)),
+    [locale]
   )
 
   const option = useMemo(() => {

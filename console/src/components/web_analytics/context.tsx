@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useAuth } from '../../contexts/AuthContext'
 import { Workspace } from '../../services/api/workspace'
@@ -22,6 +22,7 @@ import {
   WebDimensionFilter,
   WebMetricFilter
 } from './lib/types'
+import { WebAnalyticsContext } from './useWebAnalytics'
 
 // The tab tuple now lives in ./lib/types, the leaf module every web analytics
 // module already imports: the AI tool definitions need the names as a value, and
@@ -54,7 +55,7 @@ export const DEFAULT_MIN_SESSIONS = 10
 const PERIOD_STORAGE_KEY = 'web_analytics_period'
 const COMPARISON_STORAGE_KEY = 'web_analytics_comparison'
 
-interface WebAnalyticsContextValue {
+export interface WebAnalyticsContextValue {
   workspaceId: string
   workspace?: Workspace
   settings?: WebAnalyticsSettings
@@ -94,8 +95,6 @@ interface WebAnalyticsContextValue {
   setDimensions: (dimensions: string[]) => void
   setTag: (tag?: string) => void
 }
-
-const WebAnalyticsContext = createContext<WebAnalyticsContextValue | null>(null)
 
 function parseJsonParam<T>(raw: string | undefined): T[] {
   if (!raw) return []
@@ -292,12 +291,4 @@ export function WebAnalyticsProvider(props: { workspaceId: string; children: Rea
   }
 
   return <WebAnalyticsContext.Provider value={value}>{children}</WebAnalyticsContext.Provider>
-}
-
-export function useWebAnalytics(): WebAnalyticsContextValue {
-  const context = useContext(WebAnalyticsContext)
-  if (!context) {
-    throw new Error('useWebAnalytics must be used inside a WebAnalyticsProvider')
-  }
-  return context
 }
