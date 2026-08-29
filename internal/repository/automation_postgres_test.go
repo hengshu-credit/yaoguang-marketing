@@ -632,6 +632,40 @@ func TestAutomationRepository_CreateAutomationTrigger(t *testing.T) {
 	})
 }
 
+func TestAutomationRepository_CreateAutomationTriggerVersionsAndIndexesBindingAtomically(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+	queryBuilder := service.NewQueryBuilder()
+	repository := NewAutomationRepositoryWithDB(
+		db,
+		service.NewAutomationTriggerGenerator(queryBuilder),
+		service.NewTriggerBindingCompiler(queryBuilder),
+	).(*AutomationRepository)
+	automation := createTestAutomation("auto-123", "workspace-123")
+	automation.Status = domain.AutomationStatusLive
+
+	mock.ExpectBegin()
+	mock.ExpectExec("SET LOCAL lock_timeout").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("DROP TRIGGER IF EXISTS").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("DROP FUNCTION IF EXISTS").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("CREATE OR REPLACE FUNCTION").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("CREATE TRIGGER").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectQuery("UPDATE automations.*SET version = version \\+ 1").
+		WithArgs("auto-123", "workspace-123").
+		WillReturnRows(sqlmock.NewRows([]string{"version"}).AddRow(2))
+	mock.ExpectExec("DELETE FROM automation_trigger_bindings").
+		WithArgs("auto-123").WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec("INSERT INTO automation_trigger_bindings").
+		WithArgs("auto-123", 2, "email.opened", "message_history", sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	err = repository.CreateAutomationTrigger(context.Background(), "workspace-123", automation)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestAutomationRepository_DropAutomationTrigger(t *testing.T) {
 	db, mock, repo := setupAutomationMock(t)
 	defer func() { _ = db.Close() }()

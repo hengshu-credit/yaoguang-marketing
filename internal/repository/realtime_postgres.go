@@ -2,10 +2,13 @@ package repository
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -445,18 +448,36 @@ func (r *RealtimePostgresRepository) CompleteInbox(
 func (r *RealtimePostgresRepository) ListTriggerBindings(
 	ctx context.Context,
 	workspaceID, eventType, subjectType string,
+	dependencyKeys []string,
 ) ([]domain.TriggerBinding, error) {
 	db, err := r.getDB(ctx, workspaceID)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.QueryContext(ctx, `
+	return listTriggerBindings(ctx, db, eventType, subjectType, dependencyKeys)
+}
+
+type realtimeQueryer interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+}
+
+func listTriggerBindings(
+	ctx context.Context,
+	queryer realtimeQueryer,
+	eventType, subjectType string,
+	dependencyKeys []string,
+) ([]domain.TriggerBinding, error) {
+	rows, err := queryer.QueryContext(ctx, `
 		SELECT automation_id, automation_version, event_type, subject_type,
-			dependency_keys, condition_hash, compiled_condition, created_at
-		FROM automation_trigger_bindings
+			b.dependency_keys, condition_hash, compiled_condition, b.created_at
+		FROM automation_trigger_bindings b
+		JOIN automations a ON a.id = b.automation_id
+			AND a.version = b.automation_version
+			AND a.status = 'live' AND a.deleted_at IS NULL
 		WHERE event_type = $1 AND subject_type = $2
-		ORDER BY automation_id, automation_version DESC
-	`, eventType, subjectType)
+		  AND (cardinality(b.dependency_keys) = 0 OR b.dependency_keys && $3::text[])
+		ORDER BY automation_id
+	`, eventType, subjectType, pq.Array(dependencyKeys))
 	if err != nil {
 		return nil, fmt.Errorf("list realtime trigger bindings: %w", err)
 	}
@@ -480,6 +501,331 @@ func (r *RealtimePostgresRepository) ListTriggerBindings(
 		return nil, fmt.Errorf("iterate realtime trigger bindings: %w", err)
 	}
 	return bindings, nil
+}
+
+func (r *RealtimePostgresRepository) ReplaceTriggerBindings(
+	ctx context.Context,
+	workspaceID, automationID string,
+	bindings []domain.TriggerBinding,
+) error {
+	if automationID == "" {
+		return fmt.Errorf("automation id is required")
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin trigger binding replacement: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if err := replaceTriggerBindingsTx(ctx, tx, automationID, bindings); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit trigger binding replacement: %w", err)
+	}
+	return nil
+}
+
+func replaceTriggerBindingsTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	automationID string,
+	bindings []domain.TriggerBinding,
+) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM automation_trigger_bindings WHERE automation_id = $1`, automationID); err != nil {
+		return fmt.Errorf("delete stale trigger bindings: %w", err)
+	}
+	for _, binding := range bindings {
+		if binding.AutomationID != automationID || binding.AutomationVersion <= 0 ||
+			binding.EventType == "" || binding.SubjectType == "" || binding.ConditionHash == "" ||
+			len(binding.CompiledCondition) == 0 {
+			return fmt.Errorf("invalid trigger binding for automation %s", automationID)
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO automation_trigger_bindings (
+				automation_id, automation_version, event_type, subject_type,
+				dependency_keys, condition_hash, compiled_condition
+			) VALUES ($1, $2, $3, $4, $5, $6, $7)
+		`, binding.AutomationID, binding.AutomationVersion, binding.EventType,
+			binding.SubjectType, pq.Array(binding.DependencyKeys), binding.ConditionHash,
+			[]byte(binding.CompiledCondition)); err != nil {
+			return fmt.Errorf("insert trigger binding: %w", err)
+		}
+	}
+	return nil
+}
+
+func (r *RealtimePostgresRepository) DeleteTriggerBindings(
+	ctx context.Context,
+	workspaceID, automationID string,
+) error {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	if _, err := db.ExecContext(ctx, `DELETE FROM automation_trigger_bindings WHERE automation_id = $1`, automationID); err != nil {
+		return fmt.Errorf("delete trigger bindings: %w", err)
+	}
+	return nil
+}
+
+func (r *RealtimePostgresRepository) ProcessRuleEvent(
+	ctx context.Context,
+	request domain.RuleProcessRequest,
+) (domain.RuleProcessResult, error) {
+	if request.WorkspaceID == "" || request.Consumer == "" || request.MessageID == uuid.Nil ||
+		request.InboxLease <= 0 || !request.Engine.IsValid() {
+		return domain.RuleProcessResult{}, fmt.Errorf("workspace, consumer, message id, engine, and inbox lease are required")
+	}
+	if request.Now.IsZero() {
+		request.Now = time.Now().UTC()
+	}
+	db, err := r.getDB(ctx, request.WorkspaceID)
+	if err != nil {
+		return domain.RuleProcessResult{}, err
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return domain.RuleProcessResult{}, fmt.Errorf("begin rule event transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	claim, err := r.ClaimInbox(
+		ctx, tx, request.WorkspaceID, request.Consumer, request.MessageID,
+		request.Now, request.InboxLease,
+	)
+	if err != nil {
+		return domain.RuleProcessResult{}, err
+	}
+	if !claim.Acquired {
+		if claim.Status == domain.InboxStatusCompleted {
+			return domain.RuleProcessResult{Duplicate: true}, nil
+		}
+		return domain.RuleProcessResult{Busy: true}, nil
+	}
+
+	bindings, err := listTriggerBindings(
+		ctx, tx, request.Envelope.Type, request.Envelope.Subject.Type, request.DependencyKeys,
+	)
+	if err != nil {
+		return domain.RuleProcessResult{}, err
+	}
+	result := domain.RuleProcessResult{Candidates: len(bindings)}
+	for _, binding := range bindings {
+		matched, compiled, err := evaluateTriggerBinding(ctx, tx, binding, request.Envelope.Subject.ContactEmail)
+		if err != nil {
+			return domain.RuleProcessResult{}, fmt.Errorf("evaluate automation %s: %w", binding.AutomationID, err)
+		}
+		var contactAutomationID *string
+		if matched {
+			result.Matched++
+			if request.Primary {
+				enrolledID, enrolled, err := enrollRealtimeAutomation(
+					ctx, tx, request, binding, compiled,
+				)
+				if err != nil {
+					return domain.RuleProcessResult{}, err
+				}
+				if enrolled {
+					result.Enrolled++
+					contactAutomationID = &enrolledID
+				}
+			}
+		}
+		reason, _ := json.Marshal(map[string]any{
+			"condition_hash": binding.ConditionHash,
+			"decision":       map[bool]string{true: "matched", false: "not_matched"}[matched],
+			"primary":        request.Primary,
+		})
+		audit := domain.MatchAudit{
+			EventID:             request.Envelope.EventID,
+			AutomationID:        binding.AutomationID,
+			Engine:              request.Engine,
+			Matched:             matched,
+			DecisionHash:        ruleDecisionHash(binding.ConditionHash, matched),
+			ContactAutomationID: contactAutomationID,
+			Reason:              reason,
+			CreatedAt:           request.Now,
+		}
+		if err := writeMatchAuditTx(ctx, tx, audit); err != nil {
+			return domain.RuleProcessResult{}, err
+		}
+	}
+
+	completed, err := r.CompleteInbox(
+		ctx, tx, request.WorkspaceID, request.Consumer, request.MessageID,
+		claim.ClaimToken, request.Now,
+	)
+	if err != nil {
+		return domain.RuleProcessResult{}, err
+	}
+	if !completed {
+		return domain.RuleProcessResult{}, fmt.Errorf("rule inbox claim lost before completion")
+	}
+	if err := tx.Commit(); err != nil {
+		return domain.RuleProcessResult{}, fmt.Errorf("commit rule event: %w", err)
+	}
+	return result, nil
+}
+
+func evaluateTriggerBinding(
+	ctx context.Context,
+	tx *sql.Tx,
+	binding domain.TriggerBinding,
+	contactEmail string,
+) (bool, domain.CompiledTriggerCondition, error) {
+	var compiled domain.CompiledTriggerCondition
+	if err := json.Unmarshal(binding.CompiledCondition, &compiled); err != nil {
+		return false, compiled, fmt.Errorf("decode compiled condition: %w", err)
+	}
+	query := strings.TrimSpace(compiled.Query)
+	if !strings.HasPrefix(strings.ToUpper(query), "SELECT ") || strings.Contains(query, ";") {
+		return false, compiled, fmt.Errorf("compiled condition must be one SELECT statement")
+	}
+	arguments := append([]any(nil), compiled.Arguments...)
+	if query != "SELECT TRUE" {
+		arguments = append(arguments, contactEmail)
+	}
+	var matched bool
+	if err := tx.QueryRowContext(ctx, query, arguments...).Scan(&matched); err != nil {
+		return false, compiled, fmt.Errorf("execute compiled condition: %w", err)
+	}
+	return matched, compiled, nil
+}
+
+func enrollRealtimeAutomation(
+	ctx context.Context,
+	tx *sql.Tx,
+	request domain.RuleProcessRequest,
+	binding domain.TriggerBinding,
+	compiled domain.CompiledTriggerCondition,
+) (string, bool, error) {
+	contactAutomationID := uuid.New().String()
+	triggerLogID := uuid.New().String()
+	var enrolledID string
+	err := tx.QueryRowContext(ctx, `
+		WITH live AS (
+			SELECT id FROM automations
+			WHERE id = $1 AND version = $2 AND status = 'live' AND deleted_at IS NULL
+		), once_gate AS (
+			INSERT INTO automation_trigger_log (id, automation_id, contact_email, triggered_at)
+			SELECT $3, id, $4, $5 FROM live WHERE $6 = 'once'
+			ON CONFLICT (automation_id, contact_email) DO NOTHING
+			RETURNING 1
+		), eligible AS (
+			SELECT id FROM live WHERE $6 <> 'once' OR EXISTS (SELECT 1 FROM once_gate)
+		), enrolled AS (
+			INSERT INTO contact_automations (
+				id, automation_id, contact_email, current_node_id, status,
+				entered_at, scheduled_at, origin_event_id, automation_version
+			)
+			SELECT $7, id, $4, $8, 'active', $5, $5, $9, $2 FROM eligible
+			ON CONFLICT (automation_id, origin_event_id) WHERE origin_event_id IS NOT NULL DO NOTHING
+			RETURNING id
+		)
+		SELECT id FROM enrolled
+	`, binding.AutomationID, binding.AutomationVersion, triggerLogID,
+		request.Envelope.Subject.ContactEmail, request.Now.UTC(), string(compiled.Frequency),
+		contactAutomationID, compiled.RootNodeID, request.Envelope.EventID).Scan(&enrolledID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, fmt.Errorf("enroll realtime automation %s: %w", binding.AutomationID, err)
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE automations
+		SET stats = jsonb_set(
+			COALESCE(stats, '{}'::jsonb), '{enrolled}',
+			to_jsonb(COALESCE((stats->>'enrolled')::int, 0) + 1)
+		), updated_at = $2
+		WHERE id = $1 AND version = $3
+	`, binding.AutomationID, request.Now.UTC(), binding.AutomationVersion); err != nil {
+		return "", false, fmt.Errorf("increment realtime enrollment stat: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO automation_node_executions (
+			id, contact_automation_id, automation_id, node_id, node_type,
+			action, entered_at, output
+		) VALUES ($1, $2, $3, $4, 'trigger', 'entered', $5, '{}'::jsonb)
+	`, uuid.New().String(), enrolledID, binding.AutomationID, compiled.RootNodeID, request.Now.UTC()); err != nil {
+		return "", false, fmt.Errorf("write realtime trigger node execution: %w", err)
+	}
+
+	messageID := uuid.New()
+	causationID := request.Envelope.EventID
+	payload, err := json.Marshal(domain.EventEnvelope{
+		ID:            messageID,
+		EventID:       request.Envelope.EventID,
+		Type:          "journey.start",
+		SchemaVersion: 1,
+		Subject: domain.EventSubject{
+			Type: "contact_automation", ID: enrolledID,
+			ContactEmail: request.Envelope.Subject.ContactEmail,
+		},
+		Source:        "rule-worker",
+		OccurredAt:    request.Now.UTC(),
+		ReceivedAt:    request.Now.UTC(),
+		CorrelationID: request.Envelope.CorrelationID,
+		CausationID:   &causationID,
+		Data: mustJSON(map[string]any{
+			"contact_automation_id": enrolledID,
+			"automation_id":         binding.AutomationID,
+			"automation_version":    binding.AutomationVersion,
+		}),
+	})
+	if err != nil {
+		return "", false, fmt.Errorf("marshal journey start command: %w", err)
+	}
+	headers, _ := json.Marshal(map[string]any{
+		"schema_version": 1,
+		"correlation_id": request.Envelope.CorrelationID,
+		"causation_id":   request.Envelope.EventID,
+	})
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO event_outbox (id, event_id, topic, routing_key, payload, headers)
+		VALUES ($1, $2, 'notifuse.jobs', $3, $4, $5)
+	`, messageID, request.Envelope.EventID, "journey.start."+binding.AutomationID, payload, headers); err != nil {
+		return "", false, fmt.Errorf("enqueue journey start command: %w", err)
+	}
+	return enrolledID, true, nil
+}
+
+func mustJSON(value any) json.RawMessage {
+	payload, _ := json.Marshal(value)
+	return payload
+}
+
+func writeMatchAuditTx(ctx context.Context, tx *sql.Tx, audit domain.MatchAudit) error {
+	var decisionHash string
+	err := tx.QueryRowContext(ctx, `
+		INSERT INTO automation_match_audit (
+			event_id, automation_id, engine, matched, decision_hash,
+			contact_automation_id, reason, created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		ON CONFLICT (event_id, automation_id, engine) DO UPDATE
+		SET decision_hash = automation_match_audit.decision_hash
+		WHERE automation_match_audit.decision_hash = EXCLUDED.decision_hash
+		  AND automation_match_audit.matched = EXCLUDED.matched
+		RETURNING decision_hash
+	`, audit.EventID, audit.AutomationID, audit.Engine, audit.Matched, audit.DecisionHash,
+		audit.ContactAutomationID, []byte(audit.Reason), audit.CreatedAt.UTC()).Scan(&decisionHash)
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.ErrMatchAuditConflict
+	}
+	if err != nil {
+		return fmt.Errorf("write automation match audit: %w", err)
+	}
+	return nil
+}
+
+func ruleDecisionHash(conditionHash string, matched bool) string {
+	sum := sha256.Sum256([]byte(fmt.Sprintf("%s:%t", conditionHash, matched)))
+	return hex.EncodeToString(sum[:])
 }
 
 func (r *RealtimePostgresRepository) WriteMatchAudit(

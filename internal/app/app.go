@@ -453,7 +453,8 @@ func (a *App) InitRepositories() error {
 	// Create trigger generator for automation repository
 	queryBuilder := service.NewQueryBuilder()
 	triggerGenerator := service.NewAutomationTriggerGenerator(queryBuilder)
-	a.automationRepo = repository.NewAutomationRepository(a.workspaceRepo, triggerGenerator)
+	bindingCompiler := service.NewTriggerBindingCompiler(queryBuilder)
+	a.automationRepo = repository.NewAutomationRepository(a.workspaceRepo, triggerGenerator, bindingCompiler)
 
 	// Initialize email queue repository
 	a.emailQueueRepo = repository.NewEmailQueueRepository(a.workspaceRepo)

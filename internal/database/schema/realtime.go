@@ -93,6 +93,8 @@ func RealtimeTableDefinitions() []string {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_automation_trigger_bindings_candidates
 			ON automation_trigger_bindings (event_type, subject_type, automation_version)`,
+		`CREATE INDEX IF NOT EXISTS idx_automation_trigger_bindings_dependencies
+			ON automation_trigger_bindings USING GIN (dependency_keys)`,
 		`CREATE TABLE IF NOT EXISTS automation_match_audit (
 			event_id UUID NOT NULL,
 			automation_id TEXT NOT NULL,

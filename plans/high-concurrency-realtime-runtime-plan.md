@@ -492,7 +492,7 @@ git commit -m "feat: relay realtime outbox fairly"
 - Produces: `TriggerBindingCompiler.Compile(*domain.Automation)`, transactional binding replacement on automation activation/update, and `RuleWorker.Handle(context.Context, broker.Delivery) error`.
 - Consumed by: primary enrollment and shadow audit.
 
-- [ ] **Step 1: Write failing compiler and mode tests**
+- [x] **Step 1: Write failing compiler and mode tests**
 
 ```go
 func TestCompilerIndexesUpdatedFields(t *testing.T) {
@@ -522,11 +522,11 @@ func TestPrimaryMatcherCreatesOneEnrollmentForDuplicateMessage(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run: `docker run --rm -v "${PWD}:/src" -w /src golang:1.25-alpine sh -lc "go test ./internal/service -run 'Test(Compiler|ShadowMatcher|PrimaryMatcher)'"`
 
-- [ ] **Step 3: Implement candidate indexing and SQL parity evaluation**
+- [x] **Step 3: Implement candidate indexing and SQL parity evaluation**
 
 Compile event kind, list/segment ID, updated-field dependencies, condition hash, trigger JSON, and a parameterized condition query that reuses `QueryBuilder.BuildTriggerCondition`. Candidate lookup is keyed by event/subject and dependency overlap. The matcher evaluates candidates only, writes `realtime` audit in shadow, and creates contact automation plus journey-command outbox in primary in the same transaction.
 
@@ -534,7 +534,7 @@ Compile event kind, list/segment ID, updated-field dependencies, condition hash,
 
 Run focused tests, then full `./internal/service` tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add internal/service/realtime_rule_* internal/service/automation_service.go internal/service/automation_service_test.go internal/repository/realtime_postgres.go internal/repository/realtime_postgres_test.go

@@ -150,6 +150,38 @@ type TriggerBinding struct {
 	CreatedAt         time.Time       `json:"created_at"`
 }
 
+type CompiledTriggerCondition struct {
+	Query      string                 `json:"query"`
+	Arguments  []any                  `json:"arguments"`
+	RootNodeID string                 `json:"root_node_id"`
+	Frequency  TriggerFrequency       `json:"frequency"`
+	Trigger    *TimelineTriggerConfig `json:"trigger"`
+}
+
+type RuleProcessRequest struct {
+	WorkspaceID    string
+	Consumer       string
+	MessageID      uuid.UUID
+	Envelope       EventEnvelope
+	DependencyKeys []string
+	Engine         MatchEngine
+	Primary        bool
+	Now            time.Time
+	InboxLease     time.Duration
+}
+
+type RuleProcessResult struct {
+	Duplicate  bool
+	Busy       bool
+	Candidates int
+	Matched    int
+	Enrolled   int
+}
+
+type RuleEventProcessor interface {
+	ProcessRuleEvent(context.Context, RuleProcessRequest) (RuleProcessResult, error)
+}
+
 type MatchEngine string
 
 const (
@@ -231,7 +263,10 @@ type RealtimeRepository interface {
 	ReleaseOutbox(ctx context.Context, workspaceID string, id, claimToken uuid.UUID, availableAt time.Time, lastError string, dead bool) (bool, error)
 	ClaimInbox(ctx context.Context, tx *sql.Tx, workspaceID, consumer string, messageID uuid.UUID, now time.Time, lease time.Duration) (InboxClaim, error)
 	CompleteInbox(ctx context.Context, tx *sql.Tx, workspaceID, consumer string, messageID, claimToken uuid.UUID, completedAt time.Time) (bool, error)
-	ListTriggerBindings(ctx context.Context, workspaceID, eventType, subjectType string) ([]TriggerBinding, error)
+	ListTriggerBindings(ctx context.Context, workspaceID, eventType, subjectType string, dependencyKeys []string) ([]TriggerBinding, error)
+	ReplaceTriggerBindings(ctx context.Context, workspaceID, automationID string, bindings []TriggerBinding) error
+	DeleteTriggerBindings(ctx context.Context, workspaceID, automationID string) error
+	ProcessRuleEvent(ctx context.Context, request RuleProcessRequest) (RuleProcessResult, error)
 	WriteMatchAudit(ctx context.Context, workspaceID string, audit MatchAudit) error
 	ReserveSideEffect(ctx context.Context, workspaceID string, execution SideEffectExecution) (SideEffectExecution, bool, error)
 	GetEvent(ctx context.Context, workspaceID string, eventID uuid.UUID) (*EventEnvelope, error)

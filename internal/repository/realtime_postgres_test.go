@@ -8,6 +8,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -231,4 +232,165 @@ func TestRealtimeRepositoryReserveSideEffectRejectsChangedRequest(t *testing.T) 
 	_, _, err = NewRealtimeRepositoryWithDB(db).ReserveSideEffect(context.Background(), "workspace-1", execution)
 	require.ErrorIs(t, err, domain.ErrSideEffectHashConflict)
 	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestRealtimeRepositoryListsOnlyDependencyCandidates(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+
+	now := time.Now().UTC()
+	compiled := []byte(`{"query":"SELECT TRUE","arguments":[],"root_node_id":"root","frequency":"every_time"}`)
+	mock.ExpectQuery(`(?s)FROM automation_trigger_bindings b.*JOIN automations a.*dependency_keys && \$3::text\[\]`).
+		WithArgs("contact.updated", "contact", pq.Array([]string{"changes.language"})).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"automation_id", "automation_version", "event_type", "subject_type",
+			"dependency_keys", "condition_hash", "compiled_condition", "created_at",
+		}).AddRow("automation-1", 2, "contact.updated", "contact",
+			"{changes.language}", "hash-1", compiled, now))
+
+	bindings, err := NewRealtimeRepositoryWithDB(db).ListTriggerBindings(
+		context.Background(), "workspace-1", "contact.updated", "contact", []string{"changes.language"},
+	)
+	require.NoError(t, err)
+	require.Len(t, bindings, 1)
+	assert.Equal(t, 2, bindings[0].AutomationVersion)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestRealtimeRepositoryReplacesBindingsTransactionally(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+
+	binding := domain.TriggerBinding{
+		AutomationID: "automation-1", AutomationVersion: 3,
+		EventType: "contact.updated", SubjectType: "contact",
+		DependencyKeys: []string{"changes.language"}, ConditionHash: "hash-1",
+		CompiledCondition: json.RawMessage(`{"query":"SELECT TRUE"}`),
+	}
+	mock.ExpectBegin()
+	mock.ExpectExec(`DELETE FROM automation_trigger_bindings`).
+		WithArgs("automation-1").WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`(?s)INSERT INTO automation_trigger_bindings`).
+		WithArgs("automation-1", 3, "contact.updated", "contact",
+			pq.Array([]string{"changes.language"}), "hash-1", []byte(binding.CompiledCondition)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	err = NewRealtimeRepositoryWithDB(db).ReplaceTriggerBindings(
+		context.Background(), "workspace-1", "automation-1", []domain.TriggerBinding{binding},
+	)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestRealtimeRepositoryProcessesShadowRuleInOneTransaction(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+
+	request := ruleProcessFixture(false)
+	claimToken := uuid.New()
+	compiled := []byte(`{"query":"SELECT TRUE","arguments":[],"root_node_id":"root","frequency":"every_time"}`)
+	mock.ExpectBegin()
+	expectInboxClaim(mock, request, claimToken, true, "processing")
+	mock.ExpectQuery(`(?s)FROM automation_trigger_bindings b.*JOIN automations a`).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"automation_id", "automation_version", "event_type", "subject_type",
+			"dependency_keys", "condition_hash", "compiled_condition", "created_at",
+		}).AddRow("automation-1", 2, "contact.updated", "contact", "{}", "hash-1", compiled, request.Now))
+	mock.ExpectQuery(`SELECT TRUE`).WillReturnRows(sqlmock.NewRows([]string{"matched"}).AddRow(true))
+	mock.ExpectQuery(`(?s)INSERT INTO automation_match_audit.*RETURNING decision_hash`).
+		WillReturnRows(sqlmock.NewRows([]string{"decision_hash"}).AddRow(ruleDecisionHash("hash-1", true)))
+	mock.ExpectExec(`(?s)UPDATE consumer_inbox.*status = 'completed'`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	result, err := NewRealtimeRepositoryWithDB(db).ProcessRuleEvent(context.Background(), request)
+	require.NoError(t, err)
+	assert.Equal(t, domain.RuleProcessResult{Candidates: 1, Matched: 1}, result)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestRealtimeRepositoryPrimaryRuleEnrollsAndQueuesJourney(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+
+	request := ruleProcessFixture(true)
+	claimToken := uuid.New()
+	compiled := []byte(`{"query":"SELECT TRUE","arguments":[],"root_node_id":"root","frequency":"every_time"}`)
+	mock.ExpectBegin()
+	expectInboxClaim(mock, request, claimToken, true, "processing")
+	mock.ExpectQuery(`(?s)FROM automation_trigger_bindings b.*JOIN automations a`).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"automation_id", "automation_version", "event_type", "subject_type",
+			"dependency_keys", "condition_hash", "compiled_condition", "created_at",
+		}).AddRow("automation-1", 2, "contact.updated", "contact", "{}", "hash-1", compiled, request.Now))
+	mock.ExpectQuery(`SELECT TRUE`).WillReturnRows(sqlmock.NewRows([]string{"matched"}).AddRow(true))
+	mock.ExpectQuery(`(?s)WITH live AS .*INSERT INTO contact_automations`).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("journey-1"))
+	mock.ExpectExec(`(?s)UPDATE automations.*stats = jsonb_set`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`(?s)INSERT INTO automation_node_executions`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`(?s)INSERT INTO event_outbox.*notifuse.jobs`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(`(?s)INSERT INTO automation_match_audit.*RETURNING decision_hash`).
+		WillReturnRows(sqlmock.NewRows([]string{"decision_hash"}).AddRow(ruleDecisionHash("hash-1", true)))
+	mock.ExpectExec(`(?s)UPDATE consumer_inbox.*status = 'completed'`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	result, err := NewRealtimeRepositoryWithDB(db).ProcessRuleEvent(context.Background(), request)
+	require.NoError(t, err)
+	assert.Equal(t, domain.RuleProcessResult{Candidates: 1, Matched: 1, Enrolled: 1}, result)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestRealtimeRepositoryCompletedRuleMessageDoesNotEnrollTwice(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+
+	request := ruleProcessFixture(true)
+	claimToken := uuid.New()
+	mock.ExpectBegin()
+	expectInboxClaim(mock, request, claimToken, false, "completed")
+	mock.ExpectRollback()
+
+	result, err := NewRealtimeRepositoryWithDB(db).ProcessRuleEvent(context.Background(), request)
+	require.NoError(t, err)
+	assert.True(t, result.Duplicate)
+	assert.Zero(t, result.Enrolled)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func ruleProcessFixture(primary bool) domain.RuleProcessRequest {
+	now := time.Date(2026, 8, 29, 12, 0, 0, 0, time.UTC)
+	messageID := uuid.New()
+	return domain.RuleProcessRequest{
+		WorkspaceID: "workspace-1", Consumer: "rule-worker", MessageID: messageID,
+		Engine: domain.MatchEngineRealtime, Primary: primary, Now: now, InboxLease: time.Minute,
+		DependencyKeys: []string{"changes.language"},
+		Envelope: domain.EventEnvelope{
+			ID: messageID, EventID: uuid.New(), Type: "contact.updated", SchemaVersion: 1,
+			WorkspaceID: "workspace-1",
+			Subject:     domain.EventSubject{Type: "contact", ID: "person@example.com", ContactEmail: "person@example.com"},
+			Source:      "contact_timeline", OccurredAt: now, ReceivedAt: now,
+			CorrelationID: uuid.New(), Data: json.RawMessage(`{"changes":{"language":{"new":"fr"}}}`),
+		},
+	}
+}
+
+func expectInboxClaim(
+	mock sqlmock.Sqlmock,
+	request domain.RuleProcessRequest,
+	claimToken uuid.UUID,
+	acquired bool,
+	status string,
+) {
+	mock.ExpectQuery(`(?s)WITH claimed AS .*INSERT INTO consumer_inbox.*ON CONFLICT.*UNION ALL`).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"consumer", "message_id", "status", "attempts", "claim_token",
+			"claim_expires_at", "processed_at", "last_error", "created_at", "acquired",
+		}).AddRow(request.Consumer, request.MessageID, status, 1, claimToken,
+			request.Now.Add(request.InboxLease), nil, nil, request.Now, acquired))
 }

@@ -19,22 +19,39 @@ type AutomationRepository struct {
 	workspaceRepo    domain.WorkspaceRepository
 	db               *sql.DB // Used for testing with sqlmock
 	triggerGenerator *service.AutomationTriggerGenerator
+	bindingCompiler  *service.TriggerBindingCompiler
 }
 
 // NewAutomationRepository creates a new AutomationRepository using workspace repository
-func NewAutomationRepository(workspaceRepo domain.WorkspaceRepository, triggerGenerator *service.AutomationTriggerGenerator) domain.AutomationRepository {
-	return &AutomationRepository{
+func NewAutomationRepository(
+	workspaceRepo domain.WorkspaceRepository,
+	triggerGenerator *service.AutomationTriggerGenerator,
+	bindingCompilers ...*service.TriggerBindingCompiler,
+) domain.AutomationRepository {
+	repository := &AutomationRepository{
 		workspaceRepo:    workspaceRepo,
 		triggerGenerator: triggerGenerator,
 	}
+	if len(bindingCompilers) > 0 {
+		repository.bindingCompiler = bindingCompilers[0]
+	}
+	return repository
 }
 
 // NewAutomationRepositoryWithDB creates a new AutomationRepository with a direct DB connection (for testing)
-func NewAutomationRepositoryWithDB(db *sql.DB, triggerGenerator *service.AutomationTriggerGenerator) domain.AutomationRepository {
-	return &AutomationRepository{
+func NewAutomationRepositoryWithDB(
+	db *sql.DB,
+	triggerGenerator *service.AutomationTriggerGenerator,
+	bindingCompilers ...*service.TriggerBindingCompiler,
+) domain.AutomationRepository {
+	repository := &AutomationRepository{
 		db:               db,
 		triggerGenerator: triggerGenerator,
 	}
+	if len(bindingCompilers) > 0 {
+		repository.bindingCompiler = bindingCompilers[0]
+	}
+	return repository
 }
 
 // getDB returns the database connection for a workspace
@@ -587,6 +604,14 @@ func (r *AutomationRepository) CreateAutomationTrigger(ctx context.Context, work
 	if err != nil {
 		return domain.NewTriggerConditionError(fmt.Sprintf("failed to generate trigger SQL: %v", err))
 	}
+	var binding *domain.TriggerBinding
+	if r.bindingCompiler != nil {
+		compiled, compileErr := r.bindingCompiler.Compile(automation)
+		if compileErr != nil {
+			return domain.NewTriggerConditionError(fmt.Sprintf("failed to compile realtime trigger binding: %v", compileErr))
+		}
+		binding = &compiled
+	}
 
 	// One transaction for all of it. Run as separate statements they autocommit, so a
 	// failure on CREATE TRIGGER leaves the two DROPs applied — destroying the trigger
@@ -633,6 +658,22 @@ func (r *AutomationRepository) CreateAutomationTrigger(ctx context.Context, work
 	// need — two concurrent activations in the same workspace would deadlock on that.
 	if triggerSQL.ValidationQuery != "" {
 		if err := probeTriggerConditions(ctx, tx, triggerSQL.ValidationQuery); err != nil {
+			return err
+		}
+	}
+
+	if binding != nil {
+		// Version only definitions that are successfully installed. The increment,
+		// trigger DDL, and indexed binding roll back together on any failure.
+		if err := tx.QueryRowContext(ctx, `
+			UPDATE automations
+			SET version = version + 1
+			WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL
+			RETURNING version
+		`, automation.ID, workspaceID).Scan(&binding.AutomationVersion); err != nil {
+			return fmt.Errorf("failed to version automation trigger binding: %w", err)
+		}
+		if err := replaceTriggerBindingsTx(ctx, tx, automation.ID, []domain.TriggerBinding{*binding}); err != nil {
 			return err
 		}
 	}
@@ -714,6 +755,11 @@ func (r *AutomationRepository) DropAutomationTrigger(ctx context.Context, worksp
 	_, err = db.ExecContext(ctx, dropFunctionSQL)
 	if err != nil {
 		return fmt.Errorf("failed to drop trigger function: %w", err)
+	}
+	if r.bindingCompiler != nil {
+		if _, err := db.ExecContext(ctx, `DELETE FROM automation_trigger_bindings WHERE automation_id = $1`, automationID); err != nil {
+			return fmt.Errorf("failed to delete realtime trigger binding: %w", err)
+		}
 	}
 
 	return nil
