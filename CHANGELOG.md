@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [42.0] - 2026-08-29
+
+- **Feature**: Added encrypted multi-device contact endpoints for push delivery. External systems can idempotently register or disable FCM, APNs and Web Push endpoints through `/api/ingest.batch`, including platform, locale, timezone, application/device identifiers and custom attributes.
+
+- **Feature**: Added `/api/contactEndpoints.list` for contact-read clients and the console to inspect active endpoint metadata without exposing provider addresses. Endpoint address material is AES-GCM encrypted at rest, while timeline/outbox events contain metadata only.
+
+- **Feature**: Endpoint registrations, meaningful updates and disables now produce `contact.endpoint_registered`, `contact.endpoint_updated` and `contact.endpoint_disabled` events through the durable realtime ledger/outbox path.
+
 ## [41.0] - 2026-08-29
 
 - **Feature**: Added `/api/ingest.batch` for external systems to synchronize contact fields, business lifecycle status, arbitrary profile attributes, tags, marketing-list status and idempotent business events in batches of up to 500. Authentication and scoped permission checks run once per batch, responses report every item independently, and bounded per-replica concurrency returns `429` with `Retry-After` under pressure.

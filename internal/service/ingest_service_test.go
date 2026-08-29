@@ -92,6 +92,23 @@ type ingestEventRepoStub struct {
 	err    error
 }
 
+type ingestEndpointRepoStub struct {
+	domain.ContactEndpointRepository
+	upserted []string
+	disabled []string
+	err      error
+}
+
+func (s *ingestEndpointRepoStub) Upsert(_ context.Context, _, email string, endpoint *domain.ContactEndpoint) error {
+	s.upserted = append(s.upserted, email+":"+endpoint.EndpointID)
+	return s.err
+}
+
+func (s *ingestEndpointRepoStub) Disable(_ context.Context, _, email, endpointID string) error {
+	s.disabled = append(s.disabled, email+":"+endpointID)
+	return s.err
+}
+
 func (s *ingestEventRepoStub) BatchUpsert(_ context.Context, _ string, events []*domain.CustomEvent) error {
 	s.events = append(s.events, events...)
 	return s.err
@@ -113,7 +130,8 @@ func TestIngestServiceBatchAuthenticatesOnceAndAppliesAllMutationTypes(t *testin
 	profiles := &ingestProfileRepoStub{}
 	lists := &ingestListRepoStub{}
 	events := &ingestEventRepoStub{}
-	service, err := NewIngestService(auth, contacts, profiles, lists, events, 500, 2)
+	endpoints := &ingestEndpointRepoStub{}
+	service, err := NewIngestService(auth, contacts, profiles, endpoints, lists, events, 500, 2)
 	require.NoError(t, err)
 
 	status := "active"
@@ -124,6 +142,10 @@ func TestIngestServiceBatchAuthenticatesOnceAndAppliesAllMutationTypes(t *testin
 			Status: &status, Attributes: map[string]interface{}{"plan": "pro"},
 			Tags:            &domain.TagMutation{Operation: domain.TagOperationSet, Values: []string{"paid"}},
 			ListMemberships: []domain.IngestListMembership{{ListID: "news", Status: domain.ContactListStatusActive}},
+			Endpoints: []domain.ContactEndpointMutation{{
+				Operation: domain.EndpointOperationUpsert, EndpointID: "device-1", Channel: domain.ChannelPush,
+				Provider: domain.PushProviderFCM, Platform: domain.EndpointPlatformAndroid, Address: "token-1",
+			}},
 		}},
 		Events: []domain.IngestEvent{{
 			ID: "event-1", Email: "other@example.com", EventName: "order.completed", ExternalID: "order-1",
@@ -138,6 +160,7 @@ func TestIngestServiceBatchAuthenticatesOnceAndAppliesAllMutationTypes(t *testin
 	assert.Equal(t, []string{"other@example.com"}, profiles.ensured)
 	assert.Equal(t, []string{"user@example.com"}, profiles.profiles)
 	assert.Equal(t, []string{"user@example.com"}, profiles.tagged)
+	assert.Equal(t, []string{"user@example.com:device-1"}, endpoints.upserted)
 	require.Len(t, lists.memberships, 1)
 	assert.Equal(t, domain.ContactListStatusActive, lists.memberships[0].Status)
 	require.Len(t, events.events, 1)
@@ -151,7 +174,7 @@ func TestIngestServiceBatchReturnsPerItemValidationErrors(t *testing.T) {
 	auth := &ingestAuthStub{permissions: ingestWritePermissions(false)}
 	contacts := &ingestContactRepoStub{}
 	profiles := &ingestProfileRepoStub{}
-	service, err := NewIngestService(auth, contacts, profiles, &ingestListRepoStub{}, &ingestEventRepoStub{}, 500, 1)
+	service, err := NewIngestService(auth, contacts, profiles, &ingestEndpointRepoStub{}, &ingestListRepoStub{}, &ingestEventRepoStub{}, 500, 1)
 	require.NoError(t, err)
 
 	request := &domain.IngestBatchRequest{
@@ -171,9 +194,31 @@ func TestIngestServiceBatchReturnsPerItemValidationErrors(t *testing.T) {
 	assert.Equal(t, "accepted", response.Results[1].Status)
 }
 
+func TestIngestServiceNormalizesEndpointDisableOperation(t *testing.T) {
+	auth := &ingestAuthStub{permissions: ingestWritePermissions(false)}
+	endpoints := &ingestEndpointRepoStub{}
+	service, err := NewIngestService(
+		auth, &ingestContactRepoStub{}, &ingestProfileRepoStub{}, endpoints,
+		&ingestListRepoStub{}, &ingestEventRepoStub{}, 500, 1,
+	)
+	require.NoError(t, err)
+
+	response, err := service.IngestBatch(context.Background(), &domain.IngestBatchRequest{
+		WorkspaceID: "workspace-1",
+		Contacts: []domain.IngestContact{{
+			ID: "contact-1", Contact: json.RawMessage(`{"email":"user@example.com"}`),
+			Endpoints: []domain.ContactEndpointMutation{{Operation: " DISABLE ", EndpointID: "device-1"}},
+		}},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 1, response.Accepted)
+	assert.Equal(t, []string{"user@example.com:device-1"}, endpoints.disabled)
+	assert.Empty(t, endpoints.upserted)
+}
+
 func TestIngestServiceRequiresListsWriteForMembershipChanges(t *testing.T) {
 	auth := &ingestAuthStub{permissions: ingestWritePermissions(false)}
-	service, err := NewIngestService(auth, &ingestContactRepoStub{}, &ingestProfileRepoStub{}, &ingestListRepoStub{}, &ingestEventRepoStub{}, 500, 1)
+	service, err := NewIngestService(auth, &ingestContactRepoStub{}, &ingestProfileRepoStub{}, &ingestEndpointRepoStub{}, &ingestListRepoStub{}, &ingestEventRepoStub{}, 500, 1)
 	require.NoError(t, err)
 
 	request := &domain.IngestBatchRequest{
@@ -193,7 +238,7 @@ func TestIngestServiceRequiresListsWriteForMembershipChanges(t *testing.T) {
 func TestIngestServiceRejectsImmediatelyWhenCapacityIsFull(t *testing.T) {
 	service, err := NewIngestService(
 		&ingestAuthStub{permissions: ingestWritePermissions(false)},
-		&ingestContactRepoStub{}, &ingestProfileRepoStub{}, &ingestListRepoStub{}, &ingestEventRepoStub{}, 500, 1,
+		&ingestContactRepoStub{}, &ingestProfileRepoStub{}, &ingestEndpointRepoStub{}, &ingestListRepoStub{}, &ingestEventRepoStub{}, 500, 1,
 	)
 	require.NoError(t, err)
 	service.slots <- struct{}{}

@@ -8,6 +8,7 @@
 - 更新业务生命周期状态和任意业务属性；
 - 增加、移除或全量替换联系人标签；
 - 更新联系人在名单中的营销同意状态；
+- 注册或禁用联系人在 iOS、Android 和 Web 上的推送终端；
 - 上报带稳定外部 ID 的业务事件，并立即进入实时自动化链路。
 
 ## 数据边界
@@ -16,6 +17,7 @@
 - `contact_profiles` 保存外部系统拥有的 `status` 和 `attributes`。业务状态不复用名单状态，避免把“冻结用户”误当成“退订用户”。
 - `contact_tags` 保存可索引的标签关系；写入使用集合语义，重复请求不产生重复关系。
 - `contact_lists.status` 继续作为订阅、退订、退信和投诉的唯一权威。
+- `contact_endpoints` 保存一个联系人下的多个客户端终端。推送地址使用 AES-GCM 加密，时间线和查询 API 均不返回地址或密文。
 - `custom_events(event_name, external_id)` 继续作为外部事件幂等键。
 
 画像和标签变化由数据库触发器写入 `contact_timeline`。v40 的固定桥接器随后在同一事务写入事件账本和 outbox，因此响应成功表示实时链路的权威输入已经持久化，而不表示 RabbitMQ 或下游渠道已经处理完成。
@@ -33,7 +35,20 @@
     "status": "active",
     "attributes": {"plan": "pro", "score": 91},
     "tags": {"operation": "set", "values": ["paid", "beta"]},
-    "list_memberships": [{"list_id": "product", "status": "active"}]
+    "list_memberships": [{"list_id": "product", "status": "active"}],
+    "endpoints": [{
+      "operation": "upsert",
+      "endpoint_id": "android-installation-7f3a",
+      "channel": "push",
+      "provider": "fcm",
+      "platform": "android",
+      "address": "provider-device-token",
+      "locale": "zh-CN",
+      "timezone": "Asia/Shanghai",
+      "app_id": "com.acme.app",
+      "device_id": "device-7f3a",
+      "attributes": {"app_version": "6.2.0"}
+    }]
   }],
   "events": [{
     "id": "checkout-889",
@@ -47,6 +62,8 @@
 ```
 
 响应保持输入顺序并逐项返回 `accepted` 或 `error`。联系人和标签写入按最终状态收敛，事件以 `(event_name, external_id)` 严格幂等；调用方可以安全重试失败项。API key 至少需要 Contacts write；只要请求包含名单变更，还需要 Lists write。
+
+终端使用外部系统提供的稳定 `endpoint_id` 幂等更新。`upsert` 支持 FCM（Android/iOS）、APNs（iOS）和 Web Push（Web）；客户端退出登录、撤销权限或令牌失效时发送 `{"operation":"disable","endpoint_id":"..."}`。读取活动终端元数据使用 `GET /api/contactEndpoints.list?workspace_id=...&email=...&channel=push`，需要 Contacts read，响应永远不包含 `address`。
 
 读取联系人时，扩展画像统一出现在 `contact.profile`：`status`、`attributes` 和 `tags` 会被批量加载，因此联系人列表、广播和自动化不会产生逐联系人查询。Liquid 模板可直接使用 `contact.profile.status`、`contact.profile.attributes.plan` 和 `contact.profile.tags`。
 

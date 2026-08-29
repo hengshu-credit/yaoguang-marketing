@@ -16,6 +16,7 @@ type IngestService struct {
 	auth         domain.AuthService
 	contacts     domain.ContactRepository
 	profiles     domain.AudienceProfileRepository
+	endpoints    domain.ContactEndpointRepository
 	lists        domain.ContactListRepository
 	events       domain.CustomEventRepository
 	maxBatchSize int
@@ -27,19 +28,20 @@ func NewIngestService(
 	auth domain.AuthService,
 	contacts domain.ContactRepository,
 	profiles domain.AudienceProfileRepository,
+	endpoints domain.ContactEndpointRepository,
 	lists domain.ContactListRepository,
 	events domain.CustomEventRepository,
 	maxBatchSize int,
 	maxInFlight int,
 ) (*IngestService, error) {
-	if auth == nil || contacts == nil || profiles == nil || lists == nil || events == nil {
+	if auth == nil || contacts == nil || profiles == nil || endpoints == nil || lists == nil || events == nil {
 		return nil, errors.New("ingest dependencies are required")
 	}
 	if maxBatchSize <= 0 || maxInFlight <= 0 {
 		return nil, errors.New("ingest batch and concurrency limits must be positive")
 	}
 	return &IngestService{
-		auth: auth, contacts: contacts, profiles: profiles, lists: lists, events: events,
+		auth: auth, contacts: contacts, profiles: profiles, endpoints: endpoints, lists: lists, events: events,
 		maxBatchSize: maxBatchSize, slots: make(chan struct{}, maxInFlight),
 		now: func() time.Time { return time.Now().UTC() },
 	}, nil
@@ -188,6 +190,21 @@ func (s *IngestService) applyContactExtensions(
 	if record.Tags != nil {
 		if _, err := s.profiles.ApplyTags(ctx, workspaceID, email, record.Tags.Operation, record.Tags.Values); err != nil {
 			return fmt.Errorf("update tags: %w", err)
+		}
+	}
+	for _, mutation := range record.Endpoints {
+		endpoint, err := mutation.Validate()
+		if err != nil {
+			return fmt.Errorf("update endpoint %s: %w", mutation.EndpointID, err)
+		}
+		if !endpoint.Enabled {
+			if err := s.endpoints.Disable(ctx, workspaceID, email, endpoint.EndpointID); err != nil {
+				return fmt.Errorf("disable endpoint %s: %w", endpoint.EndpointID, err)
+			}
+			continue
+		}
+		if err := s.endpoints.Upsert(ctx, workspaceID, email, endpoint); err != nil {
+			return fmt.Errorf("upsert endpoint %s: %w", endpoint.EndpointID, err)
 		}
 	}
 	for _, membership := range record.ListMemberships {

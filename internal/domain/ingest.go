@@ -29,12 +29,13 @@ type IngestListMembership struct {
 // IngestContact combines the stable contact fields with the external system's
 // application-owned profile, tags and marketing-list state.
 type IngestContact struct {
-	ID              string                 `json:"id"`
-	Contact         json.RawMessage        `json:"contact"`
-	Status          *string                `json:"status,omitempty"`
-	Attributes      map[string]interface{} `json:"attributes,omitempty"`
-	Tags            *TagMutation           `json:"tags,omitempty"`
-	ListMemberships []IngestListMembership `json:"list_memberships,omitempty"`
+	ID              string                    `json:"id"`
+	Contact         json.RawMessage           `json:"contact"`
+	Status          *string                   `json:"status,omitempty"`
+	Attributes      map[string]interface{}    `json:"attributes,omitempty"`
+	Tags            *TagMutation              `json:"tags,omitempty"`
+	ListMemberships []IngestListMembership    `json:"list_memberships,omitempty"`
+	Endpoints       []ContactEndpointMutation `json:"endpoints,omitempty"`
 }
 
 func (r *IngestContact) Validate() (*Contact, error) {
@@ -82,6 +83,17 @@ func (r *IngestContact) Validate() (*Contact, error) {
 		if !validIngestListStatus(membership.Status) {
 			return nil, fmt.Errorf("list membership at index %d: invalid list status %q", index, membership.Status)
 		}
+	}
+	endpointIDs := make(map[string]struct{}, len(r.Endpoints))
+	for index, mutation := range r.Endpoints {
+		endpoint, err := mutation.Validate()
+		if err != nil {
+			return nil, fmt.Errorf("endpoint at index %d: %w", index, err)
+		}
+		if _, duplicate := endpointIDs[endpoint.EndpointID]; duplicate {
+			return nil, fmt.Errorf("endpoint at index %d: duplicate endpoint_id %q", index, endpoint.EndpointID)
+		}
+		endpointIDs[endpoint.EndpointID] = struct{}{}
 	}
 	return contact, nil
 }

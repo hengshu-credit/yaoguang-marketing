@@ -125,6 +125,7 @@ type App struct {
 	blogThemeRepo                 domain.BlogThemeRepository
 	customEventRepo               domain.CustomEventRepository
 	audienceProfileRepo           domain.AudienceProfileRepository
+	contactEndpointRepo           domain.ContactEndpointRepository
 	webhookSubscriptionRepo       domain.WebhookSubscriptionRepository
 	webhookDeliveryRepo           domain.WebhookDeliveryRepository
 	automationRepo                domain.AutomationRepository
@@ -164,6 +165,7 @@ type App struct {
 	dnsVerificationService           *service.DNSVerificationService
 	customEventService               *service.CustomEventService
 	ingestService                    *service.IngestService
+	contactEndpointService           *service.ContactEndpointService
 	annotationService                *service.AnnotationService
 	webhookSubscriptionService       *service.WebhookSubscriptionService
 	webhookDeliveryWorker            *service.WebhookDeliveryWorker
@@ -461,6 +463,10 @@ func (a *App) InitRepositories() error {
 	a.blogThemeRepo = repository.NewBlogThemeRepository(a.workspaceRepo)
 	a.customEventRepo = repository.NewCustomEventRepository(a.workspaceRepo)
 	a.audienceProfileRepo = repository.NewAudienceProfileRepository(a.workspaceRepo)
+	a.contactEndpointRepo, err = repository.NewContactEndpointRepository(a.workspaceRepo, a.config.Security.SecretKey)
+	if err != nil {
+		return fmt.Errorf("failed to initialize contact endpoint repository: %w", err)
+	}
 	a.contactRepo = repository.NewAudienceContactRepository(a.contactRepo, a.audienceProfileRepo)
 	a.annotationRepo = repository.NewAnnotationRepository(a.workspaceRepo)
 	a.webhookSubscriptionRepo = repository.NewWebhookSubscriptionRepository(a.workspaceRepo)
@@ -682,6 +688,7 @@ func (a *App) InitServices() error {
 		a.authService,
 		a.contactRepo,
 		a.audienceProfileRepo,
+		a.contactEndpointRepo,
 		a.contactListRepo,
 		a.customEventRepo,
 		ingestMaxBatchSize,
@@ -689,6 +696,10 @@ func (a *App) InitServices() error {
 	)
 	if err != nil {
 		return fmt.Errorf("failed to initialize ingest service: %w", err)
+	}
+	a.contactEndpointService, err = service.NewContactEndpointService(a.authService, a.contactEndpointRepo)
+	if err != nil {
+		return fmt.Errorf("failed to initialize contact endpoint service: %w", err)
 	}
 
 	// Initialize annotation service
@@ -1434,6 +1445,11 @@ func (a *App) InitHandlers() error {
 		getJWTSecret,
 		a.logger,
 	)
+	contactEndpointHandler := httpHandler.NewContactEndpointHandler(
+		a.contactEndpointService,
+		getJWTSecret,
+		a.logger,
+	)
 	annotationHandler := httpHandler.NewAnnotationHandler(
 		a.annotationService,
 		getJWTSecret,
@@ -1492,6 +1508,7 @@ func (a *App) InitHandlers() error {
 	segmentHandler.RegisterRoutes(a.mux)
 	customEventHandler.RegisterRoutes(a.mux)
 	ingestHandler.RegisterRoutes(a.mux)
+	contactEndpointHandler.RegisterRoutes(a.mux)
 	annotationHandler.RegisterRoutes(a.mux)
 	webhookSubscriptionHandler.RegisterRoutes(a.mux)
 	automationHandler.RegisterRoutes(a.mux)
