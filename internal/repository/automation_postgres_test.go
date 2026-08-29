@@ -53,6 +53,81 @@ func TestContactAutomationClaimAcquiresExpiredLease(t *testing.T) {
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestCreateRealtimeTriggerBindingIsIdempotentForCurrentVersion(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+	compiler := service.NewTriggerBindingCompiler(service.NewQueryBuilder())
+	automation := &domain.Automation{
+		ID: "automation-1", WorkspaceID: "workspace-1", RootNodeID: "root",
+		Trigger: &domain.TimelineTriggerConfig{EventKind: "email.opened", Frequency: domain.TriggerFrequencyEveryTime},
+	}
+	binding, err := compiler.Compile(automation)
+	require.NoError(t, err)
+	mock.ExpectBegin()
+	mock.ExpectQuery(`(?s)SELECT version FROM automations.*FOR UPDATE`).
+		WithArgs("automation-1", "workspace-1").
+		WillReturnRows(sqlmock.NewRows([]string{"version"}).AddRow(3))
+	mock.ExpectQuery(`(?s)SELECT condition_hash FROM automation_trigger_bindings`).
+		WithArgs("automation-1", 3).
+		WillReturnRows(sqlmock.NewRows([]string{"condition_hash"}).AddRow(binding.ConditionHash))
+	mock.ExpectCommit()
+
+	err = NewAutomationRepositoryWithDB(db, nil, compiler).
+		CreateRealtimeTriggerBinding(context.Background(), "workspace-1", automation)
+
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCreateRealtimeTriggerBindingValidatesAndVersionsNewDefinition(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+	compiler := service.NewTriggerBindingCompiler(service.NewQueryBuilder())
+	automation := &domain.Automation{
+		ID: "automation-1", WorkspaceID: "workspace-1", RootNodeID: "root",
+		Trigger: &domain.TimelineTriggerConfig{EventKind: "email.opened", Frequency: domain.TriggerFrequencyEveryTime},
+	}
+	mock.ExpectBegin()
+	mock.ExpectQuery(`(?s)SELECT version FROM automations.*FOR UPDATE`).
+		WithArgs("automation-1", "workspace-1").
+		WillReturnRows(sqlmock.NewRows([]string{"version"}).AddRow(3))
+	mock.ExpectQuery(`(?s)SELECT condition_hash FROM automation_trigger_bindings`).
+		WithArgs("automation-1", 3).WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`SELECT TRUE`).WillReturnRows(sqlmock.NewRows([]string{"matched"}).AddRow(false))
+	mock.ExpectQuery(`(?s)UPDATE automations.*version = version \+ 1.*RETURNING version`).
+		WithArgs("automation-1", "workspace-1").
+		WillReturnRows(sqlmock.NewRows([]string{"version"}).AddRow(4))
+	mock.ExpectExec(`DELETE FROM automation_trigger_bindings`).
+		WithArgs("automation-1").WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`(?s)INSERT INTO automation_trigger_bindings`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	err = NewAutomationRepositoryWithDB(db, nil, compiler).
+		CreateRealtimeTriggerBinding(context.Background(), "workspace-1", automation)
+
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestDropLegacyAutomationTriggerPreservesRealtimeBinding(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+	mock.ExpectBegin()
+	mock.ExpectExec(`SET LOCAL lock_timeout`).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(`DROP TRIGGER IF EXISTS`).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(`DROP FUNCTION IF EXISTS`).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectCommit()
+
+	err = NewAutomationRepositoryWithDB(db, nil).
+		DropLegacyAutomationTrigger(context.Background(), "workspace-1", "automation-1")
+
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestContactAutomationClaimReturnsNotAcquiredWhenAnotherLeaseIsActive(t *testing.T) {
 	db, mock, repo := setupAutomationMock(t)
 	defer db.Close()

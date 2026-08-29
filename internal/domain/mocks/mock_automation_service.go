@@ -7,6 +7,7 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	domain "github.com/Notifuse/notifuse/internal/domain"
 	gomock "github.com/golang/mock/gomock"
@@ -47,6 +48,36 @@ func (m *MockAutomationService) Activate(arg0 context.Context, arg1, arg2 string
 func (mr *MockAutomationServiceMockRecorder) Activate(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Activate", reflect.TypeOf((*MockAutomationService)(nil).Activate), arg0, arg1, arg2)
+}
+
+// ActivateRealtimePrimary mocks base method.
+func (m *MockAutomationService) ActivateRealtimePrimary(arg0 context.Context, arg1 string, arg2, arg3 time.Time) (domain.RealtimeCutoverReport, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ActivateRealtimePrimary", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(domain.RealtimeCutoverReport)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ActivateRealtimePrimary indicates an expected call of ActivateRealtimePrimary.
+func (mr *MockAutomationServiceMockRecorder) ActivateRealtimePrimary(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActivateRealtimePrimary", reflect.TypeOf((*MockAutomationService)(nil).ActivateRealtimePrimary), arg0, arg1, arg2, arg3)
+}
+
+// AssessRealtimeCutover mocks base method.
+func (m *MockAutomationService) AssessRealtimeCutover(arg0 context.Context, arg1 string, arg2, arg3 time.Time) (domain.PrimaryCutoverAssessment, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AssessRealtimeCutover", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(domain.PrimaryCutoverAssessment)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AssessRealtimeCutover indicates an expected call of AssessRealtimeCutover.
+func (mr *MockAutomationServiceMockRecorder) AssessRealtimeCutover(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssessRealtimeCutover", reflect.TypeOf((*MockAutomationService)(nil).AssessRealtimeCutover), arg0, arg1, arg2, arg3)
 }
 
 // Create mocks base method.
@@ -136,6 +167,21 @@ func (m *MockAutomationService) Pause(arg0 context.Context, arg1, arg2 string) e
 func (mr *MockAutomationServiceMockRecorder) Pause(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pause", reflect.TypeOf((*MockAutomationService)(nil).Pause), arg0, arg1, arg2)
+}
+
+// RestoreRealtimeLegacy mocks base method.
+func (m *MockAutomationService) RestoreRealtimeLegacy(arg0 context.Context, arg1 string) (domain.RealtimeCutoverReport, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RestoreRealtimeLegacy", arg0, arg1)
+	ret0, _ := ret[0].(domain.RealtimeCutoverReport)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RestoreRealtimeLegacy indicates an expected call of RestoreRealtimeLegacy.
+func (mr *MockAutomationServiceMockRecorder) RestoreRealtimeLegacy(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RestoreRealtimeLegacy", reflect.TypeOf((*MockAutomationService)(nil).RestoreRealtimeLegacy), arg0, arg1)
 }
 
 // Update mocks base method.

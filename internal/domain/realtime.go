@@ -17,6 +17,8 @@ import (
 	"github.com/google/uuid"
 )
 
+var ErrRealtimeCutoverBlocked = errors.New("realtime primary cutover is blocked")
+
 type EventSubject struct {
 	Type         string `json:"type"`
 	ID           string `json:"id"`
@@ -202,6 +204,44 @@ type MatchAudit struct {
 	ContactAutomationID *string         `json:"contact_automation_id,omitempty"`
 	Reason              json.RawMessage `json:"reason"`
 	CreatedAt           time.Time       `json:"created_at"`
+}
+
+type MatchReconciliationSummary struct {
+	WorkspaceID         string    `json:"workspace_id"`
+	From                time.Time `json:"from"`
+	To                  time.Time `json:"to"`
+	RealtimeEvaluated   int64     `json:"realtime_evaluated"`
+	LegacyMatched       int64     `json:"legacy_matched"`
+	RealtimeMatched     int64     `json:"realtime_matched"`
+	Agreements          int64     `json:"agreements"`
+	DecisionMismatches  int64     `json:"decision_mismatches"`
+	MissingRealtime     int64     `json:"missing_realtime"`
+	RealtimeOnlyMatched int64     `json:"realtime_only_matched"`
+	ConsistencyRate     float64   `json:"consistency_rate"`
+}
+
+type PrimaryCutoverAssessment struct {
+	Ready    bool                       `json:"ready"`
+	Blockers []string                   `json:"blockers"`
+	Summary  MatchReconciliationSummary `json:"summary"`
+}
+
+type RealtimeCutoverReport struct {
+	WorkspaceID            string `json:"workspace_id"`
+	BindingsPrepared       int    `json:"bindings_prepared"`
+	LegacyTriggersDropped  int    `json:"legacy_triggers_dropped"`
+	LegacyTriggersRestored int    `json:"legacy_triggers_restored"`
+}
+
+type MatchAuditRepository interface {
+	SummarizeMatchAudits(context.Context, string, time.Time, time.Time) (MatchReconciliationSummary, error)
+}
+
+type SideEffectRepository interface {
+	GetSideEffect(context.Context, string, string) (SideEffectExecution, error)
+	TransitionSideEffect(
+		context.Context, string, string, SideEffectStatus, SideEffectStatus, time.Time, *string,
+	) (bool, error)
 }
 
 type SideEffectStatus string

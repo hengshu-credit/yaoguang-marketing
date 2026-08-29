@@ -2,10 +2,10 @@ package service
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -376,6 +376,11 @@ func (e *AutomationExecutor) ExecuteJourneySideEffect(
 		},
 	})
 	if err != nil {
+		var networkError net.Error
+		if command.NodeType == domain.NodeTypeWebhook &&
+			(errors.Is(err, context.DeadlineExceeded) || errors.As(err, &networkError)) {
+			return fmt.Errorf("%w: %v", ErrSideEffectOutcomeUnknown, err)
+		}
 		return fmt.Errorf("execute journey side effect %s: %w", effectKey, err)
 	}
 	return nil
@@ -459,8 +464,10 @@ func planJourneySideEffect(
 	if err != nil {
 		return domain.JourneyStateCommit{}, fmt.Errorf("marshal journey side effect envelope: %w", err)
 	}
-	hash := sha256.Sum256(payload)
-	requestHash := hex.EncodeToString(hash[:])
+	requestHash, err := domain.CanonicalJSONHash(payload)
+	if err != nil {
+		return domain.JourneyStateCommit{}, fmt.Errorf("hash journey side effect envelope: %w", err)
+	}
 	headers, err := json.Marshal(map[string]interface{}{
 		"schema_version": 1, "effect_key": effectKey, "channel": channel,
 		"correlation_id": correlationID,

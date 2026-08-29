@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
@@ -1231,6 +1232,30 @@ func automationTransitionUserWorkspace(workspaceID string) *domain.UserWorkspace
 		Role:        "admin",
 		Permissions: domain.FullPermissions,
 	}
+}
+
+func TestAutomationServicePrimaryActivationCreatesBindingWithoutLegacyTrigger(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	repo := mocks.NewMockAutomationRepository(ctrl)
+	auth := mocks.NewMockAuthService(ctrl)
+	log := pkgmocks.NewMockLogger(ctrl)
+	service := NewAutomationService(
+		repo, auth, log, WithAutomationRealtimeMode(config.RealtimeModePrimary),
+	)
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	automation := createTestAutomationService("auto-123", workspaceID)
+	automation.Status = domain.AutomationStatusDraft
+
+	auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+		Return(ctx, &domain.User{}, automationTransitionUserWorkspace(workspaceID), nil)
+	repo.EXPECT().GetByID(ctx, workspaceID, automation.ID).Return(automation, nil)
+	repo.EXPECT().UpdateIfStatus(ctx, workspaceID, automation, domain.AutomationStatusDraft).Return(true, nil)
+	repo.EXPECT().CreateRealtimeTriggerBinding(ctx, workspaceID, automation).Return(nil)
+	repo.EXPECT().CreateAutomationTrigger(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+	require.NoError(t, service.Activate(ctx, workspaceID, automation.ID))
+	assert.Equal(t, domain.AutomationStatusLive, automation.Status)
 }
 
 // Pause has to fail toward "paused with a trigger still installed", never toward "live with

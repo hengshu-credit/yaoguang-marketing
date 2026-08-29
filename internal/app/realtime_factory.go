@@ -50,7 +50,7 @@ func (c *runtimeComponent) Close() error {
 
 type appRealtimeComponentFactory struct {
 	app                *App
-	realtimeRepository domain.RealtimeRepository
+	realtimeRepository *repository.RealtimePostgresRepository
 	inboxRepository    domain.ConsumerInboxRepository
 	workerID           string
 
@@ -63,10 +63,7 @@ func newAppRealtimeComponentFactory(app *App) (*appRealtimeComponentFactory, err
 		return nil, errors.New("realtime runtime requires initialized repositories and automation executor")
 	}
 	realtimeRepository := repository.NewRealtimeRepository(app.workspaceRepo)
-	inboxRepository, ok := realtimeRepository.(domain.ConsumerInboxRepository)
-	if !ok {
-		return nil, errors.New("realtime repository does not implement consumer inbox operations")
-	}
+	var inboxRepository domain.ConsumerInboxRepository = realtimeRepository
 	hostname, _ := os.Hostname()
 	if hostname == "" {
 		hostname = "notifuse"
@@ -173,7 +170,7 @@ func (f *appRealtimeComponentFactory) Build(capability config.RuntimeCapability)
 			return nil, err
 		}
 		worker, err := service.NewRealtimeDeliveryWorker(
-			f.inboxRepository, f.app.automationExecutor, f.app.config.Realtime.OutboxLease,
+			f.inboxRepository, f.realtimeRepository, f.app.automationExecutor, f.app.config.Realtime.OutboxLease,
 		)
 		if err != nil {
 			return nil, err

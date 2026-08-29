@@ -234,6 +234,62 @@ func TestRealtimeRepositoryReserveSideEffectRejectsChangedRequest(t *testing.T) 
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestRealtimeRepositorySummarizesExactEventShadowDecisions(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+	from := time.Date(2026, 8, 28, 0, 0, 0, 0, time.UTC)
+	to := from.Add(24 * time.Hour)
+	mock.ExpectQuery(`(?s)WITH realtime AS.*FULL OUTER JOIN legacy.*FROM paired`).
+		WithArgs(from, to).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"realtime_evaluated", "legacy_matched", "realtime_matched", "agreements",
+			"decision_mismatches", "missing_realtime", "realtime_only_matched",
+		}).AddRow(100_000, 40_000, 40_001, 99_999, 1, 0, 1))
+
+	summary, err := NewRealtimeRepositoryWithDB(db).SummarizeMatchAudits(
+		context.Background(), "workspace-1", from, to,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, int64(100_000), summary.RealtimeEvaluated)
+	assert.Equal(t, int64(1), summary.DecisionMismatches)
+	assert.InDelta(t, 0.99999, summary.ConsistencyRate, 0.0000001)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestRealtimeRepositorySideEffectTransitionUsesExpectedStatus(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+	now := time.Date(2026, 8, 29, 12, 0, 0, 0, time.UTC)
+	mock.ExpectExec(`(?s)UPDATE side_effect_executions.*WHERE effect_key = \$1 AND status = \$2`).
+		WithArgs("effect-1", domain.SideEffectStatusReserved, domain.SideEffectStatusSubmitted, nil, now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	transitioned, err := NewRealtimeRepositoryWithDB(db).TransitionSideEffect(
+		context.Background(), "workspace-1", "effect-1",
+		domain.SideEffectStatusReserved, domain.SideEffectStatusSubmitted, now, nil,
+	)
+
+	require.NoError(t, err)
+	assert.True(t, transitioned)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestRealtimeRepositoryRejectsUnsafeSideEffectTransition(t *testing.T) {
+	db, _, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	_, err = NewRealtimeRepositoryWithDB(db).TransitionSideEffect(
+		context.Background(), "workspace-1", "effect-1",
+		domain.SideEffectStatusUnknown, domain.SideEffectStatusSubmitted, time.Now(), nil,
+	)
+
+	require.ErrorContains(t, err, "invalid side effect transition")
+}
+
 func TestRealtimeRepositoryListsOnlyDependencyCandidates(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	require.NoError(t, err)
@@ -310,6 +366,36 @@ func TestRealtimeRepositoryProcessesShadowRuleInOneTransaction(t *testing.T) {
 	result, err := NewRealtimeRepositoryWithDB(db).ProcessRuleEvent(context.Background(), request)
 	require.NoError(t, err)
 	assert.Equal(t, domain.RuleProcessResult{Candidates: 1, Matched: 1}, result)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestRealtimeRepositoryShadowOnceDecisionMatchesLegacyDedupGate(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	request := ruleProcessFixture(false)
+	claimToken := uuid.New()
+	compiled := []byte(`{"query":"SELECT TRUE","arguments":[],"root_node_id":"root","frequency":"once"}`)
+	mock.ExpectBegin()
+	expectInboxClaim(mock, request, claimToken, true, "processing")
+	mock.ExpectQuery(`(?s)FROM automation_trigger_bindings b.*JOIN automations a`).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"automation_id", "automation_version", "event_type", "subject_type",
+			"dependency_keys", "condition_hash", "compiled_condition", "created_at",
+		}).AddRow("automation-1", 2, "contact.updated", "contact", "{}", "hash-1", compiled, request.Now))
+	mock.ExpectQuery(`SELECT TRUE`).WillReturnRows(sqlmock.NewRows([]string{"matched"}).AddRow(true))
+	mock.ExpectQuery(`(?s)SELECT NOT EXISTS.*automation_trigger_log`).
+		WithArgs("automation-1", request.Envelope.Subject.ContactEmail).
+		WillReturnRows(sqlmock.NewRows([]string{"eligible"}).AddRow(false))
+	mock.ExpectQuery(`(?s)INSERT INTO automation_match_audit.*RETURNING decision_hash`).
+		WillReturnRows(sqlmock.NewRows([]string{"decision_hash"}).AddRow(ruleDecisionHash("hash-1", false)))
+	mock.ExpectExec(`(?s)UPDATE consumer_inbox.*status = 'completed'`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	result, err := NewRealtimeRepositoryWithDB(db).ProcessRuleEvent(context.Background(), request)
+
+	require.NoError(t, err)
+	assert.Equal(t, domain.RuleProcessResult{Candidates: 1}, result)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 

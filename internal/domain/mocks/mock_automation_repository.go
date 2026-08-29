@@ -125,6 +125,20 @@ func (mr *MockAutomationRepositoryMockRecorder) CreateNodeExecutionTx(arg0, arg1
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNodeExecutionTx", reflect.TypeOf((*MockAutomationRepository)(nil).CreateNodeExecutionTx), arg0, arg1, arg2, arg3)
 }
 
+// CreateRealtimeTriggerBinding mocks base method.
+func (m *MockAutomationRepository) CreateRealtimeTriggerBinding(arg0 context.Context, arg1 string, arg2 *domain.Automation) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateRealtimeTriggerBinding", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateRealtimeTriggerBinding indicates an expected call of CreateRealtimeTriggerBinding.
+func (mr *MockAutomationRepositoryMockRecorder) CreateRealtimeTriggerBinding(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRealtimeTriggerBinding", reflect.TypeOf((*MockAutomationRepository)(nil).CreateRealtimeTriggerBinding), arg0, arg1, arg2)
+}
+
 // CreateTx mocks base method.
 func (m *MockAutomationRepository) CreateTx(arg0 context.Context, arg1 *sql.Tx, arg2 string, arg3 *domain.Automation) error {
 	m.ctrl.T.Helper()
@@ -179,6 +193,20 @@ func (m *MockAutomationRepository) DropAutomationTrigger(arg0 context.Context, a
 func (mr *MockAutomationRepositoryMockRecorder) DropAutomationTrigger(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DropAutomationTrigger", reflect.TypeOf((*MockAutomationRepository)(nil).DropAutomationTrigger), arg0, arg1, arg2)
+}
+
+// DropLegacyAutomationTrigger mocks base method.
+func (m *MockAutomationRepository) DropLegacyAutomationTrigger(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DropLegacyAutomationTrigger", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DropLegacyAutomationTrigger indicates an expected call of DropLegacyAutomationTrigger.
+func (mr *MockAutomationRepositoryMockRecorder) DropLegacyAutomationTrigger(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DropLegacyAutomationTrigger", reflect.TypeOf((*MockAutomationRepository)(nil).DropLegacyAutomationTrigger), arg0, arg1, arg2)
 }
 
 // ExitContactJourneysOnReply mocks base method.

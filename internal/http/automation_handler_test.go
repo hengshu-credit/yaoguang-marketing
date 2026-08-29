@@ -132,6 +132,41 @@ func TestAutomationHandler_Create(t *testing.T) {
 	})
 }
 
+func TestAutomationHandlerRealtimeCutoverEndpoints(t *testing.T) {
+	_, automationSvc, mux, secretKey := setupAutomationTest(t)
+	from := time.Date(2026, 8, 28, 0, 0, 0, 0, time.UTC)
+	to := from.Add(24 * time.Hour)
+	body, err := json.Marshal(domain.RealtimeCutoverWindowRequest{
+		WorkspaceID: "workspace-123", From: from, To: to,
+	})
+	require.NoError(t, err)
+
+	t.Run("assessment returns exact-event summary", func(t *testing.T) {
+		assessment := domain.PrimaryCutoverAssessment{Ready: true, Summary: domain.MatchReconciliationSummary{RealtimeEvaluated: 10}}
+		automationSvc.EXPECT().AssessRealtimeCutover(gomock.Any(), "workspace-123", from, to).Return(assessment, nil)
+		req := httptest.NewRequest(http.MethodPost, "/api/automations.realtimeAssess", bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+		response := httptest.NewRecorder()
+
+		mux.ServeHTTP(response, req)
+
+		assert.Equal(t, http.StatusOK, response.Code)
+		assert.Contains(t, response.Body.String(), `"realtime_evaluated":10`)
+	})
+
+	t.Run("blocked activation is a conflict", func(t *testing.T) {
+		automationSvc.EXPECT().ActivateRealtimePrimary(gomock.Any(), "workspace-123", from, to).
+			Return(domain.RealtimeCutoverReport{}, fmt.Errorf("%w: mismatch", domain.ErrRealtimeCutoverBlocked))
+		req := httptest.NewRequest(http.MethodPost, "/api/automations.realtimeActivatePrimary", bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+		response := httptest.NewRecorder()
+
+		mux.ServeHTTP(response, req)
+
+		assert.Equal(t, http.StatusConflict, response.Code)
+	})
+}
+
 func TestAutomationHandler_Get(t *testing.T) {
 	_, automationSvc, mux, secretKey := setupAutomationTest(t)
 

@@ -41,9 +41,91 @@ func (h *AutomationHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Automation status management
 	mux.Handle("/api/automations.activate", requireAuth(http.HandlerFunc(h.handleActivate)))
 	mux.Handle("/api/automations.pause", requireAuth(http.HandlerFunc(h.handlePause)))
+	mux.Handle("/api/automations.realtimeAssess", requireAuth(http.HandlerFunc(h.handleRealtimeAssess)))
+	mux.Handle("/api/automations.realtimeActivatePrimary", requireAuth(http.HandlerFunc(h.handleRealtimeActivatePrimary)))
+	mux.Handle("/api/automations.realtimeRestoreLegacy", requireAuth(http.HandlerFunc(h.handleRealtimeRestoreLegacy)))
 
 	// Node executions/debugging
 	mux.Handle("/api/automations.nodeExecutions", requireAuth(http.HandlerFunc(h.handleGetContactNodeExecutions)))
+}
+
+func (h *AutomationHandler) handleRealtimeAssess(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req domain.RealtimeCutoverWindowRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if err := req.Validate(); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	assessment, err := h.service.AssessRealtimeCutover(r.Context(), req.WorkspaceID, req.From, req.To)
+	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
+		WriteJSONError(w, "Failed to assess realtime cutover", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"assessment": assessment})
+}
+
+func (h *AutomationHandler) handleRealtimeActivatePrimary(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req domain.RealtimeCutoverWindowRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if err := req.Validate(); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	report, err := h.service.ActivateRealtimePrimary(r.Context(), req.WorkspaceID, req.From, req.To)
+	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
+		if errors.Is(err, domain.ErrRealtimeCutoverBlocked) {
+			WriteJSONError(w, err.Error(), http.StatusConflict)
+			return
+		}
+		WriteJSONError(w, "Failed to activate realtime primary mode", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"report": report})
+}
+
+func (h *AutomationHandler) handleRealtimeRestoreLegacy(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req domain.RealtimeCutoverWorkspaceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if err := req.Validate(); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	report, err := h.service.RestoreRealtimeLegacy(r.Context(), req.WorkspaceID)
+	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
+		WriteJSONError(w, "Failed to restore legacy triggers", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"report": report})
 }
 
 func (h *AutomationHandler) handleCreate(w http.ResponseWriter, r *http.Request) {

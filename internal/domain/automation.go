@@ -833,6 +833,8 @@ type AutomationRepository interface {
 
 	// Trigger management (dynamic SQL execution)
 	CreateAutomationTrigger(ctx context.Context, workspaceID string, automation *Automation) error
+	CreateRealtimeTriggerBinding(ctx context.Context, workspaceID string, automation *Automation) error
+	DropLegacyAutomationTrigger(ctx context.Context, workspaceID, automationID string) error
 	DropAutomationTrigger(ctx context.Context, workspaceID, automationID string) error
 
 	// Contact automation operations
@@ -892,6 +894,9 @@ type AutomationService interface {
 	// Status management
 	Activate(ctx context.Context, workspaceID, automationID string) error
 	Pause(ctx context.Context, workspaceID, automationID string) error
+	AssessRealtimeCutover(ctx context.Context, workspaceID string, from, to time.Time) (PrimaryCutoverAssessment, error)
+	ActivateRealtimePrimary(ctx context.Context, workspaceID string, from, to time.Time) (RealtimeCutoverReport, error)
+	RestoreRealtimeLegacy(ctx context.Context, workspaceID string) (RealtimeCutoverReport, error)
 
 	// Node executions/debugging
 	GetContactNodeExecutions(ctx context.Context, workspaceID, automationID, email string) (*ContactAutomation, []*NodeExecution, error)
@@ -924,6 +929,33 @@ func (r *CreateAutomationRequest) Validate() error {
 type UpdateAutomationRequest struct {
 	WorkspaceID string      `json:"workspace_id"`
 	Automation  *Automation `json:"automation"`
+}
+
+type RealtimeCutoverWindowRequest struct {
+	WorkspaceID string    `json:"workspace_id"`
+	From        time.Time `json:"from"`
+	To          time.Time `json:"to"`
+}
+
+func (r RealtimeCutoverWindowRequest) Validate() error {
+	if r.WorkspaceID == "" {
+		return fmt.Errorf("workspace_id is required")
+	}
+	if r.From.IsZero() || r.To.IsZero() || !r.From.Before(r.To) {
+		return fmt.Errorf("from and to must define a valid time window")
+	}
+	return nil
+}
+
+type RealtimeCutoverWorkspaceRequest struct {
+	WorkspaceID string `json:"workspace_id"`
+}
+
+func (r RealtimeCutoverWorkspaceRequest) Validate() error {
+	if r.WorkspaceID == "" {
+		return fmt.Errorf("workspace_id is required")
+	}
+	return nil
 }
 
 // Validate validates the update automation request

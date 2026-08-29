@@ -4,18 +4,41 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
 // AutomationService handles automation business logic
 type AutomationService struct {
-	repo        domain.AutomationRepository
-	authService domain.AuthService
-	logger      logger.Logger
+	repo           domain.AutomationRepository
+	authService    domain.AuthService
+	logger         logger.Logger
+	realtimeMode   config.RealtimeMode
+	reconciliation *RealtimeReconciliationService
+	cutover        *RealtimeCutoverService
+}
+
+type AutomationServiceOption func(*AutomationService)
+
+func WithAutomationRealtimeMode(mode config.RealtimeMode) AutomationServiceOption {
+	return func(service *AutomationService) {
+		service.realtimeMode = mode
+	}
+}
+
+func WithAutomationRealtimeOperations(
+	reconciliation *RealtimeReconciliationService,
+	cutover *RealtimeCutoverService,
+) AutomationServiceOption {
+	return func(service *AutomationService) {
+		service.reconciliation = reconciliation
+		service.cutover = cutover
+	}
 }
 
 // NewAutomationService creates a new AutomationService
@@ -23,12 +46,92 @@ func NewAutomationService(
 	repo domain.AutomationRepository,
 	authService domain.AuthService,
 	logger logger.Logger,
+	options ...AutomationServiceOption,
 ) *AutomationService {
-	return &AutomationService{
-		repo:        repo,
-		authService: authService,
-		logger:      logger,
+	service := &AutomationService{
+		repo:         repo,
+		authService:  authService,
+		logger:       logger,
+		realtimeMode: config.RealtimeModeLegacy,
 	}
+	for _, option := range options {
+		option(service)
+	}
+	return service
+}
+
+func (s *AutomationService) AssessRealtimeCutover(
+	ctx context.Context,
+	workspaceID string,
+	from time.Time,
+	to time.Time,
+) (domain.PrimaryCutoverAssessment, error) {
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return domain.PrimaryCutoverAssessment{}, fmt.Errorf("failed to authenticate: %w", err)
+	}
+	if !userWorkspace.HasPermission(domain.PermissionResourceAutomations, domain.PermissionTypeRead) {
+		return domain.PrimaryCutoverAssessment{}, domain.NewPermissionError(
+			domain.PermissionResourceAutomations, domain.PermissionTypeRead,
+			"Insufficient permissions: read access to automations required",
+		)
+	}
+	if s.reconciliation == nil {
+		return domain.PrimaryCutoverAssessment{}, errors.New("realtime reconciliation is not configured")
+	}
+	return s.reconciliation.AssessPrimaryCutover(ctx, workspaceID, from, to)
+}
+
+func (s *AutomationService) ActivateRealtimePrimary(
+	ctx context.Context,
+	workspaceID string,
+	from time.Time,
+	to time.Time,
+) (domain.RealtimeCutoverReport, error) {
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return domain.RealtimeCutoverReport{}, fmt.Errorf("failed to authenticate: %w", err)
+	}
+	if !userWorkspace.HasPermission(domain.PermissionResourceAutomations, domain.PermissionTypeWrite) {
+		return domain.RealtimeCutoverReport{}, domain.NewPermissionError(
+			domain.PermissionResourceAutomations, domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to automations required",
+		)
+	}
+	if s.realtimeMode != config.RealtimeModePrimary {
+		return domain.RealtimeCutoverReport{}, fmt.Errorf("REALTIME_MODE must be primary before removing legacy triggers")
+	}
+	if s.reconciliation == nil || s.cutover == nil {
+		return domain.RealtimeCutoverReport{}, errors.New("realtime cutover is not configured")
+	}
+	assessment, err := s.reconciliation.AssessPrimaryCutover(ctx, workspaceID, from, to)
+	if err != nil {
+		return domain.RealtimeCutoverReport{}, err
+	}
+	return s.cutover.ActivatePrimaryWorkspace(ctx, workspaceID, assessment)
+}
+
+func (s *AutomationService) RestoreRealtimeLegacy(
+	ctx context.Context,
+	workspaceID string,
+) (domain.RealtimeCutoverReport, error) {
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return domain.RealtimeCutoverReport{}, fmt.Errorf("failed to authenticate: %w", err)
+	}
+	if !userWorkspace.HasPermission(domain.PermissionResourceAutomations, domain.PermissionTypeWrite) {
+		return domain.RealtimeCutoverReport{}, domain.NewPermissionError(
+			domain.PermissionResourceAutomations, domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to automations required",
+		)
+	}
+	if s.realtimeMode == config.RealtimeModePrimary {
+		return domain.RealtimeCutoverReport{}, fmt.Errorf("restart in shadow or legacy mode before restoring legacy triggers")
+	}
+	if s.cutover == nil {
+		return domain.RealtimeCutoverReport{}, errors.New("realtime cutover is not configured")
+	}
+	return s.cutover.RestoreLegacyWorkspace(ctx, workspaceID)
 }
 
 // Create creates a new automation
@@ -232,7 +335,7 @@ func (s *AutomationService) Update(ctx context.Context, workspaceID string, auto
 		return nil
 	}
 
-	if err := s.repo.CreateAutomationTrigger(ctx, workspaceID, automation); err != nil {
+	if err := s.installTrigger(ctx, workspaceID, automation); err != nil {
 		// Detached from the request context: a client disconnect is one of the ways the
 		// install fails, and the compensation would then be cancelled by the very thing it
 		// exists to compensate for.
@@ -359,7 +462,7 @@ func (s *AutomationService) Activate(ctx context.Context, workspaceID, automatio
 	}
 
 	// Create the database trigger
-	if err := s.repo.CreateAutomationTrigger(ctx, workspaceID, automation); err != nil {
+	if err := s.installTrigger(ctx, workspaceID, automation); err != nil {
 		// Roll the status back to where it was, not unconditionally to draft: a failed
 		// re-activation of a paused automation should leave it paused.
 		automation.Status = previousStatus
@@ -381,6 +484,13 @@ func (s *AutomationService) Activate(ctx context.Context, workspaceID, automatio
 	}
 
 	return nil
+}
+
+func (s *AutomationService) installTrigger(ctx context.Context, workspaceID string, automation *domain.Automation) error {
+	if s.realtimeMode == config.RealtimeModePrimary {
+		return s.repo.CreateRealtimeTriggerBinding(ctx, workspaceID, automation)
+	}
+	return s.repo.CreateAutomationTrigger(ctx, workspaceID, automation)
 }
 
 // Pause pauses a live automation (changes status to paused and drops trigger)

@@ -27,11 +27,11 @@ type RealtimePostgresRepository struct {
 	db            *sql.DB
 }
 
-func NewRealtimeRepository(workspaceRepo domain.WorkspaceRepository) domain.RealtimeRepository {
+func NewRealtimeRepository(workspaceRepo domain.WorkspaceRepository) *RealtimePostgresRepository {
 	return &RealtimePostgresRepository{workspaceRepo: workspaceRepo}
 }
 
-func NewRealtimeRepositoryWithDB(db *sql.DB) domain.RealtimeRepository {
+func NewRealtimeRepositoryWithDB(db *sql.DB) *RealtimePostgresRepository {
 	return &RealtimePostgresRepository{db: db}
 }
 
@@ -697,6 +697,16 @@ func (r *RealtimePostgresRepository) ProcessRuleEvent(
 		if err != nil {
 			return domain.RuleProcessResult{}, fmt.Errorf("evaluate automation %s: %w", binding.AutomationID, err)
 		}
+		if matched && compiled.Frequency == domain.TriggerFrequencyOnce {
+			if err := tx.QueryRowContext(ctx, `
+				SELECT NOT EXISTS (
+					SELECT 1 FROM automation_trigger_log
+					WHERE automation_id = $1 AND contact_email = $2
+				)
+			`, binding.AutomationID, request.Envelope.Subject.ContactEmail).Scan(&matched); err != nil {
+				return domain.RuleProcessResult{}, fmt.Errorf("evaluate once frequency for automation %s: %w", binding.AutomationID, err)
+			}
+		}
 		var contactAutomationID *string
 		if matched {
 			result.Matched++
@@ -943,6 +953,64 @@ func (r *RealtimePostgresRepository) WriteMatchAudit(
 	return nil
 }
 
+func (r *RealtimePostgresRepository) SummarizeMatchAudits(
+	ctx context.Context,
+	workspaceID string,
+	from time.Time,
+	to time.Time,
+) (domain.MatchReconciliationSummary, error) {
+	if workspaceID == "" || from.IsZero() || to.IsZero() || !from.Before(to) {
+		return domain.MatchReconciliationSummary{}, errors.New("workspace and valid audit window are required")
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return domain.MatchReconciliationSummary{}, err
+	}
+	summary := domain.MatchReconciliationSummary{WorkspaceID: workspaceID, From: from.UTC(), To: to.UTC()}
+	err = db.QueryRowContext(ctx, `
+		WITH realtime AS (
+			SELECT event_id, automation_id, matched
+			FROM automation_match_audit
+			WHERE engine = 'realtime' AND created_at >= $1 AND created_at < $2
+		), legacy AS (
+			SELECT event_id, automation_id, matched
+			FROM automation_match_audit
+			WHERE engine = 'legacy' AND created_at >= $1 AND created_at < $2
+		), paired AS (
+			SELECT r.event_id AS realtime_event_id, l.event_id AS legacy_event_id,
+				r.matched AS realtime_matched, l.matched AS legacy_matched
+			FROM realtime r
+			FULL OUTER JOIN legacy l USING (event_id, automation_id)
+		)
+		SELECT
+			COUNT(*) FILTER (WHERE realtime_event_id IS NOT NULL),
+			COUNT(*) FILTER (WHERE legacy_event_id IS NOT NULL AND legacy_matched),
+			COUNT(*) FILTER (WHERE realtime_event_id IS NOT NULL AND realtime_matched),
+			COUNT(*) FILTER (
+				WHERE realtime_event_id IS NOT NULL
+				  AND realtime_matched = COALESCE(legacy_matched, FALSE)
+			),
+			COUNT(*) FILTER (
+				WHERE realtime_event_id IS NOT NULL
+				  AND realtime_matched <> COALESCE(legacy_matched, FALSE)
+			),
+			COUNT(*) FILTER (WHERE realtime_event_id IS NULL AND legacy_matched),
+			COUNT(*) FILTER (WHERE realtime_event_id IS NOT NULL AND realtime_matched AND legacy_event_id IS NULL)
+		FROM paired
+	`, from.UTC(), to.UTC()).Scan(
+		&summary.RealtimeEvaluated, &summary.LegacyMatched, &summary.RealtimeMatched,
+		&summary.Agreements, &summary.DecisionMismatches, &summary.MissingRealtime,
+		&summary.RealtimeOnlyMatched,
+	)
+	if err != nil {
+		return domain.MatchReconciliationSummary{}, fmt.Errorf("summarize automation match audit: %w", err)
+	}
+	if summary.RealtimeEvaluated > 0 {
+		summary.ConsistencyRate = float64(summary.Agreements) / float64(summary.RealtimeEvaluated)
+	}
+	return summary, nil
+}
+
 func (r *RealtimePostgresRepository) ReserveSideEffect(
 	ctx context.Context,
 	workspaceID string,
@@ -1002,6 +1070,78 @@ func (r *RealtimePostgresRepository) ReserveSideEffect(
 		return domain.SideEffectExecution{}, false, domain.ErrSideEffectHashConflict
 	}
 	return stored, false, nil
+}
+
+func (r *RealtimePostgresRepository) GetSideEffect(
+	ctx context.Context,
+	workspaceID string,
+	effectKey string,
+) (domain.SideEffectExecution, error) {
+	if effectKey == "" {
+		return domain.SideEffectExecution{}, errors.New("side effect key is required")
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return domain.SideEffectExecution{}, err
+	}
+	execution, err := scanSideEffect(db.QueryRowContext(ctx, `
+		SELECT effect_key, contact_automation_id, automation_version, node_id,
+			execution_version, channel, status, provider_message_id,
+			request_hash, attempts, last_error, created_at, updated_at
+		FROM side_effect_executions WHERE effect_key = $1
+	`, effectKey))
+	if err != nil {
+		return domain.SideEffectExecution{}, fmt.Errorf("get side effect: %w", err)
+	}
+	return execution, nil
+}
+
+func (r *RealtimePostgresRepository) TransitionSideEffect(
+	ctx context.Context,
+	workspaceID string,
+	effectKey string,
+	from domain.SideEffectStatus,
+	to domain.SideEffectStatus,
+	updatedAt time.Time,
+	lastError *string,
+) (bool, error) {
+	if effectKey == "" || !validSideEffectTransition(from, to) {
+		return false, fmt.Errorf("invalid side effect transition %q -> %q", from, to)
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return false, err
+	}
+	if updatedAt.IsZero() {
+		updatedAt = time.Now().UTC()
+	}
+	result, err := db.ExecContext(ctx, `
+		UPDATE side_effect_executions
+		SET status = $3,
+			attempts = attempts + CASE WHEN $3 = 'submitted' THEN 1 ELSE 0 END,
+			last_error = $4,
+			updated_at = $5
+		WHERE effect_key = $1 AND status = $2
+	`, effectKey, from, to, lastError, updatedAt.UTC())
+	if err != nil {
+		return false, fmt.Errorf("transition side effect: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("read side effect transition result: %w", err)
+	}
+	return rows == 1, nil
+}
+
+func validSideEffectTransition(from, to domain.SideEffectStatus) bool {
+	switch from {
+	case domain.SideEffectStatusReserved, domain.SideEffectStatusFailed:
+		return to == domain.SideEffectStatusSubmitted
+	case domain.SideEffectStatusSubmitted:
+		return to == domain.SideEffectStatusConfirmed || to == domain.SideEffectStatusFailed || to == domain.SideEffectStatusUnknown
+	default:
+		return false
+	}
 }
 
 func scanSideEffect(scanner rowScanner) (domain.SideEffectExecution, error) {

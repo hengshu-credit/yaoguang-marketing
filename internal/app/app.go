@@ -992,10 +992,23 @@ func (a *App) InitServices() error {
 	// Initialize automation service. It is built here, ahead of the demo service, because the demo
 	// seeder creates its showcase automations through it — the same validated path a user's own
 	// automations take.
+	realtimeRepository := repository.NewRealtimeRepository(a.workspaceRepo)
+	reconciliationService, err := service.NewRealtimeReconciliationService(
+		realtimeRepository, service.DefaultShadowCutoverPolicy(),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to initialize realtime reconciliation: %w", err)
+	}
+	cutoverService, err := service.NewRealtimeCutoverService(a.automationRepo)
+	if err != nil {
+		return fmt.Errorf("failed to initialize realtime cutover: %w", err)
+	}
 	a.automationService = service.NewAutomationService(
 		a.automationRepo,
 		a.authService,
 		a.logger,
+		service.WithAutomationRealtimeMode(a.config.Realtime.Mode),
+		service.WithAutomationRealtimeOperations(reconciliationService, cutoverService),
 	)
 
 	// Initialize demo service

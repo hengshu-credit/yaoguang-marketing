@@ -990,6 +990,74 @@ func (r *AutomationRepository) CreateAutomationTrigger(ctx context.Context, work
 	return nil
 }
 
+// CreateRealtimeTriggerBinding compiles and validates the indexed matcher
+// definition without installing a per-automation PostgreSQL trigger. This is
+// the primary-mode activation path.
+func (r *AutomationRepository) CreateRealtimeTriggerBinding(
+	ctx context.Context,
+	workspaceID string,
+	automation *domain.Automation,
+) error {
+	if r.bindingCompiler == nil {
+		return errors.New("realtime trigger binding compiler is not configured")
+	}
+	binding, err := r.bindingCompiler.Compile(automation)
+	if err != nil {
+		return domain.NewTriggerConditionError(fmt.Sprintf("failed to compile realtime trigger binding: %v", err))
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin realtime binding transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	var currentVersion int
+	if err := tx.QueryRowContext(ctx, `
+		SELECT version FROM automations
+		WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL
+		FOR UPDATE
+	`, automation.ID, workspaceID).Scan(&currentVersion); err != nil {
+		return fmt.Errorf("failed to lock automation for realtime binding: %w", err)
+	}
+	var existingConditionHash string
+	err = tx.QueryRowContext(ctx, `
+		SELECT condition_hash FROM automation_trigger_bindings
+		WHERE automation_id = $1 AND automation_version = $2
+		LIMIT 1
+	`, automation.ID, currentVersion).Scan(&existingConditionHash)
+	if err == nil && existingConditionHash == binding.ConditionHash {
+		return tx.Commit()
+	}
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("failed to inspect realtime trigger binding: %w", err)
+	}
+
+	// Execute the compiled predicate against a non-existent contact before the
+	// binding becomes visible to workers. This catches renamed custom fields and
+	// invalid operators without installing DDL on contact_timeline.
+	if _, _, err := evaluateTriggerBinding(ctx, tx, binding, "__notifuse_validation__@invalid.local"); err != nil {
+		return domain.NewTriggerConditionError(fmt.Sprintf("failed to validate realtime trigger binding: %v", err))
+	}
+	if err := tx.QueryRowContext(ctx, `
+		UPDATE automations
+		SET version = version + 1
+		WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL
+		RETURNING version
+	`, automation.ID, workspaceID).Scan(&binding.AutomationVersion); err != nil {
+		return fmt.Errorf("failed to version realtime trigger binding: %w", err)
+	}
+	if err := replaceTriggerBindingsTx(ctx, tx, automation.ID, []domain.TriggerBinding{binding}); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit realtime trigger binding: %w", err)
+	}
+	return nil
+}
+
 // probeTriggerConditions plans the compiled conditions and reports whether the failure is
 // the caller's fault. Only a genuine syntax or semantic complaint from PostgreSQL means the
 // configuration is wrong; a lock timeout or a dropped connection is transient, and calling
@@ -1067,6 +1135,37 @@ func (r *AutomationRepository) DropAutomationTrigger(ctx context.Context, worksp
 		}
 	}
 
+	return nil
+}
+
+// DropLegacyAutomationTrigger removes only the dynamic trigger/function. The
+// realtime binding remains active, which makes primary cutover lossless.
+func (r *AutomationRepository) DropLegacyAutomationTrigger(ctx context.Context, workspaceID, automationID string) error {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+	triggerName, err := service.AutomationTriggerName(automationID)
+	if err != nil {
+		return domain.NewTriggerConditionError(err.Error())
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin legacy trigger removal: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.ExecContext(ctx, "SET LOCAL lock_timeout = '5s'"); err != nil {
+		return fmt.Errorf("failed to set lock_timeout: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, fmt.Sprintf("DROP TRIGGER IF EXISTS %s ON contact_timeline", triggerName)); err != nil {
+		return fmt.Errorf("failed to drop trigger: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %s()", triggerName)); err != nil {
+		return fmt.Errorf("failed to drop trigger function: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit legacy trigger removal: %w", err)
+	}
 	return nil
 }
 
