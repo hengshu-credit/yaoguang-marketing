@@ -36,7 +36,7 @@
 
 - Add workspace sequence allocation, `customer_no`, `external_user_id`, aliases, anonymous identities, and merge history.
 - Implement single and bulk Customer Profile APIs with idempotency and workspace-scoped lookup.
-- Add merge rules: anonymous-to-known is automatic; known-to-known requires an explicit operation.
+- Add merge rules: only explicit anonymous-to-known merge is supported in the first phase; known-to-known and similarity-based automatic merge are prohibited.
 - Provide migration, repository, service, HTTP, and integration tests.
 
 ### Batch 3: Event Ledger and Realtime Triggering
