@@ -85,6 +85,18 @@ func TestLoadWithOptions(t *testing.T) {
 	assert.True(t, cfg.IsDevelopment())
 }
 
+func TestLoadYaoguangProductDefaults(t *testing.T) {
+	t.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
+	t.Setenv("SMTP_FROM_NAME", "")
+	t.Setenv("TRACING_SERVICE_NAME", "")
+
+	cfg, err := LoadWithOptions(LoadOptions{})
+
+	require.NoError(t, err)
+	assert.Equal(t, "瑶光营销平台", cfg.SMTP.FromName)
+	assert.Equal(t, "yaoguang-marketing-api", cfg.Tracing.ServiceName)
+}
+
 func TestLoad_DataFeedSSRFProtectionDefault(t *testing.T) {
 	// SECRET_KEY is required for the config to load successfully.
 	_ = os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")

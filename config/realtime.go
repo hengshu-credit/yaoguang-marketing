@@ -90,13 +90,26 @@ type RealtimeConfig struct {
 }
 
 func ParseRuntimeRole(value string) (RuntimeRole, error) {
+	return parseRuntimeRole(value, "YAOGUANG_ROLE")
+}
+
+// ResolveRuntimeRole applies the public Yaoguang configuration contract while
+// preserving the legacy environment variable for one compatibility cycle.
+func ResolveRuntimeRole(yaoguangValue, legacyValue string) (RuntimeRole, error) {
+	if strings.TrimSpace(yaoguangValue) != "" {
+		return parseRuntimeRole(yaoguangValue, "YAOGUANG_ROLE")
+	}
+	return parseRuntimeRole(legacyValue, "NOTIFUSE_ROLE")
+}
+
+func parseRuntimeRole(value, variableName string) (RuntimeRole, error) {
 	role := RuntimeRole(value)
 	switch role {
 	case RoleAll, RoleAPI, RoleOutboxRelay, RoleRuleWorker, RoleJourneyWorker,
 		RoleDeliveryWorker, RoleAnalyticsWorker, RoleScheduler:
 		return role, nil
 	default:
-		return "", fmt.Errorf("invalid NOTIFUSE_ROLE %q", value)
+		return "", fmt.Errorf("invalid %s %q", variableName, value)
 	}
 }
 
@@ -115,7 +128,7 @@ func ParseRealtimeMode(value string) (RealtimeMode, error) {
 func (r RuntimeRole) Runs(capability RuntimeCapability) bool {
 	// The zero value preserves pre-role behavior for tests and embedders that
 	// construct Config directly. LoadConfig still rejects an explicitly invalid
-	// NOTIFUSE_ROLE before an application is created.
+	// YAOGUANG_ROLE (or its legacy fallback) before an application is created.
 	if r == "" || r == RoleAll {
 		switch capability {
 		case CapabilityHTTP, CapabilityOutboxRelay, CapabilityRule, CapabilityJourney,

@@ -11,7 +11,43 @@ import (
 func TestParseRuntimeRoleRejectsUnknown(t *testing.T) {
 	_, err := ParseRuntimeRole("worker")
 
-	require.ErrorContains(t, err, "invalid NOTIFUSE_ROLE")
+	require.ErrorContains(t, err, "invalid YAOGUANG_ROLE")
+}
+
+func TestLoadRuntimeRolePrefersYaoguangAndSupportsLegacyFallback(t *testing.T) {
+	t.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
+
+	tests := []struct {
+		name          string
+		yaoguangRole string
+		legacyRole   string
+		want          RuntimeRole
+	}{
+		{name: "new variable", yaoguangRole: "api", legacyRole: "all", want: RoleAPI},
+		{name: "new variable wins", yaoguangRole: "scheduler", legacyRole: "api", want: RoleScheduler},
+		{name: "legacy fallback", yaoguangRole: "", legacyRole: "journey-worker", want: RoleJourneyWorker},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("YAOGUANG_ROLE", tt.yaoguangRole)
+			t.Setenv("NOTIFUSE_ROLE", tt.legacyRole)
+
+			cfg, err := LoadWithOptions(LoadOptions{})
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, cfg.Realtime.Role)
+		})
+	}
+}
+
+func TestLoadRuntimeRoleInvalidYaoguangValueNamesPrimaryVariable(t *testing.T) {
+	t.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
+	t.Setenv("YAOGUANG_ROLE", "worker")
+	t.Setenv("NOTIFUSE_ROLE", "api")
+
+	_, err := LoadWithOptions(LoadOptions{})
+
+	require.ErrorContains(t, err, "invalid YAOGUANG_ROLE")
 }
 
 func TestParseRuntimeRoleAcceptsSupportedValues(t *testing.T) {
