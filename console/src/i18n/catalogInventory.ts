@@ -104,12 +104,13 @@ export function buildStaticCatalogInventory(
     else idsBySource.set(source, [id])
   }
 
-  // Lingui encodes explicit IDs as their literal ID in the compiled catalog.
-  // Reserve them before matching normal source literals: a test-only explicit
-  // ID can share text with a real UI message whose generated ID is different.
+  // Explicit IDs are the PO msgid, even when their English display text is in
+  // msgstr (for example, `nav.dashboard` -> `Dashboard`). Reserve them before
+  // matching normal source literals: a test-only explicit ID can share text
+  // with a real UI message whose generated ID is different.
   const explicitIds = new Set(
     entries
-      .filter((entry) => entry.isExplicitId && simpleLiteral(catalogs.en[entry.msgid]) === entry.msgid)
+      .filter((entry) => entry.isExplicitId && simpleLiteral(catalogs.en[entry.msgid]) !== null)
       .map((entry) => entry.msgid),
   )
   const productionEntries = entries
@@ -127,15 +128,16 @@ export function buildStaticCatalogInventory(
       seenIds.add(id)
 
       const hierarchy = classifyReferences(entry.references)
+      const source = simpleLiteral(catalogs.en[id]) ?? (entry.msgstr || entry.msgid)
       classifiedItems.push({
         hierarchy,
         item: {
           id,
-          source: entry.msgid,
+          source,
           references: [...entry.references],
           menuKey: hierarchy.menuKey,
           pageKey: hierarchy.pageKey,
-          values: bundledValues(id, entry.msgid, catalogs),
+          values: bundledValues(id, source, catalogs),
         },
       })
     }
@@ -182,7 +184,7 @@ function simpleLiteral(compiledMessage: unknown): string | null {
 }
 
 function isTestReference(reference: string): boolean {
-  return /(?:^|\/)__(?:tests?|mocks)\//.test(reference)
+  return /(?:^|\/)(?:__tests__|__mocks__)\//.test(reference)
     || /(?:^|\/)(?:tests?|test)\//.test(reference)
     || /\.(?:test|spec)\.[jt]sx?:\d+$/.test(reference)
 }

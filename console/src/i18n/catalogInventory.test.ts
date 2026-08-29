@@ -84,9 +84,9 @@ describe('catalog inventory', () => {
   it('excludes test-only explicit IDs without losing a colliding runtime message ID', () => {
     const entries: POEntry[] = [
       {
-        msgid: 'Dashboard',
+        msgid: 'nav.dashboard',
         msgstr: 'Dashboard',
-        references: ['src/__tests__/WorkspaceLayout.test.tsx:101'],
+        references: ['src/__tests__/helpers/catalog.ts:101'],
         isExplicitId: true,
       },
       {
@@ -97,7 +97,13 @@ describe('catalog inventory', () => {
       {
         msgid: 'Sidebar title',
         msgstr: 'Sidebar title',
-        references: ['src/i18n/workspaceCatalog.test.ts:39'],
+        references: ['src/__mocks__/workspaceCatalog.ts:39'],
+        isExplicitId: true,
+      },
+      {
+        msgid: 'nav.settings',
+        msgstr: 'Settings',
+        references: ['src/layouts/WorkspaceLayout.tsx:300'],
         isExplicitId: true,
       },
       {
@@ -107,19 +113,25 @@ describe('catalog inventory', () => {
       },
     ]
     const inventory = buildStaticCatalogInventory(entries, catalog({
-      Dashboard: ['Dashboard'],
+      'nav.dashboard': ['Dashboard'],
       '7p5kLi': ['Dashboard'],
       'Sidebar title': ['Sidebar title'],
+      'nav.settings': ['Settings'],
       save: ['Save'],
     }))
 
-    expect(inventory.map((item) => item.id)).toEqual(['7p5kLi', 'save'])
+    expect(inventory.map((item) => item.id)).toEqual(['7p5kLi', 'nav.settings', 'save'])
     expect(inventory[0]).toMatchObject({
       references: ['src/layouts/WorkspaceLayout.tsx:298'],
       menuKey: 'Navigation',
       pageKey: 'Workspace',
     })
-    expect(inventory[1].references).toEqual(['src/components/common/SaveButton.tsx:4'])
+    expect(inventory[1]).toMatchObject({
+      id: 'nav.settings',
+      source: 'Settings',
+      values: expect.objectContaining({ en: 'Settings', it: 'Settings' }),
+    })
+    expect(inventory[2].references).toEqual(['src/components/common/SaveButton.tsx:4'])
   })
 
   it.each([
