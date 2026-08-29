@@ -15,7 +15,7 @@ vi.mock('../contexts/AuthContext', () => ({
 }))
 
 vi.mock('../i18n/locales/zh-CN.po', () => ({
-  messages: { Dashboard: '工作台' }
+  messages: { Dashboard: ['工作台'] }
 }))
 
 // Read at render time, so a test can put the layout on any route before rendering.

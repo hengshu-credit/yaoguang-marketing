@@ -1,4 +1,5 @@
 import { i18n, type Messages } from '@lingui/core'
+import type { CompiledMessage } from '@lingui/message-utils/compileMessage'
 import type { Locale } from './index'
 
 export type UITranslations = Record<string, Record<string, string>>
@@ -31,13 +32,13 @@ export function isCatalogGenerationCurrent(generation: number): boolean {
  */
 export async function getBaseCatalog(locale: Locale): Promise<Messages> {
   const cached = baseCatalogs.get(locale)
-  if (cached) return { ...cached }
+  if (cached) return cloneCatalog(cached)
 
   let catalogLoad = baseCatalogLoads.get(locale)
   if (!catalogLoad) {
     catalogLoad = import(`./locales/${locale}.po`)
       .then(({ messages }) => {
-        const baseCatalog = Object.freeze({ ...messages }) as Messages
+        const baseCatalog = freezeCatalog(cloneCatalog(messages))
         baseCatalogs.set(locale, baseCatalog)
         return baseCatalog
       })
@@ -48,7 +49,7 @@ export async function getBaseCatalog(locale: Locale): Promise<Messages> {
     baseCatalogLoads.set(locale, catalogLoad)
   }
 
-  return { ...(await catalogLoad) }
+  return cloneCatalog(await catalogLoad)
 }
 
 /**
@@ -103,20 +104,50 @@ export async function clearWorkspaceCatalog(workspaceId: string): Promise<void> 
 function restoreLoadedBaseCatalog(locale: Locale): void {
   const baseCatalog = baseCatalogs.get(locale)
   if (baseCatalog) {
-    i18n.load(locale, { ...baseCatalog })
+    i18n.load(locale, cloneCatalog(baseCatalog))
     i18n.activate(locale)
   }
 }
 
 function mergeWorkspaceOverrides(locale: Locale, baseCatalog: Messages): Messages {
   const overrides = activeWorkspace?.overrides[locale]
-  if (!overrides) return { ...baseCatalog }
+  if (!overrides) return cloneCatalog(baseCatalog)
 
-  const mergedCatalog = { ...baseCatalog }
+  const mergedCatalog = cloneCatalog(baseCatalog)
   for (const [messageId, value] of Object.entries(overrides)) {
     if (Object.prototype.hasOwnProperty.call(baseCatalog, messageId)) {
-      mergedCatalog[messageId] = value
+      const compiledOverride: CompiledMessage = [value]
+      mergedCatalog[messageId] = compiledOverride
     }
   }
   return mergedCatalog
+}
+
+function cloneCatalog(catalog: Messages): Messages {
+  return cloneCompiledValue(catalog)
+}
+
+function cloneCompiledValue<Value>(value: Value): Value {
+  if (Array.isArray(value)) {
+    return value.map(cloneCompiledValue) as Value
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nestedValue]) => [key, cloneCompiledValue(nestedValue)]),
+    ) as Value
+  }
+  return value
+}
+
+function freezeCatalog(catalog: Messages): Messages {
+  freezeCompiledValue(catalog)
+  return catalog
+}
+
+function freezeCompiledValue(value: unknown): void {
+  if (!value || typeof value !== 'object' || Object.isFrozen(value)) return
+  for (const nestedValue of Object.values(value)) {
+    freezeCompiledValue(nestedValue)
+  }
+  Object.freeze(value)
 }
