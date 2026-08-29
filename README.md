@@ -116,6 +116,8 @@ External systems can synchronize users and emit realtime events through `POST /a
 
 SMS and push creatives use the same versioned template API as email. The console exposes locale-aware low-code editors, and `POST /api/templates.preview` renders an unsaved draft with the server Liquid engine. SMS responses include encoding and multipart segment metrics; push responses include platform-specific title/body and payload-size warnings for Android, iOS and Web. See [the template and preview design](docs/superpowers/specs/2026-08-29-sms-push-template-preview-design.md).
 
+Native provider infrastructure supports Twilio SMS and Firebase Cloud Messaging HTTP v1 through encrypted workspace integrations. Trusted systems can append up to 500 normalized delivery receipts with `POST /api/deliveryReceipts.ingest`; receipts are idempotent on `(provider, receipt_id)`, detect an id reused with different content, and atomically project first delivery/open/failure timestamps onto matching message history. Twilio can post signed form callbacks to `/webhooks/delivery/twilio?workspace_id=...&integration_id=...`; Notifuse verifies `X-Twilio-Signature` against the configured Auth Token before recording anything. See [the provider and receipt design](docs/superpowers/specs/2026-08-29-channel-providers-receipts-design.md).
+
 After creating an API key and workspace, run the included latency smoke test:
 
 ```powershell

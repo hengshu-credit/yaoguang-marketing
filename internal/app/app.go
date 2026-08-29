@@ -114,6 +114,7 @@ type App struct {
 	taskRepo                      domain.TaskRepository
 	transactionalNotificationRepo domain.TransactionalNotificationRepository
 	messageHistoryRepo            domain.MessageHistoryRepository
+	deliveryReceiptRepo           domain.DeliveryReceiptRepository
 	inboundWebhookEventRepo       domain.InboundWebhookEventRepository
 	telemetryRepo                 domain.TelemetryRepository
 	analyticsRepo                 domain.AnalyticsRepository
@@ -151,6 +152,7 @@ type App struct {
 	inboundWebhookEventService       *service.InboundWebhookEventService
 	webhookRegistrationService       *service.WebhookRegistrationService
 	messageHistoryService            *service.MessageHistoryService
+	deliveryReceiptService           *service.DeliveryReceiptService
 	notificationCenterService        *service.NotificationCenterService
 	demoService                      *service.DemoService
 	telemetryService                 *service.TelemetryService
@@ -451,6 +453,7 @@ func (a *App) InitRepositories() error {
 	a.broadcastRepo = repository.NewBroadcastRepository(a.workspaceRepo)
 	a.transactionalNotificationRepo = repository.NewTransactionalNotificationRepository(a.workspaceRepo)
 	a.messageHistoryRepo = repository.NewMessageHistoryRepository(a.workspaceRepo)
+	a.deliveryReceiptRepo = repository.NewDeliveryReceiptRepository(a.workspaceRepo)
 	a.inboundWebhookEventRepo = repository.NewInboundWebhookEventRepository(a.workspaceRepo)
 	a.telemetryRepo = repository.NewTelemetryRepository(a.workspaceRepo)
 	a.analyticsRepo = repository.NewAnalyticsRepository(a.workspaceRepo, a.logger, a.config.AnalyticsWorkMem)
@@ -533,6 +536,8 @@ func (a *App) InitServices() error {
 	a.rateLimiter.SetPolicy("wa_identify:create", 300, 1*time.Minute)
 	a.rateLimiter.SetPolicy("inbound:ip", 240, 1*time.Minute)        // Public inbound replies by source IP (generous; providers share IPs)
 	a.rateLimiter.SetPolicy("inbound:workspace", 120, 1*time.Minute) // Public inbound replies by workspace
+	a.rateLimiter.SetPolicy("delivery_receipt:twilio:ip", 600, 1*time.Minute)
+	a.rateLimiter.SetPolicy("delivery_receipt:twilio:workspace", 300, 1*time.Minute)
 	// OIDC policies are registered UNCONDITIONALLY (even when OIDC is disabled):
 	// RateLimiter.Allow fails closed on an unknown namespace, so enabling OIDC at
 	// runtime (settings drawer → graceful restart) must not 429 every request.
@@ -900,6 +905,15 @@ func (a *App) InitServices() error {
 
 	// Initialize message history service
 	a.messageHistoryService = service.NewMessageHistoryService(a.messageHistoryRepo, a.workspaceRepo, a.logger, a.authService)
+	a.deliveryReceiptService, err = service.NewDeliveryReceiptService(
+		a.authService,
+		a.deliveryReceiptRepo,
+		a.workspaceRepo,
+		500,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to initialize delivery receipt service: %w", err)
+	}
 
 	// Initialize notification center service
 	a.notificationCenterService = service.NewNotificationCenterService(
@@ -1402,6 +1416,13 @@ func (a *App) InitHandlers() error {
 		getJWTSecret,
 		a.logger,
 	)
+	deliveryReceiptHandler := httpHandler.NewDeliveryReceiptHandler(
+		a.deliveryReceiptService,
+		getJWTSecret,
+		a.logger,
+		a.config.APIEndpoint,
+		a.rateLimiter,
+	)
 	notificationCenterHandler := httpHandler.NewNotificationCenterHandler(
 		a.notificationCenterService,
 		a.listService,
@@ -1500,6 +1521,7 @@ func (a *App) InitHandlers() error {
 	sesHandler.RegisterRoutes(a.mux)
 	supabaseWebhookHandler.RegisterRoutes(a.mux)
 	messageHistoryHandler.RegisterRoutes(a.mux)
+	deliveryReceiptHandler.RegisterRoutes(a.mux)
 	notificationCenterHandler.RegisterRoutes(a.mux)
 	analyticsHandler.RegisterRoutes(a.mux)
 	webAnalyticsHandler.RegisterRoutes(a.mux)

@@ -14,15 +14,15 @@ import "unicode/utf8"
 // the same loaded workspace is what the email path signs and sends with. Any new
 // endpoint that returns a Workspace must call it.
 //
-// The encrypted forms are deliberately left in place: the console distinguishes
-// "configured" from "not set" by their presence, and they are inert without the
-// instance secret key, which is never served. Non-secret context — hostnames,
-// usernames, access key ids — is left alone too, so the settings UI can still say
-// which account an integration is connected as.
+// Legacy email encrypted forms remain in place because the existing console uses
+// their presence as its "configured" signal. New SMS/push providers use
+// CredentialHints instead, so both their plaintext and ciphertext are removed.
+// Non-secret context — hostnames, usernames and account ids — stays visible so
+// the settings UI can still identify the connected account.
 
 // credentialHintMinLength is the shortest secret that earns a hint. Four
 // characters of a six-character secret is most of it; below this threshold the
-// console still knows the credential is set, from the encrypted field.
+// console may still know the credential is set from a provider-specific marker.
 const credentialHintMinLength = 8
 
 // credentialHintLength is how much of the tail is shown.
@@ -164,6 +164,13 @@ func (i *Integration) Redact() {
 		record("supabase.auth_email_hook.signature_key", i.SupabaseSettings.AuthEmailHook.SignatureKey)
 		record("supabase.before_user_created_hook.signature_key", i.SupabaseSettings.BeforeUserCreatedHook.SignatureKey)
 	}
+	if i.SMSProvider != nil && i.SMSProvider.Twilio != nil {
+		record("twilio.auth_token", i.SMSProvider.Twilio.AuthToken)
+		record("twilio.api_key_secret", i.SMSProvider.Twilio.APIKeySecret)
+	}
+	if i.PushProvider != nil && i.PushProvider.FCM != nil {
+		record("fcm.service_account_json", i.PushProvider.FCM.ServiceAccountJSON)
+	}
 
 	// nil rather than an empty map, so "no credentials configured" serialises as
 	// an absent field instead of {}.
@@ -174,6 +181,16 @@ func (i *Integration) Redact() {
 	}
 
 	i.EmailProvider.Redact()
+	if i.SMSProvider != nil && i.SMSProvider.Twilio != nil {
+		i.SMSProvider.Twilio.AuthToken = ""
+		i.SMSProvider.Twilio.EncryptedAuthToken = ""
+		i.SMSProvider.Twilio.APIKeySecret = ""
+		i.SMSProvider.Twilio.EncryptedAPIKeySecret = ""
+	}
+	if i.PushProvider != nil && i.PushProvider.FCM != nil {
+		i.PushProvider.FCM.ServiceAccountJSON = ""
+		i.PushProvider.FCM.EncryptedServiceAccountJSON = ""
+	}
 
 	if i.LLMProvider != nil {
 		if i.LLMProvider.Anthropic != nil {

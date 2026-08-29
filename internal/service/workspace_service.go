@@ -1557,6 +1557,10 @@ func (s *WorkspaceService) CreateIntegration(ctx context.Context, req domain.Cre
 	switch req.Type {
 	case domain.IntegrationTypeEmail:
 		integration.EmailProvider = req.Provider
+	case domain.IntegrationTypeSMS:
+		integration.SMSProvider = req.SMSProvider
+	case domain.IntegrationTypePush:
+		integration.PushProvider = req.PushProvider
 	case domain.IntegrationTypeSupabase:
 		integration.SupabaseSettings = req.SupabaseSettings
 	case domain.IntegrationTypeLLM:
@@ -1884,6 +1888,29 @@ func preserveEmailProviderSecrets(updated *domain.Integration, existing *domain.
 	}
 }
 
+func preserveChannelProviderSecrets(updated *domain.Integration, existing *domain.Integration) {
+	if updated == nil || existing == nil {
+		return
+	}
+	if updated.SMSProvider != nil && updated.SMSProvider.Twilio != nil &&
+		existing.SMSProvider != nil && existing.SMSProvider.Twilio != nil {
+		u, e := updated.SMSProvider.Twilio, existing.SMSProvider.Twilio
+		if u.AuthToken == "" && u.EncryptedAuthToken == "" && u.AccountSID == e.AccountSID {
+			u.EncryptedAuthToken = e.EncryptedAuthToken
+		}
+		if u.APIKeySecret == "" && u.EncryptedAPIKeySecret == "" && u.APIKeySID == e.APIKeySID {
+			u.EncryptedAPIKeySecret = e.EncryptedAPIKeySecret
+		}
+	}
+	if updated.PushProvider != nil && updated.PushProvider.FCM != nil &&
+		existing.PushProvider != nil && existing.PushProvider.FCM != nil {
+		u, e := updated.PushProvider.FCM, existing.PushProvider.FCM
+		if u.ServiceAccountJSON == "" && u.EncryptedServiceAccountJSON == "" && u.ProjectID == e.ProjectID {
+			u.EncryptedServiceAccountJSON = e.EncryptedServiceAccountJSON
+		}
+	}
+}
+
 func preserveDerivedSESFields(updated *domain.Integration, existing *domain.Integration) {
 	if existing == nil || existing.EmailProvider.SES == nil {
 		return
@@ -1957,6 +1984,20 @@ func (s *WorkspaceService) UpdateIntegration(ctx context.Context, req domain.Upd
 		// silently wipes them: the SES tenant and configuration set stop being sent, and
 		// stop-on-reply breaks because the inbound topic ARN is gone.
 		preserveDerivedSESFields(&updatedIntegration, existingIntegration)
+	case domain.IntegrationTypeSMS:
+		if req.SMSProvider == nil {
+			updatedIntegration.SMSProvider = existingIntegration.SMSProvider
+		} else {
+			updatedIntegration.SMSProvider = req.SMSProvider
+			preserveChannelProviderSecrets(&updatedIntegration, existingIntegration)
+		}
+	case domain.IntegrationTypePush:
+		if req.PushProvider == nil {
+			updatedIntegration.PushProvider = existingIntegration.PushProvider
+		} else {
+			updatedIntegration.PushProvider = req.PushProvider
+			preserveChannelProviderSecrets(&updatedIntegration, existingIntegration)
+		}
 	case domain.IntegrationTypeSupabase:
 		// Preserve existing encrypted keys if new keys are not provided
 		if req.SupabaseSettings != nil {

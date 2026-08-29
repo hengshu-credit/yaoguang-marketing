@@ -174,11 +174,40 @@ export interface SendGridSettings {
 export type IntegrationType =
   | 'email'
   | 'sms'
+  | 'push'
   | 'whatsapp'
   | 'supabase'
   | 'llm'
   | 'firecrawl'
   | 'zapier'
+
+export type SMSProviderKind = 'twilio'
+
+export interface TwilioSettings {
+  account_sid: string
+  auth_token?: string
+  api_key_sid?: string
+  api_key_secret?: string
+  from_number?: string
+  messaging_service_sid?: string
+}
+
+export interface SMSProvider {
+  kind: SMSProviderKind
+  twilio: TwilioSettings
+}
+
+export type PushProviderKind = 'fcm'
+
+export interface FCMSettings {
+  project_id: string
+  service_account_json?: string
+}
+
+export interface PushProvider {
+  kind: PushProviderKind
+  fcm: FCMSettings
+}
 
 // LLM Provider types
 export type LLMProviderKind = 'anthropic' | 'openai' | 'gemini'
@@ -252,6 +281,8 @@ export interface Integration {
   name: string
   type: IntegrationType
   email_provider?: EmailProvider
+  sms_provider?: SMSProvider
+  push_provider?: PushProvider
   supabase_settings?: SupabaseIntegrationSettings
   llm_provider?: LLMProvider
   firecrawl_settings?: FirecrawlSettings
@@ -345,6 +376,8 @@ export interface CreateIntegrationRequest {
    */
   type: Exclude<IntegrationType, 'zapier'>
   provider?: EmailProvider
+  sms_provider?: SMSProvider
+  push_provider?: PushProvider
   supabase_settings?: SupabaseIntegrationSettings
   llm_provider?: LLMProvider
   firecrawl_settings?: FirecrawlSettings
@@ -355,6 +388,8 @@ export interface UpdateIntegrationRequest {
   integration_id: string
   name: string
   provider?: EmailProvider
+  sms_provider?: SMSProvider
+  push_provider?: PushProvider
   supabase_settings?: SupabaseIntegrationSettings
   llm_provider?: LLMProvider
   firecrawl_settings?: FirecrawlSettings

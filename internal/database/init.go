@@ -223,6 +223,23 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_message_history_template_id ON message_history(template_id, template_version)`,
 		`CREATE INDEX IF NOT EXISTS idx_message_history_created_at_id ON message_history(created_at DESC, id DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_message_history_smtp_message_id ON message_history(smtp_message_id) WHERE smtp_message_id IS NOT NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_message_history_external_id ON message_history(external_id) WHERE external_id IS NOT NULL`,
+		`CREATE TABLE IF NOT EXISTS delivery_receipts (
+			provider VARCHAR(32) NOT NULL,
+			receipt_id VARCHAR(255) NOT NULL,
+			provider_message_id VARCHAR(255),
+			message_id VARCHAR(255),
+			effect_key VARCHAR(255),
+			event VARCHAR(32) NOT NULL,
+			occurred_at TIMESTAMP WITH TIME ZONE NOT NULL,
+			received_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			error_code VARCHAR(255),
+			metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+			payload_hash CHAR(64) NOT NULL,
+			PRIMARY KEY (provider, receipt_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_delivery_receipts_provider_message ON delivery_receipts(provider, provider_message_id) WHERE provider_message_id IS NOT NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_delivery_receipts_message ON delivery_receipts(message_id, occurred_at DESC) WHERE message_id IS NOT NULL`,
 		`CREATE TABLE IF NOT EXISTS transactional_notifications (
 			id VARCHAR(32) NOT NULL PRIMARY KEY,
 			name VARCHAR(255) NOT NULL,

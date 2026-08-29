@@ -146,6 +146,8 @@ type IntegrationType string
 
 const (
 	IntegrationTypeEmail     IntegrationType = "email"
+	IntegrationTypeSMS       IntegrationType = "sms"
+	IntegrationTypePush      IntegrationType = "push"
 	IntegrationTypeSupabase  IntegrationType = "supabase"
 	IntegrationTypeLLM       IntegrationType = "llm"
 	IntegrationTypeFirecrawl IntegrationType = "firecrawl"
@@ -185,6 +187,8 @@ type Integration struct {
 	Name              string                       `json:"name"`
 	Type              IntegrationType              `json:"type"`
 	EmailProvider     EmailProvider                `json:"email_provider,omitempty"`
+	SMSProvider       *SMSProvider                 `json:"sms_provider,omitempty"`
+	PushProvider      *PushProvider                `json:"push_provider,omitempty"`
 	SupabaseSettings  *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"`
 	LLMProvider       *LLMProvider                 `json:"llm_provider,omitempty"`
 	FirecrawlSettings *FirecrawlSettings           `json:"firecrawl_settings,omitempty"`
@@ -217,6 +221,20 @@ func (i *Integration) Validate(passphrase string) error {
 		// Validate email provider config
 		if err := i.EmailProvider.Validate(passphrase); err != nil {
 			return fmt.Errorf("invalid provider configuration: %w", err)
+		}
+	case IntegrationTypeSMS:
+		if i.SMSProvider == nil {
+			return fmt.Errorf("sms provider settings are required for sms integration")
+		}
+		if err := i.SMSProvider.Validate(passphrase); err != nil {
+			return fmt.Errorf("invalid sms provider configuration: %w", err)
+		}
+	case IntegrationTypePush:
+		if i.PushProvider == nil {
+			return fmt.Errorf("push provider settings are required for push integration")
+		}
+		if err := i.PushProvider.Validate(passphrase); err != nil {
+			return fmt.Errorf("invalid push provider configuration: %w", err)
 		}
 	case IntegrationTypeSupabase:
 		// Validate Supabase settings
@@ -273,6 +291,14 @@ func (i *Integration) BeforeSave(secretkey string) error {
 		if err := i.EmailProvider.EncryptSecretKeys(secretkey); err != nil {
 			return fmt.Errorf("failed to encrypt integration provider secrets: %w", err)
 		}
+	case IntegrationTypeSMS:
+		if err := i.SMSProvider.EncryptSecretKeys(secretkey); err != nil {
+			return fmt.Errorf("failed to encrypt sms provider secrets: %w", err)
+		}
+	case IntegrationTypePush:
+		if err := i.PushProvider.EncryptSecretKeys(secretkey); err != nil {
+			return fmt.Errorf("failed to encrypt push provider secrets: %w", err)
+		}
 	case IntegrationTypeSupabase:
 		if i.SupabaseSettings != nil {
 			if err := i.SupabaseSettings.EncryptSignatureKeys(secretkey); err != nil {
@@ -303,6 +329,14 @@ func (i *Integration) AfterLoad(secretkey string) error {
 	case IntegrationTypeEmail:
 		if err := i.EmailProvider.DecryptSecretKeys(secretkey); err != nil {
 			return fmt.Errorf("failed to decrypt integration provider secrets: %w", err)
+		}
+	case IntegrationTypeSMS:
+		if err := i.SMSProvider.DecryptSecretKeys(secretkey); err != nil {
+			return fmt.Errorf("failed to decrypt sms provider secrets: %w", err)
+		}
+	case IntegrationTypePush:
+		if err := i.PushProvider.DecryptSecretKeys(secretkey); err != nil {
+			return fmt.Errorf("failed to decrypt push provider secrets: %w", err)
 		}
 	case IntegrationTypeSupabase:
 		if i.SupabaseSettings != nil {
@@ -1216,7 +1250,9 @@ type CreateIntegrationRequest struct {
 	WorkspaceID       string                       `json:"workspace_id"`
 	Name              string                       `json:"name"`
 	Type              IntegrationType              `json:"type"`
-	Provider          EmailProvider                `json:"provider,omitempty"`           // For email integrations
+	Provider          EmailProvider                `json:"provider,omitempty"` // For email integrations
+	SMSProvider       *SMSProvider                 `json:"sms_provider,omitempty"`
+	PushProvider      *PushProvider                `json:"push_provider,omitempty"`
 	SupabaseSettings  *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"`  // For Supabase integrations
 	LLMProvider       *LLMProvider                 `json:"llm_provider,omitempty"`       // For LLM integrations
 	FirecrawlSettings *FirecrawlSettings           `json:"firecrawl_settings,omitempty"` // For Firecrawl integrations
@@ -1240,6 +1276,20 @@ func (r *CreateIntegrationRequest) Validate(passphrase string) error {
 	case IntegrationTypeEmail:
 		if err := r.Provider.Validate(passphrase); err != nil {
 			return fmt.Errorf("invalid provider configuration: %w", err)
+		}
+	case IntegrationTypeSMS:
+		if r.SMSProvider == nil {
+			return fmt.Errorf("sms provider settings are required for sms integration")
+		}
+		if err := r.SMSProvider.Validate(passphrase); err != nil {
+			return fmt.Errorf("invalid sms provider configuration: %w", err)
+		}
+	case IntegrationTypePush:
+		if r.PushProvider == nil {
+			return fmt.Errorf("push provider settings are required for push integration")
+		}
+		if err := r.PushProvider.Validate(passphrase); err != nil {
+			return fmt.Errorf("invalid push provider configuration: %w", err)
 		}
 	case IntegrationTypeSupabase:
 		if r.SupabaseSettings == nil {
@@ -1284,7 +1334,9 @@ type UpdateIntegrationRequest struct {
 	WorkspaceID       string                       `json:"workspace_id"`
 	IntegrationID     string                       `json:"integration_id"`
 	Name              string                       `json:"name"`
-	Provider          EmailProvider                `json:"provider,omitempty"`           // For email integrations
+	Provider          EmailProvider                `json:"provider,omitempty"` // For email integrations
+	SMSProvider       *SMSProvider                 `json:"sms_provider,omitempty"`
+	PushProvider      *PushProvider                `json:"push_provider,omitempty"`
 	SupabaseSettings  *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"`  // For Supabase integrations
 	LLMProvider       *LLMProvider                 `json:"llm_provider,omitempty"`       // For LLM integrations
 	FirecrawlSettings *FirecrawlSettings           `json:"firecrawl_settings,omitempty"` // For Firecrawl integrations
@@ -1347,6 +1399,14 @@ func (r *UpdateIntegrationRequest) Validate(passphrase string) error {
 	if r.Provider.Kind != "" {
 		if err := r.Provider.Validate(passphrase); err != nil {
 			return fmt.Errorf("invalid provider configuration: %w", err)
+		}
+	} else if r.SMSProvider != nil {
+		if err := r.SMSProvider.ValidateForUpdate(passphrase); err != nil {
+			return fmt.Errorf("invalid sms provider configuration: %w", err)
+		}
+	} else if r.PushProvider != nil {
+		if err := r.PushProvider.ValidateForUpdate(passphrase); err != nil {
+			return fmt.Errorf("invalid push provider configuration: %w", err)
 		}
 	} else if r.SupabaseSettings != nil {
 		if err := r.SupabaseSettings.Validate(passphrase); err != nil {

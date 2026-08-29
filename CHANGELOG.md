@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [44.0] - 2026-08-29
+
+- **Feature**: Added workspace-scoped Twilio SMS and Firebase Cloud Messaging HTTP v1 provider configurations. Provider credentials are encrypted at rest, omitted from workspace API responses, preserved on redacted updates, and used through a provider-neutral delivery contract with bounded HTTP responses and retryable error classification.
+
+- **Feature**: Added an immutable workspace delivery-receipt ledger with `(provider, receipt_id)` idempotency, payload-conflict detection, indexed provider-message lookup and atomic first-write status projection into message history. Duplicate and out-of-order delivery, open and failure events cannot overwrite an earlier timestamp.
+
+- **Feature**: Added authenticated batch receipt ingestion through `POST /api/deliveryReceipts.ingest` for trusted systems and a public, signature-verified Twilio callback at `POST /webhooks/delivery/twilio`. Both paths normalize provider states and return explicit accepted, duplicate, conflict, matched and applied outcomes.
+
 ## [43.0] - 2026-08-29
 
 - **Feature**: Added first-class versioned SMS and mobile push templates with per-workspace language translations, Liquid variables, custom push payload data, image and deep-link fields, and optimistic edit conflict protection through the existing template lifecycle.
