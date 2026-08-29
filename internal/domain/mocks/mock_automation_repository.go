@@ -12,6 +12,7 @@ import (
 
 	domain "github.com/Notifuse/notifuse/internal/domain"
 	gomock "github.com/golang/mock/gomock"
+	uuid "github.com/google/uuid"
 )
 
 // MockAutomationRepository is a mock of AutomationRepository interface.
@@ -35,6 +36,37 @@ func NewMockAutomationRepository(ctrl *gomock.Controller) *MockAutomationReposit
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockAutomationRepository) EXPECT() *MockAutomationRepositoryMockRecorder {
 	return m.recorder
+}
+
+// ClaimContactAutomation mocks base method.
+func (m *MockAutomationRepository) ClaimContactAutomation(arg0 context.Context, arg1, arg2, arg3 string, arg4 time.Time, arg5 time.Duration) (*domain.ContactAutomationClaim, bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClaimContactAutomation", arg0, arg1, arg2, arg3, arg4, arg5)
+	ret0, _ := ret[0].(*domain.ContactAutomationClaim)
+	ret1, _ := ret[1].(bool)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ClaimContactAutomation indicates an expected call of ClaimContactAutomation.
+func (mr *MockAutomationRepositoryMockRecorder) ClaimContactAutomation(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClaimContactAutomation", reflect.TypeOf((*MockAutomationRepository)(nil).ClaimContactAutomation), arg0, arg1, arg2, arg3, arg4, arg5)
+}
+
+// CommitContactAutomationState mocks base method.
+func (m *MockAutomationRepository) CommitContactAutomationState(arg0 context.Context, arg1 string, arg2 domain.ContactAutomationClaim, arg3 domain.JourneyStateCommit) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CommitContactAutomationState", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CommitContactAutomationState indicates an expected call of CommitContactAutomationState.
+func (mr *MockAutomationRepositoryMockRecorder) CommitContactAutomationState(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CommitContactAutomationState", reflect.TypeOf((*MockAutomationRepository)(nil).CommitContactAutomationState), arg0, arg1, arg2, arg3)
 }
 
 // Create mocks base method.
@@ -328,6 +360,36 @@ func (m *MockAutomationRepository) ListContactAutomations(arg0 context.Context, 
 func (mr *MockAutomationRepositoryMockRecorder) ListContactAutomations(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListContactAutomations", reflect.TypeOf((*MockAutomationRepository)(nil).ListContactAutomations), arg0, arg1, arg2)
+}
+
+// ReleaseContactAutomationClaim mocks base method.
+func (m *MockAutomationRepository) ReleaseContactAutomationClaim(arg0 context.Context, arg1, arg2 string, arg3 uuid.UUID) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReleaseContactAutomationClaim", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReleaseContactAutomationClaim indicates an expected call of ReleaseContactAutomationClaim.
+func (mr *MockAutomationRepositoryMockRecorder) ReleaseContactAutomationClaim(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseContactAutomationClaim", reflect.TypeOf((*MockAutomationRepository)(nil).ReleaseContactAutomationClaim), arg0, arg1, arg2, arg3)
+}
+
+// RenewContactAutomationClaim mocks base method.
+func (m *MockAutomationRepository) RenewContactAutomationClaim(arg0 context.Context, arg1, arg2 string, arg3 uuid.UUID, arg4 time.Time, arg5 time.Duration) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RenewContactAutomationClaim", arg0, arg1, arg2, arg3, arg4, arg5)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RenewContactAutomationClaim indicates an expected call of RenewContactAutomationClaim.
+func (mr *MockAutomationRepositoryMockRecorder) RenewContactAutomationClaim(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenewContactAutomationClaim", reflect.TypeOf((*MockAutomationRepository)(nil).RenewContactAutomationClaim), arg0, arg1, arg2, arg3, arg4, arg5)
 }
 
 // Update mocks base method.

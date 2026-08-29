@@ -12,10 +12,124 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/service"
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestContactAutomationClaimAcquiresExpiredLease(t *testing.T) {
+	db, mock, repo := setupAutomationMock(t)
+	defer db.Close()
+
+	now := time.Date(2026, 8, 29, 10, 0, 0, 0, time.UTC)
+	expiresAt := now.Add(time.Minute)
+	originEventID := uuid.New()
+	claimToken := uuid.New()
+	currentNodeID := "email-1"
+	contextJSON := []byte(`{"campaign":"welcome"}`)
+
+	mock.ExpectQuery(`(?s)UPDATE contact_automations AS ca.*claim_token = \$4.*claim_expires_at = \$6.*ca\.claim_expires_at IS NULL OR ca\.claim_expires_at <= \$2.*RETURNING`).
+		WithArgs("ca-1", now, domain.ContactAutomationStatusActive, sqlmock.AnyArg(), "journey-worker-1", expiresAt).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "automation_id", "contact_email", "current_node_id", "status", "exit_reason",
+			"entered_at", "scheduled_at", "context", "retry_count", "last_error", "last_retry_at", "max_retries",
+			"origin_event_id", "automation_version", "state_version", "claim_token", "claimed_by", "claimed_at", "claim_expires_at",
+		}).AddRow(
+			"ca-1", "automation-1", "person@example.com", currentNodeID, domain.ContactAutomationStatusActive, nil,
+			now.Add(-time.Hour), now, contextJSON, 0, nil, nil, 3,
+			originEventID, 4, int64(7), claimToken, "journey-worker-1", now, expiresAt,
+		))
+
+	claim, acquired, err := repo.ClaimContactAutomation(context.Background(), "workspace-1", "ca-1", "journey-worker-1", now, time.Minute)
+	require.NoError(t, err)
+	require.True(t, acquired)
+	require.NotNil(t, claim)
+	assert.Equal(t, claimToken, claim.ClaimToken)
+	assert.Equal(t, int64(7), claim.StateVersion)
+	assert.Equal(t, 4, claim.AutomationVersion)
+	assert.Equal(t, originEventID, *claim.OriginEventID)
+	assert.Equal(t, "welcome", claim.ContactAutomation.Context["campaign"])
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestContactAutomationClaimReturnsNotAcquiredWhenAnotherLeaseIsActive(t *testing.T) {
+	db, mock, repo := setupAutomationMock(t)
+	defer db.Close()
+
+	now := time.Date(2026, 8, 29, 10, 0, 0, 0, time.UTC)
+	mock.ExpectQuery(`(?s)UPDATE contact_automations AS ca.*RETURNING`).
+		WithArgs("ca-1", now, domain.ContactAutomationStatusActive, sqlmock.AnyArg(), "worker-2", now.Add(time.Minute)).
+		WillReturnError(sql.ErrNoRows)
+
+	claim, acquired, err := repo.ClaimContactAutomation(context.Background(), "workspace-1", "ca-1", "worker-2", now, time.Minute)
+	require.NoError(t, err)
+	assert.False(t, acquired)
+	assert.Nil(t, claim)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCommitContactAutomationStateRejectsStaleClaimToken(t *testing.T) {
+	db, mock, repo := setupAutomationMock(t)
+	defer db.Close()
+
+	claim := domain.ContactAutomationClaim{
+		ContactAutomation: domain.ContactAutomation{ID: "ca-1", AutomationID: "automation-1", ContactEmail: "person@example.com", Status: domain.ContactAutomationStatusActive},
+		ClaimToken:        uuid.New(), StateVersion: 3, AutomationVersion: 2,
+	}
+	commit := domain.JourneyStateCommit{ContactAutomation: claim.ContactAutomation}
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`(?s)UPDATE contact_automations.*state_version = state_version \+ 1.*claim_token = NULL.*WHERE id = \$10.*claim_token = \$11.*state_version = \$12.*automation_version = \$13.*a.status = 'live'`).
+		WithArgs(nil, domain.ContactAutomationStatusActive, nil, nil, sqlmock.AnyArg(), 0, nil, nil, 0, "ca-1", claim.ClaimToken, int64(3), 2).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectRollback()
+
+	committed, err := repo.CommitContactAutomationState(context.Background(), "workspace-1", claim, commit)
+	require.NoError(t, err)
+	assert.False(t, committed)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCommitContactAutomationStateAtomicallyReservesEffectAndEnqueuesCommand(t *testing.T) {
+	db, mock, repo := setupAutomationMock(t)
+	defer db.Close()
+
+	now := time.Date(2026, 8, 29, 10, 0, 0, 0, time.UTC)
+	claim := domain.ContactAutomationClaim{
+		ContactAutomation: domain.ContactAutomation{ID: "ca-1", AutomationID: "automation-1", ContactEmail: "person@example.com", Status: domain.ContactAutomationStatusActive},
+		ClaimToken:        uuid.New(), StateVersion: 3, AutomationVersion: 2,
+	}
+	messageID := uuid.New()
+	eventID := uuid.New()
+	commit := domain.JourneyStateCommit{
+		ContactAutomation: claim.ContactAutomation,
+		SideEffect: &domain.SideEffectExecution{
+			EffectKey: "effect-1", ContactAutomationID: "ca-1", AutomationVersion: 2,
+			NodeID: "email-1", ExecutionVersion: 3, Channel: "email",
+			Status: domain.SideEffectStatusReserved, RequestHash: "sha256:request", CreatedAt: now, UpdatedAt: now,
+		},
+		Command: &domain.OutboxMessage{
+			ID: messageID, EventID: eventID, Topic: "notifuse.jobs", RoutingKey: "delivery.email",
+			Payload: []byte(`{"contact_automation_id":"ca-1"}`), Headers: []byte(`{"schema_version":1}`),
+		},
+	}
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`(?s)UPDATE contact_automations.*state_version = state_version \+ 1.*claim_token = NULL.*WHERE id = \$10.*claim_token = \$11.*state_version = \$12.*automation_version = \$13.*a.status = 'live'`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(`(?s)INSERT INTO side_effect_executions.*ON CONFLICT \(effect_key\) DO UPDATE.*request_hash = EXCLUDED\.request_hash.*RETURNING request_hash`).
+		WillReturnRows(sqlmock.NewRows([]string{"request_hash"}).AddRow("sha256:request"))
+	mock.ExpectExec(`(?s)INSERT INTO event_outbox.*ON CONFLICT \(event_id, topic, routing_key\) DO NOTHING`).
+		WithArgs(messageID, eventID, "notifuse.jobs", "delivery.email", commit.Command.Payload, commit.Command.Headers, now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	committed, err := repo.CommitContactAutomationState(context.Background(), "workspace-1", claim, commit)
+	require.NoError(t, err)
+	assert.True(t, committed)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
 
 func setupAutomationMock(t *testing.T) (*sql.DB, sqlmock.Sqlmock, *AutomationRepository) {
 	db, mock, err := sqlmock.New()

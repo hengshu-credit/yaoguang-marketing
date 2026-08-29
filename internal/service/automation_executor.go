@@ -2,6 +2,9 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -210,6 +213,195 @@ func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, co
 	// Hit max iterations - remaining nodes picked up next tick
 	// State already persisted, so this is safe
 	return nil
+}
+
+// PlanClaimedJourneyStep evaluates one PostgreSQL-authorized state transition.
+// It never performs an external action directly: email, webhook, and list
+// mutations become deterministic side-effect/outbox records which commit with
+// the new journey state.
+func (e *AutomationExecutor) PlanClaimedJourneyStep(
+	ctx context.Context,
+	workspaceID string,
+	claim domain.ContactAutomationClaim,
+	now time.Time,
+) (domain.JourneyStateCommit, error) {
+	now = now.UTC()
+	next := claim.ContactAutomation
+	commit := domain.JourneyStateCommit{ContactAutomation: next}
+
+	if next.Status != domain.ContactAutomationStatusActive {
+		return commit, fmt.Errorf("contact automation %s is not active", next.ID)
+	}
+	if next.CurrentNodeID == nil {
+		commit.ContactAutomation.Status = domain.ContactAutomationStatusCompleted
+		commit.ContactAutomation.ScheduledAt = nil
+		return commit, nil
+	}
+
+	automation, err := e.automationRepo.GetByID(ctx, workspaceID, next.AutomationID)
+	if err != nil {
+		return commit, fmt.Errorf("load claimed automation: %w", err)
+	}
+	if automation.Status != domain.AutomationStatusLive {
+		return commit, fmt.Errorf("automation %s is not live", automation.ID)
+	}
+	node := automation.GetNodeByID(*next.CurrentNodeID)
+	if node == nil {
+		reason := "automation_node_deleted"
+		commit.ContactAutomation.Status = domain.ContactAutomationStatusExited
+		commit.ContactAutomation.ExitReason = &reason
+		commit.ContactAutomation.ScheduledAt = nil
+		return commit, nil
+	}
+
+	if channel, external := journeySideEffectChannel(node.Type); external {
+		return planJourneySideEffect(workspaceID, claim, automation, node, channel, now)
+	}
+
+	executor, ok := e.nodeExecutors[node.Type]
+	if !ok {
+		return commit, fmt.Errorf("unsupported claimed journey node type: %s", node.Type)
+	}
+	var contactData *domain.Contact
+	if journeyNodeNeedsContactData(node.Type) {
+		contactData, err = e.contactRepo.GetContactByEmail(ctx, workspaceID, next.ContactEmail)
+		if err != nil {
+			return commit, fmt.Errorf("load contact for claimed journey: %w", err)
+		}
+	}
+	executionContext := make(map[string]interface{})
+	if e.automationRepo != nil {
+		executionContext, err = e.buildContextFromNodeExecutions(ctx, workspaceID, next.ID)
+		if err != nil {
+			return commit, fmt.Errorf("build claimed journey context: %w", err)
+		}
+	}
+	result, err := executor.Execute(ctx, NodeExecutionParams{
+		WorkspaceID: workspaceID, Contact: &next, Node: node, Automation: automation,
+		ContactData: contactData, ExecutionContext: executionContext,
+	})
+	if err != nil {
+		return commit, fmt.Errorf("plan claimed node %s: %w", node.ID, err)
+	}
+	commit.ContactAutomation.CurrentNodeID = result.NextNodeID
+	commit.ContactAutomation.ScheduledAt = result.ScheduledAt
+	commit.ContactAutomation.Status = result.Status
+	commit.ContactAutomation.ExitReason = result.ExitReason
+	if result.Context != nil {
+		commit.ContactAutomation.Context = result.Context
+	}
+	if result.NextNodeID == nil && result.Status == domain.ContactAutomationStatusActive && result.ScheduledAt == nil {
+		commit.ContactAutomation.Status = domain.ContactAutomationStatusCompleted
+	}
+	if commit.ContactAutomation.Status == domain.ContactAutomationStatusActive && commit.ContactAutomation.ScheduledAt == nil {
+		commit.ContactAutomation.ScheduledAt = journeyTimePtr(now)
+	}
+	return commit, nil
+}
+
+func journeyNodeNeedsContactData(nodeType domain.NodeType) bool {
+	switch nodeType {
+	case domain.NodeTypeBranch, domain.NodeTypeFilter, domain.NodeTypeListStatusBranch:
+		return true
+	default:
+		return false
+	}
+}
+
+func journeySideEffectChannel(nodeType domain.NodeType) (string, bool) {
+	switch nodeType {
+	case domain.NodeTypeEmail:
+		return "email", true
+	case domain.NodeTypeAddToList, domain.NodeTypeRemoveFromList:
+		return "contact_list", true
+	case domain.NodeTypeWebhook:
+		return "webhook", true
+	default:
+		return "", false
+	}
+}
+
+func planJourneySideEffect(
+	workspaceID string,
+	claim domain.ContactAutomationClaim,
+	automation *domain.Automation,
+	node *domain.AutomationNode,
+	channel string,
+	now time.Time,
+) (domain.JourneyStateCommit, error) {
+	next := claim.ContactAutomation
+	next.CurrentNodeID = node.NextNodeID
+	next.ScheduledAt = journeyTimePtr(now)
+	if node.NextNodeID == nil {
+		next.Status = domain.ContactAutomationStatusCompleted
+		next.ScheduledAt = nil
+	}
+
+	effectKey := fmt.Sprintf(
+		"journey:%s:%s:%d:%s:%d",
+		workspaceID, next.ID, claim.AutomationVersion, node.ID, claim.StateVersion,
+	)
+	eventID := uuid.NewSHA1(uuid.NameSpaceOID, []byte(effectKey+":event"))
+	messageID := uuid.NewSHA1(uuid.NameSpaceOID, []byte(effectKey+":message"))
+	correlationID := eventID
+	var causationID *uuid.UUID
+	if claim.OriginEventID != nil {
+		correlationID = *claim.OriginEventID
+		origin := *claim.OriginEventID
+		causationID = &origin
+	}
+	data, err := json.Marshal(map[string]interface{}{
+		"contact_automation_id": next.ID,
+		"automation_id":         automation.ID,
+		"automation_version":    claim.AutomationVersion,
+		"state_version":         claim.StateVersion,
+		"contact_email":         next.ContactEmail,
+		"node_id":               node.ID,
+		"node_type":             node.Type,
+		"node_config":           node.Config,
+	})
+	if err != nil {
+		return domain.JourneyStateCommit{}, fmt.Errorf("marshal journey side effect data: %w", err)
+	}
+	envelope := domain.EventEnvelope{
+		ID: messageID, EventID: eventID, Type: "journey.side_effect.requested", SchemaVersion: 1,
+		WorkspaceID: workspaceID,
+		Subject:     domain.EventSubject{Type: "contact_automation", ID: next.ID, ContactEmail: next.ContactEmail},
+		Source:      "journey-worker", OccurredAt: now, ReceivedAt: now,
+		CorrelationID: correlationID, CausationID: causationID, Data: data,
+	}
+	payload, err := json.Marshal(envelope)
+	if err != nil {
+		return domain.JourneyStateCommit{}, fmt.Errorf("marshal journey side effect envelope: %w", err)
+	}
+	hash := sha256.Sum256(payload)
+	requestHash := hex.EncodeToString(hash[:])
+	headers, err := json.Marshal(map[string]interface{}{
+		"schema_version": 1, "effect_key": effectKey, "channel": channel,
+		"correlation_id": correlationID,
+	})
+	if err != nil {
+		return domain.JourneyStateCommit{}, fmt.Errorf("marshal journey side effect headers: %w", err)
+	}
+	return domain.JourneyStateCommit{
+		ContactAutomation: next,
+		SideEffect: &domain.SideEffectExecution{
+			EffectKey: effectKey, ContactAutomationID: next.ID,
+			AutomationVersion: claim.AutomationVersion, NodeID: node.ID,
+			ExecutionVersion: claim.StateVersion, Channel: channel,
+			Status: domain.SideEffectStatusReserved, RequestHash: requestHash,
+			CreatedAt: now, UpdatedAt: now,
+		},
+		Command: &domain.OutboxMessage{
+			ID: messageID, EventID: eventID, Topic: "notifuse.jobs",
+			RoutingKey: "delivery." + channel, Payload: payload, Headers: headers,
+			Status: domain.OutboxStatusPending, AvailableAt: now, CreatedAt: now,
+		},
+	}, nil
+}
+
+func journeyTimePtr(value time.Time) *time.Time {
+	return &value
 }
 
 // ProcessBatch processes a batch of scheduled contacts

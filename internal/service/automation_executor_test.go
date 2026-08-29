@@ -14,6 +14,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -28,6 +29,50 @@ func setupMockLogger(ctrl *gomock.Controller) *pkgmocks.MockLogger {
 	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
 	return mockLogger
+}
+
+func TestAutomationExecutor_PlanClaimedEmailStepIsDeterministicAndSideEffectFree(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	automationRepo := mocks.NewMockAutomationRepository(ctrl)
+	nodeID := "email-1"
+	nextNodeID := "delay-1"
+	automationRepo.EXPECT().GetByID(gomock.Any(), "workspace-1", "automation-1").
+		Return(&domain.Automation{
+			ID: "automation-1", Status: domain.AutomationStatusLive,
+			Nodes: []*domain.AutomationNode{{
+				ID: nodeID, Type: domain.NodeTypeEmail, NextNodeID: &nextNodeID,
+				Config: map[string]interface{}{"template_id": "template-1"},
+			}},
+		}, nil).Times(2)
+
+	executor := &AutomationExecutor{automationRepo: automationRepo}
+	now := time.Date(2026, 8, 29, 10, 0, 0, 0, time.UTC)
+	originEventID := uuid.New()
+	claim := domain.ContactAutomationClaim{
+		ContactAutomation: domain.ContactAutomation{
+			ID: "ca-1", AutomationID: "automation-1", ContactEmail: "person@example.com",
+			CurrentNodeID: &nodeID, Status: domain.ContactAutomationStatusActive,
+		},
+		OriginEventID: &originEventID, AutomationVersion: 5, StateVersion: 9, ClaimToken: uuid.New(),
+	}
+
+	first, err := executor.PlanClaimedJourneyStep(context.Background(), "workspace-1", claim, now)
+	require.NoError(t, err)
+	second, err := executor.PlanClaimedJourneyStep(context.Background(), "workspace-1", claim, now)
+	require.NoError(t, err)
+
+	require.NotNil(t, first.SideEffect)
+	require.NotNil(t, first.Command)
+	assert.Equal(t, first.SideEffect.EffectKey, second.SideEffect.EffectKey)
+	assert.Equal(t, first.SideEffect.RequestHash, second.SideEffect.RequestHash)
+	assert.Equal(t, first.Command.ID, second.Command.ID)
+	assert.Equal(t, first.Command.EventID, second.Command.EventID)
+	assert.Equal(t, "delivery.email", first.Command.RoutingKey)
+	assert.Equal(t, &nextNodeID, first.ContactAutomation.CurrentNodeID)
+	require.NotNil(t, first.ContactAutomation.ScheduledAt)
+	assert.Equal(t, now, *first.ContactAutomation.ScheduledAt)
 }
 
 func TestAutomationExecutor_Execute_HappyPath(t *testing.T) {

@@ -11,6 +11,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/service"
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
@@ -488,6 +489,310 @@ func (r *AutomationRepository) UpdateContactAutomationIfActive(ctx context.Conte
 		return false, fmt.Errorf("failed to get rows affected: %w", err)
 	}
 	return rowsAffected > 0, nil
+}
+
+// ClaimContactAutomation grants one worker a renewable lease on one due journey.
+// The UPDATE is the claim: unlike selecting with FOR UPDATE outside a transaction,
+// no database lock needs to remain open while the node is evaluated.
+func (r *AutomationRepository) ClaimContactAutomation(
+	ctx context.Context,
+	workspaceID, contactAutomationID, workerID string,
+	now time.Time,
+	lease time.Duration,
+) (*domain.ContactAutomationClaim, bool, error) {
+	if contactAutomationID == "" || workerID == "" {
+		return nil, false, fmt.Errorf("contact automation id and worker id are required")
+	}
+	if lease <= 0 {
+		return nil, false, fmt.Errorf("claim lease must be positive")
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to get database connection: %w", err)
+	}
+	now = now.UTC()
+	expiresAt := now.Add(lease)
+	claimToken := uuid.New()
+
+	claim, err := scanContactAutomationClaim(db.QueryRowContext(ctx, `
+		UPDATE contact_automations AS ca
+		SET claimed_at = $2,
+		    claim_token = $4,
+		    claimed_by = $5,
+		    claim_expires_at = $6
+		FROM automations AS a
+		WHERE ca.id = $1
+		  AND ca.status = $3
+		  AND (ca.scheduled_at IS NULL OR ca.scheduled_at <= $2)
+		  AND (ca.claim_expires_at IS NULL OR ca.claim_expires_at <= $2)
+		  AND a.id = ca.automation_id
+		  AND a.status = 'live'
+		  AND a.deleted_at IS NULL
+		  AND a.version = ca.automation_version
+		RETURNING ca.id, ca.automation_id, ca.contact_email, ca.current_node_id,
+		          ca.status, ca.exit_reason, ca.entered_at, ca.scheduled_at,
+		          ca.context, ca.retry_count, ca.last_error, ca.last_retry_at,
+		          ca.max_retries, ca.origin_event_id, ca.automation_version,
+		          ca.state_version, ca.claim_token, ca.claimed_by, ca.claimed_at,
+		          ca.claim_expires_at
+	`, contactAutomationID, now, domain.ContactAutomationStatusActive, claimToken, workerID, expiresAt))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, fmt.Errorf("claim contact automation: %w", err)
+	}
+	return claim, true, nil
+}
+
+func scanContactAutomationClaim(scanner rowScanner) (*domain.ContactAutomationClaim, error) {
+	var claim domain.ContactAutomationClaim
+	var contextJSON []byte
+	var currentNodeID, exitReason, lastError, claimedBy sql.NullString
+	var scheduledAt, lastRetryAt, claimedAt, expiresAt sql.NullTime
+	var originEventID uuid.NullUUID
+	var claimToken uuid.UUID
+
+	err := scanner.Scan(
+		&claim.ContactAutomation.ID, &claim.ContactAutomation.AutomationID,
+		&claim.ContactAutomation.ContactEmail, &currentNodeID,
+		&claim.ContactAutomation.Status, &exitReason, &claim.ContactAutomation.EnteredAt,
+		&scheduledAt, &contextJSON, &claim.ContactAutomation.RetryCount,
+		&lastError, &lastRetryAt, &claim.ContactAutomation.MaxRetries,
+		&originEventID, &claim.AutomationVersion, &claim.StateVersion,
+		&claimToken, &claimedBy, &claimedAt, &expiresAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if currentNodeID.Valid {
+		claim.ContactAutomation.CurrentNodeID = &currentNodeID.String
+	}
+	if exitReason.Valid {
+		claim.ContactAutomation.ExitReason = &exitReason.String
+	}
+	if scheduledAt.Valid {
+		claim.ContactAutomation.ScheduledAt = &scheduledAt.Time
+	}
+	if len(contextJSON) > 0 {
+		if err := json.Unmarshal(contextJSON, &claim.ContactAutomation.Context); err != nil {
+			return nil, fmt.Errorf("unmarshal claimed journey context: %w", err)
+		}
+	}
+	if lastError.Valid {
+		claim.ContactAutomation.LastError = &lastError.String
+	}
+	if lastRetryAt.Valid {
+		claim.ContactAutomation.LastRetryAt = &lastRetryAt.Time
+	}
+	if originEventID.Valid {
+		claim.OriginEventID = &originEventID.UUID
+	}
+	claim.ClaimToken = claimToken
+	if claimedBy.Valid {
+		claim.ClaimedBy = claimedBy.String
+	}
+	if claimedAt.Valid {
+		claim.ClaimedAt = claimedAt.Time
+	}
+	if expiresAt.Valid {
+		claim.ExpiresAt = expiresAt.Time
+	}
+	return &claim, nil
+}
+
+// RenewContactAutomationClaim extends only the lease still owned by claimToken.
+func (r *AutomationRepository) RenewContactAutomationClaim(
+	ctx context.Context,
+	workspaceID, contactAutomationID string,
+	claimToken uuid.UUID,
+	now time.Time,
+	lease time.Duration,
+) (bool, error) {
+	if claimToken == uuid.Nil || lease <= 0 {
+		return false, fmt.Errorf("claim token and positive lease are required")
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get database connection: %w", err)
+	}
+	result, err := db.ExecContext(ctx, `
+		UPDATE contact_automations
+		SET claimed_at = $3, claim_expires_at = $4
+		WHERE id = $1 AND claim_token = $2 AND status = 'active'
+	`, contactAutomationID, claimToken, now.UTC(), now.UTC().Add(lease))
+	if err != nil {
+		return false, fmt.Errorf("renew contact automation claim: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	return rows > 0, err
+}
+
+// CommitContactAutomationState uses both lease token and state version as its
+// compare-and-swap predicate. Optional side-effect reservation and outbox command
+// are written in the same transaction as the workflow transition.
+func (r *AutomationRepository) CommitContactAutomationState(
+	ctx context.Context,
+	workspaceID string,
+	claim domain.ContactAutomationClaim,
+	commit domain.JourneyStateCommit,
+) (bool, error) {
+	if claim.ClaimToken == uuid.Nil || claim.ContactAutomation.ID == "" {
+		return false, fmt.Errorf("valid journey claim is required")
+	}
+	if commit.ContactAutomation.ID != claim.ContactAutomation.ID {
+		return false, fmt.Errorf("commit contact automation does not match claim")
+	}
+	if (commit.SideEffect == nil) != (commit.Command == nil) {
+		return false, fmt.Errorf("side effect and command must be committed together")
+	}
+	contextJSON, err := json.Marshal(commit.ContactAutomation.Context)
+	if err != nil {
+		return false, fmt.Errorf("marshal journey context: %w", err)
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get database connection: %w", err)
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, fmt.Errorf("begin journey state commit: %w", err)
+	}
+	defer tx.Rollback()
+
+	result, err := tx.ExecContext(ctx, `
+		UPDATE contact_automations
+		SET current_node_id = $1,
+		    status = $2,
+		    exit_reason = $3,
+		    scheduled_at = $4,
+		    context = $5,
+		    retry_count = $6,
+		    last_error = $7,
+		    last_retry_at = $8,
+		    max_retries = $9,
+		    state_version = state_version + 1,
+		    claim_token = NULL,
+		    claimed_by = NULL,
+		    claimed_at = NULL,
+		    claim_expires_at = NULL
+		WHERE id = $10
+		  AND claim_token = $11
+		  AND state_version = $12
+		  AND automation_version = $13
+		  AND EXISTS (
+		      SELECT 1 FROM automations AS a
+		      WHERE a.id = contact_automations.automation_id
+		        AND a.version = $13
+		        AND a.status = 'live'
+		        AND a.deleted_at IS NULL
+		  )
+	`, commit.ContactAutomation.CurrentNodeID, commit.ContactAutomation.Status,
+		commit.ContactAutomation.ExitReason, commit.ContactAutomation.ScheduledAt,
+		contextJSON, commit.ContactAutomation.RetryCount, commit.ContactAutomation.LastError,
+		commit.ContactAutomation.LastRetryAt, commit.ContactAutomation.MaxRetries,
+		claim.ContactAutomation.ID, claim.ClaimToken, claim.StateVersion,
+		claim.AutomationVersion)
+	if err != nil {
+		return false, fmt.Errorf("commit journey state: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("read journey state commit result: %w", err)
+	}
+	if rows == 0 {
+		return false, nil
+	}
+
+	if commit.SideEffect != nil {
+		if err := reserveJourneySideEffectTx(ctx, tx, *commit.SideEffect); err != nil {
+			return false, err
+		}
+		availableAt := commit.Command.AvailableAt.UTC()
+		if commit.Command.AvailableAt.IsZero() {
+			availableAt = commit.SideEffect.CreatedAt.UTC()
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO event_outbox (
+				id, event_id, topic, routing_key, payload, headers, available_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7)
+			ON CONFLICT (event_id, topic, routing_key) DO NOTHING
+		`, commit.Command.ID, commit.Command.EventID, commit.Command.Topic,
+			commit.Command.RoutingKey, []byte(commit.Command.Payload),
+			[]byte(commit.Command.Headers), availableAt); err != nil {
+			return false, fmt.Errorf("enqueue journey side effect: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("commit journey transaction: %w", err)
+	}
+	return true, nil
+}
+
+func reserveJourneySideEffectTx(ctx context.Context, tx *sql.Tx, execution domain.SideEffectExecution) error {
+	if execution.EffectKey == "" || execution.ContactAutomationID == "" ||
+		execution.AutomationVersion <= 0 || execution.NodeID == "" ||
+		execution.Channel == "" || execution.RequestHash == "" {
+		return fmt.Errorf("side effect identity and request hash are required")
+	}
+	if execution.Status == "" {
+		execution.Status = domain.SideEffectStatusReserved
+	}
+	if execution.CreatedAt.IsZero() {
+		execution.CreatedAt = time.Now().UTC()
+	}
+	if execution.UpdatedAt.IsZero() {
+		execution.UpdatedAt = execution.CreatedAt
+	}
+	var requestHash string
+	err := tx.QueryRowContext(ctx, `
+		INSERT INTO side_effect_executions (
+			effect_key, contact_automation_id, automation_version, node_id,
+			execution_version, channel, status, provider_message_id,
+			request_hash, attempts, last_error, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		ON CONFLICT (effect_key) DO UPDATE
+		SET effect_key = side_effect_executions.effect_key
+		WHERE side_effect_executions.request_hash = EXCLUDED.request_hash
+		RETURNING request_hash
+	`, execution.EffectKey, execution.ContactAutomationID, execution.AutomationVersion,
+		execution.NodeID, execution.ExecutionVersion, execution.Channel, execution.Status,
+		execution.ProviderMessageID, execution.RequestHash, execution.Attempts,
+		execution.LastError, execution.CreatedAt, execution.UpdatedAt).Scan(&requestHash)
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.ErrSideEffectHashConflict
+	}
+	if err != nil {
+		return fmt.Errorf("reserve journey side effect: %w", err)
+	}
+	if requestHash != execution.RequestHash {
+		return domain.ErrSideEffectHashConflict
+	}
+	return nil
+}
+
+// ReleaseContactAutomationClaim makes a failed or cancelled plan immediately
+// claimable without changing its state version.
+func (r *AutomationRepository) ReleaseContactAutomationClaim(
+	ctx context.Context,
+	workspaceID, contactAutomationID string,
+	claimToken uuid.UUID,
+) (bool, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get database connection: %w", err)
+	}
+	result, err := db.ExecContext(ctx, `
+		UPDATE contact_automations
+		SET claim_token = NULL, claimed_by = NULL, claimed_at = NULL, claim_expires_at = NULL
+		WHERE id = $1 AND claim_token = $2
+	`, contactAutomationID, claimToken)
+	if err != nil {
+		return false, fmt.Errorf("release contact automation claim: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	return rows > 0, err
 }
 
 // ExitContactJourneysOnReply marks the contact's active journeys as exited when

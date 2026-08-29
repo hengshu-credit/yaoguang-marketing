@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 //go:generate mockgen -destination mocks/mock_automation_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain AutomationRepository
@@ -467,6 +469,45 @@ type ContactAutomation struct {
 	MaxRetries    int                     `json:"max_retries"`
 }
 
+// ContactAutomationClaim is the PostgreSQL authorization held by one journey
+// worker. The token prevents a stale worker from committing after its lease was
+// reclaimed, while StateVersion prevents two transitions from applying to the
+// same workflow state even if a message is replayed.
+type ContactAutomationClaim struct {
+	ContactAutomation ContactAutomation `json:"contact_automation"`
+	OriginEventID     *uuid.UUID        `json:"origin_event_id,omitempty"`
+	AutomationVersion int               `json:"automation_version"`
+	StateVersion      int64             `json:"state_version"`
+	ClaimToken        uuid.UUID         `json:"claim_token"`
+	ClaimedBy         string            `json:"claimed_by"`
+	ClaimedAt         time.Time         `json:"claimed_at"`
+	ExpiresAt         time.Time         `json:"expires_at"`
+}
+
+// JourneyStateCommit is one authorized workflow transition. Command and
+// SideEffect are optional but must either both be present or both be absent.
+// Repositories persist all three pieces in one transaction.
+type JourneyStateCommit struct {
+	ContactAutomation ContactAutomation    `json:"contact_automation"`
+	SideEffect        *SideEffectExecution `json:"side_effect,omitempty"`
+	Command           *OutboxMessage       `json:"command,omitempty"`
+}
+
+// JourneyClaimRepository is intentionally smaller than AutomationRepository so
+// RabbitMQ workers can depend only on the lease/commit authority boundary.
+type JourneyClaimRepository interface {
+	ClaimContactAutomation(ctx context.Context, workspaceID, contactAutomationID, workerID string, now time.Time, lease time.Duration) (*ContactAutomationClaim, bool, error)
+	RenewContactAutomationClaim(ctx context.Context, workspaceID, contactAutomationID string, claimToken uuid.UUID, now time.Time, lease time.Duration) (bool, error)
+	CommitContactAutomationState(ctx context.Context, workspaceID string, claim ContactAutomationClaim, commit JourneyStateCommit) (bool, error)
+	ReleaseContactAutomationClaim(ctx context.Context, workspaceID, contactAutomationID string, claimToken uuid.UUID) (bool, error)
+}
+
+// JourneyStepPlanner evaluates exactly one claimed workflow node without
+// publishing externally. Any external action is returned as an outbox command.
+type JourneyStepPlanner interface {
+	PlanClaimedJourneyStep(ctx context.Context, workspaceID string, claim ContactAutomationClaim, now time.Time) (JourneyStateCommit, error)
+}
+
 // simple email regex for validation
 var emailRegexAutomation = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 
@@ -806,6 +847,10 @@ type AutomationRepository interface {
 	// was updated — i.e. the journey was concurrently exited (e.g. by a reply
 	// interrupt) — so the executor stops instead of clobbering the exit.
 	UpdateContactAutomationIfActive(ctx context.Context, workspaceID string, ca *ContactAutomation) (bool, error)
+	ClaimContactAutomation(ctx context.Context, workspaceID, contactAutomationID, workerID string, now time.Time, lease time.Duration) (*ContactAutomationClaim, bool, error)
+	RenewContactAutomationClaim(ctx context.Context, workspaceID, contactAutomationID string, claimToken uuid.UUID, now time.Time, lease time.Duration) (bool, error)
+	CommitContactAutomationState(ctx context.Context, workspaceID string, claim ContactAutomationClaim, commit JourneyStateCommit) (bool, error)
+	ReleaseContactAutomationClaim(ctx context.Context, workspaceID, contactAutomationID string, claimToken uuid.UUID) (bool, error)
 	GetScheduledContactAutomations(ctx context.Context, workspaceID string, beforeTime time.Time, limit int) ([]*ContactAutomation, error)
 
 	// ExitContactJourneysOnReply marks the contact's active journeys as exited
