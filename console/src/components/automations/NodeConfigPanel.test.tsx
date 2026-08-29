@@ -68,6 +68,12 @@ const renderPanel = (selectedNode: Node<AutomationNodeData>) => {
 }
 
 describe('NodeConfigPanel description', () => {
+  it('uses the translatable node type in the panel title', () => {
+    renderPanel(makeNode('n1', 'trigger', {}))
+
+    expect(screen.getByText('Configure Trigger')).toBeInTheDocument()
+  })
+
   it('offers a description for every node type', () => {
     ALL_NODE_TYPES.forEach((nodeType) => {
       const { unmount } = renderPanel(makeNode('n1', nodeType, {}))

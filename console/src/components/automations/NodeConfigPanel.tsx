@@ -81,6 +81,22 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
   }
 
   const { nodeType, config } = selectedNode.data
+  const nodeLabel = (() => {
+    switch (nodeType) {
+      case 'trigger': return t`Trigger`
+      case 'delay': return t`Delay`
+      case 'email': return t`Email`
+      case 'sms': return t`SMS`
+      case 'push': return t`Push`
+      case 'ab_test': return t`A/B Test`
+      case 'add_to_list': return t`Add to List`
+      case 'remove_from_list': return t`Remove from List`
+      case 'filter': return t`Filter`
+      case 'webhook': return t`Webhook`
+      case 'list_status_branch': return t`List Status`
+      default: return selectedNode.data.label
+    }
+  })()
 
   const writeConfig = (newConfig: Record<string, unknown>) => {
     onNodeUpdate(selectedNode.id, {
@@ -187,7 +203,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
     <div className="bg-white h-full flex flex-col">
       <div className="p-3 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
         <Title level={5} style={{ margin: 0, fontSize: '14px' }}>
-          {t`Configure`} {selectedNode.data.label}
+          {t`Configure ${nodeLabel}`}
         </Title>
         {onClose && (
           <button

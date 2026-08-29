@@ -1,44 +1,18 @@
+#
 msgid ""
 msgstr ""
-"POT-Creation-Date: 2026-01-24 18:18+0100\n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"X-Generator: @lingui/cli\n"
-"Language: ca\n"
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-01-24 18:18+0100\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
+"Language: ca\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: \n"
-
-#. js-lingui-explicit-id
-#: src/__tests__/WorkspaceLayout.test.tsx:101
-#: src/__tests__/WorkspaceLayout.test.tsx:119
-msgid "Dashboard"
-msgstr ""
-
-#. js-lingui-explicit-id
-#: src/i18n/workspaceCatalog.test.ts:39
-#: src/i18n/workspaceCatalog.test.ts:42
-#: src/i18n/workspaceCatalog.test.ts:58
-#: src/i18n/workspaceCatalog.test.ts:66
-#: src/i18n/workspaceCatalog.test.ts:80
-#: src/i18n/workspaceCatalog.test.ts:88
-msgid "Sidebar title"
-msgstr ""
-
-#. js-lingui-explicit-id
-#: src/i18n/workspaceCatalog.test.ts:49
-msgid "Unknown message"
-msgstr ""
-
-#. js-lingui-explicit-id
-#: src/i18n/workspaceCatalog.test.ts:50
-#: src/i18n/workspaceCatalog.test.ts:67
-msgid "Another message"
-msgstr ""
+"X-Generator: @lingui/cli\n"
 
 #: src/components/ai-assistant/useAIAssistant.tsx:355
 msgid " - Done"
@@ -581,6 +555,7 @@ msgid "A winner has been selected. Emails are being sent to the remaining recipi
 msgstr "S'ha seleccionat un guanyador. S'estan enviant els correus a la resta de destinataris."
 
 #: src/components/automations/AddNodeButton.tsx:83
+#: src/components/automations/NodeConfigPanel.tsx:91
 #: src/components/automations/nodes/ABTestNode.tsx:47
 #: src/components/automations/nodes/StatNode.tsx:93
 #: src/components/automations/nodes/StatNode.tsx:346
@@ -845,6 +820,7 @@ msgid "Add to list"
 msgstr "Afegir a la llista"
 
 #: src/components/automations/AddNodeButton.tsx:85
+#: src/components/automations/NodeConfigPanel.tsx:92
 #: src/components/automations/nodes/AddToListNode.tsx:41
 #: src/components/automations/nodes/StatNode.tsx:91
 msgid "Add to List"
@@ -1027,6 +1003,10 @@ msgstr "Tot el temps"
 msgid "All transactional emails (notifications, password resets, etc.) will be sent through this provider from now on."
 msgstr "Tots els correus transaccionals (notificacions, restabliments de contrasenya, etc.) s'enviaran a través d'aquest proveïdor a partir d'ara."
 
+#: src/components/settings/UITranslationsSettings.tsx:325
+msgid "All workspace overrides will fall back to the bundled defaults."
+msgstr "Totes les substitucions de l'espai de treball tornaran als valors predeterminats integrats."
+
 #: src/pages/SetupWizard.tsx:523
 msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 msgstr "Permet rebre correus per activar notificacions transaccionals. Requereix certificats TLS."
@@ -1091,6 +1071,10 @@ msgstr "S'ha produït un error durant l'exportació"
 msgid "An error occurred with the file manager"
 msgstr "S'ha produït un error amb el gestor de fitxers"
 
+#: src/components/settings/UITranslationsSettings.tsx:99
+msgid "Analytics"
+msgstr "Analítiques"
+
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:215
 msgid "Analytics Assistant"
 msgstr "Assistent d'analítica"
@@ -1138,6 +1122,9 @@ msgstr "Anotacions"
 #: src/services/api/permissions.ts:835
 msgid "Annotations have no permission of their own: they deliberately answer to this switch, so a Web Analytics grant is also the right to write on the shared timeline everyone reads. Write reaches workspace configuration too — /api/workspaces.setWebAnalyticsSettings answers to Web Analytics write rather than Workspace write, including the email-link identification setting that ties recipients to their browsing. The public /track collector is governed by nothing at all: it accepts data without any authentication, and no grant here changes that."
 msgstr "Les anotacions no tenen cap permís propi: responen deliberadament a aquest interruptor, de manera que una concessió d'Analítica web és també el dret d'escriure sobre la cronologia compartida que tothom llegeix. L'escriptura arriba també a la configuració de l'espai de treball — /api/workspaces.setWebAnalyticsSettings respon a l'escriptura d'Analítica web i no pas a l'escriptura d'Espai de treball, inclòs el paràmetre d'identificació per enllaç de correu que lliga els destinataris amb la seva navegació. El col·lector públic /track no està governat per res: accepta dades sense cap autenticació, i cap concessió d'aquí no ho canvia."
+
+#~ msgid "Another message"
+#~ msgstr ""
 
 #: src/components/segment/input.tsx:959
 msgid "ANY"
@@ -1543,6 +1530,7 @@ msgid "Automation:"
 msgstr "Automatització:"
 
 #: src/components/settings/PermissionsMatrix.tsx:127
+#: src/components/settings/UITranslationsSettings.tsx:102
 #: src/layouts/WorkspaceLayout.tsx:442
 #: src/pages/AutomationsPage.tsx:162
 #: src/services/api/errors.ts:62
@@ -1761,7 +1749,8 @@ msgstr "Blocs"
 #: src/components/settings/BlogSettings.tsx:226
 #: src/components/settings/BlogSettings.tsx:259
 #: src/components/settings/PermissionsMatrix.tsx:126
-#: src/components/settings/SettingsSidebar.tsx:106
+#: src/components/settings/SettingsSidebar.tsx:108
+#: src/components/settings/UITranslationsSettings.tsx:109
 #: src/layouts/WorkspaceLayout.tsx:276
 #: src/services/api/errors.ts:61
 msgid "Blog"
@@ -1794,6 +1783,10 @@ msgstr "Títol del blog"
 #: src/services/api/permissions.ts:521
 msgid "Blog write publishes JavaScript on your own domain. A theme carries its own `scripts.js`, and /api/blogThemes.publish makes it live for every visitor of the blog's custom domain — so this switch is the right to run any script on your site, not just to edit content. It also reaches workspace configuration: /api/workspaces.setBlogSettings answers to Blog write rather than Workspace write, so whoever you hand the blog to can also switch the blog feature itself on or off."
 msgstr "L'escriptura de Blog publica JavaScript al vostre propi domini. Un tema porta el seu propi `scripts.js`, i /api/blogThemes.publish el posa en actiu per a tots els visitants del domini personalitzat del blog — de manera que aquest interruptor és el dret d'executar qualsevol script al vostre lloc, no només d'editar contingut. També arriba a la configuració de l'espai de treball: /api/workspaces.setBlogSettings respon a l'escriptura de Blog i no pas a l'escriptura d'Espai de treball, de manera que qui rebi el blog també pot activar o desactivar la funcionalitat de blog mateixa."
+
+#: src/components/email_builder/panels/TreePanel.tsx:266
+msgid "Body"
+msgstr "Cos"
 
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:43
 msgid "Body Attributes"
@@ -1949,6 +1942,10 @@ msgstr "Desglossar per"
 msgid "Breaking down by:"
 msgstr "Desglossant per:"
 
+#: src/components/email_builder/panels/TreePanel.tsx:279
+msgid "Breakpoint"
+msgstr "Punt de ruptura"
+
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:27
 msgid "Breakpoint Attributes"
 msgstr "Atributs del punt de ruptura"
@@ -2052,6 +2049,7 @@ msgstr "Difusió actualitzada correctament"
 
 #: src/components/analytics/EmailMetricsChart.tsx:285
 #: src/components/settings/PermissionsMatrix.tsx:122
+#: src/components/settings/UITranslationsSettings.tsx:108
 #: src/layouts/WorkspaceLayout.tsx:416
 #: src/pages/BroadcastsPage.tsx:1508
 #: src/services/api/errors.ts:57
@@ -2116,6 +2114,10 @@ msgstr "Actualització massiva"
 #: src/components/contacts/BulkUpdateDrawer.tsx:552
 msgid "Bulk Update Contacts"
 msgstr "Actualitzar contactes massivament"
+
+#: src/components/email_builder/panels/TreePanel.tsx:272
+msgid "Button"
+msgstr "Botó"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:230
 msgid "Button Align"
@@ -2211,6 +2213,7 @@ msgstr "Campanyes"
 #: src/components/settings/Integrations.tsx:2859
 #: src/components/settings/Integrations.tsx:2896
 #: src/components/settings/SystemSettingsDrawer.tsx:170
+#: src/components/settings/UITranslationsSettings.tsx:327
 #: src/components/settings/WebhookCard.tsx:430
 #: src/components/settings/WebhookCard.tsx:450
 #: src/components/settings/WebhooksSettings.tsx:251
@@ -2648,6 +2651,10 @@ msgstr "Color"
 msgid "Colors"
 msgstr "Colors"
 
+#: src/components/email_builder/panels/TreePanel.tsx:269
+msgid "Column"
+msgstr "Columna"
+
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:39
 msgid "Column Attributes"
 msgstr "Atributs de columna"
@@ -2790,7 +2797,7 @@ msgstr "Condicions"
 msgid "Conditions"
 msgstr "Condicions"
 
-#: src/components/automations/NodeConfigPanel.tsx:179
+#: src/components/automations/NodeConfigPanel.tsx:195
 msgid "Configuration for {nodeType} is not available in Phase 2"
 msgstr "La configuració per a {nodeType} no està disponible a la Fase 2"
 
@@ -2801,7 +2808,6 @@ msgstr "Conjunt de configuració"
 
 #: src/components/analytics/AnalyticsDashboard.tsx:166
 #: src/components/analytics/AnalyticsDashboard.tsx:190
-#: src/components/automations/NodeConfigPanel.tsx:190
 #: src/components/automations/nodes/ABTestNode.tsx:60
 #: src/components/automations/nodes/AddToListNode.tsx:54
 #: src/components/automations/nodes/DelayNode.tsx:20
@@ -2812,6 +2818,10 @@ msgstr "Conjunt de configuració"
 #: src/components/settings/Integrations.tsx:1315
 msgid "Configure"
 msgstr "Configurar"
+
+#: src/components/automations/NodeConfigPanel.tsx:206
+msgid "Configure {nodeLabel}"
+msgstr "Configura {nodeLabel}"
 
 #: src/components/settings/GeneralSettings.tsx:274
 msgid "Configure a custom domain for email links, notification center, and web publications. DNS verification will be performed before saving to ensure you control this domain."
@@ -2991,6 +3001,7 @@ msgid "Contact updated successfully"
 msgstr "Contacte actualitzat correctament"
 
 #: src/components/settings/PermissionsMatrix.tsx:118
+#: src/components/settings/UITranslationsSettings.tsx:106
 #: src/layouts/WorkspaceLayout.tsx:397
 #: src/pages/ContactsPage.tsx:1000
 #: src/services/api/errors.ts:53
@@ -3041,6 +3052,10 @@ msgstr "Contingut"
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:62
 msgid "Content quality by traffic source"
 msgstr "Qualitat del contingut per font de trànsit"
+
+#: src/components/email_builder/EmailBuilder.tsx:888
+msgid "Content structure"
+msgstr "Estructura del contingut"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1229
 msgid "Content Structure Tree"
@@ -3347,7 +3362,7 @@ msgstr "Crear notificació"
 
 #: src/services/api/permissions.ts:254
 msgid "Create or update one Customer profile with an idempotency key"
-msgstr ""
+msgstr "Creeu o actualitzeu un perfil personalitzat amb una clau idempotència"
 
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:94
 #: src/components/web_analytics/tabs/FiltersTab.tsx:192
@@ -3474,6 +3489,10 @@ msgstr "Editor d'estils CSS"
 msgid "CSV must have at least a header row and one data row"
 msgstr "El CSV ha de tenir com a mínim una fila de capçalera i una fila de dades"
 
+#: src/components/settings/UITranslationsSettings.tsx:229
+msgid "Current"
+msgstr "Actual"
+
 #: src/pages/DebugSegmentPage.tsx:89
 msgid "Current Segment Tree JSON"
 msgstr "JSON de l'arbre de segment actual"
@@ -3494,6 +3513,10 @@ msgstr "Personalitzat (%)"
 #: src/components/email_builder/ui/BackgroundInput.tsx:88
 msgid "Custom (px)"
 msgstr "Personalitzat (px)"
+
+#: src/components/email_builder/panels/TreePanel.tsx:281
+msgid "Custom CSS"
+msgstr "CSS personalitzat"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:175
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:114
@@ -3578,7 +3601,7 @@ msgstr "Etiqueta de camp personalitzat desada correctament"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1136
 #: src/components/settings/CustomFieldsConfiguration.tsx:156
-#: src/components/settings/SettingsSidebar.tsx:116
+#: src/components/settings/SettingsSidebar.tsx:118
 msgid "Custom Fields"
 msgstr "Camps personalitzats"
 
@@ -3699,12 +3722,17 @@ msgstr "Camps de cadena personalitzats"
 
 #: src/services/api/permissions.ts:266
 msgid "Customer write can replace tags and list memberships and can explicitly merge an anonymous Customer into a known Customer. Merge is intentionally limited to that direction; known-to-known automatic merging is not allowed. Raw identity values are encrypted and responses expose only masked hints."
-msgstr ""
+msgstr "Els clients d' escriptura poden substituir etiquetes i adhesions de llista i poden fusionar explícitament un personalitzat anònim en un a mida conegut. Fusiona intencionadament està limitada a aquesta direcció; no es permet la fusió automàtica coneguda. Els valors d' identitat RAW estan encriptats i les respostes exposen només els suggeriments de màscara."
 
 #: src/components/settings/PermissionsMatrix.tsx:119
 #: src/services/api/errors.ts:54
 msgid "Customers"
-msgstr ""
+msgstr "Personalitzadors"
+
+#: src/components/settings/UITranslationsSettings.tsx:292
+#: src/components/settings/UITranslationsSettings.tsx:308
+msgid "Customize the static interface text used throughout this workspace."
+msgstr "Personalitza el text estàtic de la interfície utilitzat en aquest espai de treball."
 
 #: src/components/web_analytics/toolbar.tsx:170
 msgid "Daily"
@@ -3712,16 +3740,17 @@ msgstr "Diari"
 
 #: src/components/settings/BlogSettings.tsx:477
 #: src/components/settings/DeleteWorkspace.tsx:45
-#: src/components/settings/SettingsSidebar.tsx:135
+#: src/components/settings/SettingsSidebar.tsx:142
 msgid "Danger Zone"
 msgstr "Zona de perill"
 
+#: src/components/settings/UITranslationsSettings.tsx:98
 #: src/layouts/WorkspaceLayout.tsx:298
 #: src/layouts/WorkspaceLayout.tsx:316
 #: src/pages/AnalyticsPage.tsx:77
 #: src/pages/WebAnalyticsLivePage.tsx:126
 msgid "Dashboard"
-msgstr "Dashboard"
+msgstr "Tauler"
 
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:62
 #: src/components/email_builder/ui/BorderInput.tsx:57
@@ -3779,12 +3808,17 @@ msgstr "Per defecte"
 #: src/components/email_builder/ui/FontStyleInput.tsx:232
 #: src/components/integrations/LLMIntegration.tsx:228
 #: src/components/settings/Integrations.tsx:396
+#: src/components/settings/UITranslationsSettings.tsx:255
 msgid "Default"
 msgstr "Per defecte"
 
 #: src/components/settings/GeneralSettings.tsx:172
 msgid "Default (API endpoint)"
 msgstr "Per defecte (punt final API)"
+
+#: src/components/email_builder/panels/TreePanel.tsx:265
+msgid "Default attributes"
+msgstr "Atributs predeterminats"
 
 #: src/components/email_builder/blocks/MjAttributesBlock.tsx:13
 msgid "Default Attributes"
@@ -3826,6 +3860,7 @@ msgid "Define UTM parameters for links in your email for better campaign trackin
 msgstr "Definiu paràmetres UTM per als enllaços del vostre correu per a un millor seguiment de campanyes."
 
 #: src/components/automations/AddNodeButton.tsx:78
+#: src/components/automations/NodeConfigPanel.tsx:87
 #: src/components/automations/nodes/DelayNode.tsx:45
 #: src/components/automations/nodes/StatNode.tsx:85
 msgid "Delay"
@@ -4132,7 +4167,7 @@ msgstr "ID de lliurament:"
 msgid "Describe this image..."
 msgstr "Descriviu aquesta imatge..."
 
-#: src/components/automations/NodeConfigPanel.tsx:209
+#: src/components/automations/NodeConfigPanel.tsx:225
 #: src/components/blog/CategoryDrawer.tsx:155
 #: src/components/lists/ListDrawer.tsx:206
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:308
@@ -4257,6 +4292,10 @@ msgstr "Mostrar controls del reproductor de vídeo"
 #: src/components/automations/config/ABTestConfigForm.tsx:171
 msgid "Distribute evenly"
 msgstr "Distribuir uniformement"
+
+#: src/components/email_builder/panels/TreePanel.tsx:274
+msgid "Divider"
+msgstr "Separador"
 
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:37
 msgid "Divider Attributes"
@@ -4481,7 +4520,7 @@ msgstr "p. ex., compra"
 msgid "e.g., Raleway, Open Sans"
 msgstr "p. ex., Raleway, Open Sans"
 
-#: src/components/automations/NodeConfigPanel.tsx:223
+#: src/components/automations/NodeConfigPanel.tsx:239
 msgid "e.g., Welcome — day 1"
 msgstr "p. ex., Benvinguda — dia 1"
 
@@ -4496,6 +4535,7 @@ msgstr "Editar"
 #: src/components/automations/config/ConditionsField.tsx:108
 #: src/components/automations/UpsertAutomationDrawer.tsx:288
 #: src/components/blog/PostsTable.tsx:349
+#: src/components/email_builder/EmailBuilder.tsx:839
 #: src/components/email_builder/ui/ImportFontInput.tsx:209
 #: src/components/settings/Integrations.tsx:350
 #: src/components/settings/Integrations.tsx:1433
@@ -4707,6 +4747,7 @@ msgstr "Correu electrònic"
 #: src/components/analytics/NewContactsTable.tsx:67
 #: src/components/automations/AddNodeButton.tsx:79
 #: src/components/automations/config/TriggerConfigForm.tsx:102
+#: src/components/automations/NodeConfigPanel.tsx:88
 #: src/components/automations/nodes/EmailNode.tsx:39
 #: src/components/automations/nodes/StatNode.tsx:86
 #: src/components/contacts/BulkUpdateDrawer.tsx:665
@@ -4716,6 +4757,7 @@ msgstr "Correu electrònic"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1116
 #: src/components/contacts/ContactUpsertDrawer.tsx:515
 #: src/components/contacts/ExportContactsModal.tsx:50
+#: src/components/email_builder/panels/TreePanel.tsx:263
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
 #: src/components/messages/MessageHistoryTab.tsx:219
 #: src/components/settings/Integrations.tsx:2692
@@ -4833,6 +4875,10 @@ msgstr "Plantilla de correu"
 #: src/services/api/permissions.ts:394
 msgid "Email templates in every language, and the reusable template blocks stored on the workspace."
 msgstr "Plantilles de correu en tots els idiomes, i els blocs de plantilla reutilitzables desats a l'espai de treball."
+
+#: src/components/email_builder/panels/TreePanel.tsx:282
+msgid "Email Title"
+msgstr "Títol del correu electrònic"
 
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:32
 msgid "Email Title Settings"
@@ -4991,6 +5037,10 @@ msgstr "Introduïu un nom per a aquesta integració"
 #: src/pages/CreateWorkspacePage.tsx:131
 msgid "Enter a name for your workspace"
 msgstr "Introduïu un nom per al vostre espai de treball"
+
+#: src/components/settings/UITranslationsSettings.tsx:241
+msgid "Enter a translation or use Restore to inherit the default"
+msgstr "Introdueix una traducció o utilitza Restaura per heretar el valor predeterminat"
 
 #: src/components/lists/ListDrawer.tsx:203
 msgid "Enter a unique alphanumeric ID"
@@ -5357,7 +5407,7 @@ msgstr "Caduca:"
 
 #: src/services/api/permissions.ts:262
 msgid "Explicitly merge an anonymous Customer into a known Customer and retain an audit redirect"
-msgstr ""
+msgstr "Expropiadament fusionar un personalitzat anònim en un a mida conegut i mantenir una redirecció d'auditoria"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:371
 #: src/layouts/WorkspaceLayout.tsx:335
@@ -5636,7 +5686,7 @@ msgstr "No s'han pogut obtenir els objectes: "
 msgid "Failed to fetch setup status"
 msgstr "No s'ha pogut obtenir l'estat de configuració"
 
-#: src/pages/WorkspaceSettingsPage.tsx:96
+#: src/pages/WorkspaceSettingsPage.tsx:131
 msgid "Failed to fetch workspace members"
 msgstr "No s'han pogut obtenir els membres de l'espai de treball"
 
@@ -5786,6 +5836,10 @@ msgstr "No s'ha pogut desar el bloc de plantilla"
 #: src/components/blog/ThemeEditorDrawer.tsx:259
 msgid "Failed to save theme"
 msgstr "No s'ha pogut desar el tema"
+
+#: src/components/settings/UITranslationsSettings.tsx:168
+msgid "Failed to save UI translations"
+msgstr "No s'han pogut desar les traduccions de la interfície"
 
 #: src/components/settings/WebhooksSettings.tsx:159
 msgid "Failed to save webhook subscription"
@@ -5995,6 +6049,7 @@ msgid "File is too large. Maximum size is 1MB."
 msgstr "El fitxer és massa gran. La mida màxima és d'1 MB."
 
 #: src/components/file_manager/context.tsx:155
+#: src/components/settings/UITranslationsSettings.tsx:100
 #: src/layouts/WorkspaceLayout.tsx:284
 #: src/pages/FileManagerPage.tsx:119
 msgid "File Manager"
@@ -6025,6 +6080,7 @@ msgid "Fill in the fields of a hypothetical visit; empty fields count as empty v
 msgstr "Empleneu els camps d'una visita hipotètica; els camps buits compten com a valors buits."
 
 #: src/components/automations/AddNodeButton.tsx:82
+#: src/components/automations/NodeConfigPanel.tsx:94
 #: src/components/automations/nodes/FilterNode.tsx:48
 #: src/components/automations/nodes/StatNode.tsx:90
 #: src/components/automations/nodes/StatNode.tsx:188
@@ -6165,6 +6221,10 @@ msgstr "Configuració de font"
 msgid "Font Family"
 msgstr "Família de font"
 
+#: src/components/email_builder/panels/TreePanel.tsx:280
+msgid "Font Import"
+msgstr "Importació de tipus de lletra"
+
 #: src/components/email_builder/ui/ImportFontInput.tsx:125
 msgid "Font Name"
 msgstr "Nom de la font"
@@ -6284,7 +6344,7 @@ msgstr "Pantalla completa"
 msgid "gemini-3.1-pro-preview or a custom model ID"
 msgstr "gemini-3.1-pro-preview o un ID de model personalitzat"
 
-#: src/components/settings/SettingsSidebar.tsx:126
+#: src/components/settings/SettingsSidebar.tsx:128
 #: src/components/settings/SystemSettingsDrawer.tsx:250
 msgid "General"
 msgstr "General"
@@ -6421,6 +6481,10 @@ msgstr "Concedir-ho tot"
 msgid "Groove"
 msgstr "Groove"
 
+#: src/components/email_builder/panels/TreePanel.tsx:270
+msgid "Group"
+msgstr "Grup"
+
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:144
 msgid "Group (drag columns here)"
 msgstr "Grup (arrossegueu columnes aquí)"
@@ -6452,6 +6516,10 @@ msgstr "no té"
 #: src/components/web_analytics/explore/MinSessionsInput.tsx:54
 msgid "Having at least <0>{0}</0> sessions"
 msgstr "Que tinguin com a mínim <0>{0}</0> sessions"
+
+#: src/components/email_builder/panels/TreePanel.tsx:264
+msgid "Head"
+msgstr "Capçalera"
 
 #: src/components/email_builder/blocks/MjHeadBlock.tsx:15
 msgid "Head Attributes"
@@ -6747,6 +6815,7 @@ msgid "If the contact email doesn't exist in your workspace, it will be automati
 msgstr "Si el correu del contacte no existeix al vostre espai de treball, es crearà automàticament."
 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:42
+#: src/components/email_builder/panels/TreePanel.tsx:273
 #: src/components/email_builder/ui/BackgroundInput.tsx:258
 msgid "Image"
 msgstr "Imatge"
@@ -7000,7 +7069,8 @@ msgid "Integration updated successfully"
 msgstr "Integració actualitzada correctament"
 
 #: src/components/settings/Integrations.tsx:2625
-#: src/components/settings/SettingsSidebar.tsx:63
+#: src/components/settings/SettingsSidebar.tsx:65
+#: src/components/settings/UITranslationsSettings.tsx:95
 msgid "Integrations"
 msgstr "Integracions"
 
@@ -7159,6 +7229,10 @@ msgstr "L'URL de l'emissor és obligatori"
 msgid "Italic"
 msgstr "Cursiva"
 
+#: src/components/settings/UITranslationsSettings.tsx:187
+msgid "Item"
+msgstr "Element"
+
 #: src/components/settings/BlogSettings.tsx:427
 msgid "Items per feed"
 msgstr "Elements per feed"
@@ -7250,6 +7324,12 @@ msgstr "Pàgines d'aterratge"
 #: src/pages/ContactsPage.tsx:706
 msgid "Language"
 msgstr "Idioma"
+
+#: src/components/settings/SettingsSidebar.tsx:137
+#: src/components/settings/UITranslationsSettings.tsx:291
+#: src/components/settings/UITranslationsSettings.tsx:307
+msgid "Languages"
+msgstr "Idiomes"
 
 #: src/components/settings/GeneralSettings.tsx:224
 msgid "Languages available for template translations in this workspace"
@@ -7412,6 +7492,10 @@ msgstr "Tipus d'enllaç"
 msgid "Link URL"
 msgstr "URL de l'enllaç"
 
+#: src/components/email_builder/panels/TreePanel.tsx:278
+msgid "Liquid"
+msgstr "Liquid"
+
 #: src/components/email_builder/blocks/MjLiquidBlock.tsx:29
 msgid "Liquid Block"
 msgstr "Bloc Liquid"
@@ -7503,6 +7587,7 @@ msgid "List sent messages with their recipient address, delivery and engagement 
 msgstr "Llistar els missatges enviats amb la seva adreça de destinatari, les marques de temps de lliurament i d'interacció, i les dades amb què es va renderitzar cadascun"
 
 #: src/components/automations/AddNodeButton.tsx:84
+#: src/components/automations/NodeConfigPanel.tsx:96
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:38
 #: src/components/automations/nodes/StatNode.tsx:95
 #: src/components/automations/nodes/StatNode.tsx:257
@@ -7577,6 +7662,7 @@ msgstr "Llista:"
 
 #: src/components/analytics/NewContactsTable.tsx:73
 #: src/components/settings/PermissionsMatrix.tsx:120
+#: src/components/settings/UITranslationsSettings.tsx:105
 #: src/layouts/WorkspaceLayout.tsx:407
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
@@ -7698,6 +7784,7 @@ msgstr "URL del logotip"
 msgid "Logout"
 msgstr "Tancar sessió"
 
+#: src/components/settings/UITranslationsSettings.tsx:101
 #: src/layouts/WorkspaceLayout.tsx:486
 #: src/pages/LogsPage.tsx:28
 msgid "Logs"
@@ -7713,7 +7800,7 @@ msgstr "Consultar el registre complet d'un contacte pel vostre propi ID extern"
 
 #: src/services/api/permissions.ts:246
 msgid "Look up a Customer by UUID, Customer number, external user ID or normalized identity"
-msgstr ""
+msgstr "Mira a mida per UUID, número personalitzat, usuari extern IDo identitat normalitzada"
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:419
 msgid "Loop"
@@ -8208,6 +8295,10 @@ msgstr "Names this connection in Yaoguang Marketing, and the API key it creates 
 msgid "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 msgstr "Donar nom a una ranura la canvia de nom a tot arreu on apareix: taulers, el selector d'exploració i les regles d'atribució."
 
+#: src/components/settings/UITranslationsSettings.tsx:92
+msgid "Navigation"
+msgstr "Navegació"
+
 #: src/components/settings/Integrations.tsx:2214
 msgid "Needs these extra IAM permissions: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Add ses:ListTenants and ses:ListTenantResources for the pickers below, and ses:DeleteTenant plus ses:DeleteTenantResourceAssociation so the tenant is removed with the integration instead of billing forever."
 msgstr "Necessita aquests permisos IAM addicionals: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Afegiu ses:ListTenants i ses:ListTenantResources per als selectors de sota, i ses:DeleteTenant més ses:DeleteTenantResourceAssociation perquè el tenant s'elimini amb la integració en lloc de facturar per sempre."
@@ -8648,6 +8739,10 @@ msgstr "No hi ha trànsit en les darreres 24 hores"
 msgid "No transactional notifications found"
 msgstr "No s'han trobat notificacions transaccionals"
 
+#: src/components/settings/UITranslationsSettings.tsx:359
+msgid "No translations found"
+msgstr "No s'ha trobat cap traducció"
+
 #: src/components/automations/AutomationCard.tsx:302
 msgid "No trigger configured"
 msgstr "No s'ha configurat cap disparador"
@@ -8913,6 +9008,10 @@ msgstr "Només es permet un punt de ruptura per plantilla de correu"
 msgid "Only trigger when this exact tag is added or removed"
 msgstr "Only trigger when this exact tag is added or removed"
 
+#: src/components/settings/UITranslationsSettings.tsx:298
+msgid "Only workspace owners can manage UI translations."
+msgstr "Només els propietaris de l'espai de treball poden gestionar les traduccions de la interfície."
+
 #: src/components/integrations/FirecrawlIntegration.tsx:47
 #: src/components/integrations/LLMIntegration.tsx:103
 #: src/components/integrations/SupabaseIntegration.tsx:77
@@ -9063,6 +9162,7 @@ msgid "OS"
 msgstr "SO"
 
 #: src/components/blog_editor/menus/suggestion/SlashPopoverContent.tsx:74
+#: src/components/settings/UITranslationsSettings.tsx:111
 #: src/components/settings/WebhooksSettings.tsx:353
 #: src/components/templates/MessageTemplateDrawer.tsx:396
 #: src/pages/TemplatesPage.tsx:132
@@ -9089,6 +9189,10 @@ msgstr "Exterior"
 #: src/components/email_builder/ui/FontStyleInput.tsx:139
 msgid "Overline"
 msgstr "Línia superior"
+
+#: src/components/settings/UITranslationsSettings.tsx:255
+msgid "Override"
+msgstr "Substitució"
 
 #: src/components/templates/SendTemplateModal.tsx:352
 msgid "Override the default sender name for this test email"
@@ -9690,6 +9794,7 @@ msgstr "Previsualitzar"
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:37
 #: src/components/blog/ThemeSelectionModal.tsx:89
 #: src/components/common/ImageURLInput.tsx:52
+#: src/components/email_builder/EmailBuilder.tsx:843
 #: src/components/segment/button_upsert.tsx:659
 #: src/components/templates/MessageTemplateDrawer.tsx:348
 msgid "Preview"
@@ -9964,6 +10069,7 @@ msgstr "Compra"
 
 #: src/components/automations/AddNodeButton.tsx:81
 #: src/components/automations/config/ChannelConfigForm.tsx:29
+#: src/components/automations/NodeConfigPanel.tsx:90
 #: src/components/automations/nodes/ChannelNode.tsx:16
 #: src/components/automations/nodes/StatNode.tsx:88
 #: src/components/messages/MessageHistoryTab.tsx:221
@@ -9986,6 +10092,10 @@ msgstr "Límit de velocitat per a correus de màrqueting (correus per minut)"
 #: src/components/timeline/ContactTimeline.tsx:1023
 msgid "Raw Entry Data"
 msgstr "Dades d'entrada en brut"
+
+#: src/components/email_builder/panels/TreePanel.tsx:277
+msgid "Raw HTML"
+msgstr "HTML en brut"
 
 #: src/components/email_builder/blocks/MjRawBlock.tsx:242
 msgid "Raw HTML Block"
@@ -10236,6 +10346,7 @@ msgstr "URI de redirecció"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:677
+#: src/components/email_builder/EmailBuilder.tsx:826
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:505
 msgid "Redo"
 msgstr "Refer"
@@ -10335,6 +10446,10 @@ msgstr "Rel"
 msgid "Reload latest"
 msgstr "Recarregar la darrera"
 
+#: src/components/settings/UITranslationsSettings.tsx:342
+msgid "Reload this page to try again."
+msgstr "Torna a carregar aquesta pàgina per provar-ho de nou."
+
 #: src/components/automations/config/ConditionsField.tsx:119
 #: src/components/automations/config/ConditionsField.tsx:124
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:119
@@ -10373,6 +10488,7 @@ msgid "Remove from list"
 msgstr "Treure de la llista"
 
 #: src/components/automations/AddNodeButton.tsx:86
+#: src/components/automations/NodeConfigPanel.tsx:93
 #: src/components/automations/nodes/RemoveFromListNode.tsx:39
 #: src/components/automations/nodes/StatNode.tsx:92
 msgid "Remove from List"
@@ -10575,8 +10691,28 @@ msgid "Restart Server?"
 msgstr "Voleu reiniciar el servidor?"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:374
+#: src/components/settings/UITranslationsSettings.tsx:219
+#: src/components/settings/UITranslationsSettings.tsx:266
 msgid "Restore"
 msgstr "Restaurar"
+
+#. placeholder {0}: item.source
+#. placeholder {1}: localeNames[locale]
+#: src/components/settings/UITranslationsSettings.tsx:261
+msgid "Restore {0} in {1}"
+msgstr "Restaura {0} a {1}"
+
+#: src/components/settings/UITranslationsSettings.tsx:332
+msgid "Restore all"
+msgstr "Restaura-ho tot"
+
+#: src/components/settings/UITranslationsSettings.tsx:326
+msgid "Restore all overrides"
+msgstr "Restaura totes les substitucions"
+
+#: src/components/settings/UITranslationsSettings.tsx:324
+msgid "Restore all translations?"
+msgstr "Voleu restaurar totes les traduccions?"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:456
 msgid "Restore Draft"
@@ -10586,6 +10722,18 @@ msgstr "Restaurar esborrany"
 #: src/components/blog/ThemeEditorDrawer.tsx:452
 msgid "Restore Draft?"
 msgstr "Restaurar esborrany?"
+
+#: src/components/settings/UITranslationsSettings.tsx:199
+msgid "Restore item {displayLabel}"
+msgstr "Restaura l'element {displayLabel}"
+
+#: src/components/settings/UITranslationsSettings.tsx:202
+msgid "Restore menu {displayLabel}"
+msgstr "Restaura el menú {displayLabel}"
+
+#: src/components/settings/UITranslationsSettings.tsx:201
+msgid "Restore page {displayLabel}"
+msgstr "Restaura la pàgina {displayLabel}"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:85
 msgid "Resubscribed"
@@ -10962,6 +11110,11 @@ msgstr "Indexació de motors de cerca"
 msgid "Search templates..."
 msgstr "Cercar plantilles..."
 
+#: src/components/settings/UITranslationsSettings.tsx:318
+#: src/components/settings/UITranslationsSettings.tsx:319
+msgid "Search translations"
+msgstr "Cerca traduccions"
+
 #: src/components/web_analytics/tabs/FiltersTab.tsx:159
 msgid "Search..."
 msgstr "Cercar..."
@@ -10992,6 +11145,10 @@ msgstr "Clau secreta"
 #: src/components/settings/WebhookCard.tsx:339
 msgid "Secret:"
 msgstr "Secret:"
+
+#: src/components/email_builder/panels/TreePanel.tsx:268
+msgid "Section"
+msgstr "Secció"
 
 #. placeholder {0}: sectionLabels[section]
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:417
@@ -11080,6 +11237,7 @@ msgstr "Arbre del segment restablert"
 
 #: src/components/contacts/SegmentsFilter.tsx:230
 #: src/components/settings/PermissionsMatrix.tsx:130
+#: src/components/settings/UITranslationsSettings.tsx:107
 #: src/pages/BroadcastsPage.tsx:1025
 #: src/pages/ContactsPage.tsx:425
 #: src/pages/ContactsPage.tsx:625
@@ -11773,7 +11931,8 @@ msgstr "Estableix l'amplada de pantalla per sota de la qual el correu canviarà 
 msgid "Setting up..."
 msgstr "Configurant..."
 
-#: src/components/settings/SettingsSidebar.tsx:141
+#: src/components/settings/SettingsSidebar.tsx:148
+#: src/components/settings/UITranslationsSettings.tsx:93
 #: src/layouts/WorkspaceLayout.tsx:495
 msgid "Settings"
 msgstr "Configuració"
@@ -11789,6 +11948,10 @@ msgstr "Configuració completada!"
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:117
 msgid "Share link"
 msgstr "Compartir enllaç"
+
+#: src/components/settings/UITranslationsSettings.tsx:110
+msgid "Shared"
+msgstr "Compartit"
 
 #: src/components/settings/Integrations.tsx:2464
 msgid "shared with the rest of this AWS account"
@@ -11818,6 +11981,9 @@ msgstr "Mostrar més ({0} restants)"
 #: src/components/broadcasts/BroadcastLinkStats.tsx:200
 msgid "Showing the top 200 links by unique clicks."
 msgstr "Es mostren els 200 enllaços principals per clics únics."
+
+#~ msgid "Sidebar title"
+#~ msgstr ""
 
 #: src/pages/SignInPage.tsx:211
 msgid "Sign In"
@@ -11884,6 +12050,7 @@ msgstr "L'slug només pot contenir lletres minúscules, números i guions"
 
 #: src/components/automations/AddNodeButton.tsx:80
 #: src/components/automations/config/ChannelConfigForm.tsx:29
+#: src/components/automations/NodeConfigPanel.tsx:89
 #: src/components/automations/nodes/ChannelNode.tsx:16
 #: src/components/automations/nodes/StatNode.tsx:87
 #: src/components/messages/MessageHistoryTab.tsx:220
@@ -11891,7 +12058,7 @@ msgstr "L'slug només pot contenir lletres minúscules, números i guions"
 msgid "SMS"
 msgstr "SMS"
 
-#: src/components/settings/SettingsSidebar.tsx:121
+#: src/components/settings/SettingsSidebar.tsx:123
 #: src/components/settings/SMTPBridgeSettings.tsx:20
 #: src/components/settings/SystemSettingsDrawer.tsx:455
 msgid "SMTP Bridge"
@@ -11986,6 +12153,10 @@ msgstr "Usuari SMTP"
 msgid "SMTP Username"
 msgstr "Nom d'usuari SMTP"
 
+#: src/components/email_builder/panels/TreePanel.tsx:276
+msgid "Social"
+msgstr "Xarxes socials"
+
 #: src/components/email_builder/blocks/MjSocialBlock.tsx:32
 msgid "Social Attributes"
 msgstr "Atributs socials"
@@ -12058,6 +12229,10 @@ msgstr "Fonts"
 #: src/components/email_builder/ui/BackgroundInput.tsx:98
 msgid "Space"
 msgstr "Espai"
+
+#: src/components/email_builder/panels/TreePanel.tsx:275
+msgid "Spacer"
+msgstr "Espaiador"
 
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:35
 msgid "Spacer Attributes"
@@ -12220,6 +12395,7 @@ msgid "Subject"
 msgstr "Assumpte"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:33
+#: src/components/email_builder/panels/TreePanel.tsx:283
 #: src/components/templates/CreateTemplateDrawer.tsx:929
 #: src/components/templates/TemplatePreviewDrawer.tsx:358
 #: src/components/templates/TemplateTranslationsTab.tsx:220
@@ -12372,7 +12548,7 @@ msgstr "Canvieu al mode de vista prèvia per veure els efectes del punt de ruptu
 
 #: src/services/api/permissions.ts:258
 msgid "Synchronize a configurable large batch and receive one ordered result for every item"
-msgstr ""
+msgstr "Sincronitza un lot configurable gran i rep un resultat ordenat per a cada element"
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:102
 msgid "System Fonts"
@@ -12432,7 +12608,7 @@ msgstr "Estat de la tasca"
 msgid "Task type:"
 msgstr "Tipus de tasca:"
 
-#: src/components/settings/SettingsSidebar.tsx:42
+#: src/components/settings/SettingsSidebar.tsx:44
 #: src/components/settings/WorkspaceMembers.tsx:434
 msgid "Team"
 msgstr "Equip"
@@ -12560,6 +12736,7 @@ msgid "Template:"
 msgstr "Plantilla:"
 
 #: src/components/settings/PermissionsMatrix.tsx:121
+#: src/components/settings/UITranslationsSettings.tsx:104
 #: src/layouts/WorkspaceLayout.tsx:265
 #: src/pages/TemplatesPage.tsx:451
 #: src/services/api/errors.ts:56
@@ -12694,6 +12871,7 @@ msgstr "Text"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:198
 #: src/components/email_builder/blocks/MjTextBlock.tsx:45
+#: src/components/email_builder/panels/TreePanel.tsx:271
 #: src/components/segment/input_event_property_filters.tsx:180
 msgid "Text"
 msgstr "Text"
@@ -13535,6 +13713,7 @@ msgstr "Transactional notification definitions and every path that sends email, 
 msgid "Transactional notification deleted successfully"
 msgstr "Notificació transaccional eliminada correctament"
 
+#: src/components/settings/UITranslationsSettings.tsx:103
 #: src/pages/TransactionalNotificationsPage.tsx:389
 msgid "Transactional Notifications"
 msgstr "Notificacions transaccionals"
@@ -13542,6 +13721,16 @@ msgstr "Notificacions transaccionals"
 #: src/components/analytics/AnalyticsDashboard.tsx:152
 msgid "Transactional Provider"
 msgstr "Proveïdor transaccional"
+
+#. placeholder {0}: item.source
+#. placeholder {1}: localeNames[locale]
+#: src/components/settings/UITranslationsSettings.tsx:246
+msgid "Translation for {0} in {1}"
+msgstr "Traducció de {0} a {1}"
+
+#: src/components/settings/UITranslationsSettings.tsx:178
+msgid "Translations were saved, but the workspace could not be refreshed"
+msgstr "Les traduccions s'han desat, però no s'ha pogut actualitzar l'espai de treball"
 
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:103
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:54
@@ -13554,6 +13743,7 @@ msgstr "Prova"
 
 #: src/components/automations/AddNodeButton.tsx:77
 #: src/components/automations/AutomationCard.tsx:294
+#: src/components/automations/NodeConfigPanel.tsx:86
 #: src/components/automations/nodes/StatNode.tsx:84
 #: src/components/automations/nodes/TriggerNode.tsx:60
 msgid "Trigger"
@@ -13625,6 +13815,14 @@ msgstr "Escriviu {selectedCount} per confirmar:"
 msgid "Type:"
 msgstr "Tipus:"
 
+#: src/components/settings/UITranslationsSettings.tsx:341
+msgid "UI translations could not be loaded"
+msgstr "No s'han pogut carregar les traduccions de la interfície"
+
+#: src/components/settings/UITranslationsSettings.tsx:175
+msgid "UI translations saved"
+msgstr "S'han desat les traduccions de la interfície"
+
 #: src/components/blog/PostsTable.tsx:168
 msgid "Uncategorized"
 msgstr "Sense categoria"
@@ -13641,6 +13839,7 @@ msgstr "Entendre la qualitat de les referències"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:670
+#: src/components/email_builder/EmailBuilder.tsx:818
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:496
 msgid "Undo"
 msgstr "Desfer"
@@ -13651,7 +13850,7 @@ msgstr "Desfer (Ctrl+Z)"
 
 #: src/services/api/permissions.ts:241
 msgid "Unified Customer profiles, external user IDs, masked identity aliases, tags and list memberships."
-msgstr ""
+msgstr "Perfils personalitzats unificats, IDs d' usuari extern, àlies d' identitat emmascarada, etiquetes i llistes d'adhesió."
 
 #: src/components/broadcasts/BroadcastLinkStats.tsx:132
 msgid "Unique clicks"
@@ -13698,6 +13897,9 @@ msgstr "Llista desconeguda"
 msgid "Unknown List"
 msgstr "Llista desconeguda"
 
+#~ msgid "Unknown message"
+#~ msgstr ""
+
 #: src/components/timeline/ContactTimeline.tsx:912
 msgid "Unknown page"
 msgstr "Pàgina desconeguda"
@@ -13713,6 +13915,9 @@ msgstr "Segment desconegut"
 #: src/components/contacts/SegmentsFilter.tsx:89
 msgid "Unknown status"
 msgstr "Estat desconegut"
+
+#~ msgid "UnknownCatalogId"
+#~ msgstr ""
 
 #: src/components/blog/PostsTable.tsx:321
 msgid "Unpublish"
@@ -14236,7 +14441,8 @@ msgid "Web"
 msgstr "Web"
 
 #: src/components/settings/PermissionsMatrix.tsx:129
-#: src/components/settings/SettingsSidebar.tsx:111
+#: src/components/settings/SettingsSidebar.tsx:113
+#: src/components/settings/UITranslationsSettings.tsx:97
 #: src/components/settings/WebAnalyticsSettings.tsx:232
 #: src/components/settings/WebAnalyticsSettings.tsx:242
 #: src/components/settings/WebAnalyticsSettings.tsx:291
@@ -14273,6 +14479,7 @@ msgid "Web session"
 msgstr "Sessió web"
 
 #: src/components/automations/AddNodeButton.tsx:87
+#: src/components/automations/NodeConfigPanel.tsx:95
 #: src/components/automations/nodes/StatNode.tsx:94
 #: src/components/automations/nodes/WebhookNode.tsx:43
 #: src/components/timeline/ContactTimeline.tsx:667
@@ -14330,7 +14537,8 @@ msgstr "URL del webhook"
 #: src/components/settings/Integrations.tsx:249
 #: src/components/settings/Integrations.tsx:257
 #: src/components/settings/Integrations.tsx:289
-#: src/components/settings/SettingsSidebar.tsx:85
+#: src/components/settings/SettingsSidebar.tsx:87
+#: src/components/settings/UITranslationsSettings.tsx:96
 #: src/components/settings/WebhooksSettings.tsx:207
 msgid "Webhooks"
 msgstr "Webhooks"
@@ -14525,6 +14733,7 @@ msgid "With:"
 msgstr "Amb:"
 
 #: src/components/settings/PermissionsMatrix.tsx:124
+#: src/components/settings/UITranslationsSettings.tsx:94
 #: src/services/api/errors.ts:59
 msgid "Workspace"
 msgstr "Espai de treball"
@@ -14583,6 +14792,10 @@ msgstr "Espai de treball no trobat"
 msgid "Workspace settings updated successfully"
 msgstr "Configuració de l'espai de treball actualitzada correctament"
 
+#: src/components/settings/UITranslationsSettings.tsx:345
+msgid "Workspace UI translations"
+msgstr "Traduccions de la interfície de l'espai de treball"
+
 #: src/services/api/permissions.ts:971
 msgid "Workspace write is far narrower than its name: the only workspace endpoint it gates is /api/workspaces.setCustomFieldLabels. Renaming or deleting the workspace, and creating, updating or deleting an integration, are owner-only and consult no permission at all — granting this does not confer them, and an owner has them without it. /api/workspaces.list is not gated either: it returns the workspaces you belong to whatever this switch says. Two settings endpoints that look like workspace configuration answer elsewhere — /api/workspaces.setBlogSettings to Blog write, and /api/workspaces.setWebAnalyticsSettings to Web Analytics write."
 msgstr "L'escriptura d'Espai de treball és molt més estreta que el seu nom: l'únic endpoint d'espai de treball que protegeix és /api/workspaces.setCustomFieldLabels. Canviar el nom de l'espai de treball o eliminar-lo, i crear, actualitzar o eliminar una integració, són accions només per a propietaris i no consulten cap permís — concedir això no les atorga, i un propietari les té sense això. /api/workspaces.list tampoc no està protegit: retorna els espais de treball als quals pertanyeu digui el que digui aquest interruptor. Dos endpoints de configuració que semblen configuració de l'espai de treball responen en un altre lloc — /api/workspaces.setBlogSettings a l'escriptura de Blog, i /api/workspaces.setWebAnalyticsSettings a l'escriptura d'Analítica web."
@@ -14590,6 +14803,10 @@ msgstr "L'escriptura d'Espai de treball és molt més estreta que el seu nom: l'
 #: src/pages/AcceptInvitationPage.tsx:148
 msgid "Workspace:"
 msgstr "Espai de treball:"
+
+#: src/components/email_builder/panels/TreePanel.tsx:267
+msgid "Wrapper"
+msgstr "Contenidor"
 
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:44
 msgid "Wrapper Attributes"
@@ -14829,6 +15046,10 @@ msgstr "Els vostres fitxers es poden pujar a qualsevol emmagatzematge compatible
 #: src/pages/SignInPage.tsx:100
 msgid "Your identity provider has not verified your email address."
 msgstr "El vostre proveïdor d'identitat no ha verificat la vostra adreça de correu."
+
+#: src/components/settings/UITranslationsSettings.tsx:369
+msgid "Your UI translation changes have not been saved."
+msgstr "Els canvis en les traduccions de la interfície no s'han desat."
 
 #: src/components/settings/WebAnalyticsSettings.tsx:466
 msgid "Your web analytics settings have not been saved. Leaving this page discards them."

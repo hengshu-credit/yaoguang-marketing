@@ -3,6 +3,7 @@ import { Button, Space, Segmented, Spin } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faRedoAlt, faUndoAlt } from '@fortawesome/free-solid-svg-icons'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
+import { useLingui } from '@lingui/react/macro'
 import 'overlayscrollbars/overlayscrollbars.css'
 import { TreePanel } from './panels/TreePanel'
 import { EditPanel } from './panels/EditPanel'
@@ -63,6 +64,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   hiddenBlocks,
   height
 }) => {
+  const { t } = useLingui()
   // State for current selection, UI, and history
   const [state, setState] = useState<
     EmailBuilderState & { history: EmailBlock[]; historyIndex: number }
@@ -813,7 +815,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
               icon={<FontAwesomeIcon icon={faUndoAlt} />}
               onClick={handleUndo}
               disabled={!canUndo || effectiveViewMode !== 'edit'}
-              title="Undo"
+              title={t`Undo`}
             />
             <Button
               size="small"
@@ -821,7 +823,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
               icon={<FontAwesomeIcon icon={faRedoAlt} />}
               onClick={handleRedo}
               disabled={!canRedo || effectiveViewMode !== 'edit'}
-              title="Redo"
+              title={t`Redo`}
             />
           </Space>
         </div>
@@ -834,11 +836,11 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
             onChange={handleModeChange}
             options={[
               {
-                label: 'Edit',
+                label: t`Edit`,
                 value: 'edit'
               },
               {
-                label: 'Preview',
+                label: t`Preview`,
                 value: 'preview'
               }
             ]}
@@ -882,7 +884,9 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
                   }
                 }}
               >
-                <div className="pt-4 px-6 text-gray-900 text-sm font-bold">Content structure</div>
+                <div className="pt-4 px-6 text-gray-900 text-sm font-bold">
+                  {t`Content structure`}
+                </div>
                 <TreePanel
                   emailTree={tree}
                   selectedBlockId={effectiveSelectedBlockId}

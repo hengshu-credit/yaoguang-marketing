@@ -16,8 +16,25 @@ msgstr ""
 #. js-lingui-explicit-id
 #: src/__tests__/WorkspaceLayout.test.tsx:101
 #: src/__tests__/WorkspaceLayout.test.tsx:119
-msgid "Dashboard"
-msgstr "Dashboard"
+#: src/i18n/workspaceCatalog.test.ts:39
+#: src/i18n/workspaceCatalog.test.ts:43
+#: src/i18n/workspaceCatalog.test.ts:59
+#: src/i18n/workspaceCatalog.test.ts:67
+#: src/i18n/workspaceCatalog.test.ts:81
+#: src/i18n/workspaceCatalog.test.ts:89
+#~ msgid "Dashboard"
+#~ msgstr "Dashboard"
+
+#. js-lingui-explicit-id
+#: src/i18n/workspaceCatalog.test.ts:50
+#~ msgid "UnknownCatalogId"
+#~ msgstr "UnknownCatalogId"
+
+#. js-lingui-explicit-id
+#: src/i18n/workspaceCatalog.test.ts:51
+#: src/i18n/workspaceCatalog.test.ts:68
+#~ msgid "Settings"
+#~ msgstr "Settings"
 
 #. js-lingui-explicit-id
 #: src/i18n/workspaceCatalog.test.ts:39
@@ -26,19 +43,19 @@ msgstr "Dashboard"
 #: src/i18n/workspaceCatalog.test.ts:66
 #: src/i18n/workspaceCatalog.test.ts:80
 #: src/i18n/workspaceCatalog.test.ts:88
-msgid "Sidebar title"
-msgstr "Sidebar title"
+#~ msgid "Sidebar title"
+#~ msgstr "Sidebar title"
 
 #. js-lingui-explicit-id
 #: src/i18n/workspaceCatalog.test.ts:49
-msgid "Unknown message"
-msgstr "Unknown message"
+#~ msgid "Unknown message"
+#~ msgstr "Unknown message"
 
 #. js-lingui-explicit-id
 #: src/i18n/workspaceCatalog.test.ts:50
 #: src/i18n/workspaceCatalog.test.ts:67
-msgid "Another message"
-msgstr "Another message"
+#~ msgid "Another message"
+#~ msgstr "Another message"
 
 #: src/components/ai-assistant/useAIAssistant.tsx:355
 msgid " - Done"
@@ -581,6 +598,7 @@ msgid "A winner has been selected. Emails are being sent to the remaining recipi
 msgstr "A winner has been selected. Emails are being sent to the remaining recipients."
 
 #: src/components/automations/AddNodeButton.tsx:83
+#: src/components/automations/NodeConfigPanel.tsx:91
 #: src/components/automations/nodes/ABTestNode.tsx:47
 #: src/components/automations/nodes/StatNode.tsx:93
 #: src/components/automations/nodes/StatNode.tsx:346
@@ -845,6 +863,7 @@ msgid "Add to list"
 msgstr "Add to list"
 
 #: src/components/automations/AddNodeButton.tsx:85
+#: src/components/automations/NodeConfigPanel.tsx:92
 #: src/components/automations/nodes/AddToListNode.tsx:41
 #: src/components/automations/nodes/StatNode.tsx:91
 msgid "Add to List"
@@ -1027,6 +1046,10 @@ msgstr "All time"
 msgid "All transactional emails (notifications, password resets, etc.) will be sent through this provider from now on."
 msgstr "All transactional emails (notifications, password resets, etc.) will be sent through this provider from now on."
 
+#: src/components/settings/UITranslationsSettings.tsx:325
+msgid "All workspace overrides will fall back to the bundled defaults."
+msgstr "All workspace overrides will fall back to the bundled defaults."
+
 #: src/pages/SetupWizard.tsx:523
 msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 msgstr "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
@@ -1090,6 +1113,10 @@ msgstr "An error occurred during export"
 #: src/pages/FileManagerPage.tsx:37
 msgid "An error occurred with the file manager"
 msgstr "An error occurred with the file manager"
+
+#: src/components/settings/UITranslationsSettings.tsx:99
+msgid "Analytics"
+msgstr "Analytics"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:215
 msgid "Analytics Assistant"
@@ -1543,6 +1570,7 @@ msgid "Automation:"
 msgstr "Automation:"
 
 #: src/components/settings/PermissionsMatrix.tsx:127
+#: src/components/settings/UITranslationsSettings.tsx:102
 #: src/layouts/WorkspaceLayout.tsx:442
 #: src/pages/AutomationsPage.tsx:162
 #: src/services/api/errors.ts:62
@@ -1761,7 +1789,8 @@ msgstr "Blocks"
 #: src/components/settings/BlogSettings.tsx:226
 #: src/components/settings/BlogSettings.tsx:259
 #: src/components/settings/PermissionsMatrix.tsx:126
-#: src/components/settings/SettingsSidebar.tsx:106
+#: src/components/settings/SettingsSidebar.tsx:108
+#: src/components/settings/UITranslationsSettings.tsx:109
 #: src/layouts/WorkspaceLayout.tsx:276
 #: src/services/api/errors.ts:61
 msgid "Blog"
@@ -1794,6 +1823,10 @@ msgstr "Blog Title"
 #: src/services/api/permissions.ts:521
 msgid "Blog write publishes JavaScript on your own domain. A theme carries its own `scripts.js`, and /api/blogThemes.publish makes it live for every visitor of the blog's custom domain — so this switch is the right to run any script on your site, not just to edit content. It also reaches workspace configuration: /api/workspaces.setBlogSettings answers to Blog write rather than Workspace write, so whoever you hand the blog to can also switch the blog feature itself on or off."
 msgstr "Blog write publishes JavaScript on your own domain. A theme carries its own `scripts.js`, and /api/blogThemes.publish makes it live for every visitor of the blog's custom domain — so this switch is the right to run any script on your site, not just to edit content. It also reaches workspace configuration: /api/workspaces.setBlogSettings answers to Blog write rather than Workspace write, so whoever you hand the blog to can also switch the blog feature itself on or off."
+
+#: src/components/email_builder/panels/TreePanel.tsx:266
+msgid "Body"
+msgstr "Body"
 
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:43
 msgid "Body Attributes"
@@ -1949,6 +1982,10 @@ msgstr "Breakdown by"
 msgid "Breaking down by:"
 msgstr "Breaking down by:"
 
+#: src/components/email_builder/panels/TreePanel.tsx:279
+msgid "Breakpoint"
+msgstr "Breakpoint"
+
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:27
 msgid "Breakpoint Attributes"
 msgstr "Breakpoint Attributes"
@@ -2052,6 +2089,7 @@ msgstr "Broadcast updated successfully"
 
 #: src/components/analytics/EmailMetricsChart.tsx:285
 #: src/components/settings/PermissionsMatrix.tsx:122
+#: src/components/settings/UITranslationsSettings.tsx:108
 #: src/layouts/WorkspaceLayout.tsx:416
 #: src/pages/BroadcastsPage.tsx:1508
 #: src/services/api/errors.ts:57
@@ -2116,6 +2154,10 @@ msgstr "Bulk Update"
 #: src/components/contacts/BulkUpdateDrawer.tsx:552
 msgid "Bulk Update Contacts"
 msgstr "Bulk Update Contacts"
+
+#: src/components/email_builder/panels/TreePanel.tsx:272
+msgid "Button"
+msgstr "Button"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:230
 msgid "Button Align"
@@ -2211,6 +2253,7 @@ msgstr "Campaigns"
 #: src/components/settings/Integrations.tsx:2859
 #: src/components/settings/Integrations.tsx:2896
 #: src/components/settings/SystemSettingsDrawer.tsx:170
+#: src/components/settings/UITranslationsSettings.tsx:327
 #: src/components/settings/WebhookCard.tsx:430
 #: src/components/settings/WebhookCard.tsx:450
 #: src/components/settings/WebhooksSettings.tsx:251
@@ -2648,6 +2691,10 @@ msgstr "Color"
 msgid "Colors"
 msgstr "Colors"
 
+#: src/components/email_builder/panels/TreePanel.tsx:269
+msgid "Column"
+msgstr "Column"
+
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:39
 msgid "Column Attributes"
 msgstr "Column Attributes"
@@ -2790,7 +2837,7 @@ msgstr "conditions"
 msgid "Conditions"
 msgstr "Conditions"
 
-#: src/components/automations/NodeConfigPanel.tsx:179
+#: src/components/automations/NodeConfigPanel.tsx:195
 msgid "Configuration for {nodeType} is not available in Phase 2"
 msgstr "Configuration for {nodeType} is not available in Phase 2"
 
@@ -2801,7 +2848,6 @@ msgstr "Configuration set"
 
 #: src/components/analytics/AnalyticsDashboard.tsx:166
 #: src/components/analytics/AnalyticsDashboard.tsx:190
-#: src/components/automations/NodeConfigPanel.tsx:190
 #: src/components/automations/nodes/ABTestNode.tsx:60
 #: src/components/automations/nodes/AddToListNode.tsx:54
 #: src/components/automations/nodes/DelayNode.tsx:20
@@ -2812,6 +2858,10 @@ msgstr "Configuration set"
 #: src/components/settings/Integrations.tsx:1315
 msgid "Configure"
 msgstr "Configure"
+
+#: src/components/automations/NodeConfigPanel.tsx:206
+msgid "Configure {nodeLabel}"
+msgstr "Configure {nodeLabel}"
 
 #: src/components/settings/GeneralSettings.tsx:274
 msgid "Configure a custom domain for email links, notification center, and web publications. DNS verification will be performed before saving to ensure you control this domain."
@@ -2991,6 +3041,7 @@ msgid "Contact updated successfully"
 msgstr "Contact updated successfully"
 
 #: src/components/settings/PermissionsMatrix.tsx:118
+#: src/components/settings/UITranslationsSettings.tsx:106
 #: src/layouts/WorkspaceLayout.tsx:397
 #: src/pages/ContactsPage.tsx:1000
 #: src/services/api/errors.ts:53
@@ -3041,6 +3092,10 @@ msgstr "Content"
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:62
 msgid "Content quality by traffic source"
 msgstr "Content quality by traffic source"
+
+#: src/components/email_builder/EmailBuilder.tsx:888
+msgid "Content structure"
+msgstr "Content structure"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1229
 msgid "Content Structure Tree"
@@ -3474,6 +3529,10 @@ msgstr "CSS Style Editor"
 msgid "CSV must have at least a header row and one data row"
 msgstr "CSV must have at least a header row and one data row"
 
+#: src/components/settings/UITranslationsSettings.tsx:229
+msgid "Current"
+msgstr "Current"
+
 #: src/pages/DebugSegmentPage.tsx:89
 msgid "Current Segment Tree JSON"
 msgstr "Current Segment Tree JSON"
@@ -3494,6 +3553,10 @@ msgstr "Custom (%)"
 #: src/components/email_builder/ui/BackgroundInput.tsx:88
 msgid "Custom (px)"
 msgstr "Custom (px)"
+
+#: src/components/email_builder/panels/TreePanel.tsx:281
+msgid "Custom CSS"
+msgstr "Custom CSS"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:175
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:114
@@ -3578,7 +3641,7 @@ msgstr "Custom field label saved successfully"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1136
 #: src/components/settings/CustomFieldsConfiguration.tsx:156
-#: src/components/settings/SettingsSidebar.tsx:116
+#: src/components/settings/SettingsSidebar.tsx:118
 msgid "Custom Fields"
 msgstr "Custom Fields"
 
@@ -3706,16 +3769,22 @@ msgstr "Customer write can replace tags and list memberships and can explicitly 
 msgid "Customers"
 msgstr "Customers"
 
+#: src/components/settings/UITranslationsSettings.tsx:292
+#: src/components/settings/UITranslationsSettings.tsx:308
+msgid "Customize the static interface text used throughout this workspace."
+msgstr "Customize the static interface text used throughout this workspace."
+
 #: src/components/web_analytics/toolbar.tsx:170
 msgid "Daily"
 msgstr "Daily"
 
 #: src/components/settings/BlogSettings.tsx:477
 #: src/components/settings/DeleteWorkspace.tsx:45
-#: src/components/settings/SettingsSidebar.tsx:135
+#: src/components/settings/SettingsSidebar.tsx:142
 msgid "Danger Zone"
 msgstr "Danger Zone"
 
+#: src/components/settings/UITranslationsSettings.tsx:98
 #: src/layouts/WorkspaceLayout.tsx:298
 #: src/layouts/WorkspaceLayout.tsx:316
 #: src/pages/AnalyticsPage.tsx:77
@@ -3779,12 +3848,17 @@ msgstr "default"
 #: src/components/email_builder/ui/FontStyleInput.tsx:232
 #: src/components/integrations/LLMIntegration.tsx:228
 #: src/components/settings/Integrations.tsx:396
+#: src/components/settings/UITranslationsSettings.tsx:255
 msgid "Default"
 msgstr "Default"
 
 #: src/components/settings/GeneralSettings.tsx:172
 msgid "Default (API endpoint)"
 msgstr "Default (API endpoint)"
+
+#: src/components/email_builder/panels/TreePanel.tsx:265
+msgid "Default attributes"
+msgstr "Default attributes"
 
 #: src/components/email_builder/blocks/MjAttributesBlock.tsx:13
 msgid "Default Attributes"
@@ -3826,6 +3900,7 @@ msgid "Define UTM parameters for links in your email for better campaign trackin
 msgstr "Define UTM parameters for links in your email for better campaign tracking."
 
 #: src/components/automations/AddNodeButton.tsx:78
+#: src/components/automations/NodeConfigPanel.tsx:87
 #: src/components/automations/nodes/DelayNode.tsx:45
 #: src/components/automations/nodes/StatNode.tsx:85
 msgid "Delay"
@@ -4132,7 +4207,7 @@ msgstr "Delivery ID:"
 msgid "Describe this image..."
 msgstr "Describe this image..."
 
-#: src/components/automations/NodeConfigPanel.tsx:209
+#: src/components/automations/NodeConfigPanel.tsx:225
 #: src/components/blog/CategoryDrawer.tsx:155
 #: src/components/lists/ListDrawer.tsx:206
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:308
@@ -4257,6 +4332,10 @@ msgstr "Display video player controls"
 #: src/components/automations/config/ABTestConfigForm.tsx:171
 msgid "Distribute evenly"
 msgstr "Distribute evenly"
+
+#: src/components/email_builder/panels/TreePanel.tsx:274
+msgid "Divider"
+msgstr "Divider"
 
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:37
 msgid "Divider Attributes"
@@ -4481,7 +4560,7 @@ msgstr "e.g., purchase"
 msgid "e.g., Raleway, Open Sans"
 msgstr "e.g., Raleway, Open Sans"
 
-#: src/components/automations/NodeConfigPanel.tsx:223
+#: src/components/automations/NodeConfigPanel.tsx:239
 msgid "e.g., Welcome — day 1"
 msgstr "e.g., Welcome — day 1"
 
@@ -4496,6 +4575,7 @@ msgstr "edit"
 #: src/components/automations/config/ConditionsField.tsx:108
 #: src/components/automations/UpsertAutomationDrawer.tsx:288
 #: src/components/blog/PostsTable.tsx:349
+#: src/components/email_builder/EmailBuilder.tsx:839
 #: src/components/email_builder/ui/ImportFontInput.tsx:209
 #: src/components/settings/Integrations.tsx:350
 #: src/components/settings/Integrations.tsx:1433
@@ -4707,6 +4787,7 @@ msgstr "email"
 #: src/components/analytics/NewContactsTable.tsx:67
 #: src/components/automations/AddNodeButton.tsx:79
 #: src/components/automations/config/TriggerConfigForm.tsx:102
+#: src/components/automations/NodeConfigPanel.tsx:88
 #: src/components/automations/nodes/EmailNode.tsx:39
 #: src/components/automations/nodes/StatNode.tsx:86
 #: src/components/contacts/BulkUpdateDrawer.tsx:665
@@ -4716,6 +4797,7 @@ msgstr "email"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1116
 #: src/components/contacts/ContactUpsertDrawer.tsx:515
 #: src/components/contacts/ExportContactsModal.tsx:50
+#: src/components/email_builder/panels/TreePanel.tsx:263
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
 #: src/components/messages/MessageHistoryTab.tsx:219
 #: src/components/settings/Integrations.tsx:2692
@@ -4833,6 +4915,10 @@ msgstr "Email Template"
 #: src/services/api/permissions.ts:394
 msgid "Email templates in every language, and the reusable template blocks stored on the workspace."
 msgstr "Email templates in every language, and the reusable template blocks stored on the workspace."
+
+#: src/components/email_builder/panels/TreePanel.tsx:282
+msgid "Email Title"
+msgstr "Email Title"
 
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:32
 msgid "Email Title Settings"
@@ -4991,6 +5077,10 @@ msgstr "Enter a name for this integration"
 #: src/pages/CreateWorkspacePage.tsx:131
 msgid "Enter a name for your workspace"
 msgstr "Enter a name for your workspace"
+
+#: src/components/settings/UITranslationsSettings.tsx:241
+msgid "Enter a translation or use Restore to inherit the default"
+msgstr "Enter a translation or use Restore to inherit the default"
 
 #: src/components/lists/ListDrawer.tsx:203
 msgid "Enter a unique alphanumeric ID"
@@ -5636,7 +5726,7 @@ msgstr "Failed to fetch objects: "
 msgid "Failed to fetch setup status"
 msgstr "Failed to fetch setup status"
 
-#: src/pages/WorkspaceSettingsPage.tsx:96
+#: src/pages/WorkspaceSettingsPage.tsx:131
 msgid "Failed to fetch workspace members"
 msgstr "Failed to fetch workspace members"
 
@@ -5786,6 +5876,10 @@ msgstr "Failed to save template block"
 #: src/components/blog/ThemeEditorDrawer.tsx:259
 msgid "Failed to save theme"
 msgstr "Failed to save theme"
+
+#: src/components/settings/UITranslationsSettings.tsx:168
+msgid "Failed to save UI translations"
+msgstr "Failed to save UI translations"
 
 #: src/components/settings/WebhooksSettings.tsx:159
 msgid "Failed to save webhook subscription"
@@ -5995,6 +6089,7 @@ msgid "File is too large. Maximum size is 1MB."
 msgstr "File is too large. Maximum size is 1MB."
 
 #: src/components/file_manager/context.tsx:155
+#: src/components/settings/UITranslationsSettings.tsx:100
 #: src/layouts/WorkspaceLayout.tsx:284
 #: src/pages/FileManagerPage.tsx:119
 msgid "File Manager"
@@ -6025,6 +6120,7 @@ msgid "Fill in the fields of a hypothetical visit; empty fields count as empty v
 msgstr "Fill in the fields of a hypothetical visit; empty fields count as empty values."
 
 #: src/components/automations/AddNodeButton.tsx:82
+#: src/components/automations/NodeConfigPanel.tsx:94
 #: src/components/automations/nodes/FilterNode.tsx:48
 #: src/components/automations/nodes/StatNode.tsx:90
 #: src/components/automations/nodes/StatNode.tsx:188
@@ -6165,6 +6261,10 @@ msgstr "Font Configuration"
 msgid "Font Family"
 msgstr "Font Family"
 
+#: src/components/email_builder/panels/TreePanel.tsx:280
+msgid "Font Import"
+msgstr "Font Import"
+
 #: src/components/email_builder/ui/ImportFontInput.tsx:125
 msgid "Font Name"
 msgstr "Font Name"
@@ -6284,7 +6384,7 @@ msgstr "Fullscreen"
 msgid "gemini-3.1-pro-preview or a custom model ID"
 msgstr "gemini-3.1-pro-preview or a custom model ID"
 
-#: src/components/settings/SettingsSidebar.tsx:126
+#: src/components/settings/SettingsSidebar.tsx:128
 #: src/components/settings/SystemSettingsDrawer.tsx:250
 msgid "General"
 msgstr "General"
@@ -6421,6 +6521,10 @@ msgstr "Grant all"
 msgid "Groove"
 msgstr "Groove"
 
+#: src/components/email_builder/panels/TreePanel.tsx:270
+msgid "Group"
+msgstr "Group"
+
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:144
 msgid "Group (drag columns here)"
 msgstr "Group (drag columns here)"
@@ -6452,6 +6556,10 @@ msgstr "has not"
 #: src/components/web_analytics/explore/MinSessionsInput.tsx:54
 msgid "Having at least <0>{0}</0> sessions"
 msgstr "Having at least <0>{0}</0> sessions"
+
+#: src/components/email_builder/panels/TreePanel.tsx:264
+msgid "Head"
+msgstr "Head"
 
 #: src/components/email_builder/blocks/MjHeadBlock.tsx:15
 msgid "Head Attributes"
@@ -6747,6 +6855,7 @@ msgid "If the contact email doesn't exist in your workspace, it will be automati
 msgstr "If the contact email doesn't exist in your workspace, it will be automatically created."
 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:42
+#: src/components/email_builder/panels/TreePanel.tsx:273
 #: src/components/email_builder/ui/BackgroundInput.tsx:258
 msgid "Image"
 msgstr "Image"
@@ -7000,7 +7109,8 @@ msgid "Integration updated successfully"
 msgstr "Integration updated successfully"
 
 #: src/components/settings/Integrations.tsx:2625
-#: src/components/settings/SettingsSidebar.tsx:63
+#: src/components/settings/SettingsSidebar.tsx:65
+#: src/components/settings/UITranslationsSettings.tsx:95
 msgid "Integrations"
 msgstr "Integrations"
 
@@ -7159,6 +7269,10 @@ msgstr "Issuer URL is required"
 msgid "Italic"
 msgstr "Italic"
 
+#: src/components/settings/UITranslationsSettings.tsx:187
+msgid "Item"
+msgstr "Item"
+
 #: src/components/settings/BlogSettings.tsx:427
 msgid "Items per feed"
 msgstr "Items per feed"
@@ -7250,6 +7364,12 @@ msgstr "Landing pages"
 #: src/pages/ContactsPage.tsx:706
 msgid "Language"
 msgstr "Language"
+
+#: src/components/settings/SettingsSidebar.tsx:137
+#: src/components/settings/UITranslationsSettings.tsx:291
+#: src/components/settings/UITranslationsSettings.tsx:307
+msgid "Languages"
+msgstr "Languages"
 
 #: src/components/settings/GeneralSettings.tsx:224
 msgid "Languages available for template translations in this workspace"
@@ -7412,6 +7532,10 @@ msgstr "Link Type"
 msgid "Link URL"
 msgstr "Link URL"
 
+#: src/components/email_builder/panels/TreePanel.tsx:278
+msgid "Liquid"
+msgstr "Liquid"
+
 #: src/components/email_builder/blocks/MjLiquidBlock.tsx:29
 msgid "Liquid Block"
 msgstr "Liquid Block"
@@ -7503,6 +7627,7 @@ msgid "List sent messages with their recipient address, delivery and engagement 
 msgstr "List sent messages with their recipient address, delivery and engagement timestamps, and the data each was rendered with"
 
 #: src/components/automations/AddNodeButton.tsx:84
+#: src/components/automations/NodeConfigPanel.tsx:96
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:38
 #: src/components/automations/nodes/StatNode.tsx:95
 #: src/components/automations/nodes/StatNode.tsx:257
@@ -7577,6 +7702,7 @@ msgstr "List:"
 
 #: src/components/analytics/NewContactsTable.tsx:73
 #: src/components/settings/PermissionsMatrix.tsx:120
+#: src/components/settings/UITranslationsSettings.tsx:105
 #: src/layouts/WorkspaceLayout.tsx:407
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
@@ -7698,6 +7824,7 @@ msgstr "Logo URL"
 msgid "Logout"
 msgstr "Logout"
 
+#: src/components/settings/UITranslationsSettings.tsx:101
 #: src/layouts/WorkspaceLayout.tsx:486
 #: src/pages/LogsPage.tsx:28
 msgid "Logs"
@@ -8208,6 +8335,10 @@ msgstr "Names this connection in Yaoguang Marketing, and the API key it creates 
 msgid "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 msgstr "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 
+#: src/components/settings/UITranslationsSettings.tsx:92
+msgid "Navigation"
+msgstr "Navigation"
+
 #: src/components/settings/Integrations.tsx:2214
 msgid "Needs these extra IAM permissions: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Add ses:ListTenants and ses:ListTenantResources for the pickers below, and ses:DeleteTenant plus ses:DeleteTenantResourceAssociation so the tenant is removed with the integration instead of billing forever."
 msgstr "Needs these extra IAM permissions: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Add ses:ListTenants and ses:ListTenantResources for the pickers below, and ses:DeleteTenant plus ses:DeleteTenantResourceAssociation so the tenant is removed with the integration instead of billing forever."
@@ -8648,6 +8779,10 @@ msgstr "No traffic in the last 24 hours"
 msgid "No transactional notifications found"
 msgstr "No transactional notifications found"
 
+#: src/components/settings/UITranslationsSettings.tsx:359
+msgid "No translations found"
+msgstr "No translations found"
+
 #: src/components/automations/AutomationCard.tsx:302
 msgid "No trigger configured"
 msgstr "No trigger configured"
@@ -8913,6 +9048,10 @@ msgstr "Only one breakpoint per email template is allowed"
 msgid "Only trigger when this exact tag is added or removed"
 msgstr "Only trigger when this exact tag is added or removed"
 
+#: src/components/settings/UITranslationsSettings.tsx:298
+msgid "Only workspace owners can manage UI translations."
+msgstr "Only workspace owners can manage UI translations."
+
 #: src/components/integrations/FirecrawlIntegration.tsx:47
 #: src/components/integrations/LLMIntegration.tsx:103
 #: src/components/integrations/SupabaseIntegration.tsx:77
@@ -9063,6 +9202,7 @@ msgid "OS"
 msgstr "OS"
 
 #: src/components/blog_editor/menus/suggestion/SlashPopoverContent.tsx:74
+#: src/components/settings/UITranslationsSettings.tsx:111
 #: src/components/settings/WebhooksSettings.tsx:353
 #: src/components/templates/MessageTemplateDrawer.tsx:396
 #: src/pages/TemplatesPage.tsx:132
@@ -9089,6 +9229,10 @@ msgstr "Outset"
 #: src/components/email_builder/ui/FontStyleInput.tsx:139
 msgid "Overline"
 msgstr "Overline"
+
+#: src/components/settings/UITranslationsSettings.tsx:255
+msgid "Override"
+msgstr "Override"
 
 #: src/components/templates/SendTemplateModal.tsx:352
 msgid "Override the default sender name for this test email"
@@ -9690,6 +9834,7 @@ msgstr "preview"
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:37
 #: src/components/blog/ThemeSelectionModal.tsx:89
 #: src/components/common/ImageURLInput.tsx:52
+#: src/components/email_builder/EmailBuilder.tsx:843
 #: src/components/segment/button_upsert.tsx:659
 #: src/components/templates/MessageTemplateDrawer.tsx:348
 msgid "Preview"
@@ -9964,6 +10109,7 @@ msgstr "Purchase"
 
 #: src/components/automations/AddNodeButton.tsx:81
 #: src/components/automations/config/ChannelConfigForm.tsx:29
+#: src/components/automations/NodeConfigPanel.tsx:90
 #: src/components/automations/nodes/ChannelNode.tsx:16
 #: src/components/automations/nodes/StatNode.tsx:88
 #: src/components/messages/MessageHistoryTab.tsx:221
@@ -9986,6 +10132,10 @@ msgstr "Rate limit for marketing emails (emails per minute)"
 #: src/components/timeline/ContactTimeline.tsx:1023
 msgid "Raw Entry Data"
 msgstr "Raw Entry Data"
+
+#: src/components/email_builder/panels/TreePanel.tsx:277
+msgid "Raw HTML"
+msgstr "Raw HTML"
 
 #: src/components/email_builder/blocks/MjRawBlock.tsx:242
 msgid "Raw HTML Block"
@@ -10236,6 +10386,7 @@ msgstr "Redirect URI"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:677
+#: src/components/email_builder/EmailBuilder.tsx:826
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:505
 msgid "Redo"
 msgstr "Redo"
@@ -10335,6 +10486,10 @@ msgstr "Rel"
 msgid "Reload latest"
 msgstr "Reload latest"
 
+#: src/components/settings/UITranslationsSettings.tsx:342
+msgid "Reload this page to try again."
+msgstr "Reload this page to try again."
+
 #: src/components/automations/config/ConditionsField.tsx:119
 #: src/components/automations/config/ConditionsField.tsx:124
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:119
@@ -10373,6 +10528,7 @@ msgid "Remove from list"
 msgstr "Remove from list"
 
 #: src/components/automations/AddNodeButton.tsx:86
+#: src/components/automations/NodeConfigPanel.tsx:93
 #: src/components/automations/nodes/RemoveFromListNode.tsx:39
 #: src/components/automations/nodes/StatNode.tsx:92
 msgid "Remove from List"
@@ -10575,8 +10731,28 @@ msgid "Restart Server?"
 msgstr "Restart Server?"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:374
+#: src/components/settings/UITranslationsSettings.tsx:219
+#: src/components/settings/UITranslationsSettings.tsx:266
 msgid "Restore"
 msgstr "Restore"
+
+#. placeholder {0}: item.source
+#. placeholder {1}: localeNames[locale]
+#: src/components/settings/UITranslationsSettings.tsx:261
+msgid "Restore {0} in {1}"
+msgstr "Restore {0} in {1}"
+
+#: src/components/settings/UITranslationsSettings.tsx:332
+msgid "Restore all"
+msgstr "Restore all"
+
+#: src/components/settings/UITranslationsSettings.tsx:326
+msgid "Restore all overrides"
+msgstr "Restore all overrides"
+
+#: src/components/settings/UITranslationsSettings.tsx:324
+msgid "Restore all translations?"
+msgstr "Restore all translations?"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:456
 msgid "Restore Draft"
@@ -10586,6 +10762,18 @@ msgstr "Restore Draft"
 #: src/components/blog/ThemeEditorDrawer.tsx:452
 msgid "Restore Draft?"
 msgstr "Restore Draft?"
+
+#: src/components/settings/UITranslationsSettings.tsx:199
+msgid "Restore item {displayLabel}"
+msgstr "Restore item {displayLabel}"
+
+#: src/components/settings/UITranslationsSettings.tsx:202
+msgid "Restore menu {displayLabel}"
+msgstr "Restore menu {displayLabel}"
+
+#: src/components/settings/UITranslationsSettings.tsx:201
+msgid "Restore page {displayLabel}"
+msgstr "Restore page {displayLabel}"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:85
 msgid "Resubscribed"
@@ -10962,6 +11150,11 @@ msgstr "Search Engine Indexing"
 msgid "Search templates..."
 msgstr "Search templates..."
 
+#: src/components/settings/UITranslationsSettings.tsx:318
+#: src/components/settings/UITranslationsSettings.tsx:319
+msgid "Search translations"
+msgstr "Search translations"
+
 #: src/components/web_analytics/tabs/FiltersTab.tsx:159
 msgid "Search..."
 msgstr "Search..."
@@ -10992,6 +11185,10 @@ msgstr "Secret Key"
 #: src/components/settings/WebhookCard.tsx:339
 msgid "Secret:"
 msgstr "Secret:"
+
+#: src/components/email_builder/panels/TreePanel.tsx:268
+msgid "Section"
+msgstr "Section"
 
 #. placeholder {0}: sectionLabels[section]
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:417
@@ -11080,6 +11277,7 @@ msgstr "Segment tree reset"
 
 #: src/components/contacts/SegmentsFilter.tsx:230
 #: src/components/settings/PermissionsMatrix.tsx:130
+#: src/components/settings/UITranslationsSettings.tsx:107
 #: src/pages/BroadcastsPage.tsx:1025
 #: src/pages/ContactsPage.tsx:425
 #: src/pages/ContactsPage.tsx:625
@@ -11773,7 +11971,8 @@ msgstr "Sets the screen width below which the email will switch to mobile layout
 msgid "Setting up..."
 msgstr "Setting up..."
 
-#: src/components/settings/SettingsSidebar.tsx:141
+#: src/components/settings/SettingsSidebar.tsx:148
+#: src/components/settings/UITranslationsSettings.tsx:93
 #: src/layouts/WorkspaceLayout.tsx:495
 msgid "Settings"
 msgstr "Settings"
@@ -11789,6 +11988,10 @@ msgstr "Setup Complete!"
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:117
 msgid "Share link"
 msgstr "Share link"
+
+#: src/components/settings/UITranslationsSettings.tsx:110
+msgid "Shared"
+msgstr "Shared"
 
 #: src/components/settings/Integrations.tsx:2464
 msgid "shared with the rest of this AWS account"
@@ -11884,6 +12087,7 @@ msgstr "Slug must contain only lowercase letters, numbers, and hyphens"
 
 #: src/components/automations/AddNodeButton.tsx:80
 #: src/components/automations/config/ChannelConfigForm.tsx:29
+#: src/components/automations/NodeConfigPanel.tsx:89
 #: src/components/automations/nodes/ChannelNode.tsx:16
 #: src/components/automations/nodes/StatNode.tsx:87
 #: src/components/messages/MessageHistoryTab.tsx:220
@@ -11891,7 +12095,7 @@ msgstr "Slug must contain only lowercase letters, numbers, and hyphens"
 msgid "SMS"
 msgstr "SMS"
 
-#: src/components/settings/SettingsSidebar.tsx:121
+#: src/components/settings/SettingsSidebar.tsx:123
 #: src/components/settings/SMTPBridgeSettings.tsx:20
 #: src/components/settings/SystemSettingsDrawer.tsx:455
 msgid "SMTP Bridge"
@@ -11986,6 +12190,10 @@ msgstr "SMTP User"
 msgid "SMTP Username"
 msgstr "SMTP Username"
 
+#: src/components/email_builder/panels/TreePanel.tsx:276
+msgid "Social"
+msgstr "Social"
+
 #: src/components/email_builder/blocks/MjSocialBlock.tsx:32
 msgid "Social Attributes"
 msgstr "Social Attributes"
@@ -12058,6 +12266,10 @@ msgstr "Sources"
 #: src/components/email_builder/ui/BackgroundInput.tsx:98
 msgid "Space"
 msgstr "Space"
+
+#: src/components/email_builder/panels/TreePanel.tsx:275
+msgid "Spacer"
+msgstr "Spacer"
 
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:35
 msgid "Spacer Attributes"
@@ -12220,6 +12432,7 @@ msgid "Subject"
 msgstr "Subject"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:33
+#: src/components/email_builder/panels/TreePanel.tsx:283
 #: src/components/templates/CreateTemplateDrawer.tsx:929
 #: src/components/templates/TemplatePreviewDrawer.tsx:358
 #: src/components/templates/TemplateTranslationsTab.tsx:220
@@ -12432,7 +12645,7 @@ msgstr "Task Status"
 msgid "Task type:"
 msgstr "Task type:"
 
-#: src/components/settings/SettingsSidebar.tsx:42
+#: src/components/settings/SettingsSidebar.tsx:44
 #: src/components/settings/WorkspaceMembers.tsx:434
 msgid "Team"
 msgstr "Team"
@@ -12560,6 +12773,7 @@ msgid "Template:"
 msgstr "Template:"
 
 #: src/components/settings/PermissionsMatrix.tsx:121
+#: src/components/settings/UITranslationsSettings.tsx:104
 #: src/layouts/WorkspaceLayout.tsx:265
 #: src/pages/TemplatesPage.tsx:451
 #: src/services/api/errors.ts:56
@@ -12694,6 +12908,7 @@ msgstr "text"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:198
 #: src/components/email_builder/blocks/MjTextBlock.tsx:45
+#: src/components/email_builder/panels/TreePanel.tsx:271
 #: src/components/segment/input_event_property_filters.tsx:180
 msgid "Text"
 msgstr "Text"
@@ -13535,6 +13750,7 @@ msgstr "Transactional notification definitions and every path that sends email, 
 msgid "Transactional notification deleted successfully"
 msgstr "Transactional notification deleted successfully"
 
+#: src/components/settings/UITranslationsSettings.tsx:103
 #: src/pages/TransactionalNotificationsPage.tsx:389
 msgid "Transactional Notifications"
 msgstr "Transactional Notifications"
@@ -13542,6 +13758,16 @@ msgstr "Transactional Notifications"
 #: src/components/analytics/AnalyticsDashboard.tsx:152
 msgid "Transactional Provider"
 msgstr "Transactional Provider"
+
+#. placeholder {0}: item.source
+#. placeholder {1}: localeNames[locale]
+#: src/components/settings/UITranslationsSettings.tsx:246
+msgid "Translation for {0} in {1}"
+msgstr "Translation for {0} in {1}"
+
+#: src/components/settings/UITranslationsSettings.tsx:178
+msgid "Translations were saved, but the workspace could not be refreshed"
+msgstr "Translations were saved, but the workspace could not be refreshed"
 
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:103
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:54
@@ -13554,6 +13780,7 @@ msgstr "Trial"
 
 #: src/components/automations/AddNodeButton.tsx:77
 #: src/components/automations/AutomationCard.tsx:294
+#: src/components/automations/NodeConfigPanel.tsx:86
 #: src/components/automations/nodes/StatNode.tsx:84
 #: src/components/automations/nodes/TriggerNode.tsx:60
 msgid "Trigger"
@@ -13625,6 +13852,14 @@ msgstr "Type {selectedCount} to confirm:"
 msgid "Type:"
 msgstr "Type:"
 
+#: src/components/settings/UITranslationsSettings.tsx:341
+msgid "UI translations could not be loaded"
+msgstr "UI translations could not be loaded"
+
+#: src/components/settings/UITranslationsSettings.tsx:175
+msgid "UI translations saved"
+msgstr "UI translations saved"
+
 #: src/components/blog/PostsTable.tsx:168
 msgid "Uncategorized"
 msgstr "Uncategorized"
@@ -13641,6 +13876,7 @@ msgstr "Understand the quality of referrals"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:670
+#: src/components/email_builder/EmailBuilder.tsx:818
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:496
 msgid "Undo"
 msgstr "Undo"
@@ -14236,7 +14472,8 @@ msgid "Web"
 msgstr "Web"
 
 #: src/components/settings/PermissionsMatrix.tsx:129
-#: src/components/settings/SettingsSidebar.tsx:111
+#: src/components/settings/SettingsSidebar.tsx:113
+#: src/components/settings/UITranslationsSettings.tsx:97
 #: src/components/settings/WebAnalyticsSettings.tsx:232
 #: src/components/settings/WebAnalyticsSettings.tsx:242
 #: src/components/settings/WebAnalyticsSettings.tsx:291
@@ -14273,6 +14510,7 @@ msgid "Web session"
 msgstr "Web session"
 
 #: src/components/automations/AddNodeButton.tsx:87
+#: src/components/automations/NodeConfigPanel.tsx:95
 #: src/components/automations/nodes/StatNode.tsx:94
 #: src/components/automations/nodes/WebhookNode.tsx:43
 #: src/components/timeline/ContactTimeline.tsx:667
@@ -14330,7 +14568,8 @@ msgstr "Webhook URL"
 #: src/components/settings/Integrations.tsx:249
 #: src/components/settings/Integrations.tsx:257
 #: src/components/settings/Integrations.tsx:289
-#: src/components/settings/SettingsSidebar.tsx:85
+#: src/components/settings/SettingsSidebar.tsx:87
+#: src/components/settings/UITranslationsSettings.tsx:96
 #: src/components/settings/WebhooksSettings.tsx:207
 msgid "Webhooks"
 msgstr "Webhooks"
@@ -14525,6 +14764,7 @@ msgid "With:"
 msgstr "With:"
 
 #: src/components/settings/PermissionsMatrix.tsx:124
+#: src/components/settings/UITranslationsSettings.tsx:94
 #: src/services/api/errors.ts:59
 msgid "Workspace"
 msgstr "Workspace"
@@ -14583,6 +14823,10 @@ msgstr "Workspace not found"
 msgid "Workspace settings updated successfully"
 msgstr "Workspace settings updated successfully"
 
+#: src/components/settings/UITranslationsSettings.tsx:345
+msgid "Workspace UI translations"
+msgstr "Workspace UI translations"
+
 #: src/services/api/permissions.ts:971
 msgid "Workspace write is far narrower than its name: the only workspace endpoint it gates is /api/workspaces.setCustomFieldLabels. Renaming or deleting the workspace, and creating, updating or deleting an integration, are owner-only and consult no permission at all — granting this does not confer them, and an owner has them without it. /api/workspaces.list is not gated either: it returns the workspaces you belong to whatever this switch says. Two settings endpoints that look like workspace configuration answer elsewhere — /api/workspaces.setBlogSettings to Blog write, and /api/workspaces.setWebAnalyticsSettings to Web Analytics write."
 msgstr "Workspace write is far narrower than its name: the only workspace endpoint it gates is /api/workspaces.setCustomFieldLabels. Renaming or deleting the workspace, and creating, updating or deleting an integration, are owner-only and consult no permission at all — granting this does not confer them, and an owner has them without it. /api/workspaces.list is not gated either: it returns the workspaces you belong to whatever this switch says. Two settings endpoints that look like workspace configuration answer elsewhere — /api/workspaces.setBlogSettings to Blog write, and /api/workspaces.setWebAnalyticsSettings to Web Analytics write."
@@ -14590,6 +14834,10 @@ msgstr "Workspace write is far narrower than its name: the only workspace endpoi
 #: src/pages/AcceptInvitationPage.tsx:148
 msgid "Workspace:"
 msgstr "Workspace:"
+
+#: src/components/email_builder/panels/TreePanel.tsx:267
+msgid "Wrapper"
+msgstr "Wrapper"
 
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:44
 msgid "Wrapper Attributes"
@@ -14829,6 +15077,10 @@ msgstr "Your files can be uploaded to any S3 compatible storage."
 #: src/pages/SignInPage.tsx:100
 msgid "Your identity provider has not verified your email address."
 msgstr "Your identity provider has not verified your email address."
+
+#: src/components/settings/UITranslationsSettings.tsx:369
+msgid "Your UI translation changes have not been saved."
+msgstr "Your UI translation changes have not been saved."
 
 #: src/components/settings/WebAnalyticsSettings.tsx:466
 msgid "Your web analytics settings have not been saved. Leaving this page discards them."

@@ -7,6 +7,7 @@ export default defineConfig({
     {
       path: "src/i18n/locales/{locale}",
       include: ["src"],
+      exclude: ["src/**/*.test.*", "src/**/__tests__/**"],
     },
   ],
 })

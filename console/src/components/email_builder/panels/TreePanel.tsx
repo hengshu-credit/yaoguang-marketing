@@ -252,15 +252,42 @@ const TreeNodeTitle: React.FC<{
   savedBlocks,
   hiddenBlocks
 }) => {
+  const { t } = useLingui()
   const shouldShowIndex = parentType !== 'mj-attributes'
   const indexToPass = shouldShowIndex ? index : undefined
   const isInsideMjAttributes = EmailBlockClass.isChildOf(emailTree, block.id, 'mj-attributes')
   const isDraggable = DRAGGABLE_NODES.includes(block.type) && !isInsideMjAttributes
   const preventAddBlocks = shouldPreventAddBlocks(emailTree, block.id)
+  const blockLabel = (() => {
+    switch (block.type) {
+      case 'mjml': return t`Email`
+      case 'mj-head': return t`Head`
+      case 'mj-attributes': return t`Default attributes`
+      case 'mj-body': return t`Body`
+      case 'mj-wrapper': return t`Wrapper`
+      case 'mj-section': return t`Section`
+      case 'mj-column': return t`Column`
+      case 'mj-group': return t`Group`
+      case 'mj-text': return t`Text`
+      case 'mj-button': return t`Button`
+      case 'mj-image': return t`Image`
+      case 'mj-divider': return t`Divider`
+      case 'mj-spacer': return t`Spacer`
+      case 'mj-social': return t`Social`
+      case 'mj-raw': return t`Raw HTML`
+      case 'mj-liquid': return t`Liquid`
+      case 'mj-breakpoint': return t`Breakpoint`
+      case 'mj-font': return t`Font Import`
+      case 'mj-style': return t`Custom CSS`
+      case 'mj-title': return t`Email Title`
+      case 'mj-preview': return t`Subject preview`
+      default: return blockClass.getLabel(indexToPass)
+    }
+  })()
 
   return (
     <span>
-      <span>{blockClass.getLabel(indexToPass)}</span>
+      <span>{blockLabel}</span>
       <span className="float-right flex items-center gap-1">
         {/* Inline Add Button for supported block types */}
         {shouldShowInlineAddButton(block.type) && onAddBlock && !preventAddBlocks && (
