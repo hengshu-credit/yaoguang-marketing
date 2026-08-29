@@ -6,6 +6,12 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: @lingui/cli\n"
 "Language: zh-CN\n"
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Plural-Forms: \n"
 
 #: src/components/ai-assistant/useAIAssistant.tsx:355
 msgid " - Done"
@@ -852,14 +858,14 @@ msgid "Address Line 2"
 msgstr "Address Line 2"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:363
-msgid "Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Notifuse for every recipient of every tracked send, which is why it is off by default."
-msgstr "Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Notifuse for every recipient of every tracked send, which is why it is off by default."
+msgid "Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Yaoguang Marketing for every recipient of every tracked send, which is why it is off by default."
+msgstr "为跟踪邮件中的链接附加签名身份，收件人点击后无需在网站中执行代码即可被识别，并将访问记录关联到客户档案、时间线、目标和自动化流程。与由您自己的服务器调用的 identify() 不同，该身份由瑶光营销平台为每次跟踪发送的每位收件人签发，因此默认关闭。"
 
-#: src/pages/SetupWizard.tsx:368
+#: src/pages/SetupWizard.tsx:319
 msgid "Admin email is required"
 msgstr "Admin email is required"
 
-#: src/pages/SetupWizard.tsx:547
+#: src/pages/SetupWizard.tsx:488
 msgid "Advanced Settings"
 msgstr "高级设置"
 
@@ -994,7 +1000,7 @@ msgstr "All time"
 msgid "All transactional emails (notifications, password resets, etc.) will be sent through this provider from now on."
 msgstr "All transactional emails (notifications, password resets, etc.) will be sent through this provider from now on."
 
-#: src/pages/SetupWizard.tsx:582
+#: src/pages/SetupWizard.tsx:523
 msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 msgstr "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 
@@ -1004,7 +1010,7 @@ msgid "Allowed domains"
 msgstr "Allowed domains"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:657
-#: src/pages/SetupWizard.tsx:760
+#: src/pages/SetupWizard.tsx:701
 msgid "Allowed email domains"
 msgstr "Allowed email domains"
 
@@ -1145,11 +1151,11 @@ msgstr "API Command"
 #: src/components/settings/Integrations.tsx:2088
 #: src/components/settings/Integrations.tsx:2470
 #: src/components/settings/SystemSettingsDrawer.tsx:277
-#: src/pages/SetupWizard.tsx:378
+#: src/pages/SetupWizard.tsx:329
 msgid "API Endpoint"
 msgstr "API Endpoint"
 
-#: src/pages/SetupWizard.tsx:381
+#: src/pages/SetupWizard.tsx:332
 msgid "API endpoint is required"
 msgstr "API endpoint is required"
 
@@ -1361,7 +1367,7 @@ msgstr "at least"
 msgid "At least one condition is required"
 msgstr "At least one condition is required"
 
-#: src/pages/SetupWizard.tsx:765
+#: src/pages/SetupWizard.tsx:706
 msgid "At least one domain is required when auto-create is enabled"
 msgstr "At least one domain is required when auto-create is enabled"
 
@@ -1445,7 +1451,7 @@ msgstr "auto"
 msgid "Auto"
 msgstr "Auto"
 
-#: src/pages/SetupWizard.tsx:752
+#: src/pages/SetupWizard.tsx:693
 msgid "Auto-create accounts on first sign-in"
 msgstr "Auto-create accounts on first sign-in"
 
@@ -1627,7 +1633,7 @@ msgstr "Base URL (Optional)"
 msgid "Base64 encoded TLS certificate"
 msgstr "Base64 encoded TLS certificate"
 
-#: src/pages/SetupWizard.tsx:645
+#: src/pages/SetupWizard.tsx:586
 msgid "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
 msgstr "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
 
@@ -1635,7 +1641,7 @@ msgstr "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
 msgid "Base64 encoded TLS private key"
 msgstr "Base64 encoded TLS private key"
 
-#: src/pages/SetupWizard.tsx:663
+#: src/pages/SetupWizard.tsx:604
 msgid "Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0"
 msgstr "Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0"
 
@@ -2093,7 +2099,7 @@ msgid "Button Attributes"
 msgstr "Button Attributes"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:619
-#: src/pages/SetupWizard.tsx:742
+#: src/pages/SetupWizard.tsx:683
 msgid "Button Label"
 msgstr "Button Label"
 
@@ -2399,7 +2405,7 @@ msgid "Check"
 msgstr "Check"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:698
-#: src/pages/SetupWizard.tsx:565
+#: src/pages/SetupWizard.tsx:506
 msgid "Check for Updates"
 msgstr "Check for Updates"
 
@@ -2521,11 +2527,11 @@ msgid "Clicks"
 msgstr "Clicks"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:572
-#: src/pages/SetupWizard.tsx:722
+#: src/pages/SetupWizard.tsx:663
 msgid "Client ID"
 msgstr "Client ID"
 
-#: src/pages/SetupWizard.tsx:725
+#: src/pages/SetupWizard.tsx:666
 msgid "Client ID is required"
 msgstr "Client ID is required"
 
@@ -2535,11 +2541,11 @@ msgstr "Client Preview"
 
 #: src/components/settings/Integrations.tsx:2028
 #: src/components/settings/SystemSettingsDrawer.tsx:582
-#: src/pages/SetupWizard.tsx:732
+#: src/pages/SetupWizard.tsx:673
 msgid "Client Secret"
 msgstr "Client Secret"
 
-#: src/pages/SetupWizard.tsx:735
+#: src/pages/SetupWizard.tsx:676
 msgid "Client Secret is required"
 msgstr "Client Secret is required"
 
@@ -2623,7 +2629,7 @@ msgstr "Column Attributes"
 msgid "Column width (e.g., '50%', '300px', 'auto')"
 msgstr "Column width (e.g., '50%', '300px', 'auto')"
 
-#: src/pages/SetupWizard.tsx:768
+#: src/pages/SetupWizard.tsx:709
 msgid "Comma-separated list of email domains permitted to auto-create accounts"
 msgstr "Comma-separated list of email domains permitted to auto-create accounts"
 
@@ -2637,7 +2643,7 @@ msgstr "Comma-separated. Only these domains may auto-create accounts."
 
 #: src/components/settings/Integrations.tsx:1877
 #: src/components/settings/SystemSettingsDrawer.tsx:341
-#: src/pages/SetupWizard.tsx:465
+#: src/pages/SetupWizard.tsx:406
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 msgstr "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 
@@ -2712,7 +2718,7 @@ msgstr "Complement, don't repeat the subject line"
 msgid "Complete"
 msgstr "Complete"
 
-#: src/pages/SetupWizard.tsx:797
+#: src/pages/SetupWizard.tsx:738
 msgid "Complete Setup"
 msgstr "完成初始化"
 
@@ -2864,8 +2870,8 @@ msgid "Connected"
 msgstr "Connected"
 
 #: src/components/settings/ZapierSettings.tsx:215
-msgid "Connecting Zapier lets a Zap react to Notifuse events — a new contact, a list subscription, a segment a contact joined — and lets a Zap create or update contacts and subscribe them to your lists. Each Zap you turn on registers its own webhook subscription, which you can see in Settings → Webhooks."
-msgstr "Connecting Zapier lets a Zap react to Notifuse events — a new contact, a list subscription, a segment a contact joined — and lets a Zap create or update contacts and subscribe them to your lists. Each Zap you turn on registers its own webhook subscription, which you can see in Settings → Webhooks."
+msgid "Connecting Zapier lets a Zap react to Yaoguang Marketing events — a new contact, a list subscription, a segment a contact joined — and lets a Zap create or update contacts and subscribe them to your lists. Each Zap you turn on registers its own webhook subscription, which you can see in Settings → Webhooks."
+msgstr "连接 Zapier 后，Zap 可响应瑶光营销平台中的新客户、列表订阅、加入客群等事件，也可创建或更新客户并订阅列表。每个启用的 Zap 都会注册独立的 Webhook 订阅，可在“设置 → Webhook”中查看。"
 
 #: src/components/transactional/ApiCommandModal.tsx:530
 msgid "Connection Details"
@@ -3771,7 +3777,7 @@ msgid "Defaults to meta title"
 msgstr "Defaults to meta title"
 
 #: src/components/settings/Integrations.tsx:2079
-#: src/pages/SetupWizard.tsx:525
+#: src/pages/SetupWizard.tsx:466
 msgid "Defaults to SMTP host"
 msgstr "Defaults to SMTP host"
 
@@ -4260,11 +4266,11 @@ msgstr "Documentation"
 
 #: src/components/settings/Integrations.tsx:2136
 #: src/components/settings/Integrations.tsx:2479
-#: src/pages/SetupWizard.tsx:604
+#: src/pages/SetupWizard.tsx:545
 msgid "Domain"
 msgstr "Domain"
 
-#: src/pages/SetupWizard.tsx:612
+#: src/pages/SetupWizard.tsx:553
 msgid "Domain for the SMTP bridge server (e.g., smtp.yourcompany.com)"
 msgstr "Domain for the SMTP bridge server (e.g., smtp.yourcompany.com)"
 
@@ -4642,7 +4648,7 @@ msgstr "Editor mode"
 #: src/components/settings/Integrations.tsx:2076
 #: src/components/settings/Integrations.tsx:2420
 #: src/components/settings/SystemSettingsDrawer.tsx:432
-#: src/pages/SetupWizard.tsx:522
+#: src/pages/SetupWizard.tsx:463
 msgid "EHLO Hostname"
 msgstr "EHLO Hostname"
 
@@ -4828,7 +4834,7 @@ msgstr "Empty column. Add text, button, or image content."
 msgid "Enable A/B Testing"
 msgstr "Enable A/B Testing"
 
-#: src/pages/SetupWizard.tsx:555
+#: src/pages/SetupWizard.tsx:496
 msgid "Enable Anonymous Telemetry"
 msgstr "Enable Anonymous Telemetry"
 
@@ -4849,11 +4855,11 @@ msgstr "Enable geo-location tracking"
 msgid "Enable or disable a subscription"
 msgstr "Enable or disable a subscription"
 
-#: src/pages/SetupWizard.tsx:686
+#: src/pages/SetupWizard.tsx:627
 msgid "Enable Single Sign-On (OpenID Connect)"
 msgstr "Enable Single Sign-On (OpenID Connect)"
 
-#: src/pages/SetupWizard.tsx:581
+#: src/pages/SetupWizard.tsx:522
 msgid "Enable SMTP Bridge Server"
 msgstr "启用 SMTP Bridge 服务"
 
@@ -4866,7 +4872,7 @@ msgid "Enable this rule?"
 msgstr "Enable this rule?"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:355
-#: src/pages/SetupWizard.tsx:480
+#: src/pages/SetupWizard.tsx:421
 msgid "Enable TLS encryption for SMTP connection"
 msgstr "Enable TLS encryption for SMTP connection"
 
@@ -5411,7 +5417,7 @@ msgstr "Failed to clear field"
 msgid "Failed to compile template preview."
 msgstr "Failed to compile template preview."
 
-#: src/pages/SetupWizard.tsx:244
+#: src/pages/SetupWizard.tsx:196
 msgid "Failed to complete setup"
 msgstr "Failed to complete setup"
 
@@ -5582,7 +5588,7 @@ msgstr "Failed to fetch new contacts data"
 msgid "Failed to fetch objects: "
 msgstr "Failed to fetch objects: "
 
-#: src/pages/SetupWizard.tsx:59
+#: src/pages/SetupWizard.tsx:58
 msgid "Failed to fetch setup status"
 msgstr "Failed to fetch setup status"
 
@@ -5785,7 +5791,7 @@ msgstr "Failed to test email provider"
 msgid "Failed to test recipient feed: {0}"
 msgstr "Failed to test recipient feed: {0}"
 
-#: src/pages/SetupWizard.tsx:88
+#: src/pages/SetupWizard.tsx:87
 msgid "Failed to test SMTP connection"
 msgstr "Failed to test SMTP connection"
 
@@ -6158,8 +6164,8 @@ msgid "Format"
 msgstr "Format"
 
 #: src/components/settings/Integrations.tsx:226
-msgid "Forwards inbound replies to Notifuse so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the provider-side route; you must also point your domain's MX records at your email provider."
-msgstr "Forwards inbound replies to Notifuse so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the provider-side route; you must also point your domain's MX records at your email provider."
+msgid "Forwards inbound replies to Yaoguang Marketing so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the provider-side route; you must also point your domain's MX records at your email provider."
+msgstr "将入站回复转发到瑶光营销平台，以便客户回复时自动停止流程（回复后退出）。注册 Webhook 会创建邮件服务商侧的路由；您还必须将域名 MX 记录指向邮件服务商。"
 
 #. placeholder {0}: parsedData.emails.length
 #: src/components/contacts/BulkUpdateDrawer.tsx:246
@@ -6181,16 +6187,16 @@ msgid "From"
 msgstr "From"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:399
-#: src/pages/SetupWizard.tsx:503
+#: src/pages/SetupWizard.tsx:444
 msgid "From Email"
 msgstr "From Email"
 
-#: src/pages/SetupWizard.tsx:506
+#: src/pages/SetupWizard.tsx:447
 msgid "From email is required"
 msgstr "From email is required"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:415
-#: src/pages/SetupWizard.tsx:514
+#: src/pages/SetupWizard.tsx:455
 msgid "From Name"
 msgstr "发件人名称"
 
@@ -6302,7 +6308,7 @@ msgid "Global feed URL is required when enabled"
 msgstr "Global feed URL is required when enabled"
 
 #: src/pages/AcceptInvitationPage.tsx:125
-#: src/pages/SetupWizard.tsx:337
+#: src/pages/SetupWizard.tsx:289
 msgid "Go to Sign In"
 msgstr "前往登录"
 
@@ -6444,7 +6450,7 @@ msgstr "Help"
 msgid "Help & Support"
 msgstr "Help & Support"
 
-#: src/pages/SetupWizard.tsx:556
+#: src/pages/SetupWizard.tsx:497
 msgid "Help us improve Yaoguang Marketing by sending anonymous usage statistics. No personal data or message content is collected."
 msgstr "发送匿名使用统计信息，帮助我们改进瑶光营销平台。我们不会收集个人数据或消息内容。"
 
@@ -6958,8 +6964,8 @@ msgstr "Integrations"
 msgid "Invalid email"
 msgstr "Invalid email"
 
-#: src/pages/SetupWizard.tsx:369
-#: src/pages/SetupWizard.tsx:507
+#: src/pages/SetupWizard.tsx:320
+#: src/pages/SetupWizard.tsx:448
 msgid "Invalid email format"
 msgstr "Invalid email format"
 
@@ -7018,7 +7024,7 @@ msgstr "Invalid tree structure: not an object"
 msgid "Invalid tree structure: root must be mjml type"
 msgstr "Invalid tree structure: root must be mjml type"
 
-#: src/pages/SetupWizard.tsx:382
+#: src/pages/SetupWizard.tsx:333
 msgid "Invalid URL format"
 msgstr "Invalid URL format"
 
@@ -7095,11 +7101,11 @@ msgid "isolation requested but not provisioned"
 msgstr "isolation requested but not provisioned"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:553
-#: src/pages/SetupWizard.tsx:710
+#: src/pages/SetupWizard.tsx:651
 msgid "Issuer URL"
 msgstr "Issuer URL"
 
-#: src/pages/SetupWizard.tsx:713
+#: src/pages/SetupWizard.tsx:654
 msgid "Issuer URL is required"
 msgstr "Issuer URL is required"
 
@@ -7281,8 +7287,8 @@ msgid "Leave empty to use a random contact from the broadcast audience."
 msgstr "Leave empty to use a random contact from the broadcast audience."
 
 #: src/components/settings/Integrations.tsx:2226
-msgid "Leave empty to use the one Notifuse manages for this integration."
-msgstr "Leave empty to use the one Notifuse manages for this integration."
+msgid "Leave empty to use the one Yaoguang Marketing manages for this integration."
+msgstr "留空则使用瑶光营销平台为此集成管理的配置。"
 
 #: src/components/timeline/ContactTimeline.tsx:557
 msgid "left"
@@ -7300,7 +7306,7 @@ msgstr "Left"
 msgid "Left to Right"
 msgstr "Left to Right"
 
-#: src/pages/SetupWizard.tsx:687
+#: src/pages/SetupWizard.tsx:628
 msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
 msgstr "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
 
@@ -7591,7 +7597,7 @@ msgstr "Loading automations..."
 msgid "Loading message history..."
 msgstr "Loading message history..."
 
-#: src/pages/SetupWizard.tsx:300
+#: src/pages/SetupWizard.tsx:252
 msgid "Loading setup..."
 msgstr "Loading setup..."
 
@@ -8077,7 +8083,7 @@ msgstr "More options"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:557
 #: src/components/settings/SystemSettingsDrawer.tsx:599
-#: src/pages/SetupWizard.tsx:714
+#: src/pages/SetupWizard.tsx:655
 msgid "Must be a valid https URL"
 msgstr "Must be a valid https URL"
 
@@ -8147,8 +8153,8 @@ msgid "Name:"
 msgstr "Name:"
 
 #: src/components/settings/ZapierSettings.tsx:171
-msgid "Names this connection in Notifuse, and the API key it creates in Settings → Team."
-msgstr "Names this connection in Notifuse, and the API key it creates in Settings → Team."
+msgid "Names this connection in Yaoguang Marketing, and the API key it creates in Settings → Team."
+msgstr "设置此连接在瑶光营销平台中的名称，以及它在“设置 → 团队”中创建的 API Key 名称。"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:425
 msgid "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
@@ -8480,10 +8486,6 @@ msgstr "No nodes in this automation"
 msgid "No notes"
 msgstr "No notes"
 
-#: src/pages/SignInPage.tsx:98
-msgid "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
-msgstr "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
-
 #: src/components/web_analytics/filters/TestFilterModal.tsx:201
 msgid "No operations defined"
 msgstr "No operations defined"
@@ -8618,6 +8620,10 @@ msgstr "No webhook subscriptions configured"
 msgid "No workspaces"
 msgstr "No workspaces"
 
+#: src/pages/SignInPage.tsx:98
+msgid "No Yaoguang Marketing account is linked to that identity. Ask an administrator to invite you first."
+msgstr "该身份尚未关联瑶光营销平台账号，请先联系管理员邀请您加入。"
+
 #: src/components/automations/NodePalette.tsx:21
 msgid "Nodes"
 msgstr "Nodes"
@@ -8750,14 +8756,6 @@ msgstr "Notification name"
 msgid "Notification updated successfully"
 msgstr "Notification updated successfully"
 
-#: src/components/settings/WebhookCard.tsx:298
-msgid "Notifuse disabled this webhook automatically"
-msgstr "Notifuse disabled this webhook automatically"
-
-#: src/components/settings/Integrations.tsx:1067
-msgid "Notifuse will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume."
-msgstr "Notifuse will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume."
-
 #: src/components/settings/Integrations.tsx:2238
 msgid "notifuse-…"
 msgstr "notifuse-…"
@@ -8822,7 +8820,7 @@ msgstr "of the following conditions match:"
 msgid "Off (plaintext)"
 msgstr "Off (plaintext)"
 
-#: src/pages/SetupWizard.tsx:716
+#: src/pages/SetupWizard.tsx:657
 msgid "OIDC issuer base URL — discovery happens at <issuer>/.well-known/openid-configuration"
 msgstr "OIDC issuer base URL — discovery happens at <issuer>/.well-known/openid-configuration"
 
@@ -9116,8 +9114,8 @@ msgid "Paste this snippet before the closing </head> tag of your website."
 msgstr "Paste this snippet before the closing </head> tag of your website."
 
 #: src/components/settings/ZapierSettings.tsx:185
-msgid "Paste this URL into the API URL field when you connect your Notifuse account in Zapier."
-msgstr "Paste this URL into the API URL field when you connect your Notifuse account in Zapier."
+msgid "Paste this URL into the API URL field when you connect your Yaoguang Marketing account in Zapier."
+msgstr "在 Zapier 中连接瑶光营销平台账号时，请将此 URL 粘贴到 API URL 字段。"
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:340
 msgid "Paste YouTube URL..."
@@ -9206,7 +9204,7 @@ msgstr "Per-recipient feed URL is required when enabled"
 msgid "Period — {detail}"
 msgstr "Period — {detail}"
 
-#: src/pages/SetupWizard.tsx:566
+#: src/pages/SetupWizard.tsx:507
 msgid "Periodically check for new Yaoguang Marketing versions and security updates. A popup will list new versions available."
 msgstr "定期检查瑶光营销平台的新版本和安全更新，并通过弹窗展示可用版本。"
 
@@ -9546,11 +9544,11 @@ msgid "Please upload a CSV file with email addresses"
 msgstr "Please upload a CSV file with email addresses"
 
 #: src/components/transactional/ApiCommandModal.tsx:533
-#: src/pages/SetupWizard.tsx:618
+#: src/pages/SetupWizard.tsx:559
 msgid "Port"
 msgstr "Port"
 
-#: src/pages/SetupWizard.tsx:627
+#: src/pages/SetupWizard.tsx:568
 msgid "Port for the SMTP bridge server (default: 587)"
 msgstr "Port for the SMTP bridge server (default: 587)"
 
@@ -9869,7 +9867,7 @@ msgstr "Public"
 msgid "Public lists are visible in the Notification Center for users to subscribe to"
 msgstr "Public lists are visible in the Notification Center for users to subscribe to"
 
-#: src/pages/SetupWizard.tsx:384
+#: src/pages/SetupWizard.tsx:335
 msgid "Public URL where this Yaoguang Marketing instance is accessible"
 msgstr "可访问此瑶光营销平台实例的公开 URL"
 
@@ -10618,7 +10616,7 @@ msgid "Role"
 msgstr "Role"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:254
-#: src/pages/SetupWizard.tsx:365
+#: src/pages/SetupWizard.tsx:316
 msgid "Root Email"
 msgstr "Root Email"
 
@@ -10964,7 +10962,7 @@ msgstr "Security"
 msgid "See broadcast send tasks; a listing that names no type is narrowed to the types you may read"
 msgstr "See broadcast send tasks; a listing that names no type is narrowed to the types you may read"
 
-#: src/pages/SetupWizard.tsx:411
+#: src/pages/SetupWizard.tsx:352
 msgid "See docs for:"
 msgstr "See docs for:"
 
@@ -11537,7 +11535,7 @@ msgstr "SEO title for search engines (recommended: 50-60 characters)"
 msgid "Separate sides"
 msgstr "Separate sides"
 
-#: src/pages/SetupWizard.tsx:213
+#: src/pages/SetupWizard.tsx:165
 msgid "Server is restarting with new configuration..."
 msgstr "Server is restarting with new configuration..."
 
@@ -11546,7 +11544,7 @@ msgid "Server is restarting..."
 msgstr "Server is restarting..."
 
 #: src/components/settings/SystemSettingsDrawer.tsx:202
-#: src/pages/SetupWizard.tsx:237
+#: src/pages/SetupWizard.tsx:189
 msgid "Server restart timeout. Please refresh the page manually."
 msgstr "Server restart timeout. Please refresh the page manually."
 
@@ -11554,7 +11552,7 @@ msgstr "Server restart timeout. Please refresh the page manually."
 msgid "Server restarted successfully!"
 msgstr "Server restarted successfully!"
 
-#: src/pages/SetupWizard.tsx:227
+#: src/pages/SetupWizard.tsx:179
 msgid "Server restarted successfully! You can now sign in."
 msgstr "Server restarted successfully! You can now sign in."
 
@@ -11723,7 +11721,7 @@ msgstr "Sets the responsive breakpoint for the entire email"
 msgid "Sets the screen width below which the email will switch to mobile layout. Most email clients use 480px as the standard mobile breakpoint."
 msgstr "Sets the screen width below which the email will switch to mobile layout. Most email clients use 480px as the standard mobile breakpoint."
 
-#: src/pages/SetupWizard.tsx:797
+#: src/pages/SetupWizard.tsx:738
 msgid "Setting up..."
 msgstr "Setting up..."
 
@@ -11732,11 +11730,11 @@ msgstr "Setting up..."
 msgid "Settings"
 msgstr "系统设置"
 
-#: src/pages/SetupWizard.tsx:344
+#: src/pages/SetupWizard.tsx:296
 msgid "Setup"
 msgstr "系统初始化"
 
-#: src/pages/SetupWizard.tsx:320
+#: src/pages/SetupWizard.tsx:272
 msgid "Setup Complete!"
 msgstr "初始化完成！"
 
@@ -11778,7 +11776,7 @@ msgid "Sign In"
 msgstr "登录"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:625
-#: src/pages/SetupWizard.tsx:746
+#: src/pages/SetupWizard.tsx:687
 #: src/pages/SignInPage.tsx:250
 msgid "Sign in with SSO"
 msgstr "Sign in with SSO"
@@ -11851,7 +11849,7 @@ msgstr "短信"
 msgid "SMTP Bridge"
 msgstr "SMTP Bridge"
 
-#: src/pages/SetupWizard.tsx:609
+#: src/pages/SetupWizard.tsx:550
 msgid "SMTP bridge domain is required"
 msgstr "SMTP bridge domain is required"
 
@@ -11859,7 +11857,7 @@ msgstr "SMTP bridge domain is required"
 msgid "SMTP bridge is not configured."
 msgstr "SMTP bridge is not configured."
 
-#: src/pages/SetupWizard.tsx:624
+#: src/pages/SetupWizard.tsx:565
 msgid "SMTP bridge port is required"
 msgstr "SMTP bridge port is required"
 
@@ -11867,11 +11865,11 @@ msgstr "SMTP bridge port is required"
 msgid "SMTP bridge server for forwarding transactional emails"
 msgstr "SMTP bridge server for forwarding transactional emails"
 
-#: src/pages/SetupWizard.tsx:406
+#: src/pages/SetupWizard.tsx:347
 msgid "SMTP Configuration"
 msgstr "SMTP 配置"
 
-#: src/pages/SetupWizard.tsx:85
+#: src/pages/SetupWizard.tsx:84
 msgid "SMTP connection successful!"
 msgstr "SMTP 连接成功！"
 
@@ -11890,17 +11888,17 @@ msgstr "SMTP domain"
 #: src/components/settings/Integrations.tsx:1868
 #: src/components/settings/Integrations.tsx:2399
 #: src/components/settings/SystemSettingsDrawer.tsx:316
-#: src/pages/SetupWizard.tsx:453
+#: src/pages/SetupWizard.tsx:394
 msgid "SMTP Host"
 msgstr "SMTP Host"
 
-#: src/pages/SetupWizard.tsx:455
+#: src/pages/SetupWizard.tsx:396
 msgid "SMTP host is required"
 msgstr "SMTP host is required"
 
 #: src/components/settings/Integrations.tsx:2066
 #: src/components/settings/SystemSettingsDrawer.tsx:384
-#: src/pages/SetupWizard.tsx:494
+#: src/pages/SetupWizard.tsx:435
 msgid "SMTP Password"
 msgstr "SMTP Password"
 
@@ -11910,11 +11908,11 @@ msgstr "SMTP port"
 
 #: src/components/settings/Integrations.tsx:1875
 #: src/components/settings/SystemSettingsDrawer.tsx:329
-#: src/pages/SetupWizard.tsx:462
+#: src/pages/SetupWizard.tsx:403
 msgid "SMTP Port"
 msgstr "SMTP Port"
 
-#: src/pages/SetupWizard.tsx:464
+#: src/pages/SetupWizard.tsx:405
 msgid "SMTP port is required"
 msgstr "SMTP port is required"
 
@@ -11936,7 +11934,7 @@ msgstr "SMTP User"
 
 #: src/components/settings/Integrations.tsx:2061
 #: src/components/settings/SystemSettingsDrawer.tsx:371
-#: src/pages/SetupWizard.tsx:489
+#: src/pages/SetupWizard.tsx:430
 msgid "SMTP Username"
 msgstr "SMTP Username"
 
@@ -12126,8 +12124,8 @@ msgid "Status unknown"
 msgstr "Status unknown"
 
 #: src/components/automations/UpsertAutomationDrawer.tsx:214
-msgid "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Notifuse. Without that setup, replies aren't detected and the sequence won't stop."
-msgstr "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Notifuse. Without that setup, replies aren't detected and the sequence won't stop."
+msgid "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Yaoguang Marketing. Without that setup, replies aren't detected and the sequence won't stop."
+msgstr "客户回复流程中的任意邮件后立即停止该自动化。您必须在邮件服务商（ESP）中配置入站回复转发：发送域名的回复需先路由到服务商，再由服务商转发到瑶光营销平台。未完成配置时无法检测回复，流程也不会停止。"
 
 #: src/components/file_manager/fileManager.tsx:687
 msgid "Storage settings"
@@ -12206,10 +12204,6 @@ msgstr "Subscribe imported contacts to lists — required only when the import n
 #: src/components/contacts/ContactDetailsDrawer.tsx:1122
 msgid "Subscribe to List"
 msgstr "Subscribe to List"
-
-#: src/pages/SetupWizard.tsx:396
-msgid "Subscribe to the newsletter (new features...)"
-msgstr "Subscribe to the newsletter (new features...)"
 
 #: src/components/integrations/SupabaseIntegration.tsx:180
 msgid "Subscribe users to these lists (Optional)"
@@ -12562,7 +12556,7 @@ msgid "Test Completed"
 msgstr "Test Completed"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:310
-#: src/pages/SetupWizard.tsx:534
+#: src/pages/SetupWizard.tsx:475
 msgid "Test Connection"
 msgstr "Test Connection"
 
@@ -12689,7 +12683,7 @@ msgstr "Text Padding"
 msgid "Text Settings"
 msgstr "Text Settings"
 
-#: src/pages/SetupWizard.tsx:744
+#: src/pages/SetupWizard.tsx:685
 msgid "Text shown on the sign-in button"
 msgstr "Text shown on the sign-in button"
 
@@ -12778,7 +12772,7 @@ msgid "The generated email has issues that prevent it from rendering:"
 msgstr "The generated email has issues that prevent it from rendering:"
 
 #: src/components/settings/Integrations.tsx:2077
-#: src/pages/SetupWizard.tsx:523
+#: src/pages/SetupWizard.tsx:464
 msgid "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
 msgstr "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
 
@@ -12986,7 +12980,7 @@ msgstr "This cannot be undone."
 msgid "This contact is not subscribed to any lists"
 msgstr "This contact is not subscribed to any lists"
 
-#: src/pages/SetupWizard.tsx:371
+#: src/pages/SetupWizard.tsx:322
 msgid "This email will be used for the root administrator account"
 msgstr "This email will be used for the root administrator account"
 
@@ -13286,11 +13280,11 @@ msgid "TLS"
 msgstr "TLS"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:506
-#: src/pages/SetupWizard.tsx:637
+#: src/pages/SetupWizard.tsx:578
 msgid "TLS Certificate (Base64)"
 msgstr "TLS Certificate (Base64)"
 
-#: src/pages/SetupWizard.tsx:642
+#: src/pages/SetupWizard.tsx:583
 msgid "TLS certificate is required"
 msgstr "TLS certificate is required"
 
@@ -13302,11 +13296,11 @@ msgstr "TLS Enabled"
 msgid "TLS Key (Base64)"
 msgstr "TLS Key (Base64)"
 
-#: src/pages/SetupWizard.tsx:655
+#: src/pages/SetupWizard.tsx:596
 msgid "TLS Private Key (Base64)"
 msgstr "TLS Private Key (Base64)"
 
-#: src/pages/SetupWizard.tsx:660
+#: src/pages/SetupWizard.tsx:601
 msgid "TLS private key is required"
 msgstr "TLS private key is required"
 
@@ -13914,7 +13908,7 @@ msgstr "Use This Theme"
 
 #: src/components/settings/Integrations.tsx:1886
 #: src/components/settings/SystemSettingsDrawer.tsx:354
-#: src/pages/SetupWizard.tsx:479
+#: src/pages/SetupWizard.tsx:420
 msgid "Use TLS"
 msgstr "Use TLS"
 
@@ -14165,7 +14159,7 @@ msgstr "vs."
 msgid "Wait Duration"
 msgstr "Wait Duration"
 
-#: src/pages/SetupWizard.tsx:337
+#: src/pages/SetupWizard.tsx:289
 msgid "Waiting for server restart..."
 msgstr "Waiting for server restart..."
 
@@ -14397,7 +14391,7 @@ msgstr "When engagement is at its best"
 msgid "When matched, execute these operations:"
 msgstr "When matched, execute these operations:"
 
-#: src/pages/SetupWizard.tsx:753
+#: src/pages/SetupWizard.tsx:694
 msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 msgstr "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 
@@ -14566,6 +14560,14 @@ msgstr "Write includes permanent deletion and bulk overwriting: `/api/contacts.i
 #: src/components/email_builder/blocks/MjLiquidBlock.tsx:33
 msgid "Write MJML markup with Liquid template tags. This content is injected directly into the email and processed by the Liquid engine before MJML compilation. Use for-loops, conditionals, and variables to generate dynamic structural content."
 msgstr "Write MJML markup with Liquid template tags. This content is injected directly into the email and processed by the Liquid engine before MJML compilation. Use for-loops, conditionals, and variables to generate dynamic structural content."
+
+#: src/components/settings/WebhookCard.tsx:298
+msgid "Yaoguang Marketing disabled this webhook automatically"
+msgstr "瑶光营销平台已自动停用此 Webhook"
+
+#: src/components/settings/Integrations.tsx:1067
+msgid "Yaoguang Marketing will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume."
+msgstr "瑶光营销平台将在您的 AWS 账号中创建独立租户，为其配置独立抑制列表，并关联此集成的配置集和发件人身份。AWS 会按租户和月度用量计费。"
 
 #: src/components/web_analytics/toolbar.tsx:29
 msgid "Year to date"
@@ -14792,7 +14794,7 @@ msgstr "Your workspace API key"
 msgid "Your workspace settings have not been saved. Leaving this page discards them."
 msgstr "Your workspace settings have not been saved. Leaving this page discards them."
 
-#: src/pages/SetupWizard.tsx:322
+#: src/pages/SetupWizard.tsx:274
 msgid "Your Yaoguang Marketing instance has been successfully configured."
 msgstr "瑶光营销平台实例已成功配置。"
 

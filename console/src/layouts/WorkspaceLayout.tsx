@@ -632,7 +632,7 @@ export function WorkspaceLayout() {
                       key: 'docs',
                       label: (
                         <a
-                          href="https://docs.notifuse.com/"
+                          href="https://github.com/hengshu-credit/yaoguang-marketing#readme"
                           target="_blank"
                           rel="noopener noreferrer"
                         >
@@ -644,7 +644,7 @@ export function WorkspaceLayout() {
                       key: 'report-issue',
                       label: (
                         <a
-                          href="https://github.com/notifuse/notifuse/issues"
+                          href="https://github.com/hengshu-credit/yaoguang-marketing/issues"
                           target="_blank"
                           rel="noopener noreferrer"
                         >

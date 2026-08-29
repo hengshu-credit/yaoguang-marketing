@@ -865,7 +865,7 @@
       "last_name": "Doe",
       "email": "john.doe@example.com"
     },
-    "unsubscribe_url": "https://localapi.notifuse.com:4000/unsubscribe?email={{ contact.email }}&lid={{ list.id }}&email_hmac={{ contact.hmac }}"
+    "unsubscribe_url": "https://marketing.example.com/unsubscribe?email={{ contact.email }}&lid={{ list.id }}&email_hmac={{ contact.hmac }}"
   },
   "exportedAt": "2025-06-18T14:19:41.875Z",
   "version": "1.0"

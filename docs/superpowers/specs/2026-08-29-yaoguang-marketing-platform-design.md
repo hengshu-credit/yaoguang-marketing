@@ -4,7 +4,7 @@
 **英文标识：** `yaoguang-marketing`  
 **品牌文案：** 观心知意，循光达客  
 **设计状态：** 已完成交互确认，待书面规格复核  
-**目标分支：** `dev`  
+**目标分支：** `main`
 **设计日期：** 2026-08-29
 
 ## 1. 产品定位
@@ -33,7 +33,7 @@
 
 保留当前单仓库、Clean Architecture、每 Workspace 独立 PostgreSQL 和一个 Go 制品多运行角色的设计。新增能力先形成清晰的内部领域边界，只有在出现独立扩容或独立发布的实际需求后才拆分服务。
 
-该方案可以复用当前 `dev` 分支已经完成的事件账本、Transactional Outbox、RabbitMQ workers、Redis 频控基础、ClickHouse 投影、动态客群、外部接入、SMS/Push 模板、端点加密、渠道回执和幂等发送能力。
+该方案可以复用当前 `main` 分支已经完成的事件账本、Transactional Outbox、RabbitMQ workers、Redis 频控基础、ClickHouse 投影、动态客群、外部接入、SMS/Push 模板、端点加密、渠道回执和幂等发送能力。
 
 ### 3.2 不采用：首期直接拆分微服务
 

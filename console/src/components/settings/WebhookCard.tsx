@@ -295,7 +295,7 @@ export function WebhookCard({
             type="error"
             showIcon
             className="mb-4"
-            title={t`Notifuse disabled this webhook automatically`}
+            title={t`Yaoguang Marketing disabled this webhook automatically`}
             description={
               <>
                 <div>{webhook.disabled_reason}</div>

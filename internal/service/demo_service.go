@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/config"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
-	"github.com/google/uuid"
 )
 
 // DemoService handles demo workspace operations
@@ -510,7 +510,7 @@ func (s *DemoService) createDemoSMTPIntegration(ctx context.Context, workspaceID
 			{
 				ID:        uuid.New().String(),
 				Email:     "demo@notifuse.com",
-				Name:      "Notifuse Demo",
+				Name:      "Yaoguang Marketing Demo",
 				IsDefault: true,
 			},
 		},

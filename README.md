@@ -1,214 +1,142 @@
-# Notifuse
+# 瑶光营销平台（Yaoguang Marketing）
 
-[![Go Report Card](https://img.shields.io/badge/go%20report-A+-brightgreen.svg?style=flat)](https://goreportcard.com/report/github.com/Notifuse/notifuse)
-[![Go](https://github.com/Notifuse/notifuse/actions/workflows/go.yml/badge.svg)](https://github.com/Notifuse/notifuse/actions/workflows/go.yml)
-[![codecov](https://codecov.io/gh/Notifuse/notifuse/graph/badge.svg?token=VZ0HBEM9OZ)](https://codecov.io/gh/Notifuse/notifuse)
+<p align="center">
+  <img src="console/public/images/hengshucredit_animated.svg" alt="恒数科技" width="160" />
+</p>
 
-**[☁️ Notifuse Cloud — from $16/month](https://www.notifuse.com/)** · **[🎯 Try the Live Demo](https://demo.notifuse.com/console/signin?email=demo@notifuse.com)**
+<p align="center"><strong>观心知意，循光达客</strong></p>
 
-Skip the setup and get started instantly with **[Notifuse Cloud](https://www.notifuse.com/)** — fully managed hosting starting at just **$16/month**.
+面向金融科技及互联网业务的开源用户营销与客户触达平台。
 
-**The open-source alternative to Mailchimp, Brevo, Mailjet, Listmonk, Mailerlite, and Klaviyo, Loop.so, etc.**
+瑶光通过统一 Customer Profile API 和 Event API 接收业务系统实时用户数据，面向动态客群、事件触发、定时任务、营销 Journey、全量 Campaign、A/B 实验、频控治理，以及 Email、SMS、Push、WhatsApp、Telegram、In-App、Webhook 等多渠道触达场景建设统一底座。
 
-Notifuse is a modern, self-hosted emailing platform that allows you to send newsletters and transactional emails at a fraction of the cost. Built with Go and React, it provides enterprise-grade features with the flexibility of open-source software.
+> 当前仓库正在按里程碑从 Notifuse 演进为瑶光。品牌、工程标识、运行时配置和简体中文基础已经落地；统一客户身份、可靠批量导入、四层频控及完整多渠道闭环按[总体设计](docs/superpowers/specs/2026-08-29-yaoguang-marketing-platform-design.md)持续实施。文档会明确区分“已经具备”和“目标能力”，避免把路线图误当作已上线功能。
 
-<img alt="Email Editor" src="https://github.com/user-attachments/assets/f650ac1b-58fd-44fb-884d-e9811255f1e4" />
+## 当前基础
 
-## 🚀 Key Features
+- Go + React/TypeScript 的自托管营销平台，支持独立 Workspace 隔离。
+- 联系人、列表、动态客群、Broadcast、可视化 Automation/Journey、A/B 测试。
+- Email、SMS、Push 模板与预览；Twilio SMS、FCM Push 及通用 Webhook 等触达基础。
+- PostgreSQL 权威存储、Transactional Outbox、RabbitMQ Worker、Redis 可重建缓存与频控基础、ClickHouse 分析投影、MinIO/S3 资产存储。
+- API Key、Workspace 权限、投递回执、消息历史、Web Analytics 和通知中心。
+- 瑶光品牌壳、`zh-CN` 界面、中文系统邮件，以及 `YAOGUANG_ROLE` 运行角色配置。
 
-### 📧 Email Marketing
+## 目标能力与已确认约束
 
-- **Visual Email Builder**: Drag-and-drop editor with MJML components and real-time preview
-- **Campaign Management**: Create, schedule, and send targeted email campaigns
-- **A/B Testing**: Optimize campaigns with built-in testing for subject lines, content, and send times
-- **List Management**: Advanced subscriber segmentation and list organization
-- **Contact Profiles**: Rich contact management with custom fields and detailed profiles
+### 统一客户身份
 
-### 🔀 Automations
+- 数据库内部使用 UUID 主键，不把外部用户编号当作物理主键。
+- 每个 Workspace 拥有独立四位序号；不同 Workspace 的客户完全隔离。
+- `external_user_id` 可直接使用业务系统提供的用户 ID，并在同一 Workspace 内唯一。
+- 瑶光客户编号格式：`U{workspace_seq:04d}{yyyyMMddHHmmss}{08}{uuid32}`。
+- Customer Profile 与 Event 写入都支持幂等键、版本控制和可审计结果。
 
-- **Visual Flow Builder**: Build multi-step journeys on a canvas — each automation is a graph of nodes with a single trigger as its root
-- **Node Types**: `delay`, `email`, `sms`, `push`, `branch`, `filter`, `add_to_list`, `remove_from_list`, `ab_test`, `webhook`, and `list_status_branch`
-- **Timed Delays**: Wait minutes, hours or days between steps
-- **Branching & Filters**: Split a journey on contact conditions, or on a contact's status in a given list
-- **A/B Testing In-Flow**: Weighted variants inside an automation, not just on broadcasts
-- **Webhook Steps**: Call an external URL mid-journey, with retry budget
-- **Enrollment Control**: Enroll a contact `once` or `every_time` the trigger fires, with optional `exit_on_reply`
-- **Per-Contact State**: Every enrollment tracks its own status (`active`, `completed`, `exited`, `failed`) and current node, with a per-node history (`entered`, `processing`, `completed`, `failed`, `skipped`)
-- **Draft / Live / Paused**: Edit safely, then publish — paused automations hold their enrollments
+### 可靠批量入口
 
-### 🔧 Developer-Friendly
+- 同步微批默认上限 10,000 条 / 32 MiB。
+- 异步 Batch 默认上限 100,000 条 / 256 MiB。
+- 文件导入默认上限 10,000,000 行 / 5 GiB，分片默认 5,000 行。
+- 默认每个 Workspace 同时运行 2 个导入任务，失败重试 10 次，结果保留 30 天。
+- 所有限额都通过后台配置管理；服务端采用流式解析、Manifest、检查点、逐条结果和全量对账，已确认接收的名单不得静默丢失。
 
-- **Easy Setup**: Interactive setup wizard for quick deployment and configuration
-- **Transactional API**: Powerful REST API for automated email delivery
-- **Webhook Integration**: Real-time event notifications and integrations
-- **Liquid Templating**: Dynamic content with variables like `{{ contact.first_name }}`
-- **Multi-Provider Support**: Connect with Amazon SES, Mailgun, Postmark, Mailjet, SparkPost, SendGrid, and SMTP
+### Campaign、Journey 与频控
 
-### 📊 Analytics & Insights
+- Campaign 负责批量、全量、周期任务和独立 Run；Journey 负责持续事件与时间编排。
+- 动态客群、事件触发、客户本地时间触发、受众冻结、暂停/恢复和 A/B 实验共享同一执行底座。
+- 参考 Mautic 的治理思路，独立设置单活动、事件/定时、批量/全量、跨场景全局四类频控。
+- 每次营销触达同时经过活动桶、流量类型桶、渠道桶和全局桶；任一超限即按策略延迟或跳过。
+- 全量 Campaign 不绕过营销同意、退订、投诉、黑名单、静默时间或频控，也不挤占事件触发的独立额度。
+- 本阶段不新增审批或双人复核，保留现有发布权限与行为。
 
-- **Open & Click Tracking**: Detailed engagement metrics and campaign performance
-- **Real-time Analytics**: Monitor delivery rates, opens, clicks, and conversions
-- **Campaign Reports**: Comprehensive reporting and analytics dashboard
+## 目标架构
 
-### 🌐 Web Analytics (Staminads)
+```mermaid
+flowchart LR
+  A[业务系统 / SDK / 文件] --> B[API Gateway]
+  B --> C[Customer Profile API]
+  B --> D[Event API]
+  B --> E[Batch / Import API]
+  C --> F[(PostgreSQL 权威数据)]
+  D --> F
+  E --> F
+  F --> G[Transactional Outbox]
+  G --> H[RabbitMQ]
+  H --> I[Segment / Rule Workers]
+  H --> J[Journey / Campaign Workers]
+  H --> K[Delivery Workers]
+  I --> L[Policy Gate]
+  J --> L
+  L --> M[同意 / 抑制 / 静默时间 / 四层频控]
+  M --> K
+  K --> N[Email / SMS / Push / WhatsApp / Telegram / In-App / Webhook]
+  K --> O[(投递回执与消息历史)]
+  O --> P[(ClickHouse 分析投影)]
+```
 
-Privacy-first, cookieless web analytics built in — the [Staminads](https://github.com/staminads) feature set merged into Notifuse, running entirely on PostgreSQL (no ClickHouse, no extra services):
+设计原则：PostgreSQL 是在线权威来源；RabbitMQ 负责耐久任务流；Redis 只保存可重建的短期状态；ClickHouse 只保存可重建分析投影；所有外部副作用都必须可幂等重放和核对。
 
-- **Engaged-time sessions**: sessions measure real visible/focused time (TimeScore), not wall-clock guesses; bounce rate is engagement-based
-- **Channel attribution**: 40 default rules classify traffic (paid click-ids like gclid/fbclid, organic search, social, email) — fully editable per workspace, with one-click backfill of historical data when rules change
-- **Goals & custom dimensions**: conversion tracking with values and properties, plus 10 custom dimension slots (`custom_1..custom_10`)
-- **Cookieless & GDPR-friendly**: no cookies, no visitor fingerprinting, IPs used only for optional geo lookup and never stored
-- **Lightweight SDK**: ~21 KB gzipped script served by your own Notifuse instance (`/na.js`); the user agent is parsed in the browser, so the raw string is never sent to the server
-- **Setup**: enable Web Analytics on a workspace, paste the snippet from its settings page, done. Country, region and city come from the MaxMind GeoLite2 City database shipped in the image at `/app/geoip/GeoLite2-City.mmdb` — to keep it fresher, drop your own copy into the mounted `data/` directory as `GeoLite2-City.mmdb` (it takes precedence) or set `GEOIP_DB_PATH` (see [geoipupdate](https://github.com/maxmind/geoipupdate)). This product includes GeoLite2 data created by MaxMind, available from [maxmind.com](https://www.maxmind.com)
-- **Data retention**: every session is kept for as long as you keep it. Monthly partitions (`web_sessions_y2026m08` and its `web_pages_*` / `web_goals_*` siblings) are created automatically, and expiring old data is a deliberate `DROP TABLE` on the partitions you no longer want — instant, and the disk comes back immediately
-- **Scale path**: data lives in monthly-partitioned tables per workspace; heavy-traffic installs can run [AlloyDB Omni](https://cloud.google.com/alloydb/omni) via `compose.alloydb.yaml` and get columnar-engine acceleration for dashboard queries with zero schema changes
-- **Requirements**: PostgreSQL 17 or newer (the shipped compose file stays on 17 — upgrading a major version needs `pg_upgrade`, and PostgreSQL 18 also changed its data directory layout)
+## 本地启动
 
-### 🎨 Advanced Features
-
-- **S3 File Manager**: Integrated file management with CDN delivery
-- **Notification Center**: Centralized notification system for your applications
-- **Omnichannel Templates**: Versioned email, SMS and push content with Liquid variables and workspace-language translations
-- **Channel Preview**: Server-rendered SMS segmentation and Android, iOS and Web push previews before saving or delivery
-- **Custom Fields**: Flexible contact data management
-- **Workspace Management**: Multi-tenant support for teams and agencies
-
-## 🏗️ Architecture
-
-Notifuse follows clean architecture principles with clear separation of concerns:
-
-### Backend (Go)
-
-- **Domain Layer**: Core business logic and entities (`internal/domain/`)
-- **Service Layer**: Business logic implementation (`internal/service/`)
-- **Repository Layer**: Data access and storage (`internal/repository/`)
-- **HTTP Layer**: API handlers and middleware (`internal/http/`)
-
-### Frontend (React)
-
-- **Console**: Admin interface built with React, Ant Design, and TypeScript (`console/`)
-- **Notification Center**: Embeddable widget for customer notifications (`notification_center/`)
-
-### Database
-
-- **PostgreSQL + PgBouncer**: online source of truth and transaction pooling
-- **RabbitMQ**: durable quorum queues for realtime rule, journey, delivery and analytics workers
-- **Redis**: distributed frequency caps and rebuildable cache only
-- **ClickHouse**: rebuildable event analytics projection
-- **MinIO/S3**: binary asset storage
-
-### Realtime runtime and local deployment
-
-The default Compose stack is optimized for source development. It runs two application containers: `backend` combines the API, outbox relay, rule, journey, delivery and analytics workers plus the scheduler, while `frontend` runs the Console, Notification Center and their Nginx gateway. Six long-running infrastructure containers provide PostgreSQL/PgBouncer, RabbitMQ, Redis, ClickHouse and MinIO; two initialization jobs exit after importing queues and creating the asset bucket.
-
-Go and React source is bind-mounted into both application containers. Hot reload is enabled by default: Air rebuilds Go and Vite reloads both React applications, so ordinary source changes need no Compose command.
-
-On Windows with the local proxy from this environment:
+需要 Docker Desktop 和 Docker Compose。
 
 ```powershell
+Copy-Item env.example .env
 docker compose up -d --build
 docker compose ps
 ```
 
-This checkout defaults container and image-build traffic to `http://host.docker.internal:7897`, which is the container-visible form of the local `127.0.0.1:7897` proxy. Override `CONTAINER_HTTP_PROXY`, `CONTAINER_HTTPS_PROXY`, `DOCKER_BUILD_HTTP_PROXY`, and `DOCKER_BUILD_HTTPS_PROXY` when the proxy differs. The Console and API are served at `http://localhost:8081/console/`; Notification Center is at `http://localhost:8081/notification-center/`, RabbitMQ management at `http://localhost:15672`, and MinIO at `http://localhost:9001`.
+默认入口：
 
-To disable automatic reload, set `DEV_HOT_RELOAD=false` and recreate the two application containers once. After that, mounted Go/React source changes are applied only when the containers restart:
+- Console 与 API：`http://localhost:8081/console/`
+- Notification Center：`http://localhost:8081/notification-center/`
+- RabbitMQ 管理台：`http://localhost:15672`
+- MinIO 管理台：`http://localhost:9001`
 
-```powershell
-$env:DEV_HOT_RELOAD='false'
-docker compose up -d --force-recreate backend frontend
+默认 Compose 适合源码开发，Go 和 React 源码均挂载并启用热更新。共享或生产部署前必须在 `.env` 中更换 `SECRET_KEY`、数据库、RabbitMQ、Redis、ClickHouse 和 MinIO 示例凭据。
 
-# Run this after each source change while reload is disabled.
-docker compose restart backend frontend
-```
-
-Changing the switch itself requires `docker compose up -d --force-recreate backend frontend`; `restart` deliberately keeps the environment stored in the existing containers. Package lock changes are installed by the frontend entrypoint on its next restart. Dockerfile changes require `docker compose up -d --build`.
-
-The separate-role high-availability topology remains available in `compose.ha.yaml`. Stop the development topology before switching because both use the same local ports and persistent data volumes:
+高可用的角色拆分拓扑：
 
 ```powershell
 docker compose down
 docker compose -f compose.ha.yaml up -d --build
 ```
 
-`REALTIME_MODE=legacy|shadow|primary` controls migration from database triggers to the indexed realtime matcher; both Compose topologies default to `primary` for a fresh local environment. Infrastructure and application ports bind to localhost and can be overridden with matching `*_HOST_PORT` variables (Redis defaults to `16380`). Before a shared or production deployment, replace every example credential in `.env`.
+`YAOGUANG_ROLE` 支持 `all`、`api`、`outbox-relay`、`rule-worker`、`journey-worker`、`delivery-worker`、`analytics-worker` 和 `scheduler`。`NOTIFUSE_ROLE` 仅作为一个兼容周期的回退变量；两者同时配置时以 `YAOGUANG_ROLE` 为准。
 
-External systems can synchronize users and emit realtime events through `POST /api/ingest.batch`. One request can combine contact field updates, application lifecycle status, arbitrary JSON attributes, tag set/add/remove operations, list membership status, encrypted Twilio/FCM/APNs/Web Push client endpoints and idempotent custom events. The endpoint accepts at most 500 records, returns a result for every item, requires Contacts write (and Lists write for membership changes), and returns `429 Retry-After: 1` instead of building an unbounded in-process queue. Active endpoint metadata can be read through `GET /api/contactEndpoints.list`; provider addresses are never returned. Profile data is exposed to templates as `contact.profile` and to segments through `profile_status`, `profile_tags`, and `profile_attributes`. See [the ingest contract](docs/superpowers/specs/2026-08-29-external-audience-ingest-design.md) and [the omnichannel endpoint design](docs/superpowers/specs/2026-08-29-omnichannel-endpoints-design.md).
+为保证既有部署平滑升级，数据库前缀、默认数据库名、RabbitMQ 对象、S3 Bucket、缓存键和数据卷等持久化标识暂不改名。
 
-SMS and push creatives use the same versioned template API as email. The console exposes locale-aware low-code editors, and `POST /api/templates.preview` renders an unsaved draft with the server Liquid engine. SMS responses include encoding and multipart segment metrics; push responses include platform-specific title/body and payload-size warnings for Android, iOS and Web. See [the template and preview design](docs/superpowers/specs/2026-08-29-sms-push-template-preview-design.md).
+## 项目结构
 
-Native provider infrastructure supports Twilio SMS and Firebase Cloud Messaging HTTP v1 through encrypted workspace integrations. Trusted systems can append up to 500 normalized delivery receipts with `POST /api/deliveryReceipts.ingest`; receipts are idempotent on `(provider, receipt_id)`, detect an id reused with different content, and atomically project first delivery/open/failure timestamps onto matching message history. Twilio can post signed form callbacks to `/webhooks/delivery/twilio?workspace_id=...&integration_id=...`; Notifuse verifies `X-Twilio-Signature` against the configured Auth Token before recording anything. See [the provider and receipt design](docs/superpowers/specs/2026-08-29-channel-providers-receipts-design.md).
-
-Applications and realtime journeys send saved SMS/push templates through `POST /api/channelMessages.send`. The request names a contact, encrypted endpoint (optional when the most recent active endpoint is desired), integration, template and stable `effect_key`. Identical concurrent or replayed calls resolve to one PostgreSQL execution; reusing the key with different content is rejected. Provider acceptance and encrypted message history commit together, and an ambiguous network or malformed-success outcome is terminal until reconciled so an automatic retry cannot double-send. See [the channel send design](docs/superpowers/specs/2026-08-29-channel-message-send-design.md).
-
-```json
-{
-  "workspace_id": "acme",
-  "effect_key": "order-42:ready:sms",
-  "channel": "sms",
-  "integration_id": "twilio-main",
-  "contact_email": "customer@example.com",
-  "template_id": "order-ready",
-  "data": { "order_id": "42" }
-}
+```text
+cmd/                    Go 应用入口
+config/                 运行配置
+internal/domain/        领域模型
+internal/service/       业务服务
+internal/repository/    数据访问
+internal/http/          HTTP API
+console/                React 管理控制台
+notification_center/    嵌入式通知中心
+telemetry/              遥测模块
+docs/                   设计与实现文档
+plans/                  分阶段实施计划
 ```
 
-After creating an API key and workspace, run the included latency smoke test:
+## 与恒数科技开源产品的关系
 
-```powershell
-./scripts/realtime-load-test.ps1 -ApiEndpoint http://localhost:8081 -WorkspaceID YOUR_WORKSPACE -Token YOUR_API_KEY
-```
+- [hscredit](https://github.com/hengshu-credit/hscredit)：风险策略分析与建模。
+- [tianshu-decision-engine](https://github.com/hengshu-credit/tianshu-decision-engine)：将分析结论部署为在线决策服务。
+- 瑶光营销平台：接收实时客户与事件数据，将洞察编排为合规、可追踪的客户触达。
 
-## 📁 Project Structure
+## 实施文档
 
-```
-├── cmd/                    # Application entry points
-├── internal/               # Private application code
-│   ├── domain/            # Business entities and logic
-│   ├── service/           # Business logic implementation
-│   ├── repository/        # Data access layer
-│   ├── http/              # HTTP handlers and middleware
-│   └── database/          # Database configuration
-├── console/               # React-based admin interface
-├── notification_center/   # Embeddable notification widget
-├── pkg/                   # Public packages
-└── config/                # Configuration files
-```
+- [平台总体设计](docs/superpowers/specs/2026-08-29-yaoguang-marketing-platform-design.md)
+- [实施总计划](plans/yaoguang-marketing-platform-program-plan.md)
+- [品牌与工程基础计划](plans/yaoguang-brand-shell-plan.md)
 
-## 📚 Documentation
+## 上游与许可证
 
-- **[Complete Documentation](https://docs.notifuse.com)** - Comprehensive guides and tutorials
+瑶光营销平台基于 [Notifuse](https://github.com/Notifuse/notifuse) 改造，并参考 [Mautic](https://github.com/mautic/mautic) 与 [Laudspeaker](https://github.com/laudspeaker/laudspeaker) 的产品设计。仓库保留上游版权、许可证和历史归属。
 
-## 🤝 Contributing
+本项目依据 [GNU Affero General Public License v3.0](LICENSE) 发布。部署或分发修改版本时，请遵守 AGPL-3.0 的源代码提供义务。
 
-**We don't accept pull requests.** Notifuse is developed in-house, and unsolicited pull requests will be closed without review — please don't spend your time on one.
-
-Issues, on the other hand, are very welcome and are the best way to help:
-
-- **[Report a bug](https://github.com/Notifuse/notifuse/issues)** — steps to reproduce, your version, and what you expected instead
-- **[Request a feature](https://github.com/Notifuse/notifuse/issues)** — describe the problem you're trying to solve rather than a specific implementation
-
-The license grants you every right to fork Notifuse and modify it for your own use. If we ever invite a code contribution directly, we'll agree on the terms with you at that point.
-
-## 📄 License
-
-Notifuse is released under the [GNU Affero General Public License v3.0](LICENSE).
-
-## 🆘 Support
-
-- **Documentation**: [docs.notifuse.com](https://docs.notifuse.com)
-- **Email Support**: [hello@notifuse.com](mailto:hello@notifuse.com)
-- **GitHub Issues**: [Report bugs or request features](https://github.com/Notifuse/notifuse/issues)
-
-## 🌟 Why Choose Notifuse?
-
-- **💰 Cost-Effective**: Self-hosted solution with no per-email pricing
-- **🔒 Privacy-First**: Your data stays on your infrastructure
-- **🛠️ Customizable**: Open-source with extensive customization options
-- **📈 Scalable**: Built to handle millions of emails
-- **🚀 Modern**: Built with modern technologies and best practices
-- **🔧 Developer-Friendly**: Comprehensive API and webhook support
-
----
-
-**Ready to get started?** [Try the live demo](https://demo.notifuse.com/console/signin?email=demo@notifuse.com) or [deploy your own instance](https://docs.notifuse.com) in minutes.
+安全问题请通过本仓库的 [GitHub Private Vulnerability Reporting](https://github.com/hengshu-credit/yaoguang-marketing/security/advisories/new) 私密提交；普通缺陷和需求请使用 [GitHub Issues](https://github.com/hengshu-credit/yaoguang-marketing/issues)。

@@ -5,7 +5,6 @@ import { Button, Input, Form, InputNumber, App, Divider, Row, Col, Collapse, Swi
 import { ApiOutlined, CheckOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { setupApi } from '../services/api/setup'
 import type { SetupConfig } from '../types/setup'
-import { getBrowserTimezone } from '../lib/timezoneNormalizer'
 import { useLingui } from '@lingui/react/macro'
 import { BrandLockup } from '../components/BrandLockup'
 
@@ -157,53 +156,6 @@ export default function SetupWizard() {
 
       await setupApi.initialize(setupConfig)
 
-      // Subscribe to newsletter if checked (fail silently)
-      if (values.subscribe_newsletter && values.root_email) {
-        try {
-          const contact: Record<string, unknown> = {
-            email: values.root_email
-          }
-
-          // Add timezone from browser (normalized to canonical IANA name)
-          try {
-            const timezone = getBrowserTimezone()
-            if (timezone) {
-              contact.timezone = timezone
-            }
-          } catch {
-            // Fail silently if timezone detection fails
-          }
-
-          // Only include custom fields if values are available
-          const endpoint = values.api_endpoint || apiEndpoint
-          if (endpoint) {
-            contact.custom_string_1 = endpoint
-          }
-
-          if (values.check_for_updates !== undefined) {
-            contact.custom_string_2 = values.check_for_updates ? 'true' : 'false'
-          }
-
-          if (values.telemetry_enabled !== undefined) {
-            contact.custom_string_3 = values.telemetry_enabled ? 'true' : 'false'
-          }
-
-          await fetch('https://email.notifuse.com/subscribe', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              workspace_id: 'notifuse',
-              contact,
-              list_ids: ['newsletter']
-            })
-          })
-        } catch {
-          // Fail silently - don't block setup if newsletter subscription fails
-        }
-      }
-
       // Show setup complete screen
       setSetupComplete(true)
 
@@ -352,7 +304,6 @@ export default function SetupWizard() {
                     smtp_port: 587,
                     smtp_use_tls: true,
                     smtp_from_name: '瑶光营销平台',
-                    subscribe_newsletter: true,
                     telemetry_enabled: true,
                     check_for_updates: true
                   }}
@@ -383,21 +334,11 @@ export default function SetupWizard() {
                           ]}
                           tooltip={t`Public URL where this Yaoguang Marketing instance is accessible`}
                         >
-                          <Input placeholder="https://notifuse.example.com" />
+                          <Input placeholder="https://marketing.example.com" />
                         </Form.Item>
                       )}
                     </div>
                   )}
-
-                  {/* Newsletter Subscription */}
-                  <Form.Item
-                    name="subscribe_newsletter"
-                    valuePropName="checked"
-                    label={t`Subscribe to the newsletter (new features...)`}
-                    style={{ marginTop: 24 }}
-                  >
-                    <Switch />
-                  </Form.Item>
 
                   {/* SMTP Configuration Section */}
                   {!configStatus.smtp_configured && (

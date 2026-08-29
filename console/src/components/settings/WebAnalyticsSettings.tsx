@@ -360,7 +360,7 @@ export function WebAnalyticsSettings({
           name="identify_from_email_links"
           label={t`Identify recipients who click a tracked email link`}
           valuePropName="checked"
-          tooltip={t`Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Notifuse for every recipient of every tracked send, which is why it is off by default.`}
+          tooltip={t`Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Yaoguang Marketing for every recipient of every tracked send, which is why it is off by default.`}
         >
           <Switch />
         </Form.Item>

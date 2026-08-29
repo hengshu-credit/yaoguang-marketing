@@ -124,7 +124,7 @@ describe('WebhookCard', () => {
     expect(screen.queryByText(/breaks the Zap/)).toBeNull()
   })
 
-  it('reports the reason and failure count when Notifuse disabled the subscription', async () => {
+  it('reports the reason and failure count when Yaoguang Marketing disabled the subscription', async () => {
     await renderCard({
       enabled: false,
       disabled_reason: 'Endpoint returned 500 on every attempt',
@@ -132,7 +132,7 @@ describe('WebhookCard', () => {
     })
 
     expect(screen.getByText('Auto-disabled')).toBeInTheDocument()
-    expect(screen.getByText('Notifuse disabled this webhook automatically')).toBeInTheDocument()
+    expect(screen.getByText('Yaoguang Marketing disabled this webhook automatically')).toBeInTheDocument()
     expect(screen.getByText('Endpoint returned 500 on every attempt')).toBeInTheDocument()
     expect(screen.getByText(/Consecutive delivery failures: 12/)).toBeInTheDocument()
   })
@@ -141,7 +141,7 @@ describe('WebhookCard', () => {
     await renderCard({ enabled: false })
 
     expect(screen.queryByText('Auto-disabled')).toBeNull()
-    expect(screen.queryByText(/Notifuse disabled this webhook/)).toBeNull()
+    expect(screen.queryByText(/Yaoguang Marketing disabled this webhook/)).toBeNull()
     expect(screen.queryByText(/Consecutive delivery failures/)).toBeNull()
   })
 })

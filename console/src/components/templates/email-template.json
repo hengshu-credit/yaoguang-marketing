@@ -249,7 +249,7 @@
                       {
                         "id": "1c771e88-da3e-4d96-a4e6-ec08e7878225",
                         "type": "mj-text",
-                        "content": "<p>Welcome to Notifuse,</p><p>Click on the button bellow to visit our website:</p>",
+                        "content": "<p>Welcome to Yaoguang Marketing,</p><p>Click on the button bellow to visit our website:</p>",
                         "attributes": {
                           "align": "left",
                           "color": "#333333",
@@ -287,7 +287,7 @@
                           "paddingRight": "25px",
                           "paddingTop": "5px",
                           "verticalAlign": "middle",
-                          "href": "https://www.notifuse.com",
+                          "href": "https://hengshucredit.com",
                           "rel": "noopener noreferrer",
                           "target": "_blank"
                         }
@@ -295,7 +295,7 @@
                       {
                         "id": "1de51dc3-ca56-471a-86d5-acb5830ff57d",
                         "type": "mj-text",
-                        "content": "<p>Thanks,</p><p>Team Notifuse</p>",
+                        "content": "<p>Thanks,</p><p>Team Yaoguang Marketing</p>",
                         "attributes": {
                           "align": "left",
                           "color": "#333333",
@@ -382,7 +382,7 @@
                       {
                         "id": "c68f2f57-4552-4a49-9d20-8c215a12a425",
                         "type": "mj-text",
-                        "content": "<p>Powered by <span style=\"color: #7763f1\"><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"editor-link\" href=\"https://www.notifuse.com\">Notifuse</a></span></p>",
+                        "content": "<p>Powered by <span style=\"color: #7763f1\"><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"editor-link\" href=\"https://hengshucredit.com\">Yaoguang Marketing</a></span></p>",
                         "attributes": {
                           "align": "left",
                           "color": "#6b7280",
@@ -526,7 +526,7 @@
       "last_name": "Doe",
       "email": "john.doe@example.com"
     },
-    "unsubscribe_url": "https://localapi.notifuse.com:4000/unsubscribe?email={{ contact.email }}&lid={{ list.id }}&email_hmac={{ contact.hmac }}"
+    "unsubscribe_url": "https://marketing.example.com/unsubscribe?email={{ contact.email }}&lid={{ list.id }}&email_hmac={{ contact.hmac }}"
   },
   "exportedAt": "2025-06-17T19:30:11.378Z",
   "version": "1.0"

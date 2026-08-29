@@ -23,7 +23,7 @@
 
 ## Delivery Batches
 
-### Batch 1: Brand Shell and Engineering Identity
+### Batch 1: Brand Shell and Engineering Identity — Complete
 
 - Add a reusable logo/name/tagline lockup to authenticated, sign-in, and setup surfaces.
 - Update browser metadata and product-facing defaults.

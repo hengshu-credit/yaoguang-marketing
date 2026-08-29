@@ -418,7 +418,7 @@ export function SystemSettingsDrawer() {
                 >
                   <Input
                     disabled={isOverridden('smtp_from_name')}
-                    placeholder="Notifuse"
+                    placeholder="瑶光营销平台"
                     allowClear
                   />
                 </Form.Item>

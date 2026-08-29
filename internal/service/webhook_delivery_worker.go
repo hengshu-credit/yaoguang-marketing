@@ -1326,7 +1326,7 @@ func buildTestPayload(eventType string) map[string]interface{} {
 		// is no real shape to be faithful to — say so in the payload rather than
 		// dress it up as an event.
 		return map[string]interface{}{
-			"message":    "This is a test webhook from Notifuse",
+			"message":    "This is a test webhook from Yaoguang Marketing",
 			"event_type": eventType,
 			"created_at": now,
 		}

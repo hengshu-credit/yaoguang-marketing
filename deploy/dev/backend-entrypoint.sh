@@ -29,9 +29,9 @@ if [ ! -f "$marker" ] || [ "$(cat "$marker")" != "$digest" ]; then
 fi
 
 if [ "$DEV_HOT_RELOAD" = true ]; then
-  echo "Starting Notifuse backend with Go hot reload"
+  echo "Starting Yaoguang Marketing backend with Go hot reload"
   exec air -c .air.toml
 fi
 
-echo "Starting Notifuse backend in restart-only mode"
+echo "Starting Yaoguang Marketing backend in restart-only mode"
 exec go run ./cmd/api

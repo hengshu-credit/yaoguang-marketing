@@ -18,7 +18,7 @@ var ErrOIDCIdentityConflict = errors.New("oidc identity conflict")
 
 // ErrOIDCAccountNotProvisioned is returned under the invited-only policy: a verified
 // SSO identity has no matching Notifuse user and JIT provisioning is disabled.
-var ErrOIDCAccountNotProvisioned = errors.New("no Notifuse account for this identity; ask to be invited")
+var ErrOIDCAccountNotProvisioned = errors.New("no Yaoguang Marketing account for this identity; ask to be invited")
 
 // ErrOIDCEmailNotVerified is returned when the IdP did not assert email_verified==true.
 var ErrOIDCEmailNotVerified = errors.New("oidc email not verified by provider")

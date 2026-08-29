@@ -366,7 +366,7 @@ describe('SignInPage', () => {
     it('extracts every OIDC error message into the source catalog', () => {
       const catalog = readFileSync(join(import.meta.dirname, '../i18n/locales/en.po'), 'utf8')
       const messages = [
-        'No Notifuse account is linked to that identity. Ask an administrator to invite you first.',
+        'No Yaoguang Marketing account is linked to that identity. Ask an administrator to invite you first.',
         'Your identity provider has not verified your email address.',
         'This account is already linked to a different single sign-on identity.',
         'Single sign-on is temporarily unavailable. Please try a magic code.',

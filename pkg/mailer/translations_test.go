@@ -12,14 +12,14 @@ func TestGetTranslations_PerLocale(t *testing.T) {
 		lang            string
 		expectedSubject string // MagicCode.Subject
 	}{
-		{"en", "Your Notifuse authentication code"},
-		{"fr", "Votre code d'authentification Notifuse"},
-		{"es", "Tu código de autenticación de Notifuse"},
-		{"de", "Ihr Notifuse-Authentifizierungscode"},
-		{"ca", "El teu codi d'autenticació de Notifuse"},
-		{"pt-BR", "Seu código de autenticação da Notifuse"},
-		{"ja", "Notifuse 認証コード"},
-		{"it", "Il tuo codice di autenticazione Notifuse"},
+		{"en", "Your Yaoguang Marketing authentication code"},
+		{"fr", "Votre code d'authentification Yaoguang Marketing"},
+		{"es", "Tu código de autenticación de Yaoguang Marketing"},
+		{"de", "Ihr Yaoguang-Marketing-Authentifizierungscode"},
+		{"ca", "El teu codi d'autenticació de Yaoguang Marketing"},
+		{"pt-BR", "Seu código de autenticação da Yaoguang Marketing"},
+		{"ja", "Yaoguang Marketing 認証コード"},
+		{"it", "Il tuo codice di autenticazione Yaoguang Marketing"},
 		{"zh-CN", "您的瑶光营销平台验证码"},
 	}
 

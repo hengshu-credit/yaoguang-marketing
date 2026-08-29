@@ -2047,7 +2047,7 @@ func formatPlanLimit(value int) string {
 
 // Initialize sets up all components of the application
 func (a *App) Initialize() error {
-	a.logger.WithField("version", a.config.Version).Info("Starting Notifuse application")
+	a.logger.WithField("version", a.config.Version).Info("Starting Yaoguang Marketing application")
 
 	// Plan limits arrive as environment variables. Logging the resolved values is
 	// the only way to confirm that a redeploy actually delivered a quota change.

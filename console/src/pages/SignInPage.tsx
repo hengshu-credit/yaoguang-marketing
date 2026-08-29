@@ -95,7 +95,7 @@ export function SignInPage() {
     (code: string): string => {
       switch (code) {
         case 'not_provisioned':
-          return t`No Notifuse account is linked to that identity. Ask an administrator to invite you first.`
+          return t`No Yaoguang Marketing account is linked to that identity. Ask an administrator to invite you first.`
         case 'email_unverified':
           return t`Your identity provider has not verified your email address.`
         case 'link_conflict':

@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/tracing"
-	"github.com/google/uuid"
 	"go.opencensus.io/trace"
 )
 
@@ -139,8 +139,8 @@ func (s *EmailService) TestEmailProvider(ctx context.Context, workspaceID string
 	}
 
 	// Generate email content
-	subject := "Notifuse: Test Email Provider"
-	content := "<h1>Notifuse: Test Email Provider</h1><p>This is a test email from Notifuse. Your provider is working!</p>"
+	subject := "Yaoguang Marketing: Test Email Provider"
+	content := "<h1>Yaoguang Marketing: Test Email Provider</h1><p>This is a test email from Yaoguang Marketing. Your provider is working!</p>"
 
 	// Send email with the provider details
 	messageID := uuid.New().String()

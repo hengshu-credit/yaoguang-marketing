@@ -59,11 +59,6 @@ msgstr "(Cancelled)"
 msgid "(empty)"
 msgstr "(empty)"
 
-#: src/components/web_analytics/shared.tsx:143
-#: src/pages/WebAnalyticsGoalsPage.tsx:86
-#~ msgid "(none)"
-#~ msgstr "(none)"
-
 #. placeholder {0}: record.email.reply_to
 #. placeholder {0}: templateSender?.name || defaultSender?.name
 #: src/components/templates/TemplatePreviewDrawer.tsx:307
@@ -80,10 +75,6 @@ msgstr "{0, plural, one {# contact} other {# contacts}}"
 #: src/components/web_analytics/explore/CsvExportModal.tsx:116
 msgid "{0, plural, one {Exported # row} other {Exported # rows}}"
 msgstr "{0, plural, one {Exported # row} other {Exported # rows}}"
-
-#: src/components/contacts/BulkActionProgressModal.tsx:78
-#~ msgid "{0} contact(s)"
-#~ msgstr "{0} contact(s)"
 
 #. placeholder {0}: previewResponse!.total_count
 #: src/components/segment/button_upsert.tsx:638
@@ -146,10 +137,6 @@ msgstr "{0} emails successfully delivered (hidden from chart)"
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:274
 msgid "{0} in {1}"
 msgstr "{0} in {1}"
-
-#: src/components/settings/WebAnalyticsSettings.tsx:180
-#~ msgid "{0} months"
-#~ msgstr "{0} months"
 
 #. placeholder {0}: processed.toLocaleString()
 #. placeholder {1}: enqueuedCount.toLocaleString()
@@ -264,10 +251,6 @@ msgstr "{0}-{1} of {total} broadcasts"
 msgid "{clicks} clicks out of {recipients} recipients"
 msgstr "{clicks} clicks out of {recipients} recipients"
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:335
-#~ msgid "{count} filters applied"
-#~ msgstr "{count} filters applied"
-
 #: src/components/timeline/ContactTimeline.tsx:844
 msgid "{goalCount} goals"
 msgstr "{goalCount} goals"
@@ -345,25 +328,9 @@ msgstr "{selectedCount, plural, one {# contact selected} other {# contacts selec
 msgid "{selectedCount, plural, one {This will permanently delete # contact. This action cannot be undone.} other {This will permanently delete # contacts. This action cannot be undone.}}"
 msgstr "{selectedCount, plural, one {This will permanently delete # contact. This action cannot be undone.} other {This will permanently delete # contacts. This action cannot be undone.}}"
 
-#: src/components/contacts/BulkActionsBar.tsx:111
-#~ msgid "{selectedCount} contact(s) selected"
-#~ msgstr "{selectedCount} contact(s) selected"
-
 #: src/components/timeline/ContactTimeline.tsx:228
 msgid "{totalSeconds}s"
 msgstr "{totalSeconds}s"
-
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:330
-#~ msgid "{what} - {count} rows"
-#~ msgstr "{what} - {count} rows"
-
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:331
-#~ msgid "{what} - cancelled"
-#~ msgstr "{what} - cancelled"
-
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:332
-#~ msgid "{what} - failed"
-#~ msgstr "{what} - failed"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:382
 msgid "{what} — {count} rows"
@@ -574,10 +541,6 @@ msgstr "A segment with ID \"{id}\" already exists"
 msgid "A send-only key can cause real delivery through email, SMS and push providers. /api/channelMessages.send requires an existing contact and encrypted endpoint, and its effect key prevents an identical retry from sending twice. /api/transactional.send still creates an email recipient contact, while cc or bcc additionally needs Contacts read and writing contact fields additionally needs Contacts write."
 msgstr "A send-only key can cause real delivery through email, SMS and push providers. /api/channelMessages.send requires an existing contact and encrypted endpoint, and its effect key prevents an identical retry from sending twice. /api/transactional.send still creates an email recipient contact, while cc or bcc additionally needs Contacts read and writing contact fields additionally needs Contacts write."
 
-#: src/services/api/permissions.ts:629
-#~ msgid "A send-only key really is send-only, and this is new in 39.0: /api/transactional.send still creates the recipient contact, but without Contacts write it stores nothing beyond the email address, and without Contacts read it refuses cc and bcc outright — the subject line is rendered against each recipient's whole record. The SMTP bridge is a second front door to the same switch, so this is also exactly what the SMTP username can do. Note that the write verb sends real mail from three separate endpoints, including one that only claims to \"test\" a provider."
-#~ msgstr "A send-only key really is send-only, and this is new in 39.0: /api/transactional.send still creates the recipient contact, but without Contacts write it stores nothing beyond the email address, and without Contacts read it refuses cc and bcc outright — the subject line is rendered against each recipient's whole record. The SMTP bridge is a second front door to the same switch, so this is also exactly what the SMTP username can do. Note that the write verb sends real mail from three separate endpoints, including one that only claims to \"test\" a provider."
-
 #: src/components/segment/button_upsert.tsx:759
 msgid "A tree is required"
 msgstr "A tree is required"
@@ -654,14 +617,6 @@ msgstr "Active"
 #: src/components/contacts/ExportContactsModal.tsx:330
 msgid "Active filters"
 msgstr "Active filters"
-
-#: src/pages/WebAnalyticsLivePage.tsx:71
-#~ msgid "Active sessions"
-#~ msgstr "Active sessions"
-
-#: src/pages/WebAnalyticsLivePage.tsx:45
-#~ msgid "Active Sessions"
-#~ msgstr "Active Sessions"
 
 #: src/components/analytics/NewContactsTable.tsx:88
 #: src/pages/ContactsPage.tsx:559
@@ -838,10 +793,6 @@ msgstr "Add operation"
 msgid "Add path"
 msgstr "Add path"
 
-#: src/pages/WebAnalyticsFiltersPage.tsx:118
-#~ msgid "Add rule"
-#~ msgstr "Add rule"
-
 #: src/components/settings/Integrations.tsx:2326
 #: src/components/settings/Integrations.tsx:2382
 #: src/components/settings/Integrations.tsx:2677
@@ -907,18 +858,14 @@ msgid "Address Line 2"
 msgstr "Address Line 2"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:363
-msgid "Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Notifuse for every recipient of every tracked send, which is why it is off by default."
-msgstr "Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Notifuse for every recipient of every tracked send, which is why it is off by default."
+msgid "Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Yaoguang Marketing for every recipient of every tracked send, which is why it is off by default."
+msgstr "Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Yaoguang Marketing for every recipient of every tracked send, which is why it is off by default."
 
-#: src/pages/SetupWizard.tsx:368
+#: src/pages/SetupWizard.tsx:319
 msgid "Admin email is required"
 msgstr "Admin email is required"
 
-#: src/components/settings/Integrations.tsx:1693
-#~ msgid "Advanced"
-#~ msgstr "Advanced"
-
-#: src/pages/SetupWizard.tsx:547
+#: src/pages/SetupWizard.tsx:488
 msgid "Advanced Settings"
 msgstr "Advanced Settings"
 
@@ -945,10 +892,6 @@ msgstr "after date"
 #: src/components/segment/form_leaf.tsx:810
 msgid "Aggregate"
 msgstr "Aggregate"
-
-#: src/components/broadcasts/BroadcastLinkStats.tsx:191
-#~ msgid "Aggregated across all A/B variations."
-#~ msgstr "Aggregated across all A/B variations."
 
 #: src/components/ai-assistant/AIAssistantChat.tsx:138
 msgid "AI Assistant Not Configured"
@@ -1057,7 +1000,7 @@ msgstr "All time"
 msgid "All transactional emails (notifications, password resets, etc.) will be sent through this provider from now on."
 msgstr "All transactional emails (notifications, password resets, etc.) will be sent through this provider from now on."
 
-#: src/pages/SetupWizard.tsx:582
+#: src/pages/SetupWizard.tsx:523
 msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 msgstr "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 
@@ -1067,7 +1010,7 @@ msgid "Allowed domains"
 msgstr "Allowed domains"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:657
-#: src/pages/SetupWizard.tsx:760
+#: src/pages/SetupWizard.tsx:701
 msgid "Allowed email domains"
 msgstr "Allowed email domains"
 
@@ -1091,10 +1034,6 @@ msgstr "Alternative text"
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:314
 msgid "Alternative text (for accessibility)"
 msgstr "Alternative text (for accessibility)"
-
-#: src/pages/WebAnalyticsFiltersPage.tsx:190
-#~ msgid "always"
-#~ msgstr "always"
 
 #: src/components/email_builder/blocks/MjFontBlock.tsx:48
 msgid "Always provide fallback fonts for better compatibility"
@@ -1212,11 +1151,11 @@ msgstr "API Command"
 #: src/components/settings/Integrations.tsx:2088
 #: src/components/settings/Integrations.tsx:2470
 #: src/components/settings/SystemSettingsDrawer.tsx:277
-#: src/pages/SetupWizard.tsx:378
+#: src/pages/SetupWizard.tsx:329
 msgid "API Endpoint"
 msgstr "API Endpoint"
 
-#: src/pages/SetupWizard.tsx:381
+#: src/pages/SetupWizard.tsx:332
 msgid "API endpoint is required"
 msgstr "API endpoint is required"
 
@@ -1261,10 +1200,6 @@ msgstr "API key created successfully"
 #: src/components/settings/WorkspaceMembers.tsx:566
 msgid "API Key Created Successfully"
 msgstr "API Key Created Successfully"
-
-#: src/components/settings/ZapierSettings.tsx:170
-#~ msgid "API key name"
-#~ msgstr "API key name"
 
 #: src/components/settings/WorkspaceMembers.tsx:534
 msgid "API Key Name"
@@ -1432,7 +1367,7 @@ msgstr "at least"
 msgid "At least one condition is required"
 msgstr "At least one condition is required"
 
-#: src/pages/SetupWizard.tsx:765
+#: src/pages/SetupWizard.tsx:706
 msgid "At least one domain is required when auto-create is enabled"
 msgstr "At least one domain is required when auto-create is enabled"
 
@@ -1460,14 +1395,6 @@ msgstr "Attempts"
 #: src/components/web_analytics/tabs/FiltersTab.tsx:124
 msgid "Attribution rules"
 msgstr "Attribution rules"
-
-#: src/pages/WebAnalyticsFiltersPage.tsx:116
-#~ msgid "Attribution Rules"
-#~ msgstr "Attribution Rules"
-
-#: src/pages/WebAnalyticsFiltersPage.tsx:85
-#~ msgid "Attribution rules saved. Run a backfill to rewrite historical data."
-#~ msgstr "Attribution rules saved. Run a backfill to rewrite historical data."
 
 #: src/pages/BroadcastsPage.tsx:1020
 msgid "Audience"
@@ -1524,7 +1451,7 @@ msgstr "auto"
 msgid "Auto"
 msgstr "Auto"
 
-#: src/pages/SetupWizard.tsx:752
+#: src/pages/SetupWizard.tsx:693
 msgid "Auto-create accounts on first sign-in"
 msgstr "Auto-create accounts on first sign-in"
 
@@ -1603,10 +1530,6 @@ msgstr "Automations write is an indirect contact read that Contacts read cannot 
 msgid "Available Blocks"
 msgstr "Available Blocks"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:211
-#~ msgid "Available once you connect an email provider that supports inbound replies (currently Mailgun — more providers coming soon). It stops this automation for a contact as soon as they reply to one of its emails."
-#~ msgstr "Available once you connect an email provider that supports inbound replies (currently Mailgun — more providers coming soon). It stops this automation for a contact as soon as they reply to one of its emails."
-
 #: src/components/automations/UpsertAutomationDrawer.tsx:215
 msgid "Available once you connect an email provider that supports inbound replies (currently Mailgun and Amazon SES — more providers coming soon). It stops this automation for a contact as soon as they reply to one of its emails."
 msgstr "Available once you connect an email provider that supports inbound replies (currently Mailgun and Amazon SES — more providers coming soon). It stops this automation for a contact as soon as they reply to one of its emails."
@@ -1642,10 +1565,6 @@ msgstr "AWS Secret Key"
 #: src/components/web_analytics/filters/TestFilterModal.tsx:271
 msgid "Back"
 msgstr "Back"
-
-#: src/pages/WebAnalyticsLivePage.tsx:64
-#~ msgid "Back to the dashboard"
-#~ msgstr "Back to the dashboard"
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:57
 msgid "Backfill cancelled"
@@ -1714,7 +1633,7 @@ msgstr "Base URL (Optional)"
 msgid "Base64 encoded TLS certificate"
 msgstr "Base64 encoded TLS certificate"
 
-#: src/pages/SetupWizard.tsx:645
+#: src/pages/SetupWizard.tsx:586
 msgid "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
 msgstr "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
 
@@ -1722,7 +1641,7 @@ msgstr "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
 msgid "Base64 encoded TLS private key"
 msgstr "Base64 encoded TLS private key"
 
-#: src/pages/SetupWizard.tsx:663
+#: src/pages/SetupWizard.tsx:604
 msgid "Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0"
 msgstr "Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0"
 
@@ -1741,10 +1660,6 @@ msgstr "BCC"
 #: src/components/templates/SendTemplateModal.tsx:367
 msgid "BCC Recipients"
 msgstr "BCC Recipients"
-
-#: src/components/settings/WebAnalyticsSettings.tsx:238
-#~ msgid "Beats from other origins are silently ignored. Wildcards like *.example.com are supported; empty allows every domain."
-#~ msgstr "Beats from other origins are silently ignored. Wildcards like *.example.com are supported; empty allows every domain."
 
 #: src/components/segment/input.tsx:713
 #: src/components/segment/input.tsx:852
@@ -2184,7 +2099,7 @@ msgid "Button Attributes"
 msgstr "Button Attributes"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:619
-#: src/pages/SetupWizard.tsx:742
+#: src/pages/SetupWizard.tsx:683
 msgid "Button Label"
 msgstr "Button Label"
 
@@ -2490,7 +2405,7 @@ msgid "Check"
 msgstr "Check"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:698
-#: src/pages/SetupWizard.tsx:565
+#: src/pages/SetupWizard.tsx:506
 msgid "Check for Updates"
 msgstr "Check for Updates"
 
@@ -2573,10 +2488,6 @@ msgstr "Click Rate"
 msgid "Click Register Webhooks to set up reply forwarding, then point your domain's MX records at {mxTarget}."
 msgstr "Click Register Webhooks to set up reply forwarding, then point your domain's MX records at {mxTarget}."
 
-#: src/components/settings/Integrations.tsx:218
-#~ msgid "Click Register Webhooks to set up reply forwarding, then point your domain's MX records at Mailgun."
-#~ msgstr "Click Register Webhooks to set up reply forwarding, then point your domain's MX records at Mailgun."
-
 #: src/components/contacts/BulkUpdateDrawer.tsx:701
 msgid "Click Resume to continue processing"
 msgstr "Click Resume to continue processing"
@@ -2584,10 +2495,6 @@ msgstr "Click Resume to continue processing"
 #: src/components/contacts/BulkActionProgressModal.tsx:115
 msgid "Click Resume to continue processing."
 msgstr "Click Resume to continue processing."
-
-#: src/components/broadcasts/BroadcastLinkStats.tsx:114
-#~ msgid "Click share"
-#~ msgstr "Click share"
 
 #: src/components/segment/button_upsert.tsx:676
 msgid "Click to retry"
@@ -2620,11 +2527,11 @@ msgid "Clicks"
 msgstr "Clicks"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:572
-#: src/pages/SetupWizard.tsx:722
+#: src/pages/SetupWizard.tsx:663
 msgid "Client ID"
 msgstr "Client ID"
 
-#: src/pages/SetupWizard.tsx:725
+#: src/pages/SetupWizard.tsx:666
 msgid "Client ID is required"
 msgstr "Client ID is required"
 
@@ -2634,11 +2541,11 @@ msgstr "Client Preview"
 
 #: src/components/settings/Integrations.tsx:2028
 #: src/components/settings/SystemSettingsDrawer.tsx:582
-#: src/pages/SetupWizard.tsx:732
+#: src/pages/SetupWizard.tsx:673
 msgid "Client Secret"
 msgstr "Client Secret"
 
-#: src/pages/SetupWizard.tsx:735
+#: src/pages/SetupWizard.tsx:676
 msgid "Client Secret is required"
 msgstr "Client Secret is required"
 
@@ -2722,7 +2629,7 @@ msgstr "Column Attributes"
 msgid "Column width (e.g., '50%', '300px', 'auto')"
 msgstr "Column width (e.g., '50%', '300px', 'auto')"
 
-#: src/pages/SetupWizard.tsx:768
+#: src/pages/SetupWizard.tsx:709
 msgid "Comma-separated list of email domains permitted to auto-create accounts"
 msgstr "Comma-separated list of email domains permitted to auto-create accounts"
 
@@ -2736,7 +2643,7 @@ msgstr "Comma-separated. Only these domains may auto-create accounts."
 
 #: src/components/settings/Integrations.tsx:1877
 #: src/components/settings/SystemSettingsDrawer.tsx:341
-#: src/pages/SetupWizard.tsx:465
+#: src/pages/SetupWizard.tsx:406
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 msgstr "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 
@@ -2811,7 +2718,7 @@ msgstr "Complement, don't repeat the subject line"
 msgid "Complete"
 msgstr "Complete"
 
-#: src/pages/SetupWizard.tsx:797
+#: src/pages/SetupWizard.tsx:738
 msgid "Complete Setup"
 msgstr "Complete Setup"
 
@@ -2855,10 +2762,6 @@ msgstr "conditions"
 #: src/components/web_analytics/filters/TestFilterModal.tsx:236
 msgid "Conditions"
 msgstr "Conditions"
-
-#: src/pages/WebAnalyticsFiltersPage.tsx:285
-#~ msgid "Conditions (all must match; none = always match)"
-#~ msgstr "Conditions (all must match; none = always match)"
 
 #: src/components/automations/NodeConfigPanel.tsx:179
 msgid "Configuration for {nodeType} is not available in Phase 2"
@@ -2957,10 +2860,6 @@ msgstr "Connect"
 msgid "Connect and manage external services"
 msgstr "Connect and manage external services"
 
-#: src/components/settings/ZapierSettings.tsx:103
-#~ msgid "Connect Notifuse to more than 8,000 apps with Zapier"
-#~ msgstr "Connect Notifuse to more than 8,000 apps with Zapier"
-
 #: src/components/settings/Integrations.tsx:2885
 #: src/components/settings/ZapierSettings.tsx:286
 msgid "Connect Zapier"
@@ -2971,8 +2870,8 @@ msgid "Connected"
 msgstr "Connected"
 
 #: src/components/settings/ZapierSettings.tsx:215
-msgid "Connecting Zapier lets a Zap react to Notifuse events — a new contact, a list subscription, a segment a contact joined — and lets a Zap create or update contacts and subscribe them to your lists. Each Zap you turn on registers its own webhook subscription, which you can see in Settings → Webhooks."
-msgstr "Connecting Zapier lets a Zap react to Notifuse events — a new contact, a list subscription, a segment a contact joined — and lets a Zap create or update contacts and subscribe them to your lists. Each Zap you turn on registers its own webhook subscription, which you can see in Settings → Webhooks."
+msgid "Connecting Zapier lets a Zap react to Yaoguang Marketing events — a new contact, a list subscription, a segment a contact joined — and lets a Zap create or update contacts and subscribe them to your lists. Each Zap you turn on registers its own webhook subscription, which you can see in Settings → Webhooks."
+msgstr "Connecting Zapier lets a Zap react to Yaoguang Marketing events — a new contact, a list subscription, a segment a contact joined — and lets a Zap create or update contacts and subscribe them to your lists. Each Zap you turn on registers its own webhook subscription, which you can see in Settings → Webhooks."
 
 #: src/components/transactional/ApiCommandModal.tsx:530
 msgid "Connection Details"
@@ -3060,10 +2959,6 @@ msgstr "Contact re-enters each time the event occurs"
 msgid "Contact records and their fields, contact timelines, and custom events recorded against contacts."
 msgstr "Contact records and their fields, contact timelines, and custom events recorded against contacts."
 
-#: src/components/settings/WebAnalyticsSettings.tsx:317
-#~ msgid "Contact timeline"
-#~ msgstr "Contact timeline"
-
 #: src/components/contacts/ContactUpsertDrawer.tsx:330
 msgid "Contact updated successfully"
 msgstr "Contact updated successfully"
@@ -3078,10 +2973,6 @@ msgstr "Contacts"
 #: src/components/automations/config/FilterConfigForm.tsx:29
 msgid "Contacts matching these conditions follow the 'Yes' path. Others follow 'No'."
 msgstr "Contacts matching these conditions follow the 'Yes' path. Others follow 'No'."
-
-#: src/components/automations/config/FilterConfigForm.tsx:61
-#~ msgid "Contacts matching these conditions will follow the 'Yes' path. Others will follow 'No'."
-#~ msgstr "Contacts matching these conditions will follow the 'Yes' path. Others will follow 'No'."
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1026
 msgid "Contacts will be added to these lists on import (optional)"
@@ -3145,18 +3036,6 @@ msgstr "Conv. Rate"
 msgid "Conversions"
 msgstr "Conversions"
 
-#: src/pages/WebAnalyticsGoalsPage.tsx:64
-#~ msgid "Converting Sessions"
-#~ msgstr "Converting Sessions"
-
-#: src/components/settings/WebAnalyticsSettings.tsx:288
-#~ msgid "Coordinate precision"
-#~ msgstr "Coordinate precision"
-
-#: src/components/web_analytics/tabs/SettingsTab.tsx:143
-#~ msgid "Coordinate precision (decimals)"
-#~ msgstr "Coordinate precision (decimals)"
-
 #: src/components/settings/WebAnalyticsSettings.tsx:394
 #: src/components/settings/WebAnalyticsSettings.tsx:398
 msgid "Coordinates precision"
@@ -3179,10 +3058,6 @@ msgstr "Copy"
 #: src/components/transactional/ApiCommandModal.tsx:987
 msgid "Copy {0} Code"
 msgstr "Copy {0} Code"
-
-#: src/components/settings/WebAnalyticsSettings.tsx:100
-#~ msgid "Copy code"
-#~ msgstr "Copy code"
 
 #: src/pages/BroadcastsPage.tsx:1712
 msgid "Copy to clipboard"
@@ -3351,10 +3226,6 @@ msgstr "Create a theme version"
 #: src/services/api/permissions.ts:605
 msgid "Create a transactional notification"
 msgstr "Create a transactional notification"
-
-#: src/components/settings/ZapierSettings.tsx:191
-#~ msgid "Create a Zapier API key"
-#~ msgstr "Create a Zapier API key"
 
 #: src/services/api/permissions.ts:670
 msgid "Create an automation, including webhook, email and list nodes"
@@ -3539,14 +3410,6 @@ msgstr "Created by Zapier"
 #: src/components/blog/ThemeEditorDrawer.tsx:246
 msgid "Created new version v{0}"
 msgstr "Created new version v{0}"
-
-#: src/components/settings/ZapierSettings.tsx:187
-#~ msgid "Creates a key limited to the permissions Zapier needs: contacts, lists and webhook subscriptions."
-#~ msgstr "Creates a key limited to the permissions Zapier needs: contacts, lists and webhook subscriptions."
-
-#: src/components/settings/ZapierSettings.tsx:165
-#~ msgid "Creates a key limited to the permissions Zapier needs: contacts, lists, segments and webhook subscriptions."
-#~ msgstr "Creates a key limited to the permissions Zapier needs: contacts, lists, segments and webhook subscriptions."
 
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:70
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:383
@@ -3914,7 +3777,7 @@ msgid "Defaults to meta title"
 msgstr "Defaults to meta title"
 
 #: src/components/settings/Integrations.tsx:2079
-#: src/pages/SetupWizard.tsx:525
+#: src/pages/SetupWizard.tsx:466
 msgid "Defaults to SMTP host"
 msgstr "Defaults to SMTP host"
 
@@ -4403,11 +4266,11 @@ msgstr "Documentation"
 
 #: src/components/settings/Integrations.tsx:2136
 #: src/components/settings/Integrations.tsx:2479
-#: src/pages/SetupWizard.tsx:604
+#: src/pages/SetupWizard.tsx:545
 msgid "Domain"
 msgstr "Domain"
 
-#: src/pages/SetupWizard.tsx:612
+#: src/pages/SetupWizard.tsx:553
 msgid "Domain for the SMTP bridge server (e.g., smtp.yourcompany.com)"
 msgstr "Domain for the SMTP bridge server (e.g., smtp.yourcompany.com)"
 
@@ -4538,10 +4401,6 @@ msgstr "E.g. Weekly Newsletter - May 2023"
 msgid "e.g. welcome_series"
 msgstr "e.g. welcome_series"
 
-#: src/components/automations/config/FilterConfigForm.tsx:34
-#~ msgid "e.g., Active users only"
-#~ msgstr "e.g., Active users only"
-
 #: src/components/settings/CustomFieldsConfiguration.tsx:286
 msgid "e.g., Company Name, Industry, etc."
 msgstr "e.g., Company Name, Industry, etc."
@@ -4589,14 +4448,6 @@ msgstr "e.g., Welcome — day 1"
 #: src/components/automations/config/TriggerConfigForm.tsx:374
 msgid "Each contact enters the automation only once"
 msgstr "Each contact enters the automation only once"
-
-#: src/components/settings/ZapierSettings.tsx:188
-#~ msgid "Each Zapier connection needs its own key, and names are unique across this whole Notifuse installation, not just this workspace."
-#~ msgstr "Each Zapier connection needs its own key, and names are unique across this whole Notifuse installation, not just this workspace."
-
-#: src/components/settings/ZapierSettings.tsx:225
-#~ msgid "Each Zapier connection needs its own key, so give a second one a different name."
-#~ msgstr "Each Zapier connection needs its own key, so give a second one a different name."
 
 #: src/pages/ListsPage.tsx:80
 msgid "edit"
@@ -4797,7 +4648,7 @@ msgstr "Editor mode"
 #: src/components/settings/Integrations.tsx:2076
 #: src/components/settings/Integrations.tsx:2420
 #: src/components/settings/SystemSettingsDrawer.tsx:432
-#: src/pages/SetupWizard.tsx:522
+#: src/pages/SetupWizard.tsx:463
 msgid "EHLO Hostname"
 msgstr "EHLO Hostname"
 
@@ -4983,7 +4834,7 @@ msgstr "Empty column. Add text, button, or image content."
 msgid "Enable A/B Testing"
 msgstr "Enable A/B Testing"
 
-#: src/pages/SetupWizard.tsx:555
+#: src/pages/SetupWizard.tsx:496
 msgid "Enable Anonymous Telemetry"
 msgstr "Enable Anonymous Telemetry"
 
@@ -5004,11 +4855,11 @@ msgstr "Enable geo-location tracking"
 msgid "Enable or disable a subscription"
 msgstr "Enable or disable a subscription"
 
-#: src/pages/SetupWizard.tsx:686
+#: src/pages/SetupWizard.tsx:627
 msgid "Enable Single Sign-On (OpenID Connect)"
 msgstr "Enable Single Sign-On (OpenID Connect)"
 
-#: src/pages/SetupWizard.tsx:581
+#: src/pages/SetupWizard.tsx:522
 msgid "Enable SMTP Bridge Server"
 msgstr "Enable SMTP Bridge Server"
 
@@ -5021,7 +4872,7 @@ msgid "Enable this rule?"
 msgstr "Enable this rule?"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:355
-#: src/pages/SetupWizard.tsx:480
+#: src/pages/SetupWizard.tsx:421
 msgid "Enable TLS encryption for SMTP connection"
 msgstr "Enable TLS encryption for SMTP connection"
 
@@ -5566,7 +5417,7 @@ msgstr "Failed to clear field"
 msgid "Failed to compile template preview."
 msgstr "Failed to compile template preview."
 
-#: src/pages/SetupWizard.tsx:244
+#: src/pages/SetupWizard.tsx:196
 msgid "Failed to complete setup"
 msgstr "Failed to complete setup"
 
@@ -5625,10 +5476,6 @@ msgstr "Failed to create segment"
 #: src/components/templates/CreateTemplateDrawer.tsx:337
 msgid "Failed to create template: {0}"
 msgstr "Failed to create template: {0}"
-
-#: src/components/settings/ZapierSettings.tsx:91
-#~ msgid "Failed to create the Zapier API key"
-#~ msgstr "Failed to create the Zapier API key"
 
 #: src/pages/CreateWorkspacePage.tsx:91
 msgid "Failed to create workspace"
@@ -5741,7 +5588,7 @@ msgstr "Failed to fetch new contacts data"
 msgid "Failed to fetch objects: "
 msgstr "Failed to fetch objects: "
 
-#: src/pages/SetupWizard.tsx:59
+#: src/pages/SetupWizard.tsx:58
 msgid "Failed to fetch setup status"
 msgstr "Failed to fetch setup status"
 
@@ -5944,7 +5791,7 @@ msgstr "Failed to test email provider"
 msgid "Failed to test recipient feed: {0}"
 msgstr "Failed to test recipient feed: {0}"
 
-#: src/pages/SetupWizard.tsx:88
+#: src/pages/SetupWizard.tsx:87
 msgid "Failed to test SMTP connection"
 msgstr "Failed to test SMTP connection"
 
@@ -6157,10 +6004,6 @@ msgstr "Filter by: {0}"
 msgid "Filter conditions"
 msgstr "Filter conditions"
 
-#: src/components/automations/config/FilterConfigForm.tsx:59
-#~ msgid "Filter Conditions"
-#~ msgstr "Filter Conditions"
-
 #: src/components/segment/input_event_property_filters.tsx:128
 msgid "Filter on an event property"
 msgstr "Filter on an event property"
@@ -6183,10 +6026,6 @@ msgstr "Filters — 1 applied"
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:415
 msgid "Filters — cleared"
 msgstr "Filters — cleared"
-
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:336
-#~ msgid "Filters cleared"
-#~ msgstr "Filters cleared"
 
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:112
 #: src/pages/ContactsPage.tsx:1078
@@ -6320,21 +6159,13 @@ msgstr "for tracking (not available in templates)."
 msgid "Force a full rebuild of a segment"
 msgstr "Force a full rebuild of a segment"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:180
-#~ msgid "Forever"
-#~ msgstr "Forever"
-
 #: src/components/email_builder/MjmlCodeEditor.tsx:746
 msgid "Format"
 msgstr "Format"
 
-#: src/components/settings/Integrations.tsx:204
-#~ msgid "Forwards inbound replies to Notifuse so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the Mailgun route; you must also point your domain's MX records at Mailgun."
-#~ msgstr "Forwards inbound replies to Notifuse so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the Mailgun route; you must also point your domain's MX records at Mailgun."
-
 #: src/components/settings/Integrations.tsx:226
-msgid "Forwards inbound replies to Notifuse so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the provider-side route; you must also point your domain's MX records at your email provider."
-msgstr "Forwards inbound replies to Notifuse so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the provider-side route; you must also point your domain's MX records at your email provider."
+msgid "Forwards inbound replies to Yaoguang Marketing so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the provider-side route; you must also point your domain's MX records at your email provider."
+msgstr "Forwards inbound replies to Yaoguang Marketing so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the provider-side route; you must also point your domain's MX records at your email provider."
 
 #. placeholder {0}: parsedData.emails.length
 #: src/components/contacts/BulkUpdateDrawer.tsx:246
@@ -6356,16 +6187,16 @@ msgid "From"
 msgstr "From"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:399
-#: src/pages/SetupWizard.tsx:503
+#: src/pages/SetupWizard.tsx:444
 msgid "From Email"
 msgstr "From Email"
 
-#: src/pages/SetupWizard.tsx:506
+#: src/pages/SetupWizard.tsx:447
 msgid "From email is required"
 msgstr "From email is required"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:415
-#: src/pages/SetupWizard.tsx:514
+#: src/pages/SetupWizard.tsx:455
 msgid "From Name"
 msgstr "From Name"
 
@@ -6405,17 +6236,9 @@ msgstr "Full width on mobile"
 msgid "Fullscreen"
 msgstr "Fullscreen"
 
-#: src/components/integrations/LLMIntegration.tsx:230
-#~ msgid "gemini-2.5-flash, gemini-3.1-pro-preview, or a custom model ID"
-#~ msgstr "gemini-2.5-flash, gemini-3.1-pro-preview, or a custom model ID"
-
 #: src/components/integrations/LLMIntegration.tsx:249
 msgid "gemini-3.1-pro-preview or a custom model ID"
 msgstr "gemini-3.1-pro-preview or a custom model ID"
-
-#: src/components/integrations/LLMIntegration.tsx:226
-#~ msgid "gemini-3.5-flash, gemini-3.1-pro-preview, or a custom model ID"
-#~ msgstr "gemini-3.5-flash, gemini-3.1-pro-preview, or a custom model ID"
 
 #: src/components/settings/SettingsSidebar.tsx:126
 #: src/components/settings/SystemSettingsDrawer.tsx:250
@@ -6464,10 +6287,6 @@ msgstr "Geographic data collection"
 msgid "Geography"
 msgstr "Geography"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:261
-#~ msgid "Geolocation privacy"
-#~ msgstr "Geolocation privacy"
-
 #: src/components/settings/Integrations.tsx:2211
 msgid "Gives this integration its own SES reputation profile and its own suppression list, so another workspace's bounces can't pause or suppress this one. AWS bills per tenant per month, based on volume."
 msgstr "Gives this integration its own SES reputation profile and its own suppression list, so another workspace's bounces can't pause or suppress this one. AWS bills per tenant per month, based on volume."
@@ -6489,7 +6308,7 @@ msgid "Global feed URL is required when enabled"
 msgstr "Global feed URL is required when enabled"
 
 #: src/pages/AcceptInvitationPage.tsx:125
-#: src/pages/SetupWizard.tsx:337
+#: src/pages/SetupWizard.tsx:289
 msgid "Go to Sign In"
 msgstr "Go to Sign In"
 
@@ -6538,10 +6357,6 @@ msgstr "Goal:"
 msgid "Goals"
 msgstr "Goals"
 
-#: src/pages/WebAnalyticsGoalsPage.tsx:73
-#~ msgid "Goals by Channel"
-#~ msgstr "Goals by Channel"
-
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:262
 msgid "Goals by day and hour"
 msgstr "Goals by day and hour"
@@ -6553,10 +6368,6 @@ msgstr "Google Workspace / Gmail"
 #: src/components/integrations/LLMIntegration.tsx:210
 msgid "gpt-4.1, gpt-5.4, o4-mini, or custom model name"
 msgstr "gpt-4.1, gpt-5.4, o4-mini, or custom model name"
-
-#: src/components/integrations/LLMIntegration.tsx:166
-#~ msgid "gpt-4o, gpt-4.1, o4-mini, or custom model name"
-#~ msgstr "gpt-4o, gpt-4.1, o4-mini, or custom model name"
 
 #: src/components/settings/WorkspaceMembers.tsx:46
 msgid "Grant all"
@@ -6573,10 +6384,6 @@ msgstr "Group (drag columns here)"
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:43
 msgid "Group Attributes"
 msgstr "Group Attributes"
-
-#: src/pages/WebAnalyticsExplorePage.tsx:160
-#~ msgid "Group by"
-#~ msgstr "Group by"
 
 #: src/components/segment/form_leaf.tsx:480
 #: src/components/segment/input.tsx:809
@@ -6643,11 +6450,7 @@ msgstr "Help"
 msgid "Help & Support"
 msgstr "Help & Support"
 
-#: src/pages/SetupWizard.tsx:557
-#~ msgid "Help us improve Notifuse by sending anonymous usage statistics. No personal data or message content is collected."
-#~ msgstr "Help us improve Notifuse by sending anonymous usage statistics. No personal data or message content is collected."
-
-#: src/pages/SetupWizard.tsx:556
+#: src/pages/SetupWizard.tsx:497
 msgid "Help us improve Yaoguang Marketing by sending anonymous usage statistics. No personal data or message content is collected."
 msgstr "Help us improve Yaoguang Marketing by sending anonymous usage statistics. No personal data or message content is collected."
 
@@ -6674,10 +6477,6 @@ msgstr "High-level channel performance"
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:129
 msgid "Higher priority rules are evaluated first (0-1000)"
 msgstr "Higher priority rules are evaluated first (0-1000)"
-
-#: src/pages/WebAnalyticsFiltersPage.tsx:275
-#~ msgid "Higher rules win (0-1000)."
-#~ msgstr "Higher rules win (0-1000)."
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:154
 msgid "Historical sessions and goals were written with a different rule set."
@@ -7165,8 +6964,8 @@ msgstr "Integrations"
 msgid "Invalid email"
 msgstr "Invalid email"
 
-#: src/pages/SetupWizard.tsx:369
-#: src/pages/SetupWizard.tsx:507
+#: src/pages/SetupWizard.tsx:320
+#: src/pages/SetupWizard.tsx:448
 msgid "Invalid email format"
 msgstr "Invalid email format"
 
@@ -7225,7 +7024,7 @@ msgstr "Invalid tree structure: not an object"
 msgid "Invalid tree structure: root must be mjml type"
 msgstr "Invalid tree structure: root must be mjml type"
 
-#: src/pages/SetupWizard.tsx:382
+#: src/pages/SetupWizard.tsx:333
 msgid "Invalid URL format"
 msgstr "Invalid URL format"
 
@@ -7302,11 +7101,11 @@ msgid "isolation requested but not provisioned"
 msgstr "isolation requested but not provisioned"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:553
-#: src/pages/SetupWizard.tsx:710
+#: src/pages/SetupWizard.tsx:651
 msgid "Issuer URL"
 msgstr "Issuer URL"
 
-#: src/pages/SetupWizard.tsx:713
+#: src/pages/SetupWizard.tsx:654
 msgid "Issuer URL is required"
 msgstr "Issuer URL is required"
 
@@ -7393,10 +7192,6 @@ msgstr "Label must be at most 100 characters"
 msgid "Landing pages"
 msgstr "Landing pages"
 
-#: src/pages/WebAnalyticsLivePage.tsx:57
-#~ msgid "Landing Pages"
-#~ msgstr "Landing Pages"
-
 #: src/components/analytics/NewContactsTable.tsx:166
 #: src/components/automations/config/ChannelConfigForm.tsx:60
 #: src/components/automations/config/TriggerConfigForm.tsx:125
@@ -7424,25 +7219,13 @@ msgstr "Large File Warning"
 msgid "Large images can significantly slow down email loading times for recipients, especially on mobile devices or slow connections."
 msgstr "Large images can significantly slow down email loading times for recipients, especially on mobile devices or slow connections."
 
-#: src/pages/WebAnalyticsLivePage.tsx:57
-#~ msgid "Last {WINDOW_MINUTES} minutes"
-#~ msgstr "Last {WINDOW_MINUTES} minutes"
-
 #: src/components/settings/WebhookCard.tsx:380
 msgid "Last 24 hours"
 msgstr "Last 24 hours"
 
-#: src/pages/WebAnalyticsLivePage.tsx:39
-#~ msgid "last 30 minutes"
-#~ msgstr "last 30 minutes"
-
 #: src/components/settings/WebhookCard.tsx:380
 msgid "Last 7 days"
 msgstr "Last 7 days"
-
-#: src/pages/WebAnalyticsFiltersPage.tsx:150
-#~ msgid "Last backfill rewrote"
-#~ msgstr "Last backfill rewrote"
 
 #: src/components/blog/RecentThemesTable.tsx:165
 msgid "Last Edited"
@@ -7504,8 +7287,8 @@ msgid "Leave empty to use a random contact from the broadcast audience."
 msgstr "Leave empty to use a random contact from the broadcast audience."
 
 #: src/components/settings/Integrations.tsx:2226
-msgid "Leave empty to use the one Notifuse manages for this integration."
-msgstr "Leave empty to use the one Notifuse manages for this integration."
+msgid "Leave empty to use the one Yaoguang Marketing manages for this integration."
+msgstr "Leave empty to use the one Yaoguang Marketing manages for this integration."
 
 #: src/components/timeline/ContactTimeline.tsx:557
 msgid "left"
@@ -7523,7 +7306,7 @@ msgstr "Left"
 msgid "Left to Right"
 msgstr "Left to Right"
 
-#: src/pages/SetupWizard.tsx:687
+#: src/pages/SetupWizard.tsx:628
 msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
 msgstr "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
 
@@ -7570,14 +7353,6 @@ msgstr "Line Through"
 #: src/components/email_builder/blocks/MjImageBlock.tsx:56
 msgid "Link"
 msgstr "Link"
-
-#: src/components/broadcasts/BroadcastLinkStats.tsx:62
-#~ msgid "Link Clicks"
-#~ msgstr "Link Clicks"
-
-#: src/components/broadcasts/BroadcastLinkStats.tsx:80
-#~ msgid "Link performance"
-#~ msgstr "Link performance"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:370
 msgid "Link Settings"
@@ -7822,7 +7597,7 @@ msgstr "Loading automations..."
 msgid "Loading message history..."
 msgstr "Loading message history..."
 
-#: src/pages/SetupWizard.tsx:300
+#: src/pages/SetupWizard.tsx:252
 msgid "Loading setup..."
 msgstr "Loading setup..."
 
@@ -7861,10 +7636,6 @@ msgstr "Loading webhook status..."
 #: src/pages/TransactionalNotificationsPage.tsx:383
 msgid "Loading..."
 msgstr "Loading..."
-
-#: src/components/settings/WebAnalyticsSettings.tsx:267
-#~ msgid "Locations are resolved from the IP address on the server; the IP itself is never stored."
-#~ msgstr "Locations are resolved from the IP address on the server; the IP itself is never stored."
 
 #: src/components/settings/GeneralSettings.tsx:141
 msgid "Logo"
@@ -8306,27 +8077,13 @@ msgstr "Month to date"
 msgid "Monthly"
 msgstr "Monthly"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:243
-#~ msgid "Monthly partitions older than this are dropped. 0 keeps data forever."
-#~ msgstr "Monthly partitions older than this are dropped. 0 keeps data forever."
-
 #: src/components/blog_editor/toolbars/components/MoreMenu.tsx:97
 msgid "More options"
 msgstr "More options"
 
-#: src/components/web_analytics/explore/DimensionSelector.tsx:164
-#: src/components/web_analytics/explore/DimensionSelector.tsx:165
-#~ msgid "Move earlier"
-#~ msgstr "Move earlier"
-
-#: src/components/web_analytics/explore/DimensionSelector.tsx:175
-#: src/components/web_analytics/explore/DimensionSelector.tsx:176
-#~ msgid "Move later"
-#~ msgstr "Move later"
-
 #: src/components/settings/SystemSettingsDrawer.tsx:557
 #: src/components/settings/SystemSettingsDrawer.tsx:599
-#: src/pages/SetupWizard.tsx:714
+#: src/pages/SetupWizard.tsx:655
 msgid "Must be a valid https URL"
 msgstr "Must be a valid https URL"
 
@@ -8396,8 +8153,8 @@ msgid "Name:"
 msgstr "Name:"
 
 #: src/components/settings/ZapierSettings.tsx:171
-msgid "Names this connection in Notifuse, and the API key it creates in Settings → Team."
-msgstr "Names this connection in Notifuse, and the API key it creates in Settings → Team."
+msgid "Names this connection in Yaoguang Marketing, and the API key it creates in Settings → Team."
+msgstr "Names this connection in Yaoguang Marketing, and the API key it creates in Settings → Team."
 
 #: src/components/settings/WebAnalyticsSettings.tsx:425
 msgid "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
@@ -8435,10 +8192,6 @@ msgstr "New message (email...)"
 #: src/components/blog/PostsTable.tsx:388
 msgid "New Post"
 msgstr "New Post"
-
-#: src/pages/WebAnalyticsFiltersPage.tsx:264
-#~ msgid "New rule"
-#~ msgstr "New rule"
 
 #: src/components/segment/button_upsert.tsx:409
 msgid "New segment"
@@ -8697,10 +8450,6 @@ msgstr "No items selected"
 msgid "No link clicks recorded for this variation yet"
 msgstr "No link clicks recorded for this variation yet"
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:128
-#~ msgid "No link clicks recorded yet"
-#~ msgstr "No link clicks recorded yet"
-
 #: src/components/automations/AutomationCard.tsx:99
 msgid "No list"
 msgstr "No list"
@@ -8737,10 +8486,6 @@ msgstr "No nodes in this automation"
 msgid "No notes"
 msgstr "No notes"
 
-#: src/pages/SignInPage.tsx:98
-msgid "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
-msgstr "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
-
 #: src/components/web_analytics/filters/TestFilterModal.tsx:201
 msgid "No operations defined"
 msgstr "No operations defined"
@@ -8760,10 +8505,6 @@ msgstr "No posts yet"
 #: src/components/templates/TemplatePreviewDrawer.tsx:465
 msgid "No preview available or template is empty."
 msgstr "No preview available or template is empty."
-
-#: src/components/segment/button_upsert.tsx:662
-#~ msgid "No preview available..."
-#~ msgstr "No preview available..."
 
 #: src/components/timeline/ContactTimeline.tsx:369
 msgid "No properties"
@@ -8878,6 +8619,10 @@ msgstr "No webhook subscriptions configured"
 #: src/pages/DashboardPage.tsx:48
 msgid "No workspaces"
 msgstr "No workspaces"
+
+#: src/pages/SignInPage.tsx:98
+msgid "No Yaoguang Marketing account is linked to that identity. Ask an administrator to invite you first."
+msgstr "No Yaoguang Marketing account is linked to that identity. Ask an administrator to invite you first."
 
 #: src/components/automations/NodePalette.tsx:21
 msgid "Nodes"
@@ -9011,14 +8756,6 @@ msgstr "Notification name"
 msgid "Notification updated successfully"
 msgstr "Notification updated successfully"
 
-#: src/components/settings/WebhookCard.tsx:298
-msgid "Notifuse disabled this webhook automatically"
-msgstr "Notifuse disabled this webhook automatically"
-
-#: src/components/settings/Integrations.tsx:1067
-msgid "Notifuse will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume."
-msgstr "Notifuse will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume."
-
 #: src/components/settings/Integrations.tsx:2238
 msgid "notifuse-…"
 msgstr "notifuse-…"
@@ -9041,10 +8778,6 @@ msgstr "Null"
 #: src/components/segment/input_event_property_filters.tsx:181
 msgid "Number"
 msgstr "Number"
-
-#: src/components/settings/WebAnalyticsSettings.tsx:289
-#~ msgid "Number of decimals kept. Two decimals is roughly one kilometer."
-#~ msgstr "Number of decimals kept. Two decimals is roughly one kilometer."
 
 #: src/components/settings/BlogSettings.tsx:402
 msgid "Number of posts to display per page on category pages"
@@ -9087,7 +8820,7 @@ msgstr "of the following conditions match:"
 msgid "Off (plaintext)"
 msgstr "Off (plaintext)"
 
-#: src/pages/SetupWizard.tsx:716
+#: src/pages/SetupWizard.tsx:657
 msgid "OIDC issuer base URL — discovery happens at <issuer>/.well-known/openid-configuration"
 msgstr "OIDC issuer base URL — discovery happens at <issuer>/.well-known/openid-configuration"
 
@@ -9112,10 +8845,6 @@ msgstr "One endpoint, but it is the whole assistant: /api/llm.chat streams throu
 msgid "Only a workspace owner can view or rotate the signing secret"
 msgstr "Only a workspace owner can view or rotate the signing secret"
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:186
-#~ msgid "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks are still included in the Clicks total above."
-#~ msgstr "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks are still included in the Clicks total above."
-
 #: src/components/broadcasts/BroadcastLinkStats.tsx:92
 msgid "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks still count toward the variation's Clicks total."
 msgstr "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks still count toward the variation's Clicks total."
@@ -9123,18 +8852,6 @@ msgstr "Only clicks recorded since per-link tracking was enabled appear here; ea
 #: src/components/automations/config/TriggerConfigForm.tsx:387
 msgid "Only enroll contacts matching these conditions."
 msgstr "Only enroll contacts matching these conditions."
-
-#: src/components/automations/config/TriggerConfigForm.tsx:392
-#~ msgid "Only enroll contacts matching these conditions. Optional."
-#~ msgstr "Only enroll contacts matching these conditions. Optional."
-
-#: src/components/settings/WebAnalyticsSettings.tsx:320
-#~ msgid "Only goals from visitors identified with identify() are recorded, and only when the address already belongs to a contact. Recorded goals can trigger automations and change segment membership. Obtaining consent to store web activity against a contact is your responsibility."
-#~ msgstr "Only goals from visitors identified with identify() are recorded, and only when the address already belongs to a contact. Recorded goals can trigger automations and change segment membership. Obtaining consent to store web activity against a contact is your responsibility."
-
-#: src/components/settings/WebAnalyticsSettings.tsx:323
-#~ msgid "Only goals from visitors identified with identify() are recorded. Recorded goals can trigger automations and change segment membership. Obtaining consent to store web activity against a contact is your responsibility."
-#~ msgstr "Only goals from visitors identified with identify() are recorded. Recorded goals can trigger automations and change segment membership. Obtaining consent to store web activity against a contact is your responsibility."
 
 #: src/components/file_manager/fileManager.tsx:1046
 msgid "Only lowercase alphanumeric characters, underscore, and dash are allowed."
@@ -9191,14 +8908,6 @@ msgstr "Open on web"
 msgid "Open Rate"
 msgstr "Open Rate"
 
-#: src/pages/WebAnalyticsPage.tsx:127
-#~ msgid "Open the settings tab to install the tracking snippet"
-#~ msgstr "Open the settings tab to install the tracking snippet"
-
-#: src/pages/WebAnalyticsPage.tsx:171
-#~ msgid "Open the workspace settings to install the tracking snippet"
-#~ msgstr "Open the workspace settings to install the tracking snippet"
-
 #: src/components/web_analytics/InstallOverlay.tsx:105
 msgid "Open web analytics settings"
 msgstr "Open web analytics settings"
@@ -9213,10 +8922,6 @@ msgstr "opened"
 #: src/components/messages/MessageHistoryTable.tsx:282
 msgid "Opened"
 msgstr "Opened"
-
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:338
-#~ msgid "Opened the {section} section"
-#~ msgstr "Opened the {section} section"
 
 #: src/pages/BroadcastsPage.tsx:1171
 msgid "opens"
@@ -9379,10 +9084,6 @@ msgstr "Page view"
 msgid "Pages"
 msgstr "Pages"
 
-#: src/pages/WebAnalyticsOverviewPage.tsx:74
-#~ msgid "Pages / Session"
-#~ msgstr "Pages / Session"
-
 #: src/components/web_analytics/CountryMapView.tsx:67
 msgid "Pageviews"
 msgstr "Pageviews"
@@ -9413,8 +9114,8 @@ msgid "Paste this snippet before the closing </head> tag of your website."
 msgstr "Paste this snippet before the closing </head> tag of your website."
 
 #: src/components/settings/ZapierSettings.tsx:185
-msgid "Paste this URL into the API URL field when you connect your Notifuse account in Zapier."
-msgstr "Paste this URL into the API URL field when you connect your Notifuse account in Zapier."
+msgid "Paste this URL into the API URL field when you connect your Yaoguang Marketing account in Zapier."
+msgstr "Paste this URL into the API URL field when you connect your Yaoguang Marketing account in Zapier."
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:340
 msgid "Paste YouTube URL..."
@@ -9487,10 +9188,6 @@ msgstr "Pending confirmation"
 msgid "Per-link click data is not available."
 msgstr "Per-link click data is not available."
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:64
-#~ msgid "Per-link tracking only covers clicks recorded after this feature was enabled. Older clicks are counted in the aggregate Clicks stat only. Each message records up to 50 distinct URLs."
-#~ msgstr "Per-link tracking only covers clicks recorded after this feature was enabled. Older clicks are counted in the aggregate Clicks stat only. Each message records up to 50 distinct URLs."
-
 #: src/components/broadcasts/RecipientFeedSettings.tsx:88
 msgid "Per-Recipient Data Feed"
 msgstr "Per-Recipient Data Feed"
@@ -9507,15 +9204,7 @@ msgstr "Per-recipient feed URL is required when enabled"
 msgid "Period — {detail}"
 msgstr "Period — {detail}"
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:334
-#~ msgid "Period set to {summary}"
-#~ msgstr "Period set to {summary}"
-
-#: src/pages/SetupWizard.tsx:567
-#~ msgid "Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
-#~ msgstr "Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
-
-#: src/pages/SetupWizard.tsx:566
+#: src/pages/SetupWizard.tsx:507
 msgid "Periodically check for new Yaoguang Marketing versions and security updates. A popup will list new versions available."
 msgstr "Periodically check for new Yaoguang Marketing versions and security updates. A popup will list new versions available."
 
@@ -9557,10 +9246,6 @@ msgstr "Phone Number"
 msgid "Photo by Zetong Li"
 msgstr "Photo by Zetong Li"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:110
-#~ msgid "Photo URL"
-#~ msgstr "Photo URL"
-
 #: src/components/web_analytics/explore/BreakdownModal.tsx:123
 msgid "Pick a dimension below"
 msgstr "Pick a dimension below"
@@ -9572,10 +9257,6 @@ msgstr "Pick a report to start from, or build your own."
 #: src/services/api/permissions.ts:563
 msgid "Pick the winning A/B variation and send it to the remaining audience"
 msgstr "Pick the winning A/B variation and send it to the remaining audience"
-
-#: src/components/transactional/ApiCommandModal.tsx:529
-#~ msgid "Plain text (not recommended for production)"
-#~ msgstr "Plain text (not recommended for production)"
 
 #: src/components/transactional/ApiCommandModal.tsx:524
 msgid "Plain text (only safe behind a TLS-terminating proxy)"
@@ -9627,10 +9308,6 @@ msgstr "Please enter a broadcast name"
 msgid "Please enter a category name"
 msgstr "Please enter a category name"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:290
-#~ msgid "Please enter a coordinate precision"
-#~ msgstr "Please enter a coordinate precision"
-
 #: src/components/settings/CustomFieldsConfiguration.tsx:282
 msgid "Please enter a custom label"
 msgstr "Please enter a custom label"
@@ -9655,10 +9332,6 @@ msgstr "Please enter a model name"
 msgid "Please enter a name"
 msgstr "Please enter a name"
 
-#: src/components/settings/ZapierSettings.tsx:71
-#~ msgid "Please enter a name for the API key"
-#~ msgstr "Please enter a name for the API key"
-
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:265
 msgid "Please enter a notification name"
 msgstr "Please enter a notification name"
@@ -9670,10 +9343,6 @@ msgstr "Please enter a post title"
 #: src/components/segment/input_event_property_filters.tsx:158
 msgid "Please enter a property name"
 msgstr "Please enter a property name"
-
-#: src/components/settings/WebAnalyticsSettings.tsx:244
-#~ msgid "Please enter a retention period"
-#~ msgstr "Please enter a retention period"
 
 #: src/components/blog/CategoryDrawer.tsx:143
 #: src/components/blog/PostDrawer.tsx:854
@@ -9875,11 +9544,11 @@ msgid "Please upload a CSV file with email addresses"
 msgstr "Please upload a CSV file with email addresses"
 
 #: src/components/transactional/ApiCommandModal.tsx:533
-#: src/pages/SetupWizard.tsx:618
+#: src/pages/SetupWizard.tsx:559
 msgid "Port"
 msgstr "Port"
 
-#: src/pages/SetupWizard.tsx:627
+#: src/pages/SetupWizard.tsx:568
 msgid "Port for the SMTP bridge server (default: 587)"
 msgstr "Port for the SMTP bridge server (default: 587)"
 
@@ -10198,11 +9867,7 @@ msgstr "Public"
 msgid "Public lists are visible in the Notification Center for users to subscribe to"
 msgstr "Public lists are visible in the Notification Center for users to subscribe to"
 
-#: src/pages/SetupWizard.tsx:385
-#~ msgid "Public URL where this Notifuse instance is accessible"
-#~ msgstr "Public URL where this Notifuse instance is accessible"
-
-#: src/pages/SetupWizard.tsx:384
+#: src/pages/SetupWizard.tsx:335
 msgid "Public URL where this Yaoguang Marketing instance is accessible"
 msgstr "Public URL where this Yaoguang Marketing instance is accessible"
 
@@ -10257,10 +9922,6 @@ msgstr "Purchase"
 #: src/components/templates/MessageTemplateDrawer.tsx:384
 msgid "Push"
 msgstr "Push"
-
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:329
-#~ msgid "Querying {what}"
-#~ msgstr "Querying {what}"
 
 #: src/pages/BroadcastsPage.tsx:634
 msgid "Queued emails will not be sent. In-flight sends will complete."
@@ -10432,10 +10093,6 @@ msgstr "Read the workspace record and its settings; Workspace write alone also p
 msgid "Read the Zapier setup guide"
 msgstr "Read the Zapier setup guide"
 
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:339
-#~ msgid "Reading the available metrics"
-#~ msgstr "Reading the available metrics"
-
 #: src/components/blog/PostDrawer.tsx:885
 msgid "Reading Time"
 msgstr "Reading Time"
@@ -10524,18 +10181,6 @@ msgstr "Record the city of visitors"
 #: src/components/settings/WebAnalyticsSettings.tsx:390
 msgid "Record the region or state of visitors"
 msgstr "Record the region or state of visitors"
-
-#: src/components/settings/WebAnalyticsSettings.tsx:321
-#~ msgid "Record web goals on the contact timeline"
-#~ msgstr "Record web goals on the contact timeline"
-
-#: src/components/settings/WebAnalyticsSettings.tsx:330
-#~ msgid "Record web navigation on the contact timeline"
-#~ msgstr "Record web navigation on the contact timeline"
-
-#: src/components/settings/WebAnalyticsSettings.tsx:332
-#~ msgid "Records each session and pageview of visitors identified with identify() as contact timeline entries. Unlike goals, navigation never triggers automations. A busy visit can add dozens of entries to a contact's timeline. Obtaining consent to store browsing history against a contact is your responsibility."
-#~ msgstr "Records each session and pageview of visitors identified with identify() as contact timeline entries. Unlike goals, navigation never triggers automations. A busy visit can add dozens of entries to a contact's timeline. Obtaining consent to store browsing history against a contact is your responsibility."
 
 #: src/components/settings/SystemSettingsDrawer.tsx:597
 msgid "Redirect URI"
@@ -10754,10 +10399,6 @@ msgstr "Replied"
 msgid "Reply forwarding is set up. Inbound replies also require your domain's MX records to point at {mxTarget}."
 msgstr "Reply forwarding is set up. Inbound replies also require your domain's MX records to point at {mxTarget}."
 
-#: src/components/settings/Integrations.tsx:217
-#~ msgid "Reply forwarding route is set up. Inbound replies also require your domain's MX records to point at Mailgun."
-#~ msgstr "Reply forwarding route is set up. Inbound replies also require your domain's MX records to point at Mailgun."
-
 #: src/components/templates/CreateTemplateDrawer.tsx:950
 #: src/components/templates/TemplatePreviewDrawer.tsx:337
 msgid "Reply to"
@@ -10778,10 +10419,6 @@ msgstr "Report — {dimensions}"
 #: src/layouts/WorkspaceLayout.tsx:652
 msgid "Report An Issue"
 msgstr "Report An Issue"
-
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:337
-#~ msgid "Report grouped by {dimensions}"
-#~ msgstr "Report grouped by {dimensions}"
 
 #: src/components/settings/Integrations.tsx:2449
 msgid "Reputation"
@@ -10869,10 +10506,6 @@ msgstr "reset the filter"
 msgid "Reset translation"
 msgstr "Reset translation"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:265
-#~ msgid "Resolve visitor locations (country)"
-#~ msgstr "Resolve visitor locations (country)"
-
 #: src/components/settings/WebAnalyticsSettings.tsx:281
 msgid "Resolved"
 msgstr "Resolved"
@@ -10959,14 +10592,6 @@ msgstr "Resume Previous Upload"
 msgid "Resume Upload"
 msgstr "Resume Upload"
 
-#: src/components/settings/WebAnalyticsSettings.tsx:179
-#~ msgid "Retention"
-#~ msgstr "Retention"
-
-#: src/components/settings/WebAnalyticsSettings.tsx:242
-#~ msgid "Retention (months)"
-#~ msgstr "Retention (months)"
-
 #: src/components/settings/WorkspaceMembers.tsx:55
 msgid "Revoke all"
 msgstr "Revoke all"
@@ -10991,7 +10616,7 @@ msgid "Role"
 msgstr "Role"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:254
-#: src/pages/SetupWizard.tsx:365
+#: src/pages/SetupWizard.tsx:316
 msgid "Root Email"
 msgstr "Root Email"
 
@@ -11006,10 +10631,6 @@ msgstr "rows"
 #: src/components/settings/BlogSettings.tsx:418
 msgid "RSS / Feeds"
 msgstr "RSS / Feeds"
-
-#: src/pages/WebAnalyticsFiltersPage.tsx:143
-#~ msgid "Rule changes apply to new traffic immediately"
-#~ msgstr "Rule changes apply to new traffic immediately"
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:148
 msgid "Rule changes only apply to new traffic"
@@ -11341,7 +10962,7 @@ msgstr "Security"
 msgid "See broadcast send tasks; a listing that names no type is narrowed to the types you may read"
 msgstr "See broadcast send tasks; a listing that names no type is narrowed to the types you may read"
 
-#: src/pages/SetupWizard.tsx:411
+#: src/pages/SetupWizard.tsx:352
 msgid "See docs for:"
 msgstr "See docs for:"
 
@@ -11914,7 +11535,7 @@ msgstr "SEO title for search engines (recommended: 50-60 characters)"
 msgid "Separate sides"
 msgstr "Separate sides"
 
-#: src/pages/SetupWizard.tsx:213
+#: src/pages/SetupWizard.tsx:165
 msgid "Server is restarting with new configuration..."
 msgstr "Server is restarting with new configuration..."
 
@@ -11923,7 +11544,7 @@ msgid "Server is restarting..."
 msgstr "Server is restarting..."
 
 #: src/components/settings/SystemSettingsDrawer.tsx:202
-#: src/pages/SetupWizard.tsx:237
+#: src/pages/SetupWizard.tsx:189
 msgid "Server restart timeout. Please refresh the page manually."
 msgstr "Server restart timeout. Please refresh the page manually."
 
@@ -11931,7 +11552,7 @@ msgstr "Server restart timeout. Please refresh the page manually."
 msgid "Server restarted successfully!"
 msgstr "Server restarted successfully!"
 
-#: src/pages/SetupWizard.tsx:227
+#: src/pages/SetupWizard.tsx:179
 msgid "Server restarted successfully! You can now sign in."
 msgstr "Server restarted successfully! You can now sign in."
 
@@ -12027,10 +11648,6 @@ msgstr "Set content"
 msgid "Set default"
 msgstr "Set default"
 
-#: src/pages/WebAnalyticsFiltersPage.tsx:369
-#~ msgid "set default value"
-#~ msgstr "set default value"
-
 #: src/components/settings/CustomFieldsConfiguration.tsx:157
 msgid "Set friendly display names for contact custom fields."
 msgstr "Set friendly display names for contact custom fields."
@@ -12078,10 +11695,6 @@ msgstr "set to"
 msgid "Set to null"
 msgstr "Set to null"
 
-#: src/pages/WebAnalyticsFiltersPage.tsx:368
-#~ msgid "set value"
-#~ msgstr "set value"
-
 #: src/components/email_builder/ui/StringPopoverInput.tsx:25
 #: src/components/email_builder/ui/StringPopoverInput.tsx:165
 #: src/components/web_analytics/lib/filterCatalog.ts:225
@@ -12100,10 +11713,6 @@ msgstr "Set Value"
 msgid "Set Width"
 msgstr "Set Width"
 
-#: src/pages/WebAnalyticsFiltersPage.tsx:194
-#~ msgid "Sets"
-#~ msgstr "Sets"
-
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:46
 msgid "Sets the responsive breakpoint for the entire email"
 msgstr "Sets the responsive breakpoint for the entire email"
@@ -12112,7 +11721,7 @@ msgstr "Sets the responsive breakpoint for the entire email"
 msgid "Sets the screen width below which the email will switch to mobile layout. Most email clients use 480px as the standard mobile breakpoint."
 msgstr "Sets the screen width below which the email will switch to mobile layout. Most email clients use 480px as the standard mobile breakpoint."
 
-#: src/pages/SetupWizard.tsx:797
+#: src/pages/SetupWizard.tsx:738
 msgid "Setting up..."
 msgstr "Setting up..."
 
@@ -12121,11 +11730,11 @@ msgstr "Setting up..."
 msgid "Settings"
 msgstr "Settings"
 
-#: src/pages/SetupWizard.tsx:344
+#: src/pages/SetupWizard.tsx:296
 msgid "Setup"
 msgstr "Setup"
 
-#: src/pages/SetupWizard.tsx:320
+#: src/pages/SetupWizard.tsx:272
 msgid "Setup Complete!"
 msgstr "Setup Complete!"
 
@@ -12140,10 +11749,6 @@ msgstr "shared with the rest of this AWS account"
 #: src/components/settings/WebhookCard.tsx:351
 msgid "Show"
 msgstr "Show"
-
-#: src/components/web_analytics/tabs/AnnotationsTab.tsx:160
-#~ msgid "Show broadcast annotations on charts"
-#~ msgstr "Show broadcast annotations on charts"
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:442
 msgid "Show Controls"
@@ -12162,14 +11767,6 @@ msgstr "Show evolution"
 msgid "Show More ({0} remaining)"
 msgstr "Show More ({0} remaining)"
 
-#: src/components/settings/PermissionsMatrix.tsx:202
-#~ msgid "Show the endpoints this permission gates"
-#~ msgstr "Show the endpoints this permission gates"
-
-#: src/components/broadcasts/BroadcastLinkStats.tsx:132
-#~ msgid "Showing the top 200 links by total clicks."
-#~ msgstr "Showing the top 200 links by total clicks."
-
 #: src/components/broadcasts/BroadcastLinkStats.tsx:200
 msgid "Showing the top 200 links by unique clicks."
 msgstr "Showing the top 200 links by unique clicks."
@@ -12179,7 +11776,7 @@ msgid "Sign In"
 msgstr "Sign In"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:625
-#: src/pages/SetupWizard.tsx:746
+#: src/pages/SetupWizard.tsx:687
 #: src/pages/SignInPage.tsx:250
 msgid "Sign in with SSO"
 msgstr "Sign in with SSO"
@@ -12252,7 +11849,7 @@ msgstr "SMS"
 msgid "SMTP Bridge"
 msgstr "SMTP Bridge"
 
-#: src/pages/SetupWizard.tsx:609
+#: src/pages/SetupWizard.tsx:550
 msgid "SMTP bridge domain is required"
 msgstr "SMTP bridge domain is required"
 
@@ -12260,7 +11857,7 @@ msgstr "SMTP bridge domain is required"
 msgid "SMTP bridge is not configured."
 msgstr "SMTP bridge is not configured."
 
-#: src/pages/SetupWizard.tsx:624
+#: src/pages/SetupWizard.tsx:565
 msgid "SMTP bridge port is required"
 msgstr "SMTP bridge port is required"
 
@@ -12268,11 +11865,11 @@ msgstr "SMTP bridge port is required"
 msgid "SMTP bridge server for forwarding transactional emails"
 msgstr "SMTP bridge server for forwarding transactional emails"
 
-#: src/pages/SetupWizard.tsx:406
+#: src/pages/SetupWizard.tsx:347
 msgid "SMTP Configuration"
 msgstr "SMTP Configuration"
 
-#: src/pages/SetupWizard.tsx:85
+#: src/pages/SetupWizard.tsx:84
 msgid "SMTP connection successful!"
 msgstr "SMTP connection successful!"
 
@@ -12291,17 +11888,17 @@ msgstr "SMTP domain"
 #: src/components/settings/Integrations.tsx:1868
 #: src/components/settings/Integrations.tsx:2399
 #: src/components/settings/SystemSettingsDrawer.tsx:316
-#: src/pages/SetupWizard.tsx:453
+#: src/pages/SetupWizard.tsx:394
 msgid "SMTP Host"
 msgstr "SMTP Host"
 
-#: src/pages/SetupWizard.tsx:455
+#: src/pages/SetupWizard.tsx:396
 msgid "SMTP host is required"
 msgstr "SMTP host is required"
 
 #: src/components/settings/Integrations.tsx:2066
 #: src/components/settings/SystemSettingsDrawer.tsx:384
-#: src/pages/SetupWizard.tsx:494
+#: src/pages/SetupWizard.tsx:435
 msgid "SMTP Password"
 msgstr "SMTP Password"
 
@@ -12311,11 +11908,11 @@ msgstr "SMTP port"
 
 #: src/components/settings/Integrations.tsx:1875
 #: src/components/settings/SystemSettingsDrawer.tsx:329
-#: src/pages/SetupWizard.tsx:462
+#: src/pages/SetupWizard.tsx:403
 msgid "SMTP Port"
 msgstr "SMTP Port"
 
-#: src/pages/SetupWizard.tsx:464
+#: src/pages/SetupWizard.tsx:405
 msgid "SMTP port is required"
 msgstr "SMTP port is required"
 
@@ -12337,7 +11934,7 @@ msgstr "SMTP User"
 
 #: src/components/settings/Integrations.tsx:2061
 #: src/components/settings/SystemSettingsDrawer.tsx:371
-#: src/pages/SetupWizard.tsx:489
+#: src/pages/SetupWizard.tsx:430
 msgid "SMTP Username"
 msgstr "SMTP Username"
 
@@ -12527,8 +12124,8 @@ msgid "Status unknown"
 msgstr "Status unknown"
 
 #: src/components/automations/UpsertAutomationDrawer.tsx:214
-msgid "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Notifuse. Without that setup, replies aren't detected and the sequence won't stop."
-msgstr "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Notifuse. Without that setup, replies aren't detected and the sequence won't stop."
+msgid "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Yaoguang Marketing. Without that setup, replies aren't detected and the sequence won't stop."
+msgstr "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Yaoguang Marketing. Without that setup, replies aren't detected and the sequence won't stop."
 
 #: src/components/file_manager/fileManager.tsx:687
 msgid "Storage settings"
@@ -12537,10 +12134,6 @@ msgstr "Storage settings"
 #: src/components/file_manager/fileManager.tsx:695
 msgid "Storage settings (Read-only mode)"
 msgstr "Storage settings (Read-only mode)"
-
-#: src/components/settings/WebAnalyticsSettings.tsx:280
-#~ msgid "Store city"
-#~ msgstr "Store city"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:383
 msgid "Store city name"
@@ -12553,10 +12146,6 @@ msgstr "Store city name and Store region/state name are off, so coordinates are 
 #: src/components/settings/WebAnalyticsSettings.tsx:222
 msgid "Store city name is off, so coordinates are stored at regional precision (~11km)."
 msgstr "Store city name is off, so coordinates are stored at regional precision (~11km)."
-
-#: src/components/settings/WebAnalyticsSettings.tsx:274
-#~ msgid "Store region"
-#~ msgstr "Store region"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:389
 msgid "Store region/state name"
@@ -12615,10 +12204,6 @@ msgstr "Subscribe imported contacts to lists — required only when the import n
 #: src/components/contacts/ContactDetailsDrawer.tsx:1122
 msgid "Subscribe to List"
 msgstr "Subscribe to List"
-
-#: src/pages/SetupWizard.tsx:396
-msgid "Subscribe to the newsletter (new features...)"
-msgstr "Subscribe to the newsletter (new features...)"
 
 #: src/components/integrations/SupabaseIntegration.tsx:180
 msgid "Subscribe users to these lists (Optional)"
@@ -12703,10 +12288,6 @@ msgstr "Summarise the current period and tell me what changed versus the compari
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:486
 msgid "Summarise this period"
 msgstr "Summarise this period"
-
-#: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:333
-#~ msgid "Summarising {0}"
-#~ msgstr "Summarising {0}"
 
 #. placeholder {0}: periodLabels[context.period]
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:393
@@ -12975,7 +12556,7 @@ msgid "Test Completed"
 msgstr "Test Completed"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:310
-#: src/pages/SetupWizard.tsx:534
+#: src/pages/SetupWizard.tsx:475
 msgid "Test Connection"
 msgstr "Test Connection"
 
@@ -13102,7 +12683,7 @@ msgstr "Text Padding"
 msgid "Text Settings"
 msgstr "Text Settings"
 
-#: src/pages/SetupWizard.tsx:744
+#: src/pages/SetupWizard.tsx:685
 msgid "Text shown on the sign-in button"
 msgstr "Text shown on the sign-in button"
 
@@ -13113,10 +12694,6 @@ msgstr "Text Transform"
 #: src/components/transactional/ApiCommandModal.tsx:558
 msgid "The"
 msgstr "The"
-
-#: src/components/settings/WebAnalyticsSettings.tsx:423
-#~ msgid "The address must already belong to a contact: identifying someone who is not one records nothing, by design. Visitors arriving from a tracked email link are identified automatically, with no code."
-#~ msgstr "The address must already belong to a contact: identifying someone who is not one records nothing, by design. Visitors arriving from a tracked email link are identified automatically, with no code."
 
 #: src/services/api/permissions.ts:878
 msgid "The AI assistant: chat over the workspace's configured LLM integration, and the server-side tools it may call."
@@ -13195,7 +12772,7 @@ msgid "The generated email has issues that prevent it from rendering:"
 msgstr "The generated email has issues that prevent it from rendering:"
 
 #: src/components/settings/Integrations.tsx:2077
-#: src/pages/SetupWizard.tsx:523
+#: src/pages/SetupWizard.tsx:464
 msgid "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
 msgstr "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
 
@@ -13215,10 +12792,6 @@ msgstr "The last backfill failed"
 #: src/components/settings/BlogSettings.tsx:344
 msgid "The main title for your blog"
 msgstr "The main title for your blog"
-
-#: src/components/settings/ZapierSettings.tsx:88
-#~ msgid "The name {prefix} is already taken on this Notifuse installation. Please pick another one."
-#~ msgstr "The name {prefix} is already taken on this Notifuse installation. Please pick another one."
 
 #: src/services/api/permissions.ts:694
 msgid "The outbound message log: every email the workspace sent, its delivery status, and the engagement counted against it."
@@ -13407,7 +12980,7 @@ msgstr "This cannot be undone."
 msgid "This contact is not subscribed to any lists"
 msgstr "This contact is not subscribed to any lists"
 
-#: src/pages/SetupWizard.tsx:371
+#: src/pages/SetupWizard.tsx:322
 msgid "This email will be used for the root administrator account"
 msgstr "This email will be used for the root administrator account"
 
@@ -13451,10 +13024,6 @@ msgstr "This is your content structure tree. You can drag and drop blocks to reo
 msgid "This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options."
 msgstr "This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options."
 
-#: src/components/settings/WebAnalyticsSettings.tsx:301
-#~ msgid "This list does two things. It filters incoming beats — other origins are silently ignored, and leaving it empty accepts every origin. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
-#~ msgstr "This list does two things. It filters incoming beats — other origins are silently ignored, and leaving it empty accepts every origin. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
-
 #: src/components/settings/WebAnalyticsSettings.tsx:316
 msgid "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 msgstr "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
@@ -13479,14 +13048,6 @@ msgstr "This permission gates no endpoint today."
 msgid "This permission is not enforced yet, so it is always granted. It cannot be turned off."
 msgstr "This permission is not enforced yet, so it is always granted. It cannot be turned off."
 
-#: src/components/blog/PostDrawer.tsx:477
-#~ msgid "This post's template was changed by someone else while you were editing. Overwrite it with your changes, or reload the latest version (your changes will be lost)?"
-#~ msgstr "This post's template was changed by someone else while you were editing. Overwrite it with your changes, or reload the latest version (your changes will be lost)?"
-
-#: src/components/blog/PostDrawer.tsx:476
-#~ msgid "This post's template was saved as version {latest} while you were editing. Overwrite it with your changes, or reload the latest version (your changes will be lost)?"
-#~ msgstr "This post's template was saved as version {latest} while you were editing. Overwrite it with your changes, or reload the latest version (your changes will be lost)?"
-
 #: src/components/segment/input_event_property_filters.tsx:162
 msgid "This property is already filtered"
 msgstr "This property is already filtered"
@@ -13510,14 +13071,6 @@ msgstr "This template is already used in another variation"
 #: src/pages/TemplatesPage.tsx:389
 msgid "This template is managed by an integration and cannot be deleted"
 msgstr "This template is managed by an integration and cannot be deleted"
-
-#: src/components/templates/CreateTemplateDrawer.tsx:311
-#~ msgid "This template was changed by someone else while you were editing. Overwrite it with your changes, or reload the latest version (your changes will be lost)?"
-#~ msgstr "This template was changed by someone else while you were editing. Overwrite it with your changes, or reload the latest version (your changes will be lost)?"
-
-#: src/components/templates/CreateTemplateDrawer.tsx:310
-#~ msgid "This template was saved as version {latest} while you were editing (you started from {0}). Overwrite it with your changes, or reload the latest version (your changes will be lost)?"
-#~ msgstr "This template was saved as version {latest} while you were editing (you started from {0}). Overwrite it with your changes, or reload the latest version (your changes will be lost)?"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:34
 msgid "This text appears in the email client's preview pane, typically after the subject line. Keep it concise and compelling (100-140 characters recommended)."
@@ -13554,10 +13107,6 @@ msgstr "This week"
 #: src/components/settings/WebhookCard.tsx:358
 msgid "This will invalidate the current secret. You'll need to update your webhook receiver."
 msgstr "This will invalidate the current secret. You'll need to update your webhook receiver."
-
-#: src/components/contacts/BulkActionsBar.tsx:196
-#~ msgid "This will permanently delete {selectedCount} contact(s). This action cannot be undone."
-#~ msgstr "This will permanently delete {selectedCount} contact(s). This action cannot be undone."
 
 #. placeholder {0}: workspace.name
 #: src/components/settings/DeleteWorkspace.tsx:49
@@ -13731,11 +13280,11 @@ msgid "TLS"
 msgstr "TLS"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:506
-#: src/pages/SetupWizard.tsx:637
+#: src/pages/SetupWizard.tsx:578
 msgid "TLS Certificate (Base64)"
 msgstr "TLS Certificate (Base64)"
 
-#: src/pages/SetupWizard.tsx:642
+#: src/pages/SetupWizard.tsx:583
 msgid "TLS certificate is required"
 msgstr "TLS certificate is required"
 
@@ -13747,21 +13296,17 @@ msgstr "TLS Enabled"
 msgid "TLS Key (Base64)"
 msgstr "TLS Key (Base64)"
 
-#: src/pages/SetupWizard.tsx:655
+#: src/pages/SetupWizard.tsx:596
 msgid "TLS Private Key (Base64)"
 msgstr "TLS Private Key (Base64)"
 
-#: src/pages/SetupWizard.tsx:660
+#: src/pages/SetupWizard.tsx:601
 msgid "TLS private key is required"
 msgstr "TLS private key is required"
 
 #: src/components/transactional/ApiCommandModal.tsx:561
 msgid "to prevent duplicate sends"
 msgstr "to prevent duplicate sends"
-
-#: src/pages/WebAnalyticsFiltersPage.tsx:146
-#~ msgid "To rewrite historical sessions and goals with the current rules, run a backfill."
-#~ msgstr "To rewrite historical sessions and goals with the current rules, run a backfill."
 
 #: src/components/settings/WebhookCard.tsx:436
 msgid "To stop these events, turn the Zap off in Zapier instead. Zapier then removes this webhook for you."
@@ -13930,10 +13475,6 @@ msgstr "Transactional Emails"
 msgid "Transactional ID"
 msgstr "Transactional ID"
 
-#: src/services/api/permissions.ts:584
-#~ msgid "Transactional notification definitions and every path that actually sends an email through the workspace's provider credentials."
-#~ msgstr "Transactional notification definitions and every path that actually sends an email through the workspace's provider credentials."
-
 #: src/services/api/permissions.ts:588
 msgid "Transactional notification definitions and every path that sends email, SMS or push through the workspace's provider credentials."
 msgstr "Transactional notification definitions and every path that sends email, SMS or push through the workspace's provider credentials."
@@ -14003,10 +13544,6 @@ msgstr "Turn the blog on or off and change its title, SEO, pagination and feed s
 msgid "Turn web analytics on or off and change its allowed domains, filters, custom dimension labels and email-link identification"
 msgstr "Turn web analytics on or off and change its allowed domains, filters, custom dimension labels and email-link identification"
 
-#: src/components/web_analytics/tabs/SettingsTab.tsx:144
-#~ msgid "Two decimals is roughly one kilometer."
-#~ msgstr "Two decimals is roughly one kilometer."
-
 #: src/components/segment/form_leaf.tsx:352
 #: src/components/segment/input.tsx:784
 msgid "type"
@@ -14064,17 +13601,9 @@ msgstr "Undo (Ctrl+Z)"
 msgid "Unique clicks"
 msgstr "Unique clicks"
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:141
-#~ msgid "Unique clicks ÷ emails sent."
-#~ msgstr "Unique clicks ÷ emails sent."
-
 #: src/components/broadcasts/BroadcastLinkStats.tsx:163
 msgid "Unique clicks ÷ recipients of this variation."
 msgstr "Unique clicks ÷ recipients of this variation."
-
-#: src/components/broadcasts/BroadcastLinkStats.tsx:183
-#~ msgid "Unique clicks counts each recipient once per link — someone who clicks several links appears in every row, so these won't add up to the campaign's total number of clickers."
-#~ msgstr "Unique clicks counts each recipient once per link — someone who clicks several links appears in every row, so these won't add up to the campaign's total number of clickers."
 
 #: src/components/broadcasts/BroadcastLinkStats.tsx:89
 msgid "Unique clicks counts each recipient once per link — someone who clicks several links appears in every row, so these won't add up to this variation's total number of clickers."
@@ -14292,10 +13821,6 @@ msgstr "UPPERCASE"
 msgid "URL"
 msgstr "URL"
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:38
-#~ msgid "URL copied to clipboard"
-#~ msgstr "URL copied to clipboard"
-
 #: src/components/broadcasts/BroadcastLinkStats.tsx:62
 #: src/components/file_manager/fileManager.tsx:907
 msgid "URL copied to clipboard."
@@ -14383,7 +13908,7 @@ msgstr "Use This Theme"
 
 #: src/components/settings/Integrations.tsx:1886
 #: src/components/settings/SystemSettingsDrawer.tsx:354
-#: src/pages/SetupWizard.tsx:479
+#: src/pages/SetupWizard.tsx:420
 msgid "Use TLS"
 msgstr "Use TLS"
 
@@ -14600,18 +14125,6 @@ msgstr "View web page"
 msgid "View website"
 msgstr "View website"
 
-#: src/components/timeline/ContactTimeline.tsx:877
-#~ msgid "viewed"
-#~ msgstr "viewed"
-
-#: src/components/timeline/ContactTimeline.tsx:842
-#~ msgid "viewed page"
-#~ msgstr "viewed page"
-
-#: src/pages/WebAnalyticsOverviewPage.tsx:129
-#~ msgid "Views"
-#~ msgstr "Views"
-
 #: src/pages/ListsPage.tsx:270
 msgid "Visibility"
 msgstr "Visibility"
@@ -14620,10 +14133,6 @@ msgstr "Visibility"
 #: src/components/segment/input.tsx:795
 msgid "Visit website"
 msgstr "Visit website"
-
-#: src/components/timeline/ContactTimeline.tsx:817
-#~ msgid "visited"
-#~ msgstr "visited"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:280
 msgid "Visitor locations"
@@ -14650,7 +14159,7 @@ msgstr "vs."
 msgid "Wait Duration"
 msgstr "Wait Duration"
 
-#: src/pages/SetupWizard.tsx:337
+#: src/pages/SetupWizard.tsx:289
 msgid "Waiting for server restart..."
 msgstr "Waiting for server restart..."
 
@@ -14698,14 +14207,6 @@ msgstr "Web analytics is not set up on this workspace yet."
 #: src/components/web_analytics/InstallOverlay.tsx:79
 msgid "Web analytics is turned off for this workspace. Turn it on in the workspace settings to start collecting traffic."
 msgstr "Web analytics is turned off for this workspace. Turn it on in the workspace settings to start collecting traffic."
-
-#: src/pages/WebAnalyticsSettingsPage.tsx:75
-#~ msgid "Web Analytics Settings"
-#~ msgstr "Web Analytics Settings"
-
-#: src/components/web_analytics/tabs/SettingsTab.tsx:58
-#~ msgid "Web analytics settings saved"
-#~ msgstr "Web analytics settings saved"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:202
 msgid "Web analytics settings updated successfully"
@@ -14890,7 +14391,7 @@ msgstr "When engagement is at its best"
 msgid "When matched, execute these operations:"
 msgstr "When matched, execute these operations:"
 
-#: src/pages/SetupWizard.tsx:753
+#: src/pages/SetupWizard.tsx:694
 msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 msgstr "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 
@@ -15059,6 +14560,14 @@ msgstr "Write includes permanent deletion and bulk overwriting: `/api/contacts.i
 #: src/components/email_builder/blocks/MjLiquidBlock.tsx:33
 msgid "Write MJML markup with Liquid template tags. This content is injected directly into the email and processed by the Liquid engine before MJML compilation. Use for-loops, conditionals, and variables to generate dynamic structural content."
 msgstr "Write MJML markup with Liquid template tags. This content is injected directly into the email and processed by the Liquid engine before MJML compilation. Use for-loops, conditionals, and variables to generate dynamic structural content."
+
+#: src/components/settings/WebhookCard.tsx:298
+msgid "Yaoguang Marketing disabled this webhook automatically"
+msgstr "Yaoguang Marketing disabled this webhook automatically"
+
+#: src/components/settings/Integrations.tsx:1067
+msgid "Yaoguang Marketing will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume."
+msgstr "Yaoguang Marketing will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume."
 
 #: src/components/web_analytics/toolbar.tsx:29
 msgid "Year to date"
@@ -15265,10 +14774,6 @@ msgstr "Your files can be uploaded to any S3 compatible storage."
 msgid "Your identity provider has not verified your email address."
 msgstr "Your identity provider has not verified your email address."
 
-#: src/pages/SetupWizard.tsx:323
-#~ msgid "Your Notifuse instance has been successfully configured."
-#~ msgstr "Your Notifuse instance has been successfully configured."
-
 #: src/components/settings/WebAnalyticsSettings.tsx:466
 msgid "Your web analytics settings have not been saved. Leaving this page discards them."
 msgstr "Your web analytics settings have not been saved. Leaving this page discards them."
@@ -15289,7 +14794,7 @@ msgstr "Your workspace API key"
 msgid "Your workspace settings have not been saved. Leaving this page discards them."
 msgstr "Your workspace settings have not been saved. Leaving this page discards them."
 
-#: src/pages/SetupWizard.tsx:322
+#: src/pages/SetupWizard.tsx:274
 msgid "Your Yaoguang Marketing instance has been successfully configured."
 msgstr "Your Yaoguang Marketing instance has been successfully configured."
 

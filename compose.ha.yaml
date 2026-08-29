@@ -1,7 +1,7 @@
 # High-availability topology for the durable realtime runtime. Every credential below
 # is a local-only default; override it through .env before any shared deployment.
 
-x-notifuse-environment: &notifuse-environment
+x-yaoguang-environment: &yaoguang-environment
   SERVER_PORT: ${SERVER_PORT:-8080}
   SERVER_HOST: ${SERVER_HOST:-0.0.0.0}
   ENVIRONMENT: ${ENVIRONMENT:-development}
@@ -41,28 +41,28 @@ x-notifuse-environment: &notifuse-environment
   INGEST_MAX_BATCH_SIZE: ${INGEST_MAX_BATCH_SIZE:-500}
   INGEST_MAX_INFLIGHT: ${INGEST_MAX_INFLIGHT:-32}
 
-x-notifuse-db-dependencies: &notifuse-db-dependencies
+x-yaoguang-db-dependencies: &yaoguang-db-dependencies
   pgbouncer:
     condition: service_healthy
 
-x-notifuse-service: &notifuse-service
-  image: notifuse-local:dev
+x-yaoguang-service: &yaoguang-service
+  image: yaoguang-marketing-local:dev
   build:
     context: .
     dockerfile: Dockerfile
   restart: unless-stopped
   networks:
-    - notifuse-network
+    - yaoguang-marketing-network
   volumes:
     - ./data:/app/data
-  depends_on: *notifuse-db-dependencies
+  depends_on: *yaoguang-db-dependencies
 
 services:
   api:
-    <<: *notifuse-service
+    <<: *yaoguang-service
     environment:
-      <<: *notifuse-environment
-      NOTIFUSE_ROLE: api
+      <<: *yaoguang-environment
+      YAOGUANG_ROLE: api
     ports:
       - '127.0.0.1:${API_HOST_PORT:-8081}:8080'
       - '127.0.0.1:${SMTP_HOST_PORT:-1587}:587'
@@ -74,10 +74,10 @@ services:
       start_period: 20s
 
   outbox-relay:
-    <<: *notifuse-service
+    <<: *yaoguang-service
     environment:
-      <<: *notifuse-environment
-      NOTIFUSE_ROLE: outbox-relay
+      <<: *yaoguang-environment
+      YAOGUANG_ROLE: outbox-relay
     depends_on:
       api:
         condition: service_healthy
@@ -89,10 +89,10 @@ services:
         condition: service_completed_successfully
 
   rule-worker:
-    <<: *notifuse-service
+    <<: *yaoguang-service
     environment:
-      <<: *notifuse-environment
-      NOTIFUSE_ROLE: rule-worker
+      <<: *yaoguang-environment
+      YAOGUANG_ROLE: rule-worker
     depends_on:
       api:
         condition: service_healthy
@@ -104,10 +104,10 @@ services:
         condition: service_completed_successfully
 
   journey-worker:
-    <<: *notifuse-service
+    <<: *yaoguang-service
     environment:
-      <<: *notifuse-environment
-      NOTIFUSE_ROLE: journey-worker
+      <<: *yaoguang-environment
+      YAOGUANG_ROLE: journey-worker
     depends_on:
       api:
         condition: service_healthy
@@ -119,10 +119,10 @@ services:
         condition: service_completed_successfully
 
   delivery-worker:
-    <<: *notifuse-service
+    <<: *yaoguang-service
     environment:
-      <<: *notifuse-environment
-      NOTIFUSE_ROLE: delivery-worker
+      <<: *yaoguang-environment
+      YAOGUANG_ROLE: delivery-worker
     depends_on:
       api:
         condition: service_healthy
@@ -136,10 +136,10 @@ services:
         condition: service_healthy
 
   analytics-worker:
-    <<: *notifuse-service
+    <<: *yaoguang-service
     environment:
-      <<: *notifuse-environment
-      NOTIFUSE_ROLE: analytics-worker
+      <<: *yaoguang-environment
+      YAOGUANG_ROLE: analytics-worker
     depends_on:
       api:
         condition: service_healthy
@@ -153,10 +153,10 @@ services:
         condition: service_healthy
 
   scheduler:
-    <<: *notifuse-service
+    <<: *yaoguang-service
     environment:
-      <<: *notifuse-environment
-      NOTIFUSE_ROLE: scheduler
+      <<: *yaoguang-environment
+      YAOGUANG_ROLE: scheduler
     depends_on:
       api:
         condition: service_healthy
@@ -185,7 +185,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
     networks:
-      - notifuse-network
+      - yaoguang-marketing-network
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
       interval: 5s
@@ -216,7 +216,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - notifuse-network
+      - yaoguang-marketing-network
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -p 6432 -U "$${DB_USER}" -d postgres']
       interval: 5s
@@ -235,7 +235,7 @@ services:
       - rabbitmq-data:/var/lib/rabbitmq
     restart: unless-stopped
     networks:
-      - notifuse-network
+      - yaoguang-marketing-network
     healthcheck:
       test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
       interval: 10s
@@ -259,7 +259,7 @@ services:
         condition: service_healthy
     restart: 'no'
     networks:
-      - notifuse-network
+      - yaoguang-marketing-network
 
   redis:
     image: redis:7-alpine
@@ -272,7 +272,7 @@ services:
       - redis-data:/data
     restart: unless-stopped
     networks:
-      - notifuse-network
+      - yaoguang-marketing-network
     healthcheck:
       test: ['CMD-SHELL', 'redis-cli -a "$${REDIS_PASSWORD}" ping | grep PONG']
       interval: 5s
@@ -294,7 +294,7 @@ services:
       - ./deploy/clickhouse/init:/docker-entrypoint-initdb.d:ro
     restart: unless-stopped
     networks:
-      - notifuse-network
+      - yaoguang-marketing-network
     healthcheck:
       test: ['CMD-SHELL', 'clickhouse-client --user "$${CLICKHOUSE_USER}" --password "$${CLICKHOUSE_PASSWORD}" --query "SELECT 1"']
       interval: 10s
@@ -315,7 +315,7 @@ services:
       - minio-data:/data
     restart: unless-stopped
     networks:
-      - notifuse-network
+      - yaoguang-marketing-network
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
       interval: 10s
@@ -338,7 +338,7 @@ services:
         condition: service_healthy
     restart: 'no'
     networks:
-      - notifuse-network
+      - yaoguang-marketing-network
 
 volumes:
   postgres-data:
@@ -348,5 +348,5 @@ volumes:
   minio-data:
 
 networks:
-  notifuse-network:
+  yaoguang-marketing-network:
     driver: bridge

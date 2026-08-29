@@ -1,20 +1,19 @@
 # Security Policy
 
-We take the security of Notifuse and its self-hosted users seriously. Thank you
-for helping keep Notifuse and its community safe.
+We take the security of Yaoguang Marketing and its self-hosted users seriously.
+Thank you for helping keep Yaoguang Marketing and its community safe.
 
 ## Reporting a Vulnerability
 
 **Please do not report security vulnerabilities through public GitHub issues,
 pull requests, or discussions.**
 
-Instead, use one of these private channels:
+Instead, use the following private channel:
 
 1. **GitHub Private Vulnerability Reporting (preferred).** Go to the
-   [Security tab](https://github.com/Notifuse/notifuse/security/advisories/new)
+   [Security tab](https://github.com/hengshu-credit/yaoguang-marketing/security/advisories/new)
    of this repository and open a private advisory. This keeps the report
    confidential and lets us collaborate on a fix and a CVE in one place.
-2. **Email.** Send the details to **hello@notifuse.com**.
 
 If you wish to encrypt your report, mention it in an initial message and we will
 share a key.
@@ -69,7 +68,7 @@ are strongly encouraged to track the latest release. See
 
 ## Hardening Notes for Self-Hosted Operators
 
-- Run Notifuse behind a network egress policy where possible. Some features make
+- Run Yaoguang Marketing behind a network egress policy where possible. Some features make
   outbound HTTP requests (for example, broadcast data feeds); outbound requests
   are SSRF-protected by default and refuse private/loopback/link-local targets.
   The `BROADCAST_DATA_FEED_ALLOW_PRIVATE_HOSTS` setting (off by default) relaxes

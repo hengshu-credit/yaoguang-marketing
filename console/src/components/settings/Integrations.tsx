@@ -223,7 +223,7 @@ const EmailIntegration = ({
     return (
       <div className="mb-2">
         <Tooltip
-          title={t`Forwards inbound replies to Notifuse so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the provider-side route; you must also point your domain's MX records at your email provider.`}
+          title={t`Forwards inbound replies to Yaoguang Marketing so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the provider-side route; you must also point your domain's MX records at your email provider.`}
         >
           <Tag variant="filled" color={inboundRegistered ? 'green' : 'orange'}>
             {inboundRegistered ? (
@@ -1064,7 +1064,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
       const confirmed = await new Promise<boolean>((resolve) => {
         Modal.confirm({
           title: t`Create an SES tenant for this integration?`,
-          content: t`Notifuse will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume.`,
+          content: t`Yaoguang Marketing will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume.`,
           okText: t`Create tenant`,
           cancelText: t`Not now`,
           onOk: () => resolve(true),
@@ -2223,7 +2223,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
               label={t`Configuration set`}
               // extra, not help: help replaces the whole explain area, which would hide the
               // pattern rule's message below and leave an invalid name rejected without a reason.
-              extra={t`Leave empty to use the one Notifuse manages for this integration.`}
+              extra={t`Leave empty to use the one Yaoguang Marketing manages for this integration.`}
               rules={[
                 {
                   pattern: /^[A-Za-z0-9_-]{1,64}$/,

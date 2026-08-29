@@ -11,7 +11,7 @@ import {
 const { Text } = Typography;
 
 export const ZAPIER_DOCUMENTATION_URL =
-  "https://docs.notifuse.com/integrations/zapier";
+  "https://github.com/hengshu-credit/yaoguang-marketing/tree/main/docs";
 
 /**
  * What the label field is seeded with on a fresh connection.
@@ -168,7 +168,7 @@ export function ZapierSettings({
       extra={
         isEditing
           ? t`Renaming this connection does not change the address of the API key it already minted.`
-          : t`Names this connection in Notifuse, and the API key it creates in Settings → Team.`
+          : t`Names this connection in Yaoguang Marketing, and the API key it creates in Settings → Team.`
       }
     >
       <Input
@@ -182,7 +182,7 @@ export function ZapierSettings({
   const apiUrlCard = (
     <Card title={t`API URL`} className="!mb-6" size="small">
       <div className="text-gray-500 mb-2">
-        {t`Paste this URL into the API URL field when you connect your Notifuse account in Zapier.`}
+        {t`Paste this URL into the API URL field when you connect your Yaoguang Marketing account in Zapier.`}
       </div>
       <Space.Compact style={{ width: "100%" }}>
         <Input value={apiBaseUrl} readOnly aria-label={t`API URL`} />
@@ -213,7 +213,7 @@ export function ZapierSettings({
     <>
       <div className="text-gray-600 mb-6">
         <Trans>
-          Connecting Zapier lets a Zap react to Notifuse events — a new contact,
+          Connecting Zapier lets a Zap react to Yaoguang Marketing events — a new contact,
           a list subscription, a segment a contact joined — and lets a Zap
           create or update contacts and subscribe them to your lists. Each Zap
           you turn on registers its own webhook subscription, which you can see

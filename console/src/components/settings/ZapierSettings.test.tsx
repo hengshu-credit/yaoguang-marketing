@@ -109,7 +109,7 @@ describe('connect mode', () => {
 
     expect(screen.getByText('Read the Zapier setup guide')).toHaveAttribute(
       'href',
-      'https://docs.notifuse.com/integrations/zapier'
+      'https://github.com/hengshu-credit/yaoguang-marketing/tree/main/docs'
     )
   })
 

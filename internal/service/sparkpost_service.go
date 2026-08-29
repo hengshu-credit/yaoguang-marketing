@@ -413,7 +413,7 @@ func (s *SparkPostService) RegisterWebhooks(
 	} else {
 		// Create a new webhook
 		newWebhook := domain.SparkPostWebhook{
-			Name:     fmt.Sprintf("Notifuse-%s", integrationID),
+			Name:     fmt.Sprintf("Yaoguang-Marketing-%s", integrationID),
 			Target:   webhookURL,
 			Events:   sparkpostEvents,
 			Active:   true,

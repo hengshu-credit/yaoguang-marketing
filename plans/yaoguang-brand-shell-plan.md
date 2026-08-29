@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-29-yaoguang-marketing-platform-design.md`
 
+**Status:** Implemented on `main` on 2026-08-30. Frontend tests/build, changed-file lint, backend offline tests, Compose validation, and Go vet pass; repository-wide ESLint still reports five pre-existing Web Analytics warnings outside this batch.
+
 ## Global Constraints
 
 - Display exact approved copy: `瑶光营销平台` and `观心知意，循光达客`.

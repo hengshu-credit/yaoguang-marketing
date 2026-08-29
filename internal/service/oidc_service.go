@@ -490,7 +490,7 @@ func (s *OIDCService) resolveOrProvisionUser(
 	if !s.cfg.AutoCreateUsers {
 		if s.logger != nil {
 			s.logger.WithField("email", email).WithField("oidc_sub", sub).
-				Warn("OIDC login rejected: no Notifuse account (invited-only)")
+				Warn("OIDC login rejected: no Yaoguang Marketing account (invited-only)")
 		}
 		return nil, domain.ErrOIDCAccountNotProvisioned
 	}

@@ -480,7 +480,7 @@ func CreateSupabaseRecoveryEmailStructure() (notifuse_mjml.EmailBlock, error) {
                           "paddingLeft": "25px",
                           "backgroundColor": "transparent"
                         },
-                        "content": "<p>Please do not reply to this email.<br>Need help? visit help center or contact us.<br>12 Heaven Road | San Francisco CA<br>Powered by <a class=\"editor-link\" href=\"https://www.notifuse.com\">Notifuse</a></p>"
+                        "content": "<p>Please do not reply to this email.<br>Need help? visit help center or contact us.<br>12 Heaven Road | San Francisco CA<br>Powered by <a class=\"editor-link\" href=\"https://hengshucredit.com\">Yaoguang Marketing</a></p>"
                       },
                       {
                         "id": "31cc03f4-74b6-4333-ad9f-0bb913ae93ee",

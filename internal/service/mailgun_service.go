@@ -661,7 +661,7 @@ func (s *MailgunService) UnregisterWebhooks(
 			lastError = err
 		} else {
 			s.logger.WithField("webhook_id", eventType).
-				Info("Removed Notifuse URL from Mailgun webhook, preserved other consumers")
+				Info("Removed Yaoguang Marketing URL from Mailgun webhook, preserved other consumers")
 		}
 	}
 
@@ -1104,7 +1104,7 @@ func (s *MailgunService) EnsureInboundRoute(ctx context.Context, providerConfig 
 	apiURL := fmt.Sprintf("%s/routes", mailgunAPIBase(config.Region))
 	form := url.Values{}
 	form.Add("priority", "10")
-	form.Add("description", fmt.Sprintf("Notifuse inbound replies (%s)", config.Domain))
+	form.Add("description", fmt.Sprintf("Yaoguang Marketing inbound replies (%s)", config.Domain))
 	form.Add("expression", expression)
 	form.Add("action", forwardAction)
 
