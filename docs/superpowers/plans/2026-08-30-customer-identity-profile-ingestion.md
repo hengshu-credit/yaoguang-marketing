@@ -38,13 +38,13 @@ type UpsertCustomerRequest struct {
 
 `CustomerUpsertInput` can identify an existing Customer with one locator or create one from `external_user_id` or at least one identity. It contains optional `profile`, identity mutations, a tag replacement, and list memberships. A successful response is `CustomerMutationResult` and always includes `customer_id`, `customer_no`, and `external_user_id` when present. Reusing an idempotency key with the same normalized payload returns the stored result; reusing it with a different payload returns `409 idempotency_conflict`.
 
-### `POST /api/customers.batchUpsert`
+### `POST /api/customers.batch`
 
-Request contains `workspace_id` and `customers`, where every item carries its own `idempotency_key` and `customer`. The service authenticates once, rejects an empty batch or more than 10,000 items, processes every valid item, and returns ordered per-index results plus `success_count` and `failure_count`. Item validation/conflict errors do not erase successful sibling transactions.
+Request contains `workspace_id` and `items`, where every item carries its own `idempotency_key` and `customer`. The service authenticates once, rejects an empty batch or more than the configured synchronous limit (10,000 by default), processes every item, and returns ordered per-index results plus `accepted` and `failed`. Item validation/conflict errors do not erase successful sibling transactions.
 
-### `GET /api/customers.get`
+### `POST /api/customers.get`
 
-The query contains `workspace_id` plus exactly one of `customer_id`, `customer_no`, `external_user_id`, or `identity_type` + `identity_value`. A merged source UUID redirects to and returns the target Customer while exposing `resolved_from_customer_id`.
+The JSON body contains `workspace_id` and a `locator` with exactly one of `customer_id`, `customer_no`, `external_user_id`, or an identity `{type, value}`. A merged source UUID redirects to and returns the target Customer while exposing `resolved_from_customer_id`.
 
 ### `POST /api/customers.merge`
 

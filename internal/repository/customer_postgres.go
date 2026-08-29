@@ -511,6 +511,15 @@ func (r *CustomerPostgresRepository) resolveCustomerForUpsert(ctx context.Contex
 			return nil, fmt.Errorf("check %s identity ownership: %w", normalized.Type, err)
 		}
 	}
+	// Without an explicit locator, external_user_id and identities are all
+	// discovery keys for the same aggregate. If the external ID was not found
+	// but an identity resolved a Customer that already has a different external
+	// ID, silently replacing it would conflate two business users. Callers that
+	// intentionally rename an external ID must identify the Customer explicitly.
+	if input.Locator == nil && input.ExternalUserID != nil && customer != nil &&
+		customer.ExternalUserID != nil && *customer.ExternalUserID != *input.ExternalUserID {
+		return nil, &domain.ErrCustomerExternalIDConflict{}
+	}
 	return customer, nil
 }
 

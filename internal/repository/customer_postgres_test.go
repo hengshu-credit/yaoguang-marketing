@@ -260,6 +260,42 @@ func TestCustomerRepositoryUpsertRejectsCrossCustomerOwners(t *testing.T) {
 	})
 }
 
+func TestCustomerRepositoryUpsertDoesNotReplaceExternalIDWhenIdentityResolvesWithoutLocator(t *testing.T) {
+	now := time.Date(2026, 8, 30, 1, 2, 3, 0, time.UTC)
+	customerID := "11111111-1111-4111-8111-111111111111"
+	customerNo := "U0042202608300902030811111111111141118111111111111111"
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	ctrl := gomock.NewController(t)
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	expectWorkspaceTransaction(workspaceRepo, db, "workspace1")
+	mock.ExpectBegin()
+	mock.ExpectExec(`INSERT INTO customer_idempotency`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(`WHERE c.external_user_id = \$1.*FOR UPDATE`).WithArgs("crm-new").
+		WillReturnRows(sqlmock.NewRows(customerAggregateColumns))
+	normalized, err := domain.NormalizeCustomerIdentity(domain.CustomerIdentityInput{Type: domain.CustomerIdentityEmail, Value: "alice@example.com"})
+	require.NoError(t, err)
+	fingerprint, err := domain.CustomerIdentityFingerprintForWorkspace("secret", "workspace1", normalized)
+	require.NoError(t, err)
+	mock.ExpectQuery(`JOIN customer_identities ci.*FOR UPDATE`).WithArgs(domain.CustomerIdentityEmail, fingerprint).
+		WillReturnRows(sqlmock.NewRows(customerAggregateColumns).AddRow(customerID, customerNo, "crm-old", nil, 3, now, now))
+	mock.ExpectRollback()
+
+	repo, err := NewCustomerRepository(workspaceRepo, "secret")
+	require.NoError(t, err)
+	_, err = repo.Upsert(context.Background(), domain.CustomerUpsertCommand{
+		WorkspaceID: "workspace1", WorkspaceSequence: 42, IdempotencyKey: "idem-identity-new-ext", PayloadHash: "hash-identity-new-ext",
+		Input: domain.CustomerUpsertInput{
+			ExternalUserID: pointerTo("crm-new"),
+			Identities:     []domain.CustomerIdentityInput{{Type: domain.CustomerIdentityEmail, Value: "alice@example.com"}},
+		},
+	})
+	var conflict *domain.ErrCustomerExternalIDConflict
+	assert.ErrorAs(t, err, &conflict)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestMapCustomerMutationErrorUsesConstraintNames(t *testing.T) {
 	tests := []struct {
 		constraint string
