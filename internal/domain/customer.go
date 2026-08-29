@@ -183,6 +183,21 @@ func CustomerIdentityFingerprint(secretKey string, identity NormalizedCustomerId
 	return pkgcrypto.ComputeHMAC256([]byte(string(identity.Type)+"\x00"+identity.Value), secretKey), nil
 }
 
+// CustomerIdentityFingerprintForWorkspace derives a workspace-specific HMAC
+// key first, preventing the same identity from being correlated across
+// otherwise isolated Workspace databases.
+func CustomerIdentityFingerprintForWorkspace(secretKey, workspaceID string, identity NormalizedCustomerIdentity) (string, error) {
+	workspaceID = strings.TrimSpace(workspaceID)
+	if workspaceID == "" {
+		return "", fmt.Errorf("workspace ID is required for customer identity fingerprint")
+	}
+	if strings.TrimSpace(secretKey) == "" {
+		return "", fmt.Errorf("customer identity fingerprint secret must not be empty")
+	}
+	workspaceKey := pkgcrypto.ComputeHMAC256([]byte("customer_identity_workspace\x00"+workspaceID), secretKey)
+	return CustomerIdentityFingerprint(workspaceKey, identity)
+}
+
 func normalizeCustomerE164(value string) (string, error) {
 	value = trimUnicodeSpace(value)
 	if strings.HasPrefix(value, "00") {
@@ -527,6 +542,8 @@ type CustomerRepository interface {
 	Get(ctx context.Context, workspaceID string, locator CustomerLocator) (*Customer, error)
 }
 
+//go:generate mockgen -destination mocks/mock_customer_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain CustomerRepository
+
 type ErrCustomerNotFound struct{}
 
 func (*ErrCustomerNotFound) Error() string { return "customer not found" }
@@ -549,6 +566,21 @@ type ErrCustomerIdempotencyConflict struct{}
 
 func (*ErrCustomerIdempotencyConflict) Error() string {
 	return "idempotency key was already used with a different payload"
+}
+
+type ErrCustomerNumberConflict struct{}
+
+func (*ErrCustomerNumberConflict) Error() string { return "customer number already exists" }
+
+type ErrCustomerConflict struct {
+	Constraint string
+}
+
+func (e *ErrCustomerConflict) Error() string {
+	if e.Constraint == "" {
+		return "customer mutation conflicts with existing data"
+	}
+	return "customer mutation conflicts with existing data: " + e.Constraint
 }
 
 type ErrCustomerMergeRejected struct {

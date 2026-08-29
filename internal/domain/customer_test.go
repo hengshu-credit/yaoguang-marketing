@@ -192,6 +192,20 @@ func TestCustomerIdentityFingerprintScopesNormalizedValueByType(t *testing.T) {
 	assert.ErrorContains(t, err, "secret")
 }
 
+func TestCustomerIdentityFingerprintIsUnlinkableAcrossWorkspaces(t *testing.T) {
+	identity, err := NormalizeCustomerIdentity(CustomerIdentityInput{Type: CustomerIdentityEmail, Value: "alice@example.com"})
+	require.NoError(t, err)
+
+	first, err := CustomerIdentityFingerprintForWorkspace("global-secret", "workspace1", identity)
+	require.NoError(t, err)
+	second, err := CustomerIdentityFingerprintForWorkspace("global-secret", "workspace2", identity)
+	require.NoError(t, err)
+
+	assert.NotEqual(t, first, second)
+	_, err = CustomerIdentityFingerprintForWorkspace("global-secret", "", identity)
+	assert.ErrorContains(t, err, "workspace")
+}
+
 func TestApplyCustomerAttributesPatchSetsMergesAndUnsetsWithoutDeletingJSONNull(t *testing.T) {
 	current := map[string]interface{}{
 		"discarded": true,

@@ -170,12 +170,12 @@ func backfillV46CustomerIdentities(ctx context.Context, secretKey, workspaceID s
 		if err := rows.Scan(&customerID, &email, &phone); err != nil {
 			return fmt.Errorf("v46: scan legacy identities for workspace %s: %w", workspaceID, err)
 		}
-		if err := insertV46Identity(ctx, db, secretKey, customerID, domain.CustomerIdentityEmail, email, true); err != nil {
+		if err := insertV46Identity(ctx, db, secretKey, workspaceID, customerID, domain.CustomerIdentityEmail, email, true); err != nil {
 			return fmt.Errorf("v46: migrate email identity for workspace %s: %w", workspaceID, err)
 		}
 		if phone.Valid && strings.TrimSpace(phone.String) != "" {
 			if _, err := domain.NormalizeCustomerIdentity(domain.CustomerIdentityInput{Type: domain.CustomerIdentityPhone, Value: phone.String}); err == nil {
-				if err := insertV46Identity(ctx, db, secretKey, customerID, domain.CustomerIdentityPhone, phone.String, true); err != nil {
+				if err := insertV46Identity(ctx, db, secretKey, workspaceID, customerID, domain.CustomerIdentityPhone, phone.String, true); err != nil {
 					return fmt.Errorf("v46: migrate phone identity for workspace %s: %w", workspaceID, err)
 				}
 			}
@@ -187,7 +187,7 @@ func backfillV46CustomerIdentities(ctx context.Context, secretKey, workspaceID s
 	return nil
 }
 
-func insertV46Identity(ctx context.Context, db DBExecutor, secretKey, customerID string, identityType domain.CustomerIdentityType, value string, primary bool) error {
+func insertV46Identity(ctx context.Context, db DBExecutor, secretKey, workspaceID, customerID string, identityType domain.CustomerIdentityType, value string, primary bool) error {
 	normalized, err := domain.NormalizeCustomerIdentity(domain.CustomerIdentityInput{Type: identityType, Value: value})
 	if err != nil {
 		return err
@@ -196,7 +196,7 @@ func insertV46Identity(ctx context.Context, db DBExecutor, secretKey, customerID
 	if err != nil {
 		return fmt.Errorf("encrypt identity: %w", err)
 	}
-	fingerprint, err := domain.CustomerIdentityFingerprint(secretKey, normalized)
+	fingerprint, err := domain.CustomerIdentityFingerprintForWorkspace(secretKey, workspaceID, normalized)
 	if err != nil {
 		return err
 	}
