@@ -10,9 +10,9 @@ msgstr ""
 #. translator note
 #. js-lingui-explicit-id
 #: src/components/Example.tsx:12 src/pages/ExamplePage.tsx:34
-msgid "Hello \\\"world\\\""
+msgid "Hello \\"world\\""
 " from a multiline message"
-msgstr "Bonjour \\\"monde\\\""
+msgstr "Bonjour \\"monde\\""
 " depuis plusieurs lignes"
 
 #: src/components/Other.tsx:8

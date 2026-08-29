@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, App, Badge, Button, Input, Popconfirm, Space, Table } from 'antd'
 import { SearchOutlined } from '@ant-design/icons'
 import type { Key } from 'react'
@@ -138,19 +138,19 @@ export function UITranslationsSettings({
     [expandedKeys, normalizedSearch, tree]
   )
 
-  const updateCell = (item: TranslationItem, locale: Locale, value: string) => {
+  const updateCell = useCallback((item: TranslationItem, locale: Locale, value: string) => {
     setDraftOverrides((current) => {
       if (value === item.values[locale]) return removeOverrides(current, [item.id], locale)
       return setOverride(current, locale, item.id, value)
     })
-  }
+  }, [])
 
-  const restoreScope = (scope: RestoreScope, kind: RestoreScopeKind) => {
+  const restoreScope = useCallback((scope: RestoreScope, kind: RestoreScopeKind) => {
     const ids = inventory
       .filter((item) => scopeIncludesItem(scope, kind, item))
       .map((item) => item.id)
     setDraftOverrides((current) => removeOverrides(current, ids))
-  }
+  }, [inventory])
 
   const handleSave = async () => {
     if (invalidCells.size > 0 || !dirty) return
@@ -281,7 +281,7 @@ export function UITranslationsSettings({
         }
       }))
     ],
-    [draftOverrides, hierarchyLabels, invalidCells, inventory, localeOrder, t]
+    [draftOverrides, hierarchyLabels, invalidCells, inventory, localeOrder, restoreScope, t, updateCell]
   )
 
   if (!isOwner) {

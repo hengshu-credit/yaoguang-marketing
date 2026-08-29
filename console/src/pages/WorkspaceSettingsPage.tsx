@@ -130,9 +130,10 @@ export function WorkspaceSettingsPage() {
       if (generation !== membersRequestGeneration.current) return
       console.error(t`Failed to fetch workspace members`, error)
     } finally {
-      if (generation !== membersRequestGeneration.current) return
-      setLoadingMembers(false)
-      setMembersLoaded(true)
+      if (generation === membersRequestGeneration.current) {
+        setLoadingMembers(false)
+        setMembersLoaded(true)
+      }
     }
   }
 
