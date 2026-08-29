@@ -272,6 +272,15 @@ type RealtimeRepository interface {
 	GetEvent(ctx context.Context, workspaceID string, eventID uuid.UUID) (*EventEnvelope, error)
 }
 
+// ConsumerInboxRepository provides transaction-owning inbox operations for
+// workers whose external sink (for example ClickHouse) cannot share a
+// PostgreSQL transaction.
+type ConsumerInboxRepository interface {
+	ClaimConsumerMessage(ctx context.Context, workspaceID, consumer string, messageID uuid.UUID, now time.Time, lease time.Duration) (InboxClaim, error)
+	CompleteConsumerMessage(ctx context.Context, workspaceID, consumer string, messageID, claimToken uuid.UUID, completedAt time.Time) (bool, error)
+	FailConsumerMessage(ctx context.Context, workspaceID, consumer string, messageID, claimToken uuid.UUID, failedAt time.Time, lastError string) (bool, error)
+}
+
 // WorkspaceCursorRepository hands relay replicas disjoint, ordered workspace
 // scan windows while persisting the last assignment in the system database.
 type WorkspaceCursorRepository interface {

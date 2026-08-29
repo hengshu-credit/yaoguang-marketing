@@ -6,13 +6,19 @@ CREATE TABLE IF NOT EXISTS notifuse.event_projection
     event_id UUID,
     event_type LowCardinality(String),
     schema_version UInt16,
-    occurred_at DateTime64(3, 'UTC'),
-    ingested_at DateTime64(3, 'UTC') DEFAULT now64(3),
-    contact_id Nullable(String),
+    subject_type LowCardinality(String),
+    subject_id String,
+    contact_email Nullable(String),
     source LowCardinality(String),
-    payload_json String
+    correlation_id UUID,
+    causation_id Nullable(UUID),
+    occurred_at DateTime64(3, 'UTC'),
+    received_at DateTime64(3, 'UTC'),
+    projected_at DateTime64(3, 'UTC') DEFAULT now64(3),
+    payload_json String,
+    envelope_json String
 )
-ENGINE = ReplacingMergeTree(ingested_at)
+ENGINE = ReplacingMergeTree(projected_at)
 PARTITION BY toYYYYMM(occurred_at)
 ORDER BY (workspace_id, event_type, occurred_at, event_id);
 

@@ -445,6 +445,84 @@ func (r *RealtimePostgresRepository) CompleteInbox(
 	return affected(result)
 }
 
+func (r *RealtimePostgresRepository) ClaimConsumerMessage(
+	ctx context.Context,
+	workspaceID, consumer string,
+	messageID uuid.UUID,
+	now time.Time,
+	lease time.Duration,
+) (domain.InboxClaim, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return domain.InboxClaim{}, err
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return domain.InboxClaim{}, fmt.Errorf("begin consumer inbox claim: %w", err)
+	}
+	defer tx.Rollback()
+	claim, err := r.ClaimInbox(ctx, tx, workspaceID, consumer, messageID, now, lease)
+	if err != nil {
+		return domain.InboxClaim{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return domain.InboxClaim{}, fmt.Errorf("commit consumer inbox claim: %w", err)
+	}
+	return claim, nil
+}
+
+func (r *RealtimePostgresRepository) CompleteConsumerMessage(
+	ctx context.Context,
+	workspaceID, consumer string,
+	messageID, claimToken uuid.UUID,
+	completedAt time.Time,
+) (bool, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return false, err
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, fmt.Errorf("begin consumer inbox completion: %w", err)
+	}
+	defer tx.Rollback()
+	completed, err := r.CompleteInbox(ctx, tx, workspaceID, consumer, messageID, claimToken, completedAt)
+	if err != nil {
+		return false, err
+	}
+	if !completed {
+		return false, nil
+	}
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("commit consumer inbox completion: %w", err)
+	}
+	return true, nil
+}
+
+func (r *RealtimePostgresRepository) FailConsumerMessage(
+	ctx context.Context,
+	workspaceID, consumer string,
+	messageID, claimToken uuid.UUID,
+	failedAt time.Time,
+	lastError string,
+) (bool, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return false, err
+	}
+	result, err := db.ExecContext(ctx, `
+		UPDATE consumer_inbox
+		SET status = 'failed', claim_expires_at = $5,
+		    processed_at = NULL, last_error = NULLIF($6, '')
+		WHERE consumer = $1 AND message_id = $2
+		  AND claim_token = $3 AND status = $4
+	`, consumer, messageID, claimToken, string(domain.InboxStatusProcessing), failedAt.UTC(), lastError)
+	if err != nil {
+		return false, fmt.Errorf("fail consumer inbox message: %w", err)
+	}
+	return affected(result)
+}
+
 func (r *RealtimePostgresRepository) ListTriggerBindings(
 	ctx context.Context,
 	workspaceID, eventType, subjectType string,
