@@ -16,6 +16,7 @@ func TestIsValidLanguage(t *testing.T) {
 		{"valid French", "fr", true},
 		{"valid Portuguese Brazil", "pt-BR", true},
 		{"valid Chinese Traditional", "zh-TW", true},
+		{"valid Chinese Simplified", "zh-CN", true},
 		{"valid Arabic", "ar", true},
 		{"valid Japanese", "ja", true},
 		{"invalid empty", "", false},
@@ -43,7 +44,7 @@ func TestSupportedLanguages(t *testing.T) {
 	assert.True(t, len(SupportedLanguages) >= 30, "should have at least 30 supported languages")
 
 	// Verify key languages are present
-	expectedLanguages := []string{"en", "fr", "de", "es", "pt", "pt-BR", "zh", "zh-TW", "ja", "ko", "ar"}
+	expectedLanguages := []string{"en", "fr", "de", "es", "pt", "pt-BR", "zh", "zh-CN", "zh-TW", "ja", "ko", "ar"}
 	for _, code := range expectedLanguages {
 		_, ok := SupportedLanguages[code]
 		assert.True(t, ok, "expected language %s to be in SupportedLanguages", code)
@@ -51,7 +52,7 @@ func TestSupportedLanguages(t *testing.T) {
 }
 
 func TestIsSupportedUILanguage(t *testing.T) {
-	for _, code := range []string{"en", "fr", "es", "de", "ca", "pt-BR", "ja", "it"} {
+	for _, code := range []string{"en", "fr", "es", "de", "ca", "pt-BR", "ja", "it", "zh-CN"} {
 		assert.True(t, IsSupportedUILanguage(code), "expected %s to be a supported UI language", code)
 	}
 

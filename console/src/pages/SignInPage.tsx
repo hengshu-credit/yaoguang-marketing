@@ -6,6 +6,7 @@ import { authService } from '../services/api/auth'
 import { SignInRequest, VerifyCodeRequest } from '../services/api/types'
 import { MainLayout } from '../layouts/MainLayout'
 import { useLingui } from '@lingui/react/macro'
+import { BrandLockup } from '../components/BrandLockup'
 
 export function SignInPage() {
   const { t } = useLingui()
@@ -205,7 +206,8 @@ export function SignInPage() {
 
   return (
     <MainLayout>
-      <div className="flex items-center justify-center h-[calc(100vh-48px)]">
+      <div className="flex flex-col items-center justify-center gap-6 h-[calc(100vh-48px)]">
+        <BrandLockup layout="vertical" />
         <Card title={t`Sign In`} style={{ width: 400 }}>
           {!showCodeInput ? (
             <Form

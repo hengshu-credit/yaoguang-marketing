@@ -1,16 +1,13 @@
 {
-  "name": "Notifuse",
-  "short_name": "Notifuse",
+  "name": "瑶光营销平台",
+  "short_name": "瑶光营销",
+  "description": "面向金融科技及互联网业务的开源用户营销与客户触达平台。",
   "icons": [
     {
-      "src": "/android-chrome-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/android-chrome-384x384.png",
-      "sizes": "384x384",
-      "type": "image/png"
+      "src": "/images/hengshucredit_animated.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ],
   "theme_color": "#ffffff",

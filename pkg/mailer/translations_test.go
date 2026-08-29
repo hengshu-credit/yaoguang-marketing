@@ -20,6 +20,7 @@ func TestGetTranslations_PerLocale(t *testing.T) {
 		{"pt-BR", "Seu código de autenticação da Notifuse"},
 		{"ja", "Notifuse 認証コード"},
 		{"it", "Il tuo codice di autenticazione Notifuse"},
+		{"zh-CN", "您的瑶光营销平台验证码"},
 	}
 
 	for _, tc := range cases {
@@ -55,7 +56,7 @@ func TestGetTranslations_CaseInsensitive(t *testing.T) {
 }
 
 func TestIsSupportedLanguage(t *testing.T) {
-	supported := []string{"en", "fr", "es", "de", "ca", "pt-BR", "pt-br", "ja", "it", "  IT  "}
+	supported := []string{"en", "fr", "es", "de", "ca", "pt-BR", "pt-br", "ja", "it", "  IT  ", "zh-CN", "ZH-CN"}
 	for _, lang := range supported {
 		if !IsSupportedLanguage(lang) {
 			t.Errorf("IsSupportedLanguage(%q) = false, want true", lang)
@@ -104,6 +105,7 @@ func TestGetTranslations_LangField(t *testing.T) {
 		"en":    "en",
 		"FR":    "fr",
 		"pt-BR": "pt-BR", // canonical casing is preserved
+		"zh-CN": "zh-CN",
 		"  ja ": "ja",
 		"xx":    DefaultEmailLanguage, // unsupported falls back to English
 		"":      DefaultEmailLanguage,

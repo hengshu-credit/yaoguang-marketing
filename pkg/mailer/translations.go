@@ -75,6 +75,7 @@ var systemEmailTranslations = map[string]Translations{
 	"pt-br": portugueseBRTranslations,
 	"ja":    japaneseTranslations,
 	"it":    italianTranslations,
+	"zh-cn": simplifiedChineseTranslations,
 }
 
 // normalizeLocale lower-cases and trims a locale code for case-insensitive lookup.
@@ -376,5 +377,40 @@ var italianTranslations = Translations{
 		Body:        "La tua trasmissione %[1]s nello spazio di lavoro %[2]s è stata messa in pausa automaticamente.",
 		ReasonLabel: "Motivo:",
 		SignOff:     "Cordiali saluti,",
+	},
+}
+
+// simplifiedChineseTranslations holds the Simplified Chinese (zh-CN) system email strings.
+var simplifiedChineseTranslations = Translations{
+	Lang: "zh-CN",
+	Common: CommonStrings{
+		Greeting: "您好：",
+		TeamName: "瑶光营销平台团队",
+	},
+	MagicCode: MagicCodeStrings{
+		Subject:      "您的瑶光营销平台验证码",
+		Heading:      "您的验证码",
+		Intro:        "您在瑶光营销平台的验证码是：",
+		Expiry:       "该验证码将在 10 分钟后失效。",
+		IgnoreNotice: "如果不是您本人申请的验证码，请忽略此邮件。",
+		SignOff:      "谢谢！",
+	},
+	Invitation: InvitationStrings{
+		Subject:     "您已受邀加入瑶光营销平台的 %s",
+		Heading:     "您已受邀加入瑶光营销平台",
+		Body:        "%[1]s 邀请您加入瑶光营销平台中的工作空间 %[2]s。",
+		ClickPrompt: "点击下方链接加入：",
+		LinkText:    "接受邀请",
+		FallbackURL: "如果链接无法打开，请将以下地址复制到浏览器：",
+		PlainLink:   "请使用以下链接加入：%s",
+		Expiry:      "该邀请将在 7 天后失效。",
+		SignOff:     "谢谢！",
+	},
+	CircuitBreaker: CircuitBreakerStrings{
+		Subject:     "🚨 全量活动已暂停 - %s",
+		Heading:     "🚨 全量活动已自动暂停",
+		Body:        "工作空间 %[2]s 中的全量活动 %[1]s 已自动暂停。",
+		ReasonLabel: "原因：",
+		SignOff:     "此致",
 	},
 }

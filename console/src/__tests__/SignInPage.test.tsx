@@ -76,6 +76,14 @@ describe('SignInPage', () => {
     expect(screen.getByText(/send magic code/i)).toBeInTheDocument()
   })
 
+  it('shows the approved Yaoguang brand lockup', () => {
+    renderWithProviders(<SignInPage />)
+
+    expect(screen.getByRole('img', { name: '恒数科技' })).toBeInTheDocument()
+    expect(screen.getByText('瑶光营销平台')).toBeInTheDocument()
+    expect(screen.getByText('观心知意，循光达客')).toBeInTheDocument()
+  })
+
   it('submits email and shows code input form', async () => {
     // Mock successful response without code (normal flow)
     vi.mocked(authService.authService.signIn).mockResolvedValueOnce({

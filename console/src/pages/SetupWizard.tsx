@@ -7,6 +7,7 @@ import { setupApi } from '../services/api/setup'
 import type { SetupConfig } from '../types/setup'
 import { getBrowserTimezone } from '../lib/timezoneNormalizer'
 import { useLingui } from '@lingui/react/macro'
+import { BrandLockup } from '../components/BrandLockup'
 
 export default function SetupWizard() {
   const { t } = useLingui()
@@ -113,7 +114,8 @@ export default function SetupWizard() {
         setupConfig.smtp_username = typeof values.smtp_username === 'string' ? values.smtp_username : ''
         setupConfig.smtp_password = typeof values.smtp_password === 'string' ? values.smtp_password : ''
         setupConfig.smtp_from_email = typeof values.smtp_from_email === 'string' ? values.smtp_from_email : undefined
-        setupConfig.smtp_from_name = typeof values.smtp_from_name === 'string' ? values.smtp_from_name : 'Notifuse'
+        setupConfig.smtp_from_name =
+          typeof values.smtp_from_name === 'string' ? values.smtp_from_name : '瑶光营销平台'
         setupConfig.smtp_use_tls = typeof values.smtp_use_tls === 'boolean' ? values.smtp_use_tls : true
       }
 
@@ -306,10 +308,7 @@ export default function SetupWizard() {
     <App>
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-3xl">
-          {/* Logo */}
-          <div className="text-center mb-8">
-            <img src="/console/logo.png" alt="Notifuse" className="mx-auto" width={120} />
-          </div>
+          <BrandLockup layout="vertical" className="mb-8" />
 
           <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
             {setupComplete ? (
@@ -320,7 +319,7 @@ export default function SetupWizard() {
                   />
                   <h2 className="text-3xl font-bold text-gray-900 mb-2">{t`Setup Complete!`}</h2>
                   <p className="text-gray-600">
-                    {t`Your Notifuse instance has been successfully configured.`}
+                    {t`Your Yaoguang Marketing instance has been successfully configured.`}
                   </p>
                 </div>
 
@@ -352,7 +351,7 @@ export default function SetupWizard() {
                   initialValues={{
                     smtp_port: 587,
                     smtp_use_tls: true,
-                    smtp_from_name: 'Notifuse',
+                    smtp_from_name: '瑶光营销平台',
                     subscribe_newsletter: true,
                     telemetry_enabled: true,
                     check_for_updates: true
@@ -382,7 +381,7 @@ export default function SetupWizard() {
                             { required: true, message: t`API endpoint is required` },
                             { type: 'url', message: t`Invalid URL format` }
                           ]}
-                          tooltip={t`Public URL where this Notifuse instance is accessible`}
+                          tooltip={t`Public URL where this Yaoguang Marketing instance is accessible`}
                         >
                           <Input placeholder="https://notifuse.example.com" />
                         </Form.Item>
@@ -513,7 +512,7 @@ export default function SetupWizard() {
                         </Col>
                         <Col span={12}>
                           <Form.Item label={t`From Name`} name="smtp_from_name">
-                            <Input placeholder="Notifuse" />
+                            <Input placeholder="瑶光营销平台" />
                           </Form.Item>
                         </Col>
                       </Row>
@@ -554,7 +553,7 @@ export default function SetupWizard() {
                                   name="telemetry_enabled"
                                   valuePropName="checked"
                                   label={t`Enable Anonymous Telemetry`}
-                                  tooltip={t`Help us improve Notifuse by sending anonymous usage statistics. No personal data or message content is collected.`}
+                                  tooltip={t`Help us improve Yaoguang Marketing by sending anonymous usage statistics. No personal data or message content is collected.`}
                                 >
                                   <Switch />
                                 </Form.Item>
@@ -564,7 +563,7 @@ export default function SetupWizard() {
                                   name="check_for_updates"
                                   valuePropName="checked"
                                   label={t`Check for Updates`}
-                                  tooltip={t`Periodically check for new Notifuse versions and security updates. A popup will list new versions available.`}
+                                  tooltip={t`Periodically check for new Yaoguang Marketing versions and security updates. A popup will list new versions available.`}
                                 >
                                   <Switch />
                                 </Form.Item>

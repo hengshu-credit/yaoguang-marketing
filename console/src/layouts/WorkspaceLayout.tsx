@@ -19,6 +19,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../contexts/AuthContext'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
+import { BrandLockup } from '../components/BrandLockup'
 import { Workspace, UserPermissions } from '../services/api/types'
 import { ContactsCsvUploadProvider } from '../components/contacts/ContactsCsvUploadProvider'
 import { useState, useEffect } from 'react'
@@ -509,20 +510,11 @@ export function WorkspaceLayout() {
             <div
               style={{
                 flex: '0 0 auto',
-                padding: '16px 0 16px 27px',
-                textAlign: 'center',
+                padding: collapsed ? '14px 0' : '12px 16px',
                 borderBottom: '1px solid #f0f0f0'
               }}
             >
-              <img
-                src={collapsed ? '/console/icon.png' : '/console/logo.png'}
-                alt=""
-                style={{
-                  height: '31px',
-                  width: 'auto',
-                  transition: 'height 0.2s'
-                }}
-              />
+              <BrandLockup compact={collapsed} style={{ justifyContent: 'center' }} />
             </div>
             <div className="workspace-sider-nav">
               <Menu

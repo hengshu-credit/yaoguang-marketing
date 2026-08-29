@@ -54,6 +54,22 @@ describe('SetupWizard — SSO step', () => {
     window.API_ENDPOINT = 'https://app.example.com'
   })
 
+  it('shows the approved Yaoguang brand lockup', async () => {
+    mockStatus(false)
+    renderWizard()
+
+    expect(await screen.findByRole('img', { name: '恒数科技' })).toBeInTheDocument()
+    expect(screen.getByText('瑶光营销平台')).toBeInTheDocument()
+    expect(screen.getByText('观心知意，循光达客')).toBeInTheDocument()
+  })
+
+  it('uses the Yaoguang product name as the default SMTP sender', async () => {
+    mockStatus(false)
+    renderWizard()
+
+    expect(await screen.findByLabelText('From Name')).toHaveValue('瑶光营销平台')
+  })
+
   it('offers the SSO step when OIDC is not env-configured', async () => {
     mockStatus(false)
     renderWizard()
