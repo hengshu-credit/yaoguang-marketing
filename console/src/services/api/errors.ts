@@ -51,6 +51,7 @@ export interface PermissionDenial {
 // catalog is active, and are rendered through i18n._() at the moment the message is needed.
 export const RESOURCE_LABELS: Record<PermissionResource, MessageDescriptor> = {
   contacts: msg`Contacts`,
+  customers: msg`Customers`,
   lists: msg`Lists`,
   templates: msg`Templates`,
   broadcasts: msg`Broadcasts`,

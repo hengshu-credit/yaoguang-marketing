@@ -19,6 +19,7 @@ export interface ResourcePermissions {
 
 export type PermissionResource =
   | "contacts"
+  | "customers"
   | "lists"
   | "templates"
   | "broadcasts"
@@ -38,6 +39,7 @@ export type PermissionResource =
 export const ALL_PERMISSION_RESOURCES: PermissionResource[] = [
   // Audience
   "contacts",
+  "customers",
   "segments",
   "lists",
   // Content
@@ -233,6 +235,35 @@ export const PERMISSION_DESCRIPTORS: Record<
       ],
     },
     caveat: msg`Write includes permanent deletion and bulk overwriting: \`/api/contacts.import\` overwrites every field each row carries, so a single call can rewrite your whole contact database. This is not "can add contacts". Read also covers custom events and the contact timeline, which the name does not suggest. Two other grants reach contact data without this one: Lists write on its own lets anyone create or overwrite a complete contact record through \`/api/lists.subscribe\`, and Automations write can send the complete contact record to any URL through a webhook node.`,
+  },
+
+  customers: {
+    scope: msg`Unified Customer profiles, external user IDs, masked identity aliases, tags and list memberships.`,
+    read: {
+      endpoints: [
+        {
+          endpoint: "/api/customers.get",
+          action: msg`Look up a Customer by UUID, Customer number, external user ID or normalized identity`,
+        },
+      ],
+    },
+    write: {
+      endpoints: [
+        {
+          endpoint: "/api/customers.upsert",
+          action: msg`Create or update one Customer profile with an idempotency key`,
+        },
+        {
+          endpoint: "/api/customers.batch",
+          action: msg`Synchronize a configurable large batch and receive one ordered result for every item`,
+        },
+        {
+          endpoint: "/api/customers.merge",
+          action: msg`Explicitly merge an anonymous Customer into a known Customer and retain an audit redirect`,
+        },
+      ],
+    },
+    caveat: msg`Customer write can replace tags and list memberships and can explicitly merge an anonymous Customer into a known Customer. Merge is intentionally limited to that direction; known-to-known automatic merging is not allowed. Raw identity values are encrypted and responses expose only masked hints.`,
   },
 
   segments: {

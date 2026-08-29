@@ -1,0 +1,492 @@
+CustomerIdentityType:
+  type: string
+  enum: [email, phone, anonymous_id, device_id, whatsapp, telegram, custom]
+
+CustomerIdentityLocator:
+  type: object
+  additionalProperties: false
+  required: [type, value]
+  properties:
+    type:
+      $ref: '#/CustomerIdentityType'
+    value:
+      type: string
+      minLength: 1
+      maxLength: 1024
+      description: Plaintext lookup value. Email is lower-cased; phone and WhatsApp values are normalized to E.164.
+
+CustomerLocator:
+  type: object
+  additionalProperties: false
+  description: Exactly one of customer_id, customer_no, external_user_id, or identity must be supplied.
+  minProperties: 1
+  maxProperties: 1
+  properties:
+    customer_id:
+      type: string
+      format: uuid
+      description: Internal immutable UUID primary key.
+    customer_no:
+      type: string
+      pattern: '^U[0-9]{4}[0-9]{14}08[0-9a-f]{32}$'
+      example: U00012026083015304508f47ac10b58cc4372a5670e02b2c3d479
+      description: >-
+        Yaoguang public customer number: U + four-digit workspace sequence +
+        Asia/Shanghai timestamp + 08 + UUID without hyphens.
+    external_user_id:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: Caller-supplied user ID, unique only inside the workspace.
+    identity:
+      $ref: '#/CustomerIdentityLocator'
+
+CustomerIdentityInput:
+  type: object
+  additionalProperties: false
+  required: [type, value]
+  properties:
+    type:
+      $ref: '#/CustomerIdentityType'
+    value:
+      type: string
+      minLength: 1
+      maxLength: 1024
+      writeOnly: true
+      description: Plaintext identity accepted only on write. It is encrypted at rest and is never returned.
+    verified:
+      type: boolean
+      default: false
+    primary:
+      type: boolean
+      default: false
+    enabled:
+      type: boolean
+      default: true
+    metadata:
+      type: object
+      additionalProperties: true
+      description: Identity metadata, at most 16 KiB after JSON encoding.
+
+CustomerIdentity:
+  type: object
+  required: [id, type, display_hint, verified, primary, enabled, created_at, updated_at]
+  properties:
+    id:
+      type: string
+      format: uuid
+    type:
+      $ref: '#/CustomerIdentityType'
+    display_hint:
+      type: string
+      description: Masked identity hint. Plaintext identity values are never returned.
+      example: u***@example.com
+    verified:
+      type: boolean
+    primary:
+      type: boolean
+    enabled:
+      type: boolean
+    metadata:
+      type: object
+      additionalProperties: true
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+CustomerAttributesPatch:
+  type: object
+  additionalProperties: false
+  description: Apply set, then recursive merge, then unset paths. Omitted operations leave existing attributes unchanged.
+  properties:
+    set:
+      type: object
+      additionalProperties: true
+      description: Replace the complete attributes object.
+    merge:
+      type: object
+      additionalProperties: true
+      description: Recursively merge keys into the current attributes object.
+    unset:
+      type: array
+      uniqueItems: true
+      items:
+        type: string
+        minLength: 1
+      description: Remove dotted attribute paths after set and merge are applied.
+
+CustomerProfilePatch:
+  type: object
+  additionalProperties: false
+  properties:
+    status:
+      type: string
+      minLength: 1
+      maxLength: 64
+    language:
+      type: string
+      minLength: 1
+      maxLength: 50
+      example: zh-CN
+    timezone:
+      type: string
+      minLength: 1
+      maxLength: 50
+      example: Asia/Shanghai
+    attributes:
+      $ref: '#/CustomerAttributesPatch'
+
+CustomerProfile:
+  type: object
+  required: [customer_id, attributes, version, created_at, updated_at]
+  properties:
+    customer_id:
+      type: string
+      format: uuid
+    status:
+      type: string
+    language:
+      type: string
+    timezone:
+      type: string
+    attributes:
+      type: object
+      additionalProperties: true
+    version:
+      type: integer
+      format: int64
+      minimum: 1
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+CustomerListMembershipInput:
+  type: object
+  additionalProperties: false
+  required: [list_id]
+  properties:
+    list_id:
+      type: string
+      minLength: 1
+      maxLength: 32
+    status:
+      type: string
+      enum: [active, pending, unsubscribed, bounced, complained]
+      default: active
+
+CustomerListMembership:
+  type: object
+  required: [list_id, status, created_at, updated_at]
+  properties:
+    list_id:
+      type: string
+    status:
+      type: string
+      enum: [active, pending, unsubscribed, bounced, complained]
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+CustomerUpsertInput:
+  type: object
+  additionalProperties: false
+  description: Create or update a Customer. At least locator, external_user_id, or one identity is required.
+  properties:
+    locator:
+      $ref: '#/CustomerLocator'
+    external_user_id:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: Caller-supplied ID to assign. It is directly usable as a locator and unique only in this workspace.
+    profile:
+      $ref: '#/CustomerProfilePatch'
+    identities:
+      type: array
+      items:
+        $ref: '#/CustomerIdentityInput'
+    tags:
+      type: array
+      uniqueItems: true
+      items:
+        type: string
+        minLength: 1
+        maxLength: 64
+      description: When present, replaces the Customer's full tag set. An empty array clears it.
+    list_memberships:
+      type: array
+      items:
+        $ref: '#/CustomerListMembershipInput'
+
+Customer:
+  type: object
+  required: [customer_id, customer_no, version, identities, tags, list_memberships, created_at, updated_at]
+  properties:
+    customer_id:
+      type: string
+      format: uuid
+    customer_no:
+      type: string
+      pattern: '^U[0-9]{4}[0-9]{14}08[0-9a-f]{32}$'
+    external_user_id:
+      type: string
+    merged_into_id:
+      type: string
+      format: uuid
+    resolved_from_customer_id:
+      type: string
+      format: uuid
+      description: Set when a merged source locator was followed to its current target.
+    version:
+      type: integer
+      format: int64
+      minimum: 1
+    profile:
+      $ref: '#/CustomerProfile'
+    identities:
+      type: array
+      items:
+        $ref: '#/CustomerIdentity'
+    tags:
+      type: array
+      items:
+        type: string
+    list_memberships:
+      type: array
+      items:
+        $ref: '#/CustomerListMembership'
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+CustomerMutationResult:
+  type: object
+  required: [customer_id, customer_no, action, version, replayed]
+  properties:
+    customer_id:
+      type: string
+      format: uuid
+    customer_no:
+      type: string
+      pattern: '^U[0-9]{4}[0-9]{14}08[0-9a-f]{32}$'
+    external_user_id:
+      type: string
+    action:
+      type: string
+      enum: [created, updated]
+    version:
+      type: integer
+      format: int64
+    replayed:
+      type: boolean
+      description: True when this exact idempotency key and payload were already committed.
+
+GetCustomerRequest:
+  type: object
+  additionalProperties: false
+  required: [workspace_id, locator]
+  properties:
+    workspace_id:
+      type: string
+      minLength: 1
+      maxLength: 32
+    locator:
+      $ref: '#/CustomerLocator'
+
+GetCustomerResponse:
+  type: object
+  required: [request_id, customer]
+  properties:
+    request_id:
+      type: string
+    customer:
+      $ref: '#/Customer'
+
+UpsertCustomerRequest:
+  type: object
+  additionalProperties: false
+  required: [workspace_id, idempotency_key, customer]
+  properties:
+    workspace_id:
+      type: string
+      minLength: 1
+      maxLength: 32
+    idempotency_key:
+      type: string
+      minLength: 1
+      maxLength: 255
+    customer:
+      $ref: '#/CustomerUpsertInput'
+
+UpsertCustomerResponse:
+  type: object
+  required: [request_id, customer]
+  properties:
+    request_id:
+      type: string
+    customer:
+      $ref: '#/CustomerMutationResult'
+
+CustomerBatchUpsertItem:
+  type: object
+  additionalProperties: false
+  required: [idempotency_key, customer]
+  properties:
+    idempotency_key:
+      type: string
+      minLength: 1
+      maxLength: 255
+    customer:
+      $ref: '#/CustomerUpsertInput'
+
+CustomerBatchUpsertRequest:
+  type: object
+  additionalProperties: false
+  required: [workspace_id, items]
+  properties:
+    workspace_id:
+      type: string
+      minLength: 1
+      maxLength: 32
+    items:
+      type: array
+      minItems: 1
+      maxItems: 10000
+      description: Default synchronous maximum is 10,000; operators may configure another positive limit.
+      items:
+        $ref: '#/CustomerBatchUpsertItem'
+
+CustomerBatchItemError:
+  type: object
+  required: [code, message]
+  properties:
+    code:
+      type: string
+    message:
+      type: string
+
+CustomerBatchItemResult:
+  type: object
+  required: [index, status]
+  properties:
+    index:
+      type: integer
+      minimum: 0
+    idempotency_key:
+      type: string
+    status:
+      type: string
+      enum: [accepted, error]
+    customer:
+      $ref: '#/CustomerMutationResult'
+    error:
+      $ref: '#/CustomerBatchItemError'
+
+CustomerBatchUpsertResponse:
+  type: object
+  required: [request_id, accepted, failed, results]
+  properties:
+    request_id:
+      type: string
+    accepted:
+      type: integer
+      minimum: 0
+    failed:
+      type: integer
+      minimum: 0
+    results:
+      type: array
+      description: One result per submitted item in the same order. Invalid or conflicting siblings do not suppress other results.
+      items:
+        $ref: '#/CustomerBatchItemResult'
+
+CustomerMergeRequest:
+  type: object
+  additionalProperties: false
+  required: [workspace_id, idempotency_key, source, target]
+  properties:
+    workspace_id:
+      type: string
+      minLength: 1
+      maxLength: 32
+    idempotency_key:
+      type: string
+      minLength: 1
+      maxLength: 255
+    source:
+      $ref: '#/CustomerLocator'
+    target:
+      $ref: '#/CustomerLocator'
+    reason:
+      type: string
+      maxLength: 500
+      description: Optional audit reason.
+
+CustomerMergeResult:
+  type: object
+  required: [source_customer_id, target_customer_id, target_customer_no, target_version, replayed]
+  properties:
+    source_customer_id:
+      type: string
+      format: uuid
+    target_customer_id:
+      type: string
+      format: uuid
+    target_customer_no:
+      type: string
+      pattern: '^U[0-9]{4}[0-9]{14}08[0-9a-f]{32}$'
+    target_version:
+      type: integer
+      format: int64
+    replayed:
+      type: boolean
+
+CustomerMergeResponse:
+  type: object
+  required: [request_id, merge]
+  properties:
+    request_id:
+      type: string
+    merge:
+      $ref: '#/CustomerMergeResult'
+
+CustomerAPIError:
+  type: object
+  required: [request_id, error]
+  properties:
+    request_id:
+      type: string
+    error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum:
+            - invalid_json
+            - request_too_large
+            - validation_error
+            - unauthorized
+            - forbidden
+            - workspace_not_found
+            - customer_not_found
+            - identity_conflict
+            - external_id_conflict
+            - customer_number_conflict
+            - idempotency_conflict
+            - merge_rejected
+            - internal_error
+        message:
+          type: string

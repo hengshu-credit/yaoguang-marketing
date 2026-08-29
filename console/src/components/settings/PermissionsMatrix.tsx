@@ -116,6 +116,7 @@ export function PermissionsMatrix({ value, onChange, className }: PermissionsMat
 
   const resourceLabels: Record<PermissionResource, string> = {
     contacts: t`Contacts`,
+    customers: t`Customers`,
     lists: t`Lists`,
     templates: t`Templates`,
     broadcasts: t`Broadcasts`,

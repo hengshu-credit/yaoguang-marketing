@@ -1,19 +1,22 @@
 openapi: 3.0.3
 info:
-  title: Notifuse API
-  description: API for Notifuse - a transactional email and newsletter management platform
+  title: Yaoguang Marketing API
+  description: Customer profile, event, journey, campaign, and multi-channel delivery APIs for the Yaoguang Marketing Platform.
   version: 1.0.0
+  license:
+    name: GNU Affero General Public License v3.0
+    url: https://www.gnu.org/licenses/agpl-3.0.html
   contact:
     name: Notifuse Support
     url: https://www.notifuse.com/support
     email: hello@notifuse.com
 servers:
-  - url: https://{notifuseDomain}
-    description: Customer-specific Notifuse API server
+  - url: https://{yaoguangDomain}
+    description: Customer-specific Yaoguang Marketing API server
     variables:
-      notifuseDomain:
-        description: Your unique Notifuse domain
-        default: demo.notifuse.com
+      yaoguangDomain:
+        description: Your Yaoguang Marketing deployment domain
+        default: marketing.example.com
 paths:
   /track:
     $ref: './paths/web-analytics.yaml#/~1track'
@@ -51,6 +54,14 @@ paths:
     $ref: './paths/contacts.yaml#/~1api~1contacts.import'
   /api/contacts.delete:
     $ref: './paths/contacts.yaml#/~1api~1contacts.delete'
+  /api/customers.get:
+    $ref: './paths/customers.yaml#/~1api~1customers.get'
+  /api/customers.upsert:
+    $ref: './paths/customers.yaml#/~1api~1customers.upsert'
+  /api/customers.batch:
+    $ref: './paths/customers.yaml#/~1api~1customers.batch'
+  /api/customers.merge:
+    $ref: './paths/customers.yaml#/~1api~1customers.merge'
   /api/contactLists.updateStatus:
     $ref: './paths/contact-lists.yaml#/~1api~1contactLists.updateStatus'
   /api/broadcasts.list:
@@ -164,6 +175,26 @@ components:
       $ref: './components/schemas/contact.yaml#/ListContactsResponse'
     CountContactsResponse:
       $ref: './components/schemas/contact.yaml#/CountContactsResponse'
+    Customer:
+      $ref: './components/schemas/customer.yaml#/Customer'
+    CustomerLocator:
+      $ref: './components/schemas/customer.yaml#/CustomerLocator'
+    GetCustomerRequest:
+      $ref: './components/schemas/customer.yaml#/GetCustomerRequest'
+    GetCustomerResponse:
+      $ref: './components/schemas/customer.yaml#/GetCustomerResponse'
+    UpsertCustomerRequest:
+      $ref: './components/schemas/customer.yaml#/UpsertCustomerRequest'
+    UpsertCustomerResponse:
+      $ref: './components/schemas/customer.yaml#/UpsertCustomerResponse'
+    CustomerBatchUpsertRequest:
+      $ref: './components/schemas/customer.yaml#/CustomerBatchUpsertRequest'
+    CustomerBatchUpsertResponse:
+      $ref: './components/schemas/customer.yaml#/CustomerBatchUpsertResponse'
+    CustomerMergeRequest:
+      $ref: './components/schemas/customer.yaml#/CustomerMergeRequest'
+    CustomerMergeResponse:
+      $ref: './components/schemas/customer.yaml#/CustomerMergeResponse'
     EmailAttachment:
       $ref: './components/schemas/transactional.yaml#/EmailAttachment'
     Broadcast:

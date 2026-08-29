@@ -121,7 +121,7 @@ describe('WorkspaceMembers permissions column', () => {
   })
 
   it('uses the whole resource list as the badge denominator, not the row key count', () => {
-    expect(ALL_PERMISSION_RESOURCES).toHaveLength(14)
+		expect(ALL_PERMISSION_RESOURCES).toHaveLength(15)
 
     // A row that grants read+write on three resources is not Full Access.
     const member = apiKeyRow({
@@ -132,7 +132,7 @@ describe('WorkspaceMembers permissions column', () => {
     renderMembers([member])
 
     const row = rowFor(member)
-    expect(row.textContent).toContain('6/28')
+		expect(row.textContent).toContain('6/30')
     expect(row.textContent).not.toContain('Full Access')
   })
 

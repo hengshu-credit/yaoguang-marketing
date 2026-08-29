@@ -74,6 +74,18 @@ describe('permission descriptors', () => {
 })
 
 describe('permission row details', () => {
+	  it('describes Customer profile lookup, sync, batch, and explicit merge routes', () => {
+	    renderMatrix()
+
+	    const details = expand('customers', 'Customers')
+
+	    expect(within(details).getByText('/api/customers.get')).toBeInTheDocument()
+	    expect(within(details).getByText('/api/customers.upsert')).toBeInTheDocument()
+	    expect(within(details).getByText('/api/customers.batch')).toBeInTheDocument()
+	    expect(within(details).getByText('/api/customers.merge')).toBeInTheDocument()
+	    expect(details.textContent).toContain('anonymous Customer into a known Customer')
+	  })
+
   it('expands on the resource row and names an endpoint together with what it does', () => {
     renderMatrix()
 

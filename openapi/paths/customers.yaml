@@ -1,0 +1,179 @@
+/api/customers.get:
+  post:
+    summary: Get a Customer
+    description: Resolves one Customer by exactly one internal UUID, Yaoguang customer number, external user ID, or plaintext identity. Merged source locators redirect to the current target. Identity responses contain masked hints only.
+    operationId: getCustomer
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/customer.yaml#/GetCustomerRequest'
+    responses:
+      '200':
+        description: Customer resolved
+        headers:
+          X-Request-ID:
+            schema: { type: string }
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/customer.yaml#/GetCustomerResponse'
+      '400':
+        $ref: '#/components/responses/CustomerBadRequest'
+      '401':
+        $ref: '#/components/responses/CustomerUnauthorized'
+      '403':
+        $ref: '#/components/responses/CustomerForbidden'
+      '404':
+        $ref: '#/components/responses/CustomerNotFound'
+      '500':
+        $ref: '#/components/responses/CustomerServerError'
+
+/api/customers.upsert:
+  post:
+    summary: Create or update a Customer
+    description: Idempotently creates or updates a workspace-scoped Customer and profile. External IDs are directly usable; identity values are encrypted at rest. Reusing a key with different canonical input returns 409.
+    operationId: upsertCustomer
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/customer.yaml#/UpsertCustomerRequest'
+    responses:
+      '200':
+        description: Customer mutation accepted or idempotently replayed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/customer.yaml#/UpsertCustomerResponse'
+      '400':
+        $ref: '#/components/responses/CustomerBadRequest'
+      '401':
+        $ref: '#/components/responses/CustomerUnauthorized'
+      '403':
+        $ref: '#/components/responses/CustomerForbidden'
+      '404':
+        $ref: '#/components/responses/CustomerNotFound'
+      '409':
+        $ref: '#/components/responses/CustomerConflict'
+      '413':
+        $ref: '#/components/responses/CustomerTooLarge'
+      '500':
+        $ref: '#/components/responses/CustomerServerError'
+
+/api/customers.batch:
+  post:
+    summary: Synchronously upsert a complete Customer batch
+    description: Processes every submitted item independently and returns exactly one ordered result per item. Item-level validation or uniqueness conflicts do not abort later items. The default maximum is 10,000 items and can be changed with CUSTOMER_SYNC_MAX_BATCH_SIZE. Durable asynchronous uploads above this envelope are a separate workflow.
+    operationId: batchUpsertCustomers
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/customer.yaml#/CustomerBatchUpsertRequest'
+    responses:
+      '200':
+        description: All items were visited; inspect accepted, failed, and every ordered result
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/customer.yaml#/CustomerBatchUpsertResponse'
+      '400':
+        $ref: '#/components/responses/CustomerBadRequest'
+      '401':
+        $ref: '#/components/responses/CustomerUnauthorized'
+      '403':
+        $ref: '#/components/responses/CustomerForbidden'
+      '413':
+        $ref: '#/components/responses/CustomerTooLarge'
+      '500':
+        $ref: '#/components/responses/CustomerServerError'
+
+/api/customers.merge:
+  post:
+    summary: Explicitly merge an anonymous Customer into a known Customer
+    description: Atomically moves the source aggregate into the target, keeps target profile values on conflict, writes an audit record, and leaves a redirect from source to target. Automatic merges are not performed.
+    operationId: mergeCustomer
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/customer.yaml#/CustomerMergeRequest'
+    responses:
+      '200':
+        description: Customer merge committed or idempotently replayed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/customer.yaml#/CustomerMergeResponse'
+      '400':
+        $ref: '#/components/responses/CustomerBadRequest'
+      '401':
+        $ref: '#/components/responses/CustomerUnauthorized'
+      '403':
+        $ref: '#/components/responses/CustomerForbidden'
+      '404':
+        $ref: '#/components/responses/CustomerNotFound'
+      '409':
+        $ref: '#/components/responses/CustomerConflict'
+      '413':
+        $ref: '#/components/responses/CustomerTooLarge'
+      '500':
+        $ref: '#/components/responses/CustomerServerError'
+
+components:
+  responses:
+    CustomerBadRequest:
+      description: Invalid JSON, validation failure, or an ambiguous Customer locator
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/customer.yaml#/CustomerAPIError'
+    CustomerUnauthorized:
+      description: Missing, invalid, or revoked authentication credential
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/customer.yaml#/CustomerAPIError'
+    CustomerForbidden:
+      description: Caller lacks workspace membership or customers read/write permission
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/customer.yaml#/CustomerAPIError'
+    CustomerNotFound:
+      description: Workspace or Customer not found
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/customer.yaml#/CustomerAPIError'
+    CustomerConflict:
+      description: Identity, external ID, customer number, idempotency, or merge conflict
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/customer.yaml#/CustomerAPIError'
+    CustomerTooLarge:
+      description: Request body exceeds 32 MiB
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/customer.yaml#/CustomerAPIError'
+    CustomerServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/customer.yaml#/CustomerAPIError'
