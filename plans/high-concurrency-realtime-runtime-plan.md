@@ -190,7 +190,7 @@ git commit -m "feat: add realtime infrastructure topology"
 - Produces: `EventEnvelope`, `EventSubject`, `OutboxMessage`, `InboxClaim`, `TriggerBinding`, `MatchAudit`, `SideEffectExecution`, status enums, and `BuildSideEffectKey(workspaceID, contactAutomationID string, automationVersion int, nodeID string, executionVersion int64, channel string) string`.
 - Consumed by: repository, broker, relay, matcher, journey, delivery, and analytics tasks.
 
-- [ ] **Step 1: Write failing serialization and idempotency tests**
+- [x] **Step 1: Write failing serialization and idempotency tests**
 
 ```go
 func TestEventEnvelopeRoundTripKeepsIdentity(t *testing.T) {
@@ -210,7 +210,7 @@ func TestBuildSideEffectKeyIsStable(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run domain tests and verify RED**
+- [x] **Step 2: Run domain tests and verify RED**
 
 Run:
 
@@ -218,7 +218,7 @@ Run:
 docker run --rm -v "${PWD}:/src" -w /src golang:1.25-alpine sh -lc "go test ./internal/domain -run 'Test(EventEnvelope|BuildSideEffectKey)'"
 ```
 
-- [ ] **Step 3: Implement strict domain types and validation**
+- [x] **Step 3: Implement strict domain types and validation**
 
 ```go
 type EventEnvelope struct {
@@ -240,7 +240,7 @@ type EventEnvelope struct {
 
 Use canonical JSON hashing for payload conflict checks and SHA-256 for side-effect keys.
 
-- [ ] **Step 4: Run full domain tests and verify GREEN**
+- [x] **Step 4: Run full domain tests and verify GREEN**
 
 Run: `docker run --rm -v "${PWD}:/src" -w /src golang:1.25-alpine sh -lc "go test ./internal/domain"`
 
