@@ -27,7 +27,7 @@ Notifuse is a modern, self-hosted emailing platform that allows you to send news
 ### 🔀 Automations
 
 - **Visual Flow Builder**: Build multi-step journeys on a canvas — each automation is a graph of nodes with a single trigger as its root
-- **Node Types**: `delay`, `email`, `branch`, `filter`, `add_to_list`, `remove_from_list`, `ab_test`, `webhook`, and `list_status_branch`
+- **Node Types**: `delay`, `email`, `sms`, `push`, `branch`, `filter`, `add_to_list`, `remove_from_list`, `ab_test`, `webhook`, and `list_status_branch`
 - **Timed Delays**: Wait minutes, hours or days between steps
 - **Branching & Filters**: Split a journey on contact conditions, or on a contact's status in a given list
 - **A/B Testing In-Flow**: Weighted variants inside an automation, not just on broadcasts
@@ -112,11 +112,25 @@ docker compose ps
 
 The console and API are served at `http://localhost:8081`; RabbitMQ management is at `http://localhost:15672` and MinIO is at `http://localhost:9001`. Infrastructure and application ports bind to localhost and can be overridden with the matching `*_HOST_PORT` environment variables (Redis defaults to `16380` to avoid common local conflicts). Before a shared or production deployment, replace every example credential in `.env`.
 
-External systems can synchronize users and emit realtime events through `POST /api/ingest.batch`. One request can combine contact field updates, application lifecycle status, arbitrary JSON attributes, tag set/add/remove operations, list membership status, encrypted FCM/APNs/Web Push client endpoints and idempotent custom events. The endpoint accepts at most 500 records, returns a result for every item, requires Contacts write (and Lists write for membership changes), and returns `429 Retry-After: 1` instead of building an unbounded in-process queue. Active endpoint metadata can be read through `GET /api/contactEndpoints.list`; provider addresses are never returned. Profile data is exposed to templates as `contact.profile` and to segments through `profile_status`, `profile_tags`, and `profile_attributes`. See [the ingest contract](docs/superpowers/specs/2026-08-29-external-audience-ingest-design.md) and [the omnichannel endpoint design](docs/superpowers/specs/2026-08-29-omnichannel-endpoints-design.md).
+External systems can synchronize users and emit realtime events through `POST /api/ingest.batch`. One request can combine contact field updates, application lifecycle status, arbitrary JSON attributes, tag set/add/remove operations, list membership status, encrypted Twilio/FCM/APNs/Web Push client endpoints and idempotent custom events. The endpoint accepts at most 500 records, returns a result for every item, requires Contacts write (and Lists write for membership changes), and returns `429 Retry-After: 1` instead of building an unbounded in-process queue. Active endpoint metadata can be read through `GET /api/contactEndpoints.list`; provider addresses are never returned. Profile data is exposed to templates as `contact.profile` and to segments through `profile_status`, `profile_tags`, and `profile_attributes`. See [the ingest contract](docs/superpowers/specs/2026-08-29-external-audience-ingest-design.md) and [the omnichannel endpoint design](docs/superpowers/specs/2026-08-29-omnichannel-endpoints-design.md).
 
 SMS and push creatives use the same versioned template API as email. The console exposes locale-aware low-code editors, and `POST /api/templates.preview` renders an unsaved draft with the server Liquid engine. SMS responses include encoding and multipart segment metrics; push responses include platform-specific title/body and payload-size warnings for Android, iOS and Web. See [the template and preview design](docs/superpowers/specs/2026-08-29-sms-push-template-preview-design.md).
 
 Native provider infrastructure supports Twilio SMS and Firebase Cloud Messaging HTTP v1 through encrypted workspace integrations. Trusted systems can append up to 500 normalized delivery receipts with `POST /api/deliveryReceipts.ingest`; receipts are idempotent on `(provider, receipt_id)`, detect an id reused with different content, and atomically project first delivery/open/failure timestamps onto matching message history. Twilio can post signed form callbacks to `/webhooks/delivery/twilio?workspace_id=...&integration_id=...`; Notifuse verifies `X-Twilio-Signature` against the configured Auth Token before recording anything. See [the provider and receipt design](docs/superpowers/specs/2026-08-29-channel-providers-receipts-design.md).
+
+Applications and realtime journeys send saved SMS/push templates through `POST /api/channelMessages.send`. The request names a contact, encrypted endpoint (optional when the most recent active endpoint is desired), integration, template and stable `effect_key`. Identical concurrent or replayed calls resolve to one PostgreSQL execution; reusing the key with different content is rejected. Provider acceptance and encrypted message history commit together, and an ambiguous network or malformed-success outcome is terminal until reconciled so an automatic retry cannot double-send. See [the channel send design](docs/superpowers/specs/2026-08-29-channel-message-send-design.md).
+
+```json
+{
+  "workspace_id": "acme",
+  "effect_key": "order-42:ready:sms",
+  "channel": "sms",
+  "integration_id": "twilio-main",
+  "contact_email": "customer@example.com",
+  "template_id": "order-ready",
+  "data": { "order_id": "42" }
+}
+```
 
 After creating an API key and workspace, run the included latency smoke test:
 

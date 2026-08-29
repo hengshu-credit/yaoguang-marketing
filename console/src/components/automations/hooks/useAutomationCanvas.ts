@@ -266,6 +266,9 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     switch (type) {
       case 'delay':
         return { duration: 0, unit: 'minutes' }
+      case 'sms':
+      case 'push':
+        return { template_id: '', integration_id: '' }
       case 'ab_test':
         return {
           variants: [

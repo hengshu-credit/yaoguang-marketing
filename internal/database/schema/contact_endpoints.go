@@ -8,9 +8,9 @@ func ContactEndpointTableDefinitions() []string {
 		`CREATE TABLE IF NOT EXISTS contact_endpoints (
 			endpoint_id VARCHAR(128) PRIMARY KEY,
 			email VARCHAR(255) NOT NULL REFERENCES contacts(email) ON DELETE CASCADE,
-			channel VARCHAR(20) NOT NULL CHECK (channel = 'push'),
-			provider VARCHAR(20) NOT NULL CHECK (provider IN ('fcm', 'apns', 'webpush')),
-			platform VARCHAR(20) NOT NULL CHECK (platform IN ('android', 'ios', 'web')),
+			channel VARCHAR(20) NOT NULL CHECK (channel IN ('sms', 'push')),
+			provider VARCHAR(20) NOT NULL CHECK (provider IN ('twilio', 'fcm', 'apns', 'webpush')),
+			platform VARCHAR(20) NOT NULL CHECK (platform IN ('phone', 'android', 'ios', 'web')),
 			address_ciphertext TEXT NOT NULL,
 			address_fingerprint CHAR(64) NOT NULL,
 			locale VARCHAR(35),
@@ -23,9 +23,10 @@ func ContactEndpointTableDefinitions() []string {
 			created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			last_seen_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			CHECK ((provider = 'apns' AND platform = 'ios')
-				OR (provider = 'fcm' AND platform IN ('android', 'ios'))
-				OR (provider = 'webpush' AND platform = 'web'))
+			CHECK ((channel = 'sms' AND provider = 'twilio' AND platform = 'phone')
+				OR (channel = 'push' AND provider = 'apns' AND platform = 'ios')
+				OR (channel = 'push' AND provider = 'fcm' AND platform IN ('android', 'ios'))
+				OR (channel = 'push' AND provider = 'webpush' AND platform = 'web'))
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_contact_endpoints_active_contact
 			ON contact_endpoints (email, channel, provider) WHERE enabled`,

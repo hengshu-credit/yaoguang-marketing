@@ -58,6 +58,7 @@ func NewAutomationExecutor(
 	timelineRepo domain.ContactTimelineRepository,
 	log logger.Logger,
 	apiEndpoint string,
+	options ...AutomationExecutorOption,
 ) *AutomationExecutor {
 	qb := NewQueryBuilder()
 
@@ -74,7 +75,7 @@ func NewAutomationExecutor(
 		domain.NodeTypeListStatusBranch: NewListStatusBranchNodeExecutor(contactListRepo),
 	}
 
-	return &AutomationExecutor{
+	executor := &AutomationExecutor{
 		automationRepo:  automationRepo,
 		contactRepo:     contactRepo,
 		workspaceRepo:   workspaceRepo,
@@ -85,6 +86,22 @@ func NewAutomationExecutor(
 		nodeExecutors:   executors,
 		logger:          log,
 		apiEndpoint:     apiEndpoint,
+	}
+	for _, option := range options {
+		option(executor)
+	}
+	return executor
+}
+
+type AutomationExecutorOption func(*AutomationExecutor)
+
+func WithChannelMessageService(channelService domain.ChannelMessageService) AutomationExecutorOption {
+	return func(executor *AutomationExecutor) {
+		if channelService == nil {
+			return
+		}
+		executor.nodeExecutors[domain.NodeTypeSMS] = NewChannelNodeExecutor(domain.NodeTypeSMS, channelService)
+		executor.nodeExecutors[domain.NodeTypePush] = NewChannelNodeExecutor(domain.NodeTypePush, channelService)
 	}
 }
 
@@ -399,6 +416,10 @@ func journeySideEffectChannel(nodeType domain.NodeType) (string, bool) {
 	switch nodeType {
 	case domain.NodeTypeEmail:
 		return "email", true
+	case domain.NodeTypeSMS:
+		return domain.ChannelSMS, true
+	case domain.NodeTypePush:
+		return domain.ChannelPush, true
 	case domain.NodeTypeAddToList, domain.NodeTypeRemoveFromList:
 		return "contact_list", true
 	case domain.NodeTypeWebhook:

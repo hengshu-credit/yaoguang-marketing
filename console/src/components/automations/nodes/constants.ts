@@ -5,6 +5,8 @@ export const nodeTypeColors: Record<NodeType, string> = {
   trigger: '#52c41a', // green
   delay: '#faad14', // gold
   email: '#1890ff', // blue
+  sms: '#08979c', // cyan
+  push: '#531dab', // purple
   branch: '#722ed1', // purple
   filter: '#eb2f96', // magenta
   add_to_list: '#13c2c2', // cyan

@@ -115,6 +115,7 @@ type App struct {
 	transactionalNotificationRepo domain.TransactionalNotificationRepository
 	messageHistoryRepo            domain.MessageHistoryRepository
 	deliveryReceiptRepo           domain.DeliveryReceiptRepository
+	channelSendRepo               domain.ChannelSendRepository
 	inboundWebhookEventRepo       domain.InboundWebhookEventRepository
 	telemetryRepo                 domain.TelemetryRepository
 	analyticsRepo                 domain.AnalyticsRepository
@@ -153,6 +154,7 @@ type App struct {
 	webhookRegistrationService       *service.WebhookRegistrationService
 	messageHistoryService            *service.MessageHistoryService
 	deliveryReceiptService           *service.DeliveryReceiptService
+	channelMessageService            *service.ChannelMessageService
 	notificationCenterService        *service.NotificationCenterService
 	demoService                      *service.DemoService
 	telemetryService                 *service.TelemetryService
@@ -454,6 +456,10 @@ func (a *App) InitRepositories() error {
 	a.transactionalNotificationRepo = repository.NewTransactionalNotificationRepository(a.workspaceRepo)
 	a.messageHistoryRepo = repository.NewMessageHistoryRepository(a.workspaceRepo)
 	a.deliveryReceiptRepo = repository.NewDeliveryReceiptRepository(a.workspaceRepo)
+	a.channelSendRepo, err = repository.NewChannelSendRepository(a.workspaceRepo)
+	if err != nil {
+		return fmt.Errorf("failed to initialize channel send repository: %w", err)
+	}
 	a.inboundWebhookEventRepo = repository.NewInboundWebhookEventRepository(a.workspaceRepo)
 	a.telemetryRepo = repository.NewTelemetryRepository(a.workspaceRepo)
 	a.analyticsRepo = repository.NewAnalyticsRepository(a.workspaceRepo, a.logger, a.config.AnalyticsWorkMem)
@@ -914,6 +920,15 @@ func (a *App) InitServices() error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize delivery receipt service: %w", err)
 	}
+	a.channelMessageService, err = service.NewChannelMessageService(service.ChannelMessageServiceConfig{
+		Auth: a.authService, WorkspaceRepo: a.workspaceRepo, ContactRepo: a.contactRepo,
+		EndpointRepo: a.contactEndpointRepo, TemplateService: a.templateService,
+		SendRepo: a.channelSendRepo, ProviderResolver: service.NewWorkspaceChannelProviderResolver(httpClient),
+		APIEndpoint: a.config.APIEndpoint,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to initialize channel message service: %w", err)
+	}
 
 	// Initialize notification center service
 	a.notificationCenterService = service.NewNotificationCenterService(
@@ -1223,6 +1238,7 @@ func (a *App) InitServices() error {
 		a.contactTimelineRepo,
 		a.logger,
 		a.config.APIEndpoint,
+		service.WithChannelMessageService(a.channelMessageService),
 	)
 	a.automationScheduler = service.NewAutomationScheduler(
 		a.automationExecutor,
@@ -1423,6 +1439,7 @@ func (a *App) InitHandlers() error {
 		a.config.APIEndpoint,
 		a.rateLimiter,
 	)
+	channelMessageHandler := httpHandler.NewChannelMessageHandler(a.channelMessageService, getJWTSecret, a.logger)
 	notificationCenterHandler := httpHandler.NewNotificationCenterHandler(
 		a.notificationCenterService,
 		a.listService,
@@ -1522,6 +1539,7 @@ func (a *App) InitHandlers() error {
 	supabaseWebhookHandler.RegisterRoutes(a.mux)
 	messageHistoryHandler.RegisterRoutes(a.mux)
 	deliveryReceiptHandler.RegisterRoutes(a.mux)
+	channelMessageHandler.RegisterRoutes(a.mux)
 	notificationCenterHandler.RegisterRoutes(a.mux)
 	analyticsHandler.RegisterRoutes(a.mux)
 	webAnalyticsHandler.RegisterRoutes(a.mux)

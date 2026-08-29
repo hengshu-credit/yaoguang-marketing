@@ -16,16 +16,19 @@ const (
 	EndpointOperationUpsert  = "upsert"
 	EndpointOperationDisable = "disable"
 
-	PushProviderFCM     = "fcm"
-	PushProviderAPNS    = "apns"
-	PushProviderWebPush = "webpush"
+	PushProviderFCM        = "fcm"
+	PushProviderAPNS       = "apns"
+	PushProviderWebPush    = "webpush"
+	EndpointProviderTwilio = "twilio"
 
 	EndpointPlatformAndroid = "android"
 	EndpointPlatformIOS     = "ios"
 	EndpointPlatformWeb     = "web"
+	EndpointPlatformPhone   = "phone"
 )
 
 var endpointLocalePattern = regexp.MustCompile(`^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$`)
+var endpointE164Pattern = regexp.MustCompile(`^\+[1-9][0-9]{6,14}$`)
 
 // ContactEndpoint is a provider address owned by one marketing contact. Address
 // is intentionally excluded from JSON so API responses and logs cannot leak a
@@ -90,27 +93,34 @@ func (m ContactEndpointMutation) Validate() (*ContactEndpoint, error) {
 	m.Timezone = strings.TrimSpace(m.Timezone)
 	m.AppID = strings.TrimSpace(m.AppID)
 	m.DeviceID = strings.TrimSpace(m.DeviceID)
-	if m.Channel != ChannelPush {
-		return nil, fmt.Errorf("endpoint channel must be push")
+	if m.Channel != ChannelPush && m.Channel != ChannelSMS {
+		return nil, fmt.Errorf("endpoint channel must be sms or push")
 	}
 	if m.Address == "" || utf8.RuneCountInString(m.Address) > 4096 {
 		return nil, fmt.Errorf("endpoint address must contain 1 to 4096 characters")
 	}
 	switch m.Provider {
+	case EndpointProviderTwilio:
+		if m.Channel != ChannelSMS || m.Platform != EndpointPlatformPhone {
+			return nil, fmt.Errorf("provider twilio requires sms channel and phone platform")
+		}
+		if !endpointE164Pattern.MatchString(m.Address) {
+			return nil, fmt.Errorf("twilio sms address must be in E.164 format")
+		}
 	case PushProviderAPNS:
-		if m.Platform != EndpointPlatformIOS {
+		if m.Channel != ChannelPush || m.Platform != EndpointPlatformIOS {
 			return nil, fmt.Errorf("provider apns requires platform ios")
 		}
 	case PushProviderFCM:
-		if m.Platform != EndpointPlatformAndroid && m.Platform != EndpointPlatformIOS {
+		if m.Channel != ChannelPush || (m.Platform != EndpointPlatformAndroid && m.Platform != EndpointPlatformIOS) {
 			return nil, fmt.Errorf("provider fcm requires platform android or ios")
 		}
 	case PushProviderWebPush:
-		if m.Platform != EndpointPlatformWeb {
+		if m.Channel != ChannelPush || m.Platform != EndpointPlatformWeb {
 			return nil, fmt.Errorf("provider webpush requires platform web")
 		}
 	default:
-		return nil, fmt.Errorf("endpoint provider must be fcm, apns, or webpush")
+		return nil, fmt.Errorf("endpoint provider must be twilio, fcm, apns, or webpush")
 	}
 	if m.Locale != "" && !endpointLocalePattern.MatchString(m.Locale) {
 		return nil, fmt.Errorf("invalid endpoint locale: %s", m.Locale)
@@ -172,8 +182,8 @@ func (r *ListContactEndpointsRequest) Validate() error {
 	if r.Channel == "" {
 		r.Channel = ChannelPush
 	}
-	if r.Channel != ChannelPush {
-		return fmt.Errorf("channel must be push")
+	if r.Channel != ChannelPush && r.Channel != ChannelSMS {
+		return fmt.Errorf("channel must be sms or push")
 	}
 	return nil
 }

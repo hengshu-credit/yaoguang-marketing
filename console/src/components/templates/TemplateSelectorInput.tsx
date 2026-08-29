@@ -4,7 +4,7 @@ import { Input, Drawer, List, Empty, Spin, Button, Space } from 'antd'
 import { EyeOutlined, SearchOutlined, PlusOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import { templatesApi } from '../../services/api/template'
-import type { Template, Workspace } from '../../services/api/types'
+import type { Template, TemplateChannel, Workspace } from '../../services/api/types'
 import TemplatePreviewPopover from './TemplatePreviewDrawer'
 import { CreateTemplateDrawer } from './CreateTemplateDrawer'
 import { useAuth } from '../../contexts/AuthContext'
@@ -23,6 +23,7 @@ interface TemplateSelectorInputProps {
     | 'blocklist'
     | 'other'
   placeholder?: string
+  channel?: TemplateChannel
   clearable?: boolean
   disabled?: boolean
   size?: 'small' | 'middle' | 'large'
@@ -33,6 +34,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
   onChange,
   workspaceId,
   category,
+  channel = 'email',
   placeholder,
   clearable = true,
   disabled = false,
@@ -54,13 +56,13 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
     isLoading,
     refetch
   } = useQuery({
-    queryKey: ['templates', workspaceId, category],
+    queryKey: ['templates', workspaceId, category, channel],
     queryFn: async () => {
       // Assume the API accepts a category parameter for filtering
       const response = await templatesApi.list({
         workspace_id: workspaceId,
         category: category,
-        channel: 'email'
+        channel
       })
       return response
     },

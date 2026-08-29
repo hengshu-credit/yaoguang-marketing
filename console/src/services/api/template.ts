@@ -4,11 +4,13 @@ import type { EmailOptions } from './transactional_notifications'
 import type { EmailProvider } from './workspace'
 
 // Template types
+export type TemplateChannel = 'email' | 'web' | 'sms' | 'push'
+
 export interface Template {
   id: string
   name: string
   version: number
-  channel: 'email' | 'web' | 'sms' | 'push'
+  channel: TemplateChannel
   email?: EmailTemplate
   web?: WebTemplate
   sms?: SMSTemplate

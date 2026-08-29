@@ -7,6 +7,7 @@ import {
   TriggerConfigForm,
   DelayConfigForm,
   EmailConfigForm,
+  ChannelConfigForm,
   ABTestConfigForm,
   AddToListConfigForm,
   RemoveFromListConfigForm,
@@ -19,6 +20,7 @@ import type { AutomationNodeData, Structural } from './utils/flowConverter'
 import type {
   DelayNodeConfig,
   EmailNodeConfig,
+  ChannelNodeConfig,
   ABTestNodeConfig,
   AddToListNodeConfig,
   RemoveFromListNodeConfig,
@@ -50,6 +52,7 @@ type NodeConfigUpdate =
   | TriggerFormConfig
   | Structural<DelayNodeConfig>
   | Structural<EmailNodeConfig>
+  | Structural<ChannelNodeConfig>
   | Structural<ABTestNodeConfig>
   | Structural<AddToListNodeConfig>
   | Structural<RemoveFromListNodeConfig>
@@ -112,6 +115,17 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
         return (
           <EmailConfigForm
             config={config as Structural<EmailNodeConfig>}
+            onChange={handleConfigChange}
+            workspaceId={workspaceId}
+            workspace={workspace}
+          />
+        )
+      case 'sms':
+      case 'push':
+        return (
+          <ChannelConfigForm
+            nodeType={nodeType}
+            config={config as Structural<ChannelNodeConfig>}
             onChange={handleConfigChange}
             workspaceId={workspaceId}
             workspace={workspace}

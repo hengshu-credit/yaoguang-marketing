@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react'
 import { Popover, Tooltip } from 'antd'
-import { Plus, UserPlus, UserMinus, Filter, Globe, ListChecks } from 'lucide-react'
+import { Plus, UserPlus, UserMinus, Filter, Globe, ListChecks, MessageSquareText, Smartphone } from 'lucide-react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faHourglass, faEnvelope } from '@fortawesome/free-regular-svg-icons'
 import { faFlask } from '@fortawesome/free-solid-svg-icons'
@@ -12,6 +12,8 @@ import type { NodeType } from '../../services/api/automation'
 export const ADD_NODE_MENU_ITEMS: { key: NodeType; label: string; icon: React.ReactNode }[] = [
   { key: 'delay', label: 'Delay', icon: <FontAwesomeIcon icon={faHourglass} style={{ color: '#faad14' }} /> },
   { key: 'email', label: 'Email', icon: <FontAwesomeIcon icon={faEnvelope} style={{ color: '#1890ff' }} /> },
+  { key: 'sms', label: 'SMS', icon: <MessageSquareText size={14} style={{ color: '#08979c' }} /> },
+  { key: 'push', label: 'Push', icon: <Smartphone size={14} style={{ color: '#531dab' }} /> },
   { key: 'filter', label: 'Filter', icon: <Filter size={14} style={{ color: '#eb2f96' }} /> },
   { key: 'ab_test', label: 'A/B Test', icon: <FontAwesomeIcon icon={faFlask} style={{ color: '#2f54eb' }} /> },
   { key: 'list_status_branch', label: 'List Status', icon: <ListChecks size={14} style={{ color: '#389e0d' }} /> },
@@ -75,6 +77,8 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({
         trigger: t`Trigger`,
         delay: t`Delay`,
         email: t`Email`,
+        sms: t`SMS`,
+        push: t`Push`,
         filter: t`Filter`,
         ab_test: t`A/B Test`,
         list_status_branch: t`List Status`,

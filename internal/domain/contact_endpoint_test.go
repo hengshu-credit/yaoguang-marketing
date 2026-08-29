@@ -55,3 +55,28 @@ func TestContactEndpointDisableRequiresOnlyStableID(t *testing.T) {
 	assert.Equal(t, "device-1", endpoint.EndpointID)
 	assert.False(t, endpoint.Enabled)
 }
+
+func TestContactEndpointMutationAcceptsTwilioSMSPhone(t *testing.T) {
+	endpoint, err := (ContactEndpointMutation{
+		Operation:  EndpointOperationUpsert,
+		EndpointID: "phone-primary",
+		Channel:    ChannelSMS,
+		Provider:   EndpointProviderTwilio,
+		Platform:   EndpointPlatformPhone,
+		Address:    " +15557654321 ",
+		Locale:     "en-US",
+	}).Validate()
+	require.NoError(t, err)
+	assert.Equal(t, "+15557654321", endpoint.Address)
+	assert.Equal(t, EndpointProviderTwilio, endpoint.Provider)
+	assert.Equal(t, EndpointPlatformPhone, endpoint.Platform)
+}
+
+func TestContactEndpointMutationRejectsInvalidSMSPhone(t *testing.T) {
+	_, err := (ContactEndpointMutation{
+		Operation: EndpointOperationUpsert, EndpointID: "phone-primary",
+		Channel: ChannelSMS, Provider: EndpointProviderTwilio,
+		Platform: EndpointPlatformPhone, Address: "555-765-4321",
+	}).Validate()
+	assert.EqualError(t, err, "twilio sms address must be in E.164 format")
+}

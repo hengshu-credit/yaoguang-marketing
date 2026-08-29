@@ -79,6 +79,20 @@ func TestTwilioChannelProviderClassifies429AsRetryable(t *testing.T) {
 	assert.Equal(t, "20429", providerErr.Code)
 }
 
+func TestTwilioChannelProviderTreatsMalformedSuccessAsUnknown(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`not-json`))
+	}))
+	defer server.Close()
+	provider, err := NewTwilioChannelProvider(plaintextTwilioSettings(), server.Client(), server.URL)
+	require.NoError(t, err)
+	_, err = provider.Send(context.Background(), domain.ChannelDeliveryRequest{
+		Channel: domain.ChannelSMS, Recipient: "+15557654321", SMS: &domain.SMSTemplate{Body: "Hello"}, EffectKey: "effect-1",
+	})
+	assert.ErrorIs(t, err, ErrSideEffectOutcomeUnknown)
+}
+
 func TestFCMChannelProviderSendsHTTPV1Push(t *testing.T) {
 	var payload map[string]interface{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -116,4 +130,22 @@ func TestFCMChannelProviderSendsHTTPV1Push(t *testing.T) {
 	assert.Equal(t, "true", data["vip"])
 	assert.Equal(t, "notifuse://orders/42", data["_notifuse_deep_link"])
 	assert.Equal(t, "effect-1", data["_notifuse_effect_key"])
+}
+
+func TestFCMChannelProviderTreatsMalformedSuccessAsUnknown(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`not-json`))
+	}))
+	defer server.Close()
+	settings := domain.FCMSettings{ProjectID: "notifuse-test", ServiceAccountJSON: `{"type":"service_account"}`}
+	provider, err := NewFCMChannelProvider(settings, server.Client(), server.URL, func(context.Context, []byte) (oauth2.TokenSource, error) {
+		return staticTokenSource{token: &oauth2.Token{AccessToken: "test-access-token"}}, nil
+	})
+	require.NoError(t, err)
+	_, err = provider.Send(context.Background(), domain.ChannelDeliveryRequest{
+		Channel: domain.ChannelPush, Recipient: "device-token",
+		Push: &domain.PushTemplate{Title: "Order update", Body: "Shipped"}, EffectKey: "effect-1",
+	})
+	assert.ErrorIs(t, err, ErrSideEffectOutcomeUnknown)
 }

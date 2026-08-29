@@ -202,7 +202,7 @@ func (r *ContactEndpointPostgresRepository) ListActiveByEmail(
 			created_at, updated_at, last_seen_at
 		FROM contact_endpoints
 		WHERE email = $1 AND channel = $2 AND enabled
-		ORDER BY endpoint_id
+		ORDER BY last_seen_at DESC, endpoint_id
 	`, email, channel)
 	if err != nil {
 		return nil, fmt.Errorf("list active contact endpoints: %w", err)

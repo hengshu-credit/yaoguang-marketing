@@ -83,6 +83,14 @@ export type {
   DeleteInvitationResponse
 } from './workspace'
 
+export type {
+  ChannelMessageChannel,
+  ChannelSendStatus,
+  SendChannelMessageRequest,
+  ChannelSendExecution,
+  SendChannelMessageResponse
+} from './channel_messages'
+
 // Re-export from list.ts
 export type {
   TemplateReference,
@@ -107,6 +115,7 @@ export type {
 // Re-export from template.ts
 export type {
   Template,
+  TemplateChannel,
   EmailTemplate,
   SMSTemplate,
   PushTemplate,

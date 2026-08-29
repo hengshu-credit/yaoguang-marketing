@@ -5,6 +5,8 @@ import {
   Play,
   Clock,
   Mail,
+  MessageSquareText,
+  Smartphone,
   GitBranch,
   Filter,
   ListPlus,
@@ -22,6 +24,8 @@ const nodeIcons: Record<NodeType, React.ReactNode> = {
   trigger: <Play size={16} />,
   delay: <Clock size={16} />,
   email: <Mail size={16} />,
+  sms: <MessageSquareText size={16} />,
+  push: <Smartphone size={16} />,
   branch: <GitBranch size={16} />,
   filter: <Filter size={16} />,
   add_to_list: <ListPlus size={16} />,
@@ -80,6 +84,8 @@ export const StatNode: React.FC<StatNodeProps> = ({ data }) => {
     trigger: t`Trigger`,
     delay: t`Delay`,
     email: t`Email`,
+    sms: t`SMS`,
+    push: t`Push`,
     branch: t`Branch`,
     filter: t`Filter`,
     add_to_list: t`Add to List`,
@@ -96,7 +102,7 @@ export const StatNode: React.FC<StatNodeProps> = ({ data }) => {
 
   // Only email and webhook nodes surface a Failed counter. Any node kind can record a failed
   // execution, so a failure on another kind is counted by the API but not shown here.
-  const showFailedRate = nodeType === 'email' || nodeType === 'webhook'
+  const showFailedRate = nodeType === 'email' || nodeType === 'sms' || nodeType === 'push' || nodeType === 'webhook'
 
   return (
     <>

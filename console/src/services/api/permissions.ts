@@ -585,7 +585,7 @@ export const PERMISSION_DESCRIPTORS: Record<
   },
 
   transactional: {
-    scope: msg`Transactional notification definitions and every path that actually sends an email through the workspace's provider credentials.`,
+    scope: msg`Transactional notification definitions and every path that sends email, SMS or push through the workspace's provider credentials.`,
     read: {
       endpoints: [
         {
@@ -617,6 +617,10 @@ export const PERMISSION_DESCRIPTORS: Record<
           action: msg`Send a real transactional email to any address; adding cc or bcc additionally needs Contacts read, and writing contact fields beyond the recipient's email additionally needs Contacts write`,
         },
         {
+          endpoint: "/api/channelMessages.send",
+          action: msg`Send a real idempotent SMS or push notification to an encrypted contact endpoint through a chosen integration`,
+        },
+        {
           endpoint: "/api/transactional.testTemplate",
           action: msg`Send a real test email through a chosen integration and sender; cc or bcc additionally needs Contacts read`,
         },
@@ -630,7 +634,7 @@ export const PERMISSION_DESCRIPTORS: Record<
         },
       ],
     },
-    caveat: msg`A send-only key really is send-only, and this is new in 39.0: /api/transactional.send still creates the recipient contact, but without Contacts write it stores nothing beyond the email address, and without Contacts read it refuses cc and bcc outright — the subject line is rendered against each recipient's whole record. The SMTP bridge is a second front door to the same switch, so this is also exactly what the SMTP username can do. Note that the write verb sends real mail from three separate endpoints, including one that only claims to "test" a provider.`,
+    caveat: msg`A send-only key can cause real delivery through email, SMS and push providers. /api/channelMessages.send requires an existing contact and encrypted endpoint, and its effect key prevents an identical retry from sending twice. /api/transactional.send still creates an email recipient contact, while cc or bcc additionally needs Contacts read and writing contact fields additionally needs Contacts write.`,
   },
 
   automations: {

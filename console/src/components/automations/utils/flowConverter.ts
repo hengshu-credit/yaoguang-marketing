@@ -55,6 +55,8 @@ export function getNodeLabel(type: NodeType): string {
     trigger: 'Trigger',
     delay: 'Delay',
     email: 'Email',
+    sms: 'SMS',
+    push: 'Push',
     branch: 'Branch',
     filter: 'Filter',
     add_to_list: 'Add to List',

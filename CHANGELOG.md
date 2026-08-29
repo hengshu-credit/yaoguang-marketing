@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [45.0] - 2026-08-29
+
+- **Feature**: Added `POST /api/channelMessages.send`, a unified authenticated SMS/push send path that resolves encrypted contact endpoints, renders the saved versioned template with contact/workspace/custom Liquid data, selects its language variant and invokes the configured Twilio or FCM provider.
+
+- **Feature**: Added a PostgreSQL `channel_send_executions` authority ledger. Stable effect keys provide concurrent replay protection and payload-conflict detection; successful provider acceptance and encrypted message history commit in one transaction, while known failure and ambiguous network or malformed-success outcomes remain distinguishable.
+
+- **Feature**: Extended encrypted contact endpoints to Twilio E.164 phone numbers and added SMS and push nodes to the low-code automation canvas. Realtime journey commands reuse their durable effect key in the channel-send ledger, so broker redelivery cannot resend a confirmed or ambiguous external effect.
+
 ## [44.0] - 2026-08-29
 
 - **Feature**: Added workspace-scoped Twilio SMS and Firebase Cloud Messaging HTTP v1 provider configurations. Provider credentials are encrypted at rest, omitted from workspace API responses, preserved on redacted updates, and used through a provider-neutral delivery contract with bounded HTTP responses and retryable error classification.

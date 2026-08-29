@@ -142,6 +142,9 @@ func (p *TwilioChannelProvider) Send(ctx context.Context, request domain.Channel
 	defer response.Body.Close()
 	body, err := boundedProviderBody(response.Body)
 	if err != nil {
+		if response.StatusCode >= 200 && response.StatusCode < 300 {
+			return nil, fmt.Errorf("%w: read twilio success response: %v", ErrSideEffectOutcomeUnknown, err)
+		}
 		return nil, err
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
@@ -169,10 +172,10 @@ func (p *TwilioChannelProvider) Send(ctx context.Context, request domain.Channel
 		Status string `json:"status"`
 	}
 	if err := json.Unmarshal(body, &accepted); err != nil {
-		return nil, fmt.Errorf("decode twilio response: %w", err)
+		return nil, fmt.Errorf("%w: decode twilio success response: %v", ErrSideEffectOutcomeUnknown, err)
 	}
 	if accepted.SID == "" {
-		return nil, errors.New("twilio response omitted message sid")
+		return nil, fmt.Errorf("%w: twilio success response omitted message sid", ErrSideEffectOutcomeUnknown)
 	}
 	return &domain.ChannelDeliveryResult{Provider: "twilio", ProviderMessageID: accepted.SID, Status: accepted.Status}, nil
 }
@@ -280,6 +283,9 @@ func (p *FCMChannelProvider) Send(ctx context.Context, request domain.ChannelDel
 	defer response.Body.Close()
 	responseBody, err := boundedProviderBody(response.Body)
 	if err != nil {
+		if response.StatusCode >= 200 && response.StatusCode < 300 {
+			return nil, fmt.Errorf("%w: read fcm success response: %v", ErrSideEffectOutcomeUnknown, err)
+		}
 		return nil, err
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
@@ -305,10 +311,10 @@ func (p *FCMChannelProvider) Send(ctx context.Context, request domain.ChannelDel
 		Name string `json:"name"`
 	}
 	if err := json.Unmarshal(responseBody, &accepted); err != nil {
-		return nil, fmt.Errorf("decode fcm response: %w", err)
+		return nil, fmt.Errorf("%w: decode fcm success response: %v", ErrSideEffectOutcomeUnknown, err)
 	}
 	if accepted.Name == "" {
-		return nil, errors.New("fcm response omitted message name")
+		return nil, fmt.Errorf("%w: fcm success response omitted message name", ErrSideEffectOutcomeUnknown)
 	}
 	return &domain.ChannelDeliveryResult{Provider: "fcm", ProviderMessageID: accepted.Name, Status: "accepted"}, nil
 }

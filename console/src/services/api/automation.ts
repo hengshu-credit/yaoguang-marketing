@@ -59,6 +59,8 @@ export type NodeType =
   | 'trigger'
   | 'delay'
   | 'email'
+  | 'sms'
+  | 'push'
   | 'branch'
   | 'filter'
   | 'add_to_list'
@@ -154,6 +156,14 @@ export interface EmailNodeConfig extends NodeConfigBase {
   from_override?: string
 }
 
+export interface ChannelNodeConfig extends NodeConfigBase {
+  template_id: string
+  integration_id: string
+  endpoint_id?: string
+  language?: string
+  data?: Record<string, unknown>
+}
+
 export interface BranchPath {
   id: string
   name: string
@@ -209,6 +219,7 @@ export interface WebhookNodeConfig extends NodeConfigBase {
 export type NodeConfig =
   | DelayNodeConfig
   | EmailNodeConfig
+  | ChannelNodeConfig
   | BranchNodeConfig
   | FilterNodeConfig
   | AddToListNodeConfig

@@ -88,6 +88,8 @@ const (
 	NodeTypeTrigger          NodeType = "trigger"
 	NodeTypeDelay            NodeType = "delay"
 	NodeTypeEmail            NodeType = "email"
+	NodeTypeSMS              NodeType = "sms"
+	NodeTypePush             NodeType = "push"
 	NodeTypeBranch           NodeType = "branch"
 	NodeTypeFilter           NodeType = "filter"
 	NodeTypeAddToList        NodeType = "add_to_list"
@@ -100,7 +102,7 @@ const (
 // IsValid checks if the node type is valid
 func (t NodeType) IsValid() bool {
 	switch t {
-	case NodeTypeTrigger, NodeTypeDelay, NodeTypeEmail, NodeTypeBranch,
+	case NodeTypeTrigger, NodeTypeDelay, NodeTypeEmail, NodeTypeSMS, NodeTypePush, NodeTypeBranch,
 		NodeTypeFilter, NodeTypeAddToList, NodeTypeRemoveFromList,
 		NodeTypeABTest, NodeTypeWebhook, NodeTypeListStatusBranch:
 		return true
@@ -634,6 +636,29 @@ type EmailNodeConfig struct {
 	IntegrationID   *string `json:"integration_id,omitempty"`
 	SubjectOverride *string `json:"subject_override,omitempty"`
 	FromOverride    *string `json:"from_override,omitempty"`
+}
+
+// ChannelNodeConfig configures an SMS or push delivery node.
+type ChannelNodeConfig struct {
+	NodeConfigDescription
+	TemplateID    string   `json:"template_id"`
+	IntegrationID string   `json:"integration_id"`
+	EndpointID    string   `json:"endpoint_id,omitempty"`
+	Language      string   `json:"language,omitempty"`
+	Data          MapOfAny `json:"data,omitempty"`
+}
+
+func (c ChannelNodeConfig) Validate() error {
+	if c.TemplateID == "" {
+		return fmt.Errorf("template_id is required")
+	}
+	if c.IntegrationID == "" {
+		return fmt.Errorf("integration_id is required")
+	}
+	if c.Language != "" && !IsValidLanguage(c.Language) {
+		return fmt.Errorf("unsupported language '%s'", c.Language)
+	}
+	return nil
 }
 
 // Validate validates the email node config

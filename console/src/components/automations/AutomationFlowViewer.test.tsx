@@ -182,6 +182,8 @@ describe('AutomationFlowViewer', () => {
       trigger: true,
       delay: true,
       email: true,
+      sms: true,
+      push: true,
       branch: true,
       filter: true,
       add_to_list: true,

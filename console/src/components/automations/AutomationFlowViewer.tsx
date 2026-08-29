@@ -36,6 +36,8 @@ const nodeTypes: NodeTypes = {
   trigger: StatNode,
   delay: StatNode,
   email: StatNode,
+  sms: StatNode,
+  push: StatNode,
   branch: StatNode,
   filter: FilterStatNode,
   add_to_list: StatNode,
