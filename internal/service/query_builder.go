@@ -92,6 +92,21 @@ func (qb *QueryBuilder) initializeContactFields() {
 			fieldType: "json",
 		}
 	}
+
+	// External audience profile fields are owned by the ingest subsystem. The
+	// expressions are fixed here (never supplied by clients), preserving the
+	// same whitelist and parameterization guarantees as physical contact fields.
+	qb.allowedFields["profile_status"] = fieldConfig{
+		dbColumn:  "(SELECT cp.status FROM contact_profiles cp WHERE cp.email = contacts.email)",
+		fieldType: "string",
+	}
+	qb.allowedFields["profile_attributes"] = fieldConfig{
+		dbColumn:  "COALESCE((SELECT cp.attributes FROM contact_profiles cp WHERE cp.email = contacts.email), '{}'::jsonb)",
+		fieldType: "json",
+	}
+	qb.allowedFields["profile_tags"] = fieldConfig{
+		fieldType: "audience_tags",
+	}
 }
 
 // isRelativeDayOperator reports whether the operator compares against a rolling window whose
@@ -300,6 +315,9 @@ func (qb *QueryBuilder) parseFilter(filter *domain.DimensionFilter, argIndex int
 	if !ok {
 		return "", nil, argIndex, fmt.Errorf("invalid field name: %s", filter.FieldName)
 	}
+	if fieldCfg.fieldType == "audience_tags" {
+		return qb.buildAudienceTagCondition(filter, argIndex)
+	}
 
 	// Route JSON fields to specialized handler
 	if fieldCfg.fieldType == "json" {
@@ -358,6 +376,37 @@ func (qb *QueryBuilder) parseFilter(filter *domain.DimensionFilter, argIndex int
 
 	// Build SQL condition based on operator
 	return qb.buildCondition(fieldCfg.dbColumn, filter.Operator, sqlOp, values, argIndex)
+}
+
+func (qb *QueryBuilder) buildAudienceTagCondition(filter *domain.DimensionFilter, argIndex int) (string, []interface{}, int, error) {
+	const existsPrefix = "EXISTS (SELECT 1 FROM contact_tags ct WHERE ct.email = contacts.email"
+	switch filter.Operator {
+	case "is_set":
+		return existsPrefix + ")", nil, argIndex, nil
+	case "is_not_set":
+		return "NOT " + existsPrefix + ")", nil, argIndex, nil
+	case "equals", "not_equals", "in_array", "contains", "not_contains":
+		values, err := qb.getStringValues(filter)
+		if err != nil {
+			return "", nil, argIndex, err
+		}
+		if len(values) != 1 {
+			return "", nil, argIndex, fmt.Errorf("%s requires exactly one tag", filter.Operator)
+		}
+		value := values[0]
+		comparison := fmt.Sprintf("ct.tag = $%d", argIndex)
+		if filter.Operator == "contains" || filter.Operator == "not_contains" {
+			comparison = fmt.Sprintf("ct.tag ILIKE $%d", argIndex)
+			value = "%" + values[0].(string) + "%"
+		}
+		condition := existsPrefix + " AND " + comparison + ")"
+		if filter.Operator == "not_equals" || filter.Operator == "not_contains" {
+			condition = "NOT " + condition
+		}
+		return condition, []interface{}{value}, argIndex + 1, nil
+	default:
+		return "", nil, argIndex, fmt.Errorf("invalid operator for profile_tags: %s", filter.Operator)
+	}
 }
 
 // getStringValues extracts string values from filter

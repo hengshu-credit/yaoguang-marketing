@@ -238,6 +238,51 @@ func TestQueryBuilder_BuildSQL_SimpleConditions(t *testing.T) {
 	})
 }
 
+func TestQueryBuilderSupportsAudienceProfileFields(t *testing.T) {
+	qb := NewQueryBuilder()
+	build := func(t *testing.T, filter *domain.DimensionFilter) (string, []interface{}) {
+		t.Helper()
+		query, args, err := qb.BuildSQL(&domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source:  "contacts",
+				Contact: &domain.ContactCondition{Filters: []*domain.DimensionFilter{filter}},
+			},
+		})
+		require.NoError(t, err)
+		return query, args
+	}
+
+	t.Run("status is a parameterized scalar filter", func(t *testing.T) {
+		query, args := build(t, &domain.DimensionFilter{
+			FieldName: "profile_status", FieldType: "string", Operator: "equals",
+			StringValues: []string{"active"},
+		})
+		assert.Contains(t, query, "SELECT cp.status FROM contact_profiles cp WHERE cp.email = contacts.email")
+		assert.Contains(t, query, "= $1")
+		assert.Equal(t, []interface{}{"active"}, args)
+	})
+
+	t.Run("nested attribute uses the JSON path builder", func(t *testing.T) {
+		query, args := build(t, &domain.DimensionFilter{
+			FieldName: "profile_attributes", FieldType: "string", Operator: "equals",
+			JSONPath: []string{"commerce", "plan"}, StringValues: []string{"pro"},
+		})
+		assert.Contains(t, query, "SELECT cp.attributes FROM contact_profiles cp WHERE cp.email = contacts.email")
+		assert.Contains(t, query, "['commerce']['plan']")
+		assert.Equal(t, []interface{}{"pro"}, args)
+	})
+
+	t.Run("tag membership uses the indexed tag projection", func(t *testing.T) {
+		query, args := build(t, &domain.DimensionFilter{
+			FieldName: "profile_tags", FieldType: "string", Operator: "equals",
+			StringValues: []string{"paid"},
+		})
+		assert.Contains(t, query, "EXISTS (SELECT 1 FROM contact_tags ct WHERE ct.email = contacts.email AND ct.tag = $1)")
+		assert.Equal(t, []interface{}{"paid"}, args)
+	})
+}
+
 func TestQueryBuilder_BuildSQL_MultipleFilters(t *testing.T) {
 	qb := NewQueryBuilder()
 

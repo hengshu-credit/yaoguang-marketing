@@ -110,6 +110,27 @@ export const ContactsTableSchema: TableSchema = {
       type: 'string',
       shown: true
     },
+    profile_status: {
+      name: 'profile_status',
+      title: 'Profile Status',
+      description: 'Application-owned lifecycle or account status received through ingest',
+      type: 'string',
+      shown: true
+    },
+    profile_tags: {
+      name: 'profile_tags',
+      title: 'Profile Tag',
+      description: 'Matches membership in the external audience tag set',
+      type: 'string',
+      shown: true
+    },
+    profile_attributes: {
+      name: 'profile_attributes',
+      title: 'Profile Attribute',
+      description: 'Nested application attributes received through ingest',
+      type: 'json',
+      shown: true
+    },
     // Custom string fields
     custom_string_1: {
       name: 'custom_string_1',

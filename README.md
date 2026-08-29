@@ -90,7 +90,34 @@ Notifuse follows clean architecture principles with clear separation of concerns
 
 ### Database
 
-- **PostgreSQL**: Primary data storage with Squirrel query builder
+- **PostgreSQL + PgBouncer**: online source of truth and transaction pooling
+- **RabbitMQ**: durable quorum queues for realtime rule, journey, delivery and analytics workers
+- **Redis**: distributed frequency caps and rebuildable cache only
+- **ClickHouse**: rebuildable event analytics projection
+- **MinIO/S3**: binary asset storage
+
+### Realtime runtime and local deployment
+
+The Compose stack runs separate `api`, `outbox-relay`, `rule-worker`, `journey-worker`, `delivery-worker`, `analytics-worker`, and `scheduler` roles. `REALTIME_MODE=legacy|shadow|primary` controls migration from database triggers to the indexed realtime matcher; Compose defaults to `primary` for a fresh local environment.
+
+On Windows with the local proxy from this environment:
+
+```powershell
+$env:HTTP_PROXY='http://127.0.0.1:7897'
+$env:HTTPS_PROXY='http://127.0.0.1:7897'
+docker compose up -d --build
+docker compose ps
+```
+
+The console and API are served at `http://localhost:8081`; RabbitMQ management is at `http://localhost:15672` and MinIO is at `http://localhost:9001`. Management ports bind to localhost by default. Before a shared or production deployment, replace every example credential in `.env`.
+
+External systems can synchronize users and emit realtime events through `POST /api/ingest.batch`. One request can combine contact field updates, application lifecycle status, arbitrary JSON attributes, tag set/add/remove operations, list membership status and idempotent custom events. The endpoint accepts at most 500 records, returns a result for every item, requires Contacts write (and Lists write for membership changes), and returns `429 Retry-After: 1` instead of building an unbounded in-process queue. Profile data is exposed to templates as `contact.profile` and to segments through `profile_status`, `profile_tags`, and `profile_attributes`. See [the ingest contract](docs/superpowers/specs/2026-08-29-external-audience-ingest-design.md).
+
+After creating an API key and workspace, run the included latency smoke test:
+
+```powershell
+./scripts/realtime-load-test.ps1 -ApiEndpoint http://localhost:8081 -WorkspaceID YOUR_WORKSPACE -Token YOUR_API_KEY
+```
 
 ## 📁 Project Structure
 

@@ -19,7 +19,8 @@ const JSON_FIELD_NAMES = [
   'custom_json_2',
   'custom_json_3',
   'custom_json_4',
-  'custom_json_5'
+  'custom_json_5',
+  'profile_attributes'
 ]
 const VALUELESS_OPERATORS = ['is_set', 'is_not_set']
 const COUNT_OPERATORS = ['at_least', 'at_most', 'exactly']

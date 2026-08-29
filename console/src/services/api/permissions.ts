@@ -215,6 +215,10 @@ export const PERMISSION_DESCRIPTORS: Record<
           action: msg`Bulk record custom events against contacts`,
         },
         {
+          endpoint: "/api/ingest.batch",
+          action: msg`Bulk synchronize contact profiles, lifecycle status, tags and events (list memberships also need Lists write)`,
+        },
+        {
           endpoint: "/api/contactLists.updateStatus",
           action: msg`Change a contact's subscription status on a list (also needs Lists write)`,
         },

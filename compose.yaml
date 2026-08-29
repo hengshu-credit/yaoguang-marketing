@@ -38,6 +38,8 @@ x-notifuse-environment: &notifuse-environment
   JOURNEY_HEARTBEAT: ${JOURNEY_HEARTBEAT:-20s}
   OUTBOX_BATCH_SIZE: ${OUTBOX_BATCH_SIZE:-200}
   OUTBOX_LEASE: ${OUTBOX_LEASE:-30s}
+  INGEST_MAX_BATCH_SIZE: ${INGEST_MAX_BATCH_SIZE:-500}
+  INGEST_MAX_INFLIGHT: ${INGEST_MAX_INFLIGHT:-32}
 
 x-notifuse-db-dependencies: &notifuse-db-dependencies
   pgbouncer:

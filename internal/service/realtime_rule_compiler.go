@@ -102,6 +102,11 @@ func compileTriggerIndex(trigger *domain.TimelineTriggerConfig) (string, string,
 	case trigger.EventKind == "custom_event":
 		eventType = "custom_event." + *trigger.CustomEventName
 		subjectType = "custom_event"
+	case trigger.EventKind == "contact.tagged" || trigger.EventKind == "contact.untagged":
+		subjectType = "contact_tag"
+		dependencies = append(dependencies, "entity_id:"+*trigger.Tag)
+	case trigger.EventKind == "contact.profile_created" || trigger.EventKind == "contact.profile_updated":
+		subjectType = "contact_profile"
 	case strings.HasPrefix(trigger.EventKind, "contact."):
 		subjectType = "contact"
 	case strings.HasPrefix(trigger.EventKind, "list."):

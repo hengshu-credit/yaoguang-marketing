@@ -262,6 +262,24 @@ func TestTimelineTriggerConfig_Validate(t *testing.T) {
 	}
 }
 
+func TestTimelineTriggerConfig_ValidateAudienceProfileEvents(t *testing.T) {
+	for _, eventKind := range []string{"contact.profile_created", "contact.profile_updated"} {
+		config := &TimelineTriggerConfig{EventKind: eventKind, Frequency: TriggerFrequencyEveryTime}
+		assert.NoError(t, config.Validate())
+	}
+
+	t.Run("tag event requires a tag", func(t *testing.T) {
+		config := &TimelineTriggerConfig{EventKind: "contact.tagged", Frequency: TriggerFrequencyEveryTime}
+		assert.ErrorContains(t, config.Validate(), "tag is required")
+	})
+
+	t.Run("tag event accepts a scoped tag", func(t *testing.T) {
+		tag := "paid"
+		config := &TimelineTriggerConfig{EventKind: "contact.untagged", Tag: &tag, Frequency: TriggerFrequencyEveryTime}
+		assert.NoError(t, config.Validate())
+	})
+}
+
 func validAutomation() *Automation {
 	return &Automation{
 		ID:          "auto123",

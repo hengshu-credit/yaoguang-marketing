@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const VERSION = "40.0"
+const VERSION = "41.0"
 
 type Config struct {
 	Server              ServerConfig
@@ -29,6 +29,7 @@ type Config struct {
 	Broadcast           BroadcastConfig
 	TaskScheduler       TaskSchedulerConfig
 	AutomationScheduler AutomationSchedulerConfig
+	Ingest              IngestConfig
 	Realtime            RealtimeConfig
 	Plan                PlanLimitsConfig
 	Telemetry           bool
@@ -203,6 +204,11 @@ type AutomationSchedulerConfig struct {
 	Delay     time.Duration // Delay before scheduler starts (default: 30s)
 	Interval  time.Duration // Polling interval (default: 10s)
 	BatchSize int           // Contacts per batch (default: 50)
+}
+
+type IngestConfig struct {
+	MaxBatchSize int
+	MaxInFlight  int
 }
 
 // PlanLimitsConfig holds the quotas of the subscribed plan. Notifuse Cloud sets
@@ -504,6 +510,8 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	v.SetDefault("AUTOMATION_SCHEDULER_DELAY", "30s")
 	v.SetDefault("AUTOMATION_SCHEDULER_INTERVAL", "10s")
 	v.SetDefault("AUTOMATION_SCHEDULER_BATCH_SIZE", 50)
+	v.SetDefault("INGEST_MAX_BATCH_SIZE", 500)
+	v.SetDefault("INGEST_MAX_INFLIGHT", 32)
 
 	// Realtime runtime defaults preserve the existing single-process behavior.
 	v.SetDefault("NOTIFUSE_ROLE", string(RoleAll))
@@ -1047,6 +1055,10 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 			Delay:     v.GetDuration("AUTOMATION_SCHEDULER_DELAY"),
 			Interval:  v.GetDuration("AUTOMATION_SCHEDULER_INTERVAL"),
 			BatchSize: v.GetInt("AUTOMATION_SCHEDULER_BATCH_SIZE"),
+		},
+		Ingest: IngestConfig{
+			MaxBatchSize: v.GetInt("INGEST_MAX_BATCH_SIZE"),
+			MaxInFlight:  v.GetInt("INGEST_MAX_INFLIGHT"),
 		},
 		Realtime: realtimeConfig,
 		Plan:     planConfig,

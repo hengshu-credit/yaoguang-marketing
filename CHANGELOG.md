@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [41.0] - 2026-08-29
+
+- **Feature**: Added `/api/ingest.batch` for external systems to synchronize contact fields, business lifecycle status, arbitrary profile attributes, tags, marketing-list status and idempotent business events in batches of up to 500. Authentication and scoped permission checks run once per batch, responses report every item independently, and bounded per-replica concurrency returns `429` with `Retry-After` under pressure.
+
+- **Feature**: Added indexed `contact_profiles` and `contact_tags` workspace tables. Profile and tag changes append semantic contact-timeline events in the same PostgreSQL transaction, so the v40 ledger/outbox bridge makes them immediately recoverable by the realtime runtime. Automations can now start on profile changes or a named tag being added or removed.
+
+- **Improvement**: Added a proxy-compatible PowerShell load check and tunable `INGEST_MAX_BATCH_SIZE` / `INGEST_MAX_INFLIGHT` settings for local and multi-replica deployments.
+
 ## [40.0] - 2026-08-29
 
 - **Feature**: Added the durable realtime runtime foundation. Each workspace now records immutable events in a monthly partitioned PostgreSQL ledger and writes a transactional outbox in the same commit. A fixed `contact_timeline` bridge replaces automation-count-dependent fan-out at event capture time, while a separate idempotency registry protects event IDs across ledger partitions.

@@ -69,6 +69,12 @@ type Contact struct {
 	CustomJSON4 *NullableJSON `json:"custom_json_4,omitempty" valid:"optional"`
 	CustomJSON5 *NullableJSON `json:"custom_json_5,omitempty" valid:"optional"`
 
+	// Profile contains application-owned audience data received through the
+	// high-throughput ingest API. It is read-only on legacy contact endpoints;
+	// external systems mutate it through ingest.batch so profile changes keep
+	// their transactional event semantics.
+	Profile *AudienceProfile `json:"profile,omitempty"`
+
 	// Timestamps
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -83,6 +89,15 @@ type Contact struct {
 	ContactSegments []*ContactSegment `json:"contact_segments"`
 	// Not persisted
 	EmailHMAC string `json:"email_hmac,omitempty"`
+}
+
+// AudienceProfile is the flexible marketing profile associated with a contact.
+// Attributes remain schemaless for external systems while status and tags keep
+// stable, indexed representations for common segmentation predicates.
+type AudienceProfile struct {
+	Status     *string                `json:"status,omitempty"`
+	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	Tags       []string               `json:"tags,omitempty"`
 }
 
 // Validate ensures that the contact has all required fields

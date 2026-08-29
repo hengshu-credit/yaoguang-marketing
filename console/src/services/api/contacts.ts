@@ -60,6 +60,12 @@ export interface Contact {
   custom_json_4?: unknown
   custom_json_5?: unknown
 
+  profile?: {
+    status?: string
+    attributes?: Record<string, unknown>
+    tags?: string[]
+  }
+
   created_at: string
   updated_at: string
 

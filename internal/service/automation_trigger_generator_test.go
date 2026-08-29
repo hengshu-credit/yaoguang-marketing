@@ -235,6 +235,21 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 		assert.Contains(t, result.DropFunction, "DROP FUNCTION IF EXISTS automation_trigger_test123()")
 	})
 
+	t.Run("contact tag event scopes by tag entity id", func(t *testing.T) {
+		tag := "paid"
+		automation := &domain.Automation{
+			ID: "tagtrigger", RootNodeID: "node1",
+			Trigger: &domain.TimelineTriggerConfig{
+				EventKind: "contact.tagged", Tag: &tag, Frequency: domain.TriggerFrequencyEveryTime,
+			},
+		}
+
+		result, err := gen.Generate(automation)
+		require.NoError(t, err)
+		assert.Contains(t, result.WHENClause, "NEW.kind = 'contact.tagged'")
+		assert.Contains(t, result.WHENClause, "NEW.entity_id = 'paid'")
+	})
+
 	t.Run("event kind with TreeNode conditions - values are embedded in the guard", func(t *testing.T) {
 		automation := &domain.Automation{
 			ID:         "test789",

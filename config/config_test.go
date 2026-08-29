@@ -110,6 +110,31 @@ func TestLoad_DataFeedSSRFProtectionDefault(t *testing.T) {
 	})
 }
 
+func TestLoadIngestBackpressureDefaultsAndOverrides(t *testing.T) {
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
+	defer os.Unsetenv("SECRET_KEY")
+
+	t.Run("defaults", func(t *testing.T) {
+		_ = os.Unsetenv("INGEST_MAX_BATCH_SIZE")
+		_ = os.Unsetenv("INGEST_MAX_INFLIGHT")
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.Equal(t, 500, cfg.Ingest.MaxBatchSize)
+		assert.Equal(t, 32, cfg.Ingest.MaxInFlight)
+	})
+
+	t.Run("overrides", func(t *testing.T) {
+		_ = os.Setenv("INGEST_MAX_BATCH_SIZE", "200")
+		_ = os.Setenv("INGEST_MAX_INFLIGHT", "8")
+		defer os.Unsetenv("INGEST_MAX_BATCH_SIZE")
+		defer os.Unsetenv("INGEST_MAX_INFLIGHT")
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.Equal(t, 200, cfg.Ingest.MaxBatchSize)
+		assert.Equal(t, 8, cfg.Ingest.MaxInFlight)
+	})
+}
+
 func TestInvalidKeysHandling(t *testing.T) {
 	t.Run("missing_secret_key", func(t *testing.T) {
 		// Clear any existing environment variables

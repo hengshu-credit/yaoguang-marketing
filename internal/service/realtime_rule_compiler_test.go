@@ -39,6 +39,24 @@ func TestCompilerScopesListAndCustomEvents(t *testing.T) {
 	assert.Equal(t, "custom_event", customBinding.SubjectType)
 }
 
+func TestCompilerScopesContactTagEvents(t *testing.T) {
+	tag := "paid"
+	automation := ruleAutomation("contact.tagged")
+	automation.Trigger.Tag = &tag
+
+	binding, err := NewTriggerBindingCompiler(NewQueryBuilder()).Compile(automation)
+	require.NoError(t, err)
+	assert.Equal(t, "contact_tag", binding.SubjectType)
+	assert.Equal(t, []string{"entity_id:paid"}, binding.DependencyKeys)
+}
+
+func TestCompilerUsesProfileSubjectForProfileEvents(t *testing.T) {
+	automation := ruleAutomation("contact.profile_updated")
+	binding, err := NewTriggerBindingCompiler(NewQueryBuilder()).Compile(automation)
+	require.NoError(t, err)
+	assert.Equal(t, "contact_profile", binding.SubjectType)
+}
+
 func TestCompilerStoresParameterizedConditionAndStableHash(t *testing.T) {
 	automation := ruleAutomation("contact.updated")
 	automation.Trigger.Conditions = &domain.TreeNode{

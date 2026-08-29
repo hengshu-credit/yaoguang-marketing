@@ -79,6 +79,10 @@ export const VALID_EVENT_KINDS = [
   'contact.created',
   'contact.updated',
   'contact.deleted',
+  'contact.profile_created',
+  'contact.profile_updated',
+  'contact.tagged',
+  'contact.untagged',
   // List events (require list_id)
   'list.subscribed',
   'list.unsubscribed',
@@ -109,6 +113,7 @@ export interface TimelineTriggerConfig {
   list_id?: string // Required for list.* events
   segment_id?: string // Required for segment.* events
   custom_event_name?: string // Required for custom_event
+  tag?: string // Required for contact.tagged and contact.untagged
   updated_fields?: string[] // For contact.updated: only trigger on these field changes
   conditions?: TreeNode
   frequency: TriggerFrequency

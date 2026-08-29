@@ -354,14 +354,15 @@ func (f *DimensionFilter) Validate() error {
 	if len(f.JSONPath) > 0 {
 		// JSONPath can only be used with custom_json fields
 		validJSONFields := map[string]bool{
-			"custom_json_1": true,
-			"custom_json_2": true,
-			"custom_json_3": true,
-			"custom_json_4": true,
-			"custom_json_5": true,
+			"custom_json_1":      true,
+			"custom_json_2":      true,
+			"custom_json_3":      true,
+			"custom_json_4":      true,
+			"custom_json_5":      true,
+			"profile_attributes": true,
 		}
 		if !validJSONFields[f.FieldName] {
-			return fmt.Errorf("json_path can only be used with custom_json fields (custom_json_1 through custom_json_5)")
+			return fmt.Errorf("json_path can only be used with custom_json fields or profile_attributes")
 		}
 
 		// Validate each path segment is non-empty

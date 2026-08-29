@@ -42,6 +42,7 @@ interface TriggerConfig {
   list_id?: string
   segment_id?: string
   custom_event_name?: string
+  tag?: string
   updated_fields?: string[]
   // Declared here as well as in TimelineTriggerConfig: without it the field survives only by
   // the runtime {...config} spreads, invisible to the type checker.
@@ -67,7 +68,11 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
       children: [
         { value: 'contact.created', label: t`Created` },
         { value: 'contact.updated', label: t`Updated` },
-        { value: 'contact.deleted', label: t`Deleted` }
+        { value: 'contact.deleted', label: t`Deleted` },
+        { value: 'contact.profile_created', label: t`Profile Created` },
+        { value: 'contact.profile_updated', label: t`Profile Updated` },
+        { value: 'contact.tagged', label: t`Tag Added` },
+        { value: 'contact.untagged', label: t`Tag Removed` }
       ]
     },
     {
@@ -197,6 +202,7 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
       list_id: undefined,
       segment_id: undefined,
       custom_event_name: undefined,
+      tag: undefined,
       updated_fields: undefined
     }
     onChange(newConfig)
@@ -212,6 +218,10 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
 
   const handleCustomEventNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange({ ...config, custom_event_name: e.target.value })
+  }
+
+  const handleTagChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange({ ...config, tag: e.target.value })
   }
 
   const handleFrequencyChange = (value: 'once' | 'every_time') => {
@@ -233,6 +243,7 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
   const isListEvent = config.event_kind?.startsWith('list.')
   const isSegmentEvent = config.event_kind?.startsWith('segment.')
   const isCustomEvent = config.event_kind === 'custom_event'
+  const isTagEvent = config.event_kind === 'contact.tagged' || config.event_kind === 'contact.untagged'
   const isContactUpdated = config.event_kind === 'contact.updated'
   const usesTimeline = treeUsesSource(config.conditions, 'contact_timeline')
   const isFrequentEvent = Boolean(config.event_kind && FREQUENT_EVENT_KINDS.includes(config.event_kind))
@@ -321,6 +332,16 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
             value={config.custom_event_name}
             onChange={handleCustomEventNameChange}
           />
+        </Form.Item>
+      )}
+
+      {isTagEvent && (
+        <Form.Item
+          label={t`Tag`}
+          required
+          extra={t`Only trigger when this exact tag is added or removed`}
+        >
+          <Input placeholder={t`e.g., paid`} value={config.tag} onChange={handleTagChange} />
         </Form.Item>
       )}
 

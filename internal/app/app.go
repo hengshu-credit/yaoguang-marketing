@@ -123,6 +123,7 @@ type App struct {
 	blogPostRepo                  domain.BlogPostRepository
 	blogThemeRepo                 domain.BlogThemeRepository
 	customEventRepo               domain.CustomEventRepository
+	audienceProfileRepo           domain.AudienceProfileRepository
 	webhookSubscriptionRepo       domain.WebhookSubscriptionRepository
 	webhookDeliveryRepo           domain.WebhookDeliveryRepository
 	automationRepo                domain.AutomationRepository
@@ -161,6 +162,7 @@ type App struct {
 	taskScheduler                    *service.TaskScheduler
 	dnsVerificationService           *service.DNSVerificationService
 	customEventService               *service.CustomEventService
+	ingestService                    *service.IngestService
 	annotationService                *service.AnnotationService
 	webhookSubscriptionService       *service.WebhookSubscriptionService
 	webhookDeliveryWorker            *service.WebhookDeliveryWorker
@@ -457,6 +459,8 @@ func (a *App) InitRepositories() error {
 	a.blogPostRepo = repository.NewBlogPostRepository(a.workspaceRepo)
 	a.blogThemeRepo = repository.NewBlogThemeRepository(a.workspaceRepo)
 	a.customEventRepo = repository.NewCustomEventRepository(a.workspaceRepo)
+	a.audienceProfileRepo = repository.NewAudienceProfileRepository(a.workspaceRepo)
+	a.contactRepo = repository.NewAudienceContactRepository(a.contactRepo, a.audienceProfileRepo)
 	a.annotationRepo = repository.NewAnnotationRepository(a.workspaceRepo)
 	a.webhookSubscriptionRepo = repository.NewWebhookSubscriptionRepository(a.workspaceRepo)
 	a.webhookDeliveryRepo = repository.NewWebhookDeliveryRepository(a.workspaceRepo, a.logger)
@@ -665,6 +669,26 @@ func (a *App) InitServices() error {
 		a.authService,
 		a.logger,
 	)
+	ingestMaxBatchSize := a.config.Ingest.MaxBatchSize
+	if ingestMaxBatchSize == 0 {
+		ingestMaxBatchSize = 500
+	}
+	ingestMaxInFlight := a.config.Ingest.MaxInFlight
+	if ingestMaxInFlight == 0 {
+		ingestMaxInFlight = 32
+	}
+	a.ingestService, err = service.NewIngestService(
+		a.authService,
+		a.contactRepo,
+		a.audienceProfileRepo,
+		a.contactListRepo,
+		a.customEventRepo,
+		ingestMaxBatchSize,
+		ingestMaxInFlight,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to initialize ingest service: %w", err)
+	}
 
 	// Initialize annotation service
 	a.annotationService = service.NewAnnotationService(
@@ -1404,6 +1428,11 @@ func (a *App) InitHandlers() error {
 		getJWTSecret,
 		a.logger,
 	)
+	ingestHandler := httpHandler.NewIngestHandler(
+		a.ingestService,
+		getJWTSecret,
+		a.logger,
+	)
 	annotationHandler := httpHandler.NewAnnotationHandler(
 		a.annotationService,
 		getJWTSecret,
@@ -1461,6 +1490,7 @@ func (a *App) InitHandlers() error {
 	contactTimelineHandler.RegisterRoutes(a.mux)
 	segmentHandler.RegisterRoutes(a.mux)
 	customEventHandler.RegisterRoutes(a.mux)
+	ingestHandler.RegisterRoutes(a.mux)
 	annotationHandler.RegisterRoutes(a.mux)
 	webhookSubscriptionHandler.RegisterRoutes(a.mux)
 	automationHandler.RegisterRoutes(a.mux)

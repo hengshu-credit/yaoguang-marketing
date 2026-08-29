@@ -56,6 +56,7 @@ func (f TriggerFrequency) IsValid() bool {
 var ValidEventKinds = []string{
 	// Contact events
 	"contact.created", "contact.updated", "contact.deleted",
+	"contact.profile_created", "contact.profile_updated", "contact.tagged", "contact.untagged",
 	// List events (require list_id)
 	"list.subscribed", "list.unsubscribed", "list.confirmed", "list.resubscribed",
 	"list.bounced", "list.complained", "list.pending", "list.removed",
@@ -157,6 +158,7 @@ type TimelineTriggerConfig struct {
 	ListID          *string          `json:"list_id,omitempty"`           // Required for list.* events
 	SegmentID       *string          `json:"segment_id,omitempty"`        // Required for segment.* events
 	CustomEventName *string          `json:"custom_event_name,omitempty"` // Required for custom_event
+	Tag             *string          `json:"tag,omitempty"`               // Required for contact.tagged/contact.untagged
 	UpdatedFields   []string         `json:"updated_fields,omitempty"`    // For contact.updated: only trigger on these field changes
 	Conditions      *TreeNode        `json:"conditions"`                  // Reuse segments condition system
 	Frequency       TriggerFrequency `json:"frequency"`
@@ -194,6 +196,12 @@ func (c *TimelineTriggerConfig) Validate() error {
 	if c.EventKind == "custom_event" {
 		if c.CustomEventName == nil || *c.CustomEventName == "" {
 			return fmt.Errorf("custom_event_name is required for custom events")
+		}
+	}
+
+	if c.EventKind == "contact.tagged" || c.EventKind == "contact.untagged" {
+		if c.Tag == nil || strings.TrimSpace(*c.Tag) == "" {
+			return fmt.Errorf("tag is required for contact tag events")
 		}
 	}
 

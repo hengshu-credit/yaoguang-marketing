@@ -174,7 +174,12 @@ func (g *AutomationTriggerGenerator) buildWHENClause(automation *domain.Automati
 		conditions = append(conditions, fmt.Sprintf("NEW.entity_id = %s", sqlLiteral(*trigger.SegmentID)))
 	}
 
-	// 4. Updated fields filter (for contact.updated events) - checks if specific fields were changed
+	// 4. Tag filter - entity_id stores the normalized tag value.
+	if trigger.Tag != nil && *trigger.Tag != "" && (trigger.EventKind == "contact.tagged" || trigger.EventKind == "contact.untagged") {
+		conditions = append(conditions, fmt.Sprintf("NEW.entity_id = %s", sqlLiteral(*trigger.Tag)))
+	}
+
+	// 5. Updated fields filter (for contact.updated events) - checks if specific fields were changed
 	if trigger.EventKind == "contact.updated" && len(trigger.UpdatedFields) > 0 {
 		fieldChecks := make([]string, 0, len(trigger.UpdatedFields))
 		for _, field := range trigger.UpdatedFields {
