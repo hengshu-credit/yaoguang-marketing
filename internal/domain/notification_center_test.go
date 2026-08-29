@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/crypto"
 	"github.com/stretchr/testify/assert"
 )
 

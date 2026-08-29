@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/pkg/logger"
-	"github.com/Notifuse/notifuse/pkg/mailer"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/mailer"
 )
 
 // SystemNotificationService handles system-wide notifications and alerts

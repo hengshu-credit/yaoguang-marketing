@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/internal/service"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/service"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"

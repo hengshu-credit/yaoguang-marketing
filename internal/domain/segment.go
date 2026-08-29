@@ -9,8 +9,8 @@ import (
 	"github.com/asaskevich/govalidator"
 )
 
-//go:generate mockgen -destination mocks/mock_segment_service.go -package mocks github.com/Notifuse/notifuse/internal/domain SegmentService
-//go:generate mockgen -destination mocks/mock_segment_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain SegmentRepository
+//go:generate mockgen -destination mocks/mock_segment_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain SegmentService
+//go:generate mockgen -destination mocks/mock_segment_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain SegmentRepository
 
 // SegmentStatus represents the status of a segment
 type SegmentStatus string

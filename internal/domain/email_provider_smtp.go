@@ -3,7 +3,7 @@ package domain
 import (
 	"fmt"
 
-	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/crypto"
 )
 
 // SMTPWebhookPayload represents an SMTP webhook payload

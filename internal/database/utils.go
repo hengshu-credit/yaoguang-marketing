@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/pkg/postgresdriver"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/postgresdriver"
 )
 
 // GetConnectionPoolSettings returns connection pool settings based on environment

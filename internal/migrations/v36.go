@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/internal/service"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/service"
 )
 
 // V36Migration uniformizes the message_history contact_timeline kinds to dot notation.

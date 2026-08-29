@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-//go:generate mockgen -destination mocks/mock_ses_discovery_service.go -package mocks github.com/Notifuse/notifuse/internal/domain SESDiscoveryServiceInterface
+//go:generate mockgen -destination mocks/mock_ses_discovery_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain SESDiscoveryServiceInterface
 
 // SESCredentialsRef identifies which AWS credentials a discovery call should use. There are two
 // modes on purpose:

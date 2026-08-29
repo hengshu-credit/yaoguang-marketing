@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Notifuse/notifuse/pkg/realtimecache"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/realtimecache"
 )
 
 type fakeFrequencyWindowStore struct {

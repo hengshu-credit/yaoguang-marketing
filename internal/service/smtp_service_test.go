@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	pkglogger "github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	pkglogger "github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

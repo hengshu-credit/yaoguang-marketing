@@ -1,7 +1,7 @@
 package templates
 
 import (
-	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
 )
 
 // CreateSupabaseInviteEmailStructure creates the detailed MJML structure for the user invitation email
@@ -524,7 +524,7 @@ func CreateSupabaseInviteEmailStructure() (notifuse_mjml.EmailBlock, error) {
                               "textPadding": "4px 4px 4px 0",
                               "verticalAlign": "middle",
                               "name": "github",
-                              "href": "https://github.com/Notifuse/notifuse"
+                              "href": "https://github.com/hengshu-credit/yaoguang-marketing"
                             },
                             "children": []
                           },

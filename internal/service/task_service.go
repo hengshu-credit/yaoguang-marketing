@@ -17,9 +17,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/pkg/logger"
-	"github.com/Notifuse/notifuse/pkg/tracing"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/tracing"
 )
 
 // Maximum time a task can run before timing out

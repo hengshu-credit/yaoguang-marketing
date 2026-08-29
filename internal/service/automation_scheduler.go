@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 )
 
 // AutomationScheduler manages periodic automation execution

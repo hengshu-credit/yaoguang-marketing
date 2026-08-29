@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	pkgmocks "github.com/hengshu-credit/yaoguang-marketing/pkg/mocks"
 	"github.com/emersion/go-smtp"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"

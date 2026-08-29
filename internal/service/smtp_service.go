@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 	"github.com/wneessen/go-mail"
 )
 

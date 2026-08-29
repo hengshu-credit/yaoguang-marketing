@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
 // broadcastListColumns is the ordered column list selected when listing

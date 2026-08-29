@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/crypto"
 )
 
-//go:generate mockgen -destination mocks/mock_ses_service.go -package mocks github.com/Notifuse/notifuse/internal/domain SESServiceInterface
+//go:generate mockgen -destination mocks/mock_ses_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain SESServiceInterface
 // SESWebhookPayload represents an Amazon SES webhook payload
 type SESWebhookPayload struct {
 	Type              string                         `json:"Type"`

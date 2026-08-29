@@ -18,11 +18,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
 
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/internal/domain/mocks"
-	"github.com/Notifuse/notifuse/pkg/cache"
-	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/cache"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 )
 
 const (

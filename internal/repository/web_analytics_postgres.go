@@ -12,10 +12,10 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 
-	"github.com/Notifuse/notifuse/internal/database/schema"
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/pkg/logger"
-	"github.com/Notifuse/notifuse/pkg/postgresdriver"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/database/schema"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/postgresdriver"
 )
 
 // Rows per INSERT statement. Sessions and goals carry ~60 bound parameters per

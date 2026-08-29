@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sns"
 )
 
-//go:generate mockgen -destination mocks/mock_ses_webhook_client.go -package mocks github.com/Notifuse/notifuse/internal/domain SESWebhookClient
+//go:generate mockgen -destination mocks/mock_ses_webhook_client.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain SESWebhookClient
 
 // SESWebhookClient defines the interface for interacting with AWS SES service.
 //
@@ -38,7 +38,7 @@ type SESWebhookClient interface {
 	ListIdentitiesWithContext(ctx aws.Context, input *ses.ListIdentitiesInput, opts ...request.Option) (*ses.ListIdentitiesOutput, error)
 }
 
-//go:generate mockgen -destination mocks/mock_sns_client.go -package mocks -mock_names SNSWebhookClient=MockSNSClient github.com/Notifuse/notifuse/internal/domain SNSWebhookClient
+//go:generate mockgen -destination mocks/mock_sns_client.go -package mocks -mock_names SNSWebhookClient=MockSNSClient github.com/hengshu-credit/yaoguang-marketing/internal/domain SNSWebhookClient
 
 // SNSWebhookClient defines the interface for interacting with AWS SNS service
 type SNSWebhookClient interface {

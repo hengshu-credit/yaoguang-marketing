@@ -11,11 +11,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/internal/http/middleware"
-	"github.com/Notifuse/notifuse/internal/service"
-	"github.com/Notifuse/notifuse/pkg/botdetection"
-	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/http/middleware"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/service"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/botdetection"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 )
 
 // webTrackMaxBodyBytes bounds a beat: 1000 actions of modest paths fit well

@@ -8,10 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/internal/domain/mocks"
-	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
+	pkgmocks "github.com/hengshu-credit/yaoguang-marketing/pkg/mocks"
 )
 
 func newWorkspaceServiceForWebAnalyticsTest(t *testing.T) (*WorkspaceService, *mocks.MockWorkspaceRepository, *mocks.MockAuthService, *mocks.MockUserServiceInterface, *mocks.MockContactService, *mocks.MockListService, *mocks.MockTaskRepository) {

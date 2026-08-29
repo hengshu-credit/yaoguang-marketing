@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/pkg/analytics"
-	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/analytics"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 )
 
 // AnalyticsService handles analytics operations

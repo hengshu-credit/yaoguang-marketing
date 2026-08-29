@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
 // V11Migration implements the migration from version 10.x to 11.0

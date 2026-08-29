@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Notifuse/notifuse/pkg/crypto"
-	"github.com/Notifuse/notifuse/pkg/postgresdriver"
-	"github.com/Notifuse/notifuse/pkg/smtp_bridge"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/crypto"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/postgresdriver"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/smtp_bridge"
 	"github.com/spf13/viper"
 )
 

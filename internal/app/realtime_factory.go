@@ -12,12 +12,12 @@ import (
 	clickhouse "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/google/uuid"
 
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/internal/repository"
-	"github.com/Notifuse/notifuse/internal/service"
-	"github.com/Notifuse/notifuse/pkg/broker"
-	"github.com/Notifuse/notifuse/pkg/eventanalytics"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/repository"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/service"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/broker"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/eventanalytics"
 )
 
 type runtimeComponent struct {

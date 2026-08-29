@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
 type TriggerBindingCompiler struct {

@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"testing"
 
-	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 )
 
 func TestSetupTLS_NoConfig(t *testing.T) {

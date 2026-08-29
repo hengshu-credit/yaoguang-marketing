@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/service/broadcast"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/service/broadcast"
 	"github.com/stretchr/testify/assert"
 )
 

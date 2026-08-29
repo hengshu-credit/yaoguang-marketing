@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/pkg/analytics"
-	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/analytics"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 )
 
 // workMemRe whitelists the values accepted for SET LOCAL work_mem.

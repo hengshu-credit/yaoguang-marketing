@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Notifuse/notifuse/config"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
 	"github.com/stretchr/testify/require"
 )
 

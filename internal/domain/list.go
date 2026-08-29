@@ -11,8 +11,8 @@ import (
 	"github.com/asaskevich/govalidator"
 )
 
-//go:generate mockgen -destination mocks/mock_list_service.go -package mocks github.com/Notifuse/notifuse/internal/domain ListService
-//go:generate mockgen -destination mocks/mock_list_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain ListRepository
+//go:generate mockgen -destination mocks/mock_list_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain ListService
+//go:generate mockgen -destination mocks/mock_list_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain ListRepository
 
 // List represents a subscription list
 type List struct {

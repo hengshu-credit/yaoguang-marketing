@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/pkg/logger"
-	"github.com/Notifuse/notifuse/pkg/mailer"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/mailer"
 	"github.com/asaskevich/govalidator"
 	"github.com/google/uuid"
 )

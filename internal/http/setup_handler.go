@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/service"
-	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/service"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 )
 
 // AppShutdowner defines the interface for triggering app shutdown

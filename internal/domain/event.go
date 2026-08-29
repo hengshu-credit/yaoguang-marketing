@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-//go:generate mockgen -destination mocks/mock_event_bus.go -package mocks github.com/Notifuse/notifuse/internal/domain EventBus
+//go:generate mockgen -destination mocks/mock_event_bus.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain EventBus
 
 // EventType defines the type of an event
 type EventType string

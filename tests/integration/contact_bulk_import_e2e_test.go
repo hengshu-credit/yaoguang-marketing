@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/app"
-	"github.com/Notifuse/notifuse/tests/testutil"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/app"
+	"github.com/hengshu-credit/yaoguang-marketing/tests/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

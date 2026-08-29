@@ -1,7 +1,7 @@
 package templates
 
 import (
-	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
 )
 
 // CreateSupabaseReauthenticationEmailStructure creates the detailed MJML structure for the reauthentication email
@@ -518,7 +518,7 @@ func CreateSupabaseReauthenticationEmailStructure() (notifuse_mjml.EmailBlock, e
                               "textPadding": "4px 4px 4px 0",
                               "verticalAlign": "middle",
                               "name": "github",
-                              "href": "https://github.com/Notifuse/notifuse"
+                              "href": "https://github.com/hengshu-credit/yaoguang-marketing"
                             },
                             "children": []
                           },

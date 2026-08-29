@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Notifuse/notifuse/pkg/emailerror"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/emailerror"
 	"github.com/stretchr/testify/assert"
 )
 

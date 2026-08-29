@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
 )
 
 // parseEmailTreeJSON parses an email tree JSON string into an EmailBlock

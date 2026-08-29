@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/google/uuid"
 )
 

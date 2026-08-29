@@ -1,4 +1,4 @@
-module github.com/Notifuse/notifuse/telemetry
+module github.com/hengshu-credit/yaoguang-marketing/telemetry
 
 go 1.25.0
 

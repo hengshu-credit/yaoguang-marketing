@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Notifuse/notifuse/config"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
 )
 
 // ParseVersion parses version string like "v3.14" or "3.14" and returns major version

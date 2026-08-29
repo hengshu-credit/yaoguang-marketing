@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/service"
-	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/service"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 )
 
 // minTimeBetweenResets debounces the destructive half of a reset. A reset drops

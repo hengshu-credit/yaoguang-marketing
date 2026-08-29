@@ -7,9 +7,9 @@ import (
 
 	"github.com/lib/pq"
 
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/internal/service"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/service"
 )
 
 // V37Migration widens contact_timeline.kind and repairs stored segment queries.

@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-//go:generate mockgen -destination mocks/mock_attachment_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain AttachmentRepository
+//go:generate mockgen -destination mocks/mock_attachment_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain AttachmentRepository
 
 // Attachment represents an email attachment
 type Attachment struct {

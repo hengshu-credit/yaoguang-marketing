@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/pkg/logger"
-	"github.com/Notifuse/notifuse/pkg/ratelimiter"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/ratelimiter"
 	"github.com/golang-jwt/jwt/v5"
 )
 

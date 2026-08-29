@@ -8,7 +8,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 	"github.com/emersion/go-smtp"
 )
 

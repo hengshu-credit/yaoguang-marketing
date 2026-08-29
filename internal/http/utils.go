@@ -6,7 +6,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
 // WriteJSONError writes a JSON error response with the given message and status code.

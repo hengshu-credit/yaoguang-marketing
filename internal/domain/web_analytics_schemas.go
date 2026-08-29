@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/Notifuse/notifuse/pkg/analytics"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/analytics"
 )
 
 // WebAnalyticsSchemas builds the cube schemas for the three web analytics

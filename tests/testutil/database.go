@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/database"
-	"github.com/Notifuse/notifuse/internal/migrations"
-	"github.com/Notifuse/notifuse/pkg/crypto"
-	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/database"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/migrations"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/crypto"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 	"github.com/lib/pq"
 )
 

@@ -13,7 +13,7 @@ import (
 	"encoding/base64"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/lib/pq"
 )
 

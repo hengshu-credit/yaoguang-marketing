@@ -10,11 +10,11 @@ import (
 
 	"github.com/lib/pq"
 
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/database"
-	"github.com/Notifuse/notifuse/internal/domain"
-	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
-	"github.com/Notifuse/notifuse/pkg/postgresdriver"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/database"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	pkgDatabase "github.com/hengshu-credit/yaoguang-marketing/pkg/database"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/postgresdriver"
 )
 
 const (

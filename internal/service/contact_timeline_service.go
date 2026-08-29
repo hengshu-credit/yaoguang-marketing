@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
 // ContactTimelineService implements domain.ContactTimelineService

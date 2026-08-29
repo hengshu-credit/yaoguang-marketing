@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/pkg/cache"
-	"github.com/Notifuse/notifuse/pkg/disposable_emails"
-	"github.com/Notifuse/notifuse/pkg/logger"
-	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/cache"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/disposable_emails"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
 	"github.com/google/uuid"
 )
 

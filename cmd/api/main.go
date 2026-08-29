@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/app"
-	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/app"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 )
 
 // osExit is a variable to allow mocking os.Exit in tests

@@ -11,8 +11,8 @@ import (
 	"unicode/utf8"
 )
 
-//go:generate mockgen -destination mocks/mock_annotation_service.go -package mocks github.com/Notifuse/notifuse/internal/domain AnnotationService
-//go:generate mockgen -destination mocks/mock_annotation_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain AnnotationRepository
+//go:generate mockgen -destination mocks/mock_annotation_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain AnnotationService
+//go:generate mockgen -destination mocks/mock_annotation_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain AnnotationRepository
 
 // Annotation sources. Only two exist: a row is either typed by an operator or
 // written by the platform on their behalf. There is deliberately no "api"

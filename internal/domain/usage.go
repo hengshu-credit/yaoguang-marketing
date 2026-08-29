@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//go:generate mockgen -destination mocks/mock_usage_service.go -package mocks github.com/Notifuse/notifuse/internal/domain UsageService
+//go:generate mockgen -destination mocks/mock_usage_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain UsageService
 
 // Usage metering is read by the control plane, which pulls it from each
 // installation rather than being pushed to. Pulling is what keeps a self-hosted

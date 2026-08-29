@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

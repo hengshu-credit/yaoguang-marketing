@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
 // snsHostRe matches a legitimate Amazon SNS host for SigningCertURL / SubscribeURL, so a

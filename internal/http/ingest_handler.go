@@ -7,10 +7,10 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/internal/http/middleware"
-	"github.com/Notifuse/notifuse/internal/service"
-	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/http/middleware"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/service"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 )
 
 const ingestMaxBodyBytes int64 = 4 << 20

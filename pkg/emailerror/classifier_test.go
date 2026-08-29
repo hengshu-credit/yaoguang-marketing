@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/stretchr/testify/assert"
 )
 

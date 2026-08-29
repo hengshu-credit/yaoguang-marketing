@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Notifuse/notifuse/pkg/logger"
-	"github.com/Notifuse/notifuse/pkg/tracing"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/tracing"
 )
 
 // TaskScheduler manages periodic task execution

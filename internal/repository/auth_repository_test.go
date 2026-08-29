@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Notifuse/notifuse/internal/repository/testutil"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/repository/testutil"
 )
 
 func TestAuthRepository_GetSessionByID(t *testing.T) {

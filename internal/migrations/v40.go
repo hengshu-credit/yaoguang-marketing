@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/database/schema"
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/database/schema"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
 // V40Migration installs the workspace-local durable event ledger, outbox,

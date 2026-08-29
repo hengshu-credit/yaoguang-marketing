@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-//go:generate mockgen -destination mocks/mock_contact_timeline_service.go -package mocks github.com/Notifuse/notifuse/internal/domain ContactTimelineService
-//go:generate mockgen -destination mocks/mock_contact_timeline_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain ContactTimelineRepository
+//go:generate mockgen -destination mocks/mock_contact_timeline_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain ContactTimelineService
+//go:generate mockgen -destination mocks/mock_contact_timeline_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain ContactTimelineRepository
 
 // ContactTimelineEntry represents a timeline entry for a contact
 type ContactTimelineEntry struct {

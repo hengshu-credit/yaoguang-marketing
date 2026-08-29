@@ -14,12 +14,12 @@ import (
 
 	// Import the notifuse_mjml package
 
-	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
 	"github.com/asaskevich/govalidator"
 )
 
-//go:generate mockgen -destination mocks/mock_template_service.go -package mocks github.com/Notifuse/notifuse/internal/domain TemplateService
-//go:generate mockgen -destination mocks/mock_template_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain TemplateRepository
+//go:generate mockgen -destination mocks/mock_template_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain TemplateService
+//go:generate mockgen -destination mocks/mock_template_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain TemplateRepository
 
 // templateIDPattern allows alphanumeric characters, underscores, and hyphens
 var templateIDPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
@@ -511,8 +511,8 @@ func (w *WebTemplate) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-//go:generate mockgen -destination mocks/mock_template_service.go -package mocks github.com/Notifuse/notifuse/internal/domain TemplateService
-//go:generate mockgen -destination mocks/mock_template_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain TemplateRepository
+//go:generate mockgen -destination mocks/mock_template_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain TemplateService
+//go:generate mockgen -destination mocks/mock_template_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain TemplateRepository
 
 // Request/Response types
 type CreateTemplateRequest struct {

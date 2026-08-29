@@ -12,9 +12,9 @@ import (
 	"time"
 )
 
-//go:generate mockgen -destination mocks/mock_broadcast_service.go -package mocks github.com/Notifuse/notifuse/internal/domain BroadcastService
-//go:generate mockgen -destination mocks/mock_broadcast_sender.go -package mocks github.com/Notifuse/notifuse/internal/domain BroadcastSender
-//go:generate mockgen -destination mocks/mock_broadcast_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain BroadcastRepository
+//go:generate mockgen -destination mocks/mock_broadcast_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain BroadcastService
+//go:generate mockgen -destination mocks/mock_broadcast_sender.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain BroadcastSender
+//go:generate mockgen -destination mocks/mock_broadcast_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain BroadcastRepository
 
 // BroadcastStatus defines the current status of a broadcast
 type BroadcastStatus string

@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-//go:generate mockgen -destination mocks/mock_contact_segment_queue_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain ContactSegmentQueueRepository
+//go:generate mockgen -destination mocks/mock_contact_segment_queue_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain ContactSegmentQueueRepository
 
 // ContactSegmentQueueItem represents a contact that needs segment recomputation
 type ContactSegmentQueueItem struct {

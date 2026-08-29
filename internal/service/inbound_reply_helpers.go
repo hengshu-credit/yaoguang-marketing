@@ -8,7 +8,7 @@ import (
 	"net/mail"
 	"strings"
 
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
 // syntheticReplyMessageID derives a stable dedup key for an inbound reply that carries no

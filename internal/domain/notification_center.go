@@ -7,7 +7,7 @@ import (
 	"regexp"
 )
 
-//go:generate mockgen -destination mocks/mock_notification_center_service.go -package mocks github.com/Notifuse/notifuse/internal/domain NotificationCenterService
+//go:generate mockgen -destination mocks/mock_notification_center_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain NotificationCenterService
 
 type NotificationCenterService interface {
 	// GetContactPreferences returns public lists and notifications for a contact

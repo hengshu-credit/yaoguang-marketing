@@ -22,8 +22,8 @@ var (
 	ErrInboundControlMessage = errors.New("inbound: provider control message (no reply)")
 )
 
-//go:generate mockgen -destination mocks/mock_inbound_webhook_event_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain InboundWebhookEventRepository
-//go:generate mockgen -destination mocks/mock_inbound_webhook_event_service.go -package mocks github.com/Notifuse/notifuse/internal/domain InboundWebhookEventServiceInterface
+//go:generate mockgen -destination mocks/mock_inbound_webhook_event_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain InboundWebhookEventRepository
+//go:generate mockgen -destination mocks/mock_inbound_webhook_event_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain InboundWebhookEventServiceInterface
 
 // EmailEventType defines the type of email webhook event
 type EmailEventType string

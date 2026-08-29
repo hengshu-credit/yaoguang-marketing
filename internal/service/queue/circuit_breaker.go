@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Notifuse/notifuse/pkg/emailerror"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/emailerror"
 )
 
 // getCircuitBreakerCooldown returns the circuit breaker cooldown period.

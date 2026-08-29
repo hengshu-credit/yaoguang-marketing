@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
 )
 
 // setupTelemetryMockDB creates a mock database and sqlmock for testing

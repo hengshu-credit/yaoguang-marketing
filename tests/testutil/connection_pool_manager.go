@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Notifuse/notifuse/config"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
 )
 
 // TestConnectionPoolManager manages multiple isolated connection pools for tests

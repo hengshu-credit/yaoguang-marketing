@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	pkgmocks "github.com/hengshu-credit/yaoguang-marketing/pkg/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )

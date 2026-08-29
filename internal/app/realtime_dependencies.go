@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/Notifuse/notifuse/config"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
 )
 
 var RealtimeWorkerCapabilities = []config.RuntimeCapability{

@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/pkg/cache"
-	"github.com/Notifuse/notifuse/pkg/liquid"
-	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/cache"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/liquid"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 	"github.com/google/uuid"
 )
 

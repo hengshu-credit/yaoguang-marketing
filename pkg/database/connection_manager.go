@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/database"
-	"github.com/Notifuse/notifuse/pkg/postgresdriver"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/database"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/postgresdriver"
 	"golang.org/x/sync/singleflight"
 )
 

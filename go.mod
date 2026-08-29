@@ -1,4 +1,4 @@
-module github.com/Notifuse/notifuse
+module github.com/hengshu-credit/yaoguang-marketing
 
 go 1.25.4
 

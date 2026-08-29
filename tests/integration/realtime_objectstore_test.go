@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Notifuse/notifuse/pkg/objectstore"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/objectstore"
 )
 
 func TestRealtimeObjectStore(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Notifuse/notifuse/config"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
 )
 
 func TestV29Migration_GetMajorVersion(t *testing.T) {

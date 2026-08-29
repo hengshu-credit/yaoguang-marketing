@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-//go:generate mockgen -destination mocks/mock_user_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain UserRepository
-//go:generate mockgen -destination mocks/mock_user_service.go -package mocks github.com/Notifuse/notifuse/internal/domain UserServiceInterface
+//go:generate mockgen -destination mocks/mock_user_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain UserRepository
+//go:generate mockgen -destination mocks/mock_user_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain UserServiceInterface
 
 // Key for storing user ID and session ID in context
 type contextKey string

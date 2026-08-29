@@ -12,10 +12,10 @@ import (
 	"time"
 )
 
-//go:generate mockgen -destination mocks/mock_blog_service.go -package mocks github.com/Notifuse/notifuse/internal/domain BlogService
-//go:generate mockgen -destination mocks/mock_blog_category_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain BlogCategoryRepository
-//go:generate mockgen -destination mocks/mock_blog_post_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain BlogPostRepository
-//go:generate mockgen -destination mocks/mock_blog_theme_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain BlogThemeRepository
+//go:generate mockgen -destination mocks/mock_blog_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain BlogService
+//go:generate mockgen -destination mocks/mock_blog_category_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain BlogCategoryRepository
+//go:generate mockgen -destination mocks/mock_blog_post_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain BlogPostRepository
+//go:generate mockgen -destination mocks/mock_blog_theme_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain BlogThemeRepository
 
 // Regular expression for validating slugs (lowercase letters, numbers, and hyphens).
 //

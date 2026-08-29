@@ -1,7 +1,7 @@
 package domain
 
-//go:generate mockgen -destination mocks/mock_webhook_subscription_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain WebhookSubscriptionRepository
-//go:generate mockgen -destination mocks/mock_webhook_delivery_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain WebhookDeliveryRepository
+//go:generate mockgen -destination mocks/mock_webhook_subscription_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain WebhookSubscriptionRepository
+//go:generate mockgen -destination mocks/mock_webhook_delivery_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain WebhookDeliveryRepository
 
 import (
 	"context"

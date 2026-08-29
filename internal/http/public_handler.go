@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
-	"github.com/Notifuse/notifuse/pkg/logger"
-	"github.com/Notifuse/notifuse/pkg/ratelimiter"
-	"github.com/Notifuse/notifuse/pkg/safehttpclient"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	pkgDatabase "github.com/hengshu-credit/yaoguang-marketing/pkg/database"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/ratelimiter"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/safehttpclient"
 	"github.com/PuerkitoBio/goquery"
 )
 

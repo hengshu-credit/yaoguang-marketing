@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
 // The demo workspace's showcase automations.

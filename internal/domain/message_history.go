@@ -13,8 +13,8 @@ import (
 	"github.com/asaskevich/govalidator"
 )
 
-//go:generate mockgen -destination mocks/mock_message_history_service.go -package mocks github.com/Notifuse/notifuse/internal/domain MessageHistoryService
-//go:generate mockgen -destination mocks/mock_message_history_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain MessageHistoryRepository
+//go:generate mockgen -destination mocks/mock_message_history_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain MessageHistoryService
+//go:generate mockgen -destination mocks/mock_message_history_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain MessageHistoryRepository
 
 // MessageStatus represents the current status of a message
 type MessageEvent string

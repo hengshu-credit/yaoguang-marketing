@@ -7,7 +7,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
 var ErrIngestBusy = errors.New("ingest capacity is full")

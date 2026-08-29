@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
 // blogThemeRepository implements domain.BlogThemeRepository for PostgreSQL

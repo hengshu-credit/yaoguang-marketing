@@ -3,11 +3,11 @@ package domain
 import (
 	"context"
 
-	"github.com/Notifuse/notifuse/pkg/analytics"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/analytics"
 )
 
-//go:generate mockgen -destination mocks/mock_analytics_service.go -package mocks github.com/Notifuse/notifuse/internal/domain AnalyticsService
-//go:generate mockgen -destination mocks/mock_analytics_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain AnalyticsRepository
+//go:generate mockgen -destination mocks/mock_analytics_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain AnalyticsService
+//go:generate mockgen -destination mocks/mock_analytics_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain AnalyticsRepository
 
 // PredefinedSchemas contains all available analytics schemas for Notifuse
 var PredefinedSchemas = map[string]analytics.SchemaDefinition{

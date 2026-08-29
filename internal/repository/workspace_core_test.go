@@ -17,12 +17,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/internal/domain/mocks"
-	"github.com/Notifuse/notifuse/internal/repository/testutil"
-	"github.com/Notifuse/notifuse/pkg/crypto"
-	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/repository/testutil"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/crypto"
+	pkgDatabase "github.com/hengshu-credit/yaoguang-marketing/pkg/database"
 )
 
 // mockConnectionManager is a simple mock for testing

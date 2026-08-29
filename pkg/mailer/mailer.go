@@ -9,7 +9,7 @@ import (
 	"github.com/wneessen/go-mail"
 )
 
-//go:generate mockgen -destination=../mocks/mock_mailer.go -package=pkgmocks github.com/Notifuse/notifuse/pkg/mailer Mailer
+//go:generate mockgen -destination=../mocks/mock_mailer.go -package=pkgmocks github.com/hengshu-credit/yaoguang-marketing/pkg/mailer Mailer
 
 // Mailer is the interface for sending emails. The trailing language argument
 // selects the locale of the email content (see GetTranslations).

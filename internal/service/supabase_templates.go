@@ -6,8 +6,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/pkg/templates"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/templates"
 )
 
 // CreateDefaultSupabaseTemplates creates the default Supabase auth email templates

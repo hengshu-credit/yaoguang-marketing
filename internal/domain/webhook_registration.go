@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-//go:generate mockgen -destination mocks/mock_webhook_registration_service.go -package mocks github.com/Notifuse/notifuse/internal/domain WebhookRegistrationService
+//go:generate mockgen -destination mocks/mock_webhook_registration_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain WebhookRegistrationService
 
 // WebhookRegistrationService defines the interface for registering webhooks with email providers
 type WebhookRegistrationService interface {

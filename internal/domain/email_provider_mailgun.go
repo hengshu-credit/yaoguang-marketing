@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/crypto"
 )
 
-//go:generate mockgen -destination mocks/mock_mailgun_service.go -package mocks github.com/Notifuse/notifuse/internal/domain MailgunServiceInterface
+//go:generate mockgen -destination mocks/mock_mailgun_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain MailgunServiceInterface
 
 // MailgunWebhookPayload represents a Mailgun webhook payload
 type MailgunWebhookPayload struct {
@@ -155,7 +155,7 @@ func (m *MailgunSettings) Validate(passphrase string) error {
 	return nil
 }
 
-//go:generate mockgen -destination mocks/mock_mailgun_service.go -package mocks github.com/Notifuse/notifuse/internal/domain MailgunServiceInterface
+//go:generate mockgen -destination mocks/mock_mailgun_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain MailgunServiceInterface
 
 // MailgunServiceInterface defines operations for managing Mailgun webhooks
 type MailgunServiceInterface interface {

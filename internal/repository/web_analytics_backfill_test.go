@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
 func backfillRule(id string, priority int, conditions []domain.WebFilterCondition, operations []domain.WebFilterOperation) domain.WebFilter {

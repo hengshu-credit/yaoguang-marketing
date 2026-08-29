@@ -14,9 +14,9 @@ import (
 	"time"
 )
 
-//go:generate mockgen -destination mocks/mock_task_service.go -package mocks github.com/Notifuse/notifuse/internal/domain TaskService
-//go:generate mockgen -destination mocks/mock_task_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain TaskRepository
-//go:generate mockgen -destination mocks/mock_task_processor.go -package mocks github.com/Notifuse/notifuse/internal/domain TaskProcessor
+//go:generate mockgen -destination mocks/mock_task_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain TaskService
+//go:generate mockgen -destination mocks/mock_task_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain TaskRepository
+//go:generate mockgen -destination mocks/mock_task_processor.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain TaskProcessor
 
 // TaskStatus represents the current state of a task
 type TaskStatus string

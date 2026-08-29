@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	domainmocks "github.com/Notifuse/notifuse/internal/domain/mocks" // Corrected import path
-	"github.com/Notifuse/notifuse/internal/service"                  // Added logger import
-	"github.com/Notifuse/notifuse/pkg/logger"
-	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks" // Corrected import path
-	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	domainmocks "github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks" // Corrected import path
+	"github.com/hengshu-credit/yaoguang-marketing/internal/service"                  // Added logger import
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
+	pkgmocks "github.com/hengshu-credit/yaoguang-marketing/pkg/mocks" // Corrected import path
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
 	"github.com/golang/mock/gomock" // Added gomock import
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

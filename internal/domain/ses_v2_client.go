@@ -10,7 +10,7 @@ import (
 	"github.com/aws/smithy-go"
 )
 
-//go:generate mockgen -destination mocks/mock_sesv2_client.go -package mocks github.com/Notifuse/notifuse/internal/domain SESv2Client
+//go:generate mockgen -destination mocks/mock_sesv2_client.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain SESv2Client
 
 // SESv2Client is the SES API v2 surface Notifuse uses for sending and for tenant management.
 // Both live on v2 because tenants exist only there — the v1 API has no tenant operations at all

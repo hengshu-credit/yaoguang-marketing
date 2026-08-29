@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/Notifuse/notifuse/tests/testutil"
+	"github.com/hengshu-credit/yaoguang-marketing/tests/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Notifuse/notifuse/config"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
 	_ "github.com/lib/pq"
 )
 

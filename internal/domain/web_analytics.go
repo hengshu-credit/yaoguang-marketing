@@ -13,13 +13,13 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/Notifuse/notifuse/pkg/crypto"
-	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/crypto"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
 )
 
-//go:generate mockgen -destination mocks/mock_web_analytics_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain WebAnalyticsRepository
-//go:generate mockgen -destination mocks/mock_web_analytics_service.go -package mocks github.com/Notifuse/notifuse/internal/domain WebAnalyticsService
-//go:generate mockgen -destination mocks/mock_geoip_resolver.go -package mocks github.com/Notifuse/notifuse/internal/domain GeoIPResolver
+//go:generate mockgen -destination mocks/mock_web_analytics_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain WebAnalyticsRepository
+//go:generate mockgen -destination mocks/mock_web_analytics_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain WebAnalyticsService
+//go:generate mockgen -destination mocks/mock_geoip_resolver.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain GeoIPResolver
 
 const (
 	// WebTrackMaxActions caps the number of actions accepted in a single beat.

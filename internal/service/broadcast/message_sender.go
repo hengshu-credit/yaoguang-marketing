@@ -9,14 +9,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/pkg/logger"
-	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
 	"github.com/google/uuid"
 	"golang.org/x/sync/semaphore"
 )
 
-//go:generate mockgen -destination=./mocks/mock_message_sender.go -package=mocks github.com/Notifuse/notifuse/internal/service/broadcast MessageSender
+//go:generate mockgen -destination=./mocks/mock_message_sender.go -package=mocks github.com/hengshu-credit/yaoguang-marketing/internal/service/broadcast MessageSender
 
 // MessageSender is the interface for sending messages to recipients
 //

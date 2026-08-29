@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	pkgmocks "github.com/hengshu-credit/yaoguang-marketing/pkg/mocks"
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	credentialsv2 "github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"

@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-//go:generate mockgen -destination mocks/mock_oidc_service.go -package mocks github.com/Notifuse/notifuse/internal/domain OIDCServiceInterface
+//go:generate mockgen -destination mocks/mock_oidc_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain OIDCServiceInterface
 
 // ErrOIDCNotConfigured is returned when OIDC is disabled or the upstream provider
 // has not yet initialized (graceful degradation). HTTP maps it to 503.

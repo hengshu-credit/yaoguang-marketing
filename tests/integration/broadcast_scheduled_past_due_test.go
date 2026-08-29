@@ -9,17 +9,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/app"
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/tests/testutil"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/app"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/tests/testutil"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // TestScheduledBroadcast_PastDue_IssuesGH317 reproduces the end-to-end flow from
-// https://github.com/Notifuse/notifuse/issues/317 — a broadcast whose scheduled
+// https://github.com/hengshu-credit/yaoguang-marketing/issues/317 — a broadcast whose scheduled
 // time has already passed is supposed to be picked up by the scheduler's
 // ExecutePendingTasks loop and processed to completion.
 //

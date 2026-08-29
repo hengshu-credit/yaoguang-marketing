@@ -8,8 +8,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/Notifuse/notifuse/internal/service"
-	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/service"
+	pkgmocks "github.com/hengshu-credit/yaoguang-marketing/pkg/mocks"
 )
 
 func TestSupabaseWebhookHandler_RegisterRoutes(t *testing.T) {

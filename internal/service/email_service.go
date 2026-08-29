@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/pkg/logger"
-	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
-	"github.com/Notifuse/notifuse/pkg/tracing"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/tracing"
 	"github.com/google/uuid"
 	"go.opencensus.io/trace"
 )

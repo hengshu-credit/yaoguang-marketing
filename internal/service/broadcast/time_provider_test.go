@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/service/broadcast"
-	"github.com/Notifuse/notifuse/internal/service/broadcast/mocks"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/service/broadcast"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/service/broadcast/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )

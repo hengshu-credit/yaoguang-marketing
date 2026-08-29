@@ -10,7 +10,7 @@ import (
 
 	"go.opencensus.io/trace"
 
-	"github.com/Notifuse/notifuse/config"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
 )
 
 func TestInitTracing_Disabled(t *testing.T) {

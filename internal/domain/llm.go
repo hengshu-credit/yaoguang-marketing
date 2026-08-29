@@ -70,7 +70,7 @@ func (r *LLMChatRequest) Validate() error {
 	return nil
 }
 
-//go:generate mockgen -destination mocks/mock_llm_service.go -package mocks github.com/Notifuse/notifuse/internal/domain LLMService
+//go:generate mockgen -destination mocks/mock_llm_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain LLMService
 
 // LLMService defines the interface for LLM operations
 type LLMService interface {

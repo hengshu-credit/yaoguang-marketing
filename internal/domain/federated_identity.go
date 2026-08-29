@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-//go:generate mockgen -destination mocks/mock_federated_identity_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain FederatedIdentityRepository
+//go:generate mockgen -destination mocks/mock_federated_identity_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain FederatedIdentityRepository
 
 // FederatedIdentity links an external IdP subject to a Notifuse user. The durable
 // identity key is (IDPIssuer, IDPSub); email is used only to bridge to an invited

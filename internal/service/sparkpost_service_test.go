@@ -13,10 +13,10 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/internal/domain/mocks"
-	"github.com/Notifuse/notifuse/internal/service"
-	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/service"
+	pkgmocks "github.com/hengshu-credit/yaoguang-marketing/pkg/mocks"
 )
 
 // mockHTTPResponse creates a mock HTTP response

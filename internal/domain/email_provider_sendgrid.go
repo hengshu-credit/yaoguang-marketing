@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/crypto"
 )
 
-//go:generate mockgen -destination mocks/mock_sendgrid_service.go -package mocks github.com/Notifuse/notifuse/internal/domain SendGridServiceInterface
+//go:generate mockgen -destination mocks/mock_sendgrid_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain SendGridServiceInterface
 
 // SendGridSettings contains configuration for SendGrid email provider
 type SendGridSettings struct {

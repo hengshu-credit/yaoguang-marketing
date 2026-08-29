@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
 // V14Migration adds channel_options JSONB column to message_history table

@@ -5,7 +5,7 @@ import (
 	"database/sql"
 )
 
-//go:generate mockgen -destination mocks/mock_telemetry_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain TelemetryRepository
+//go:generate mockgen -destination mocks/mock_telemetry_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain TelemetryRepository
 
 // TelemetryMetrics represents aggregated metrics for a workspace
 type TelemetryMetrics struct {

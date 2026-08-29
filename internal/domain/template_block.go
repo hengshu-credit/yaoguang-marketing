@@ -7,12 +7,12 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
 	"github.com/asaskevich/govalidator"
 	"github.com/google/uuid"
 )
 
-//go:generate mockgen -destination mocks/mock_template_block_service.go -package mocks github.com/Notifuse/notifuse/internal/domain TemplateBlockService
+//go:generate mockgen -destination mocks/mock_template_block_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain TemplateBlockService
 
 // TemplateBlock represents a reusable email block template
 type TemplateBlock struct {

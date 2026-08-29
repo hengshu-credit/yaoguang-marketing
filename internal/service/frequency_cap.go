@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Notifuse/notifuse/pkg/realtimecache"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/realtimecache"
 )
 
 type FrequencyDecision string

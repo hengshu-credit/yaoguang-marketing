@@ -9,8 +9,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Notifuse/notifuse/internal/domain"
-	pkgcrypto "github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	pkgcrypto "github.com/hengshu-credit/yaoguang-marketing/pkg/crypto"
 )
 
 type ContactEndpointPostgresRepository struct {

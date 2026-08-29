@@ -9,12 +9,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
 	"github.com/asaskevich/govalidator"
 )
 
-//go:generate mockgen -destination mocks/mock_transactional_notification_service.go -package mocks github.com/Notifuse/notifuse/internal/domain TransactionalNotificationService
-//go:generate mockgen -destination mocks/mock_transactional_notification_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain TransactionalNotificationRepository
+//go:generate mockgen -destination mocks/mock_transactional_notification_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain TransactionalNotificationService
+//go:generate mockgen -destination mocks/mock_transactional_notification_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain TransactionalNotificationRepository
 
 // TransactionalChannel represents supported notification channels
 type TransactionalChannel string

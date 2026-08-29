@@ -18,9 +18,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/app"
-	"github.com/Notifuse/notifuse/tests/testutil"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/app"
+	"github.com/hengshu-credit/yaoguang-marketing/tests/testutil"
 )
 
 // zapierSamplesPath is the checked-in artifact this test generates. The Zapier

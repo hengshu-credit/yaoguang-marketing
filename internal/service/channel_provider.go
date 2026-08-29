@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )

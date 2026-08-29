@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/database/schema"
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/database/schema"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 )
 
 // WebAnalyticsMaintenanceWorker keeps the partitioned web analytics tables

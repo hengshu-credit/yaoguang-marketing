@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/crypto"
 )
 
 // PostmarkWebhookPayload represents the base webhook payload from Postmark
@@ -195,7 +195,7 @@ func (p *PostmarkSettings) Validate(passphrase string) error {
 	return nil
 }
 
-//go:generate mockgen -destination mocks/mock_postmark_service.go -package mocks github.com/Notifuse/notifuse/internal/domain PostmarkServiceInterface
+//go:generate mockgen -destination mocks/mock_postmark_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain PostmarkServiceInterface
 
 // PostmarkServiceInterface defines operations for managing Postmark webhooks
 type PostmarkServiceInterface interface {

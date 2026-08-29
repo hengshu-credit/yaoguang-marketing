@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
-//go:generate mockgen -destination mocks/mock_automation_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain AutomationRepository
+//go:generate mockgen -destination mocks/mock_automation_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain AutomationRepository
 
 // AutomationStatus represents the status of an automation
 type AutomationStatus string
@@ -913,7 +913,7 @@ type AutomationRepository interface {
 	IncrementAutomationStat(ctx context.Context, workspaceID, automationID, statName string) error
 }
 
-//go:generate mockgen -destination mocks/mock_automation_service.go -package mocks github.com/Notifuse/notifuse/internal/domain AutomationService
+//go:generate mockgen -destination mocks/mock_automation_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain AutomationService
 
 // AutomationService defines the interface for automation business logic
 type AutomationService interface {

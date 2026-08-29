@@ -11,10 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/domain"
-	mocks "github.com/Notifuse/notifuse/internal/domain/mocks"
-	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	mocks "github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
+	pkgmocks "github.com/hengshu-credit/yaoguang-marketing/pkg/mocks"
 )
 
 func TestWorkspaceService_AddUserToWorkspace(t *testing.T) {
