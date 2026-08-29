@@ -237,6 +237,12 @@ type RealtimeRepository interface {
 	GetEvent(ctx context.Context, workspaceID string, eventID uuid.UUID) (*EventEnvelope, error)
 }
 
+// WorkspaceCursorRepository hands relay replicas disjoint, ordered workspace
+// scan windows while persisting the last assignment in the system database.
+type WorkspaceCursorRepository interface {
+	NextWorkspaceIDs(ctx context.Context, cursorName string, limit int) ([]string, error)
+}
+
 // CanonicalJSONHash normalizes JSON object ordering before hashing. The
 // decoder preserves number spelling to avoid precision loss for external IDs.
 func CanonicalJSONHash(payload json.RawMessage) (string, error) {

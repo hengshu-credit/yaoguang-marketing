@@ -439,15 +439,15 @@ git commit -m "feat: add confirmed RabbitMQ transport"
 - Consumes: `RealtimeRepository`, `domain.WorkspaceRepository`, and `broker.Publisher`.
 - Produces: `OutboxRelay.Run(context.Context) error` and fair persistent workspace cursor behavior.
 
-- [ ] **Step 1: Write failing confirm, release, and fairness tests**
+- [x] **Step 1: Write failing confirm, release, and fairness tests**
 
 Test three workspaces where the first is permanently busy; two consecutive batches must include later workspaces. Test confirm failure leaves/requeues the row with backoff and the original message ID.
 
-- [ ] **Step 2: Run service tests and verify RED**
+- [x] **Step 2: Run service tests and verify RED**
 
 Run: `docker run --rm -v "${PWD}:/src" -w /src golang:1.25-alpine sh -lc "go test ./internal/service -run TestOutboxRelay"`
 
-- [ ] **Step 3: Implement relay lifecycle**
+- [x] **Step 3: Implement relay lifecycle**
 
 ```go
 type OutboxRelay struct {
@@ -469,7 +469,7 @@ Inject `workspace_id` into the envelope immediately before publishing; never per
 
 Run the Step 2 command with `-race`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add internal/service/realtime_outbox_relay.go internal/service/realtime_outbox_relay_test.go internal/domain/mocks

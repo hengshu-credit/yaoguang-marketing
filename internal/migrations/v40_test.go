@@ -17,7 +17,7 @@ func TestV40MigrationMetadataAndRegistration(t *testing.T) {
 	migration := &V40Migration{}
 
 	assert.Equal(t, 40.0, migration.GetMajorVersion())
-	assert.False(t, migration.HasSystemUpdate())
+	assert.True(t, migration.HasSystemUpdate())
 	assert.True(t, migration.HasWorkspaceUpdate())
 	assert.False(t, migration.ShouldRestartServer())
 	assert.Equal(t, "40.0", config.VERSION)
@@ -25,6 +25,19 @@ func TestV40MigrationMetadataAndRegistration(t *testing.T) {
 	registered, ok := GetRegisteredMigration(40.0)
 	require.True(t, ok)
 	assert.IsType(t, &V40Migration{}, registered)
+}
+
+func TestV40UpdateSystemInstallsPersistentRuntimeCursor(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	mock.ExpectExec("CREATE TABLE IF NOT EXISTS realtime_runtime_cursors").
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
+	err = (&V40Migration{}).UpdateSystem(context.Background(), &config.Config{}, db)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestV40WorkspaceMigrationDefinesRealtimeTables(t *testing.T) {

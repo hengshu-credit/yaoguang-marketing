@@ -19,13 +19,16 @@ type V40Migration struct{}
 
 func (m *V40Migration) GetMajorVersion() float64 { return 40.0 }
 
-func (m *V40Migration) HasSystemUpdate() bool { return false }
+func (m *V40Migration) HasSystemUpdate() bool { return true }
 
 func (m *V40Migration) HasWorkspaceUpdate() bool { return true }
 
 func (m *V40Migration) ShouldRestartServer() bool { return false }
 
-func (m *V40Migration) UpdateSystem(context.Context, *config.Config, DBExecutor) error {
+func (m *V40Migration) UpdateSystem(ctx context.Context, _ *config.Config, db DBExecutor) error {
+	if _, err := db.ExecContext(ctx, schema.RealtimeRuntimeCursorTableDefinition); err != nil {
+		return fmt.Errorf("v40: failed to install realtime runtime cursor: %w", err)
+	}
 	return nil
 }
 

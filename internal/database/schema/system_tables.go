@@ -2,6 +2,12 @@ package schema
 
 // Schema definitions - no external imports needed
 
+const RealtimeRuntimeCursorTableDefinition = `CREATE TABLE IF NOT EXISTS realtime_runtime_cursors (
+	name VARCHAR(100) PRIMARY KEY,
+	last_workspace_id VARCHAR(32),
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+)`
+
 // TableDefinitions contains all the SQL statements to create the database tables
 // Don't put REFERENCES and don't put CHECK constraints in the CREATE TABLE statements
 var TableDefinitions = []string{
@@ -103,6 +109,7 @@ var TableDefinitions = []string{
 		UNIQUE (user_id, idp_issuer)
 	)`,
 	`CREATE INDEX IF NOT EXISTS idx_federated_identities_user_id ON federated_identities (user_id)`,
+	RealtimeRuntimeCursorTableDefinition,
 }
 
 // MigrationStatements contains SQL statements to be run after table creation
