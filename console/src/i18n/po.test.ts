@@ -8,6 +8,7 @@ msgstr ""
 "Language: en\\n"
 
 #. translator note
+#. js-lingui-explicit-id
 #: src/components/Example.tsx:12 src/pages/ExamplePage.tsx:34
 msgid "Hello \\\"world\\\""
 " from a multiline message"
@@ -24,6 +25,7 @@ msgstr "Enregistrer"
         msgid: 'Hello "world" from a multiline message',
         msgstr: 'Bonjour "monde" depuis plusieurs lignes',
         references: ['src/components/Example.tsx:12', 'src/pages/ExamplePage.tsx:34'],
+        isExplicitId: true,
       },
       {
         msgid: 'Save',

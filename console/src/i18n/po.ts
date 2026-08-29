@@ -2,6 +2,7 @@ export interface POEntry {
   msgid: string
   msgstr: string
   references: string[]
+  isExplicitId?: true
 }
 
 /**
@@ -20,10 +21,16 @@ export function parsePOCatalog(source: string): POEntry[] {
   let reading: 'msgid' | 'msgstr' | null = null
   let obsolete = false
   let started = false
+  let isExplicitId = false
 
   const flush = () => {
     if (started && !obsolete && msgid !== '') {
-      entries.push({ msgid, msgstr, references })
+      entries.push({
+        msgid,
+        msgstr,
+        references,
+        ...(isExplicitId ? { isExplicitId: true as const } : {}),
+      })
     }
     msgid = ''
     msgstr = ''
@@ -31,6 +38,7 @@ export function parsePOCatalog(source: string): POEntry[] {
     reading = null
     obsolete = false
     started = false
+    isExplicitId = false
   }
 
   for (const line of source.replace(/\r\n?/g, '\n').split('\n')) {
@@ -43,6 +51,10 @@ export function parsePOCatalog(source: string): POEntry[] {
       obsolete = true
       continue
     }
+    if (line === '#. js-lingui-explicit-id') {
+      isExplicitId = true
+      continue
+    }
     if (line.startsWith('#:')) {
       references.push(...line.slice(2).trim().split(/\s+/).filter(Boolean))
       continue
@@ -51,9 +63,11 @@ export function parsePOCatalog(source: string): POEntry[] {
 
     if (line.startsWith('msgid ')) {
       const entryReferences = references
+      const entryIsExplicitId: boolean = isExplicitId
       flush()
       started = true
       references = entryReferences
+      isExplicitId = entryIsExplicitId
       msgid = decodePOString(line.slice('msgid '.length))
       reading = 'msgid'
       continue

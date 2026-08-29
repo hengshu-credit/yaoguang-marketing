@@ -80,4 +80,62 @@ describe('catalog inventory', () => {
       'it',
     ])
   })
+
+  it('excludes test-only explicit IDs without losing a colliding runtime message ID', () => {
+    const entries: POEntry[] = [
+      {
+        msgid: 'Dashboard',
+        msgstr: 'Dashboard',
+        references: ['src/__tests__/WorkspaceLayout.test.tsx:101'],
+        isExplicitId: true,
+      },
+      {
+        msgid: 'Dashboard',
+        msgstr: 'Dashboard',
+        references: ['src/layouts/WorkspaceLayout.tsx:298'],
+      },
+      {
+        msgid: 'Sidebar title',
+        msgstr: 'Sidebar title',
+        references: ['src/i18n/workspaceCatalog.test.ts:39'],
+        isExplicitId: true,
+      },
+      {
+        msgid: 'Save',
+        msgstr: 'Save',
+        references: ['src/i18n/po.test.ts:20', 'src/components/common/SaveButton.tsx:4'],
+      },
+    ]
+    const inventory = buildStaticCatalogInventory(entries, catalog({
+      Dashboard: ['Dashboard'],
+      '7p5kLi': ['Dashboard'],
+      'Sidebar title': ['Sidebar title'],
+      save: ['Save'],
+    }))
+
+    expect(inventory.map((item) => item.id)).toEqual(['7p5kLi', 'save'])
+    expect(inventory[0]).toMatchObject({
+      references: ['src/layouts/WorkspaceLayout.tsx:298'],
+      menuKey: 'Navigation',
+      pageKey: 'Workspace',
+    })
+    expect(inventory[1].references).toEqual(['src/components/common/SaveButton.tsx:4'])
+  })
+
+  it.each([
+    ['segment component', 'src/components/segment/input.tsx:20', 'Segments'],
+    ['debug segment page', 'src/pages/DebugSegmentPage.tsx:20', 'Segments'],
+    ['dashboard', 'src/pages/DashboardPage.tsx:20', 'Dashboard'],
+    ['analytics', 'src/pages/AnalyticsPage.tsx:20', 'Analytics'],
+    ['file manager', 'src/components/file_manager/fileManager.tsx:20', 'File Manager'],
+    ['logs', 'src/pages/LogsPage.tsx:20', 'Logs'],
+    ['integration', 'src/components/integrations/LLMIntegration.tsx:20', 'Integrations'],
+    ['webhook', 'src/components/webhooks/OutgoingWebhooksTab.tsx:20', 'Webhooks'],
+  ])('classifies %s sources outside the priority pages', (_name, reference, menuKey) => {
+    const inventory = buildStaticCatalogInventory([
+      { msgid: 'Example', msgstr: 'Example', references: [reference] },
+    ], catalog({ example: ['Example'] }))
+
+    expect(inventory[0]).toMatchObject({ menuKey, pageKey: menuKey })
+  })
 })
