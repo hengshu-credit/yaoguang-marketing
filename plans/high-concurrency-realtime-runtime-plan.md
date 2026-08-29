@@ -242,9 +242,9 @@ Use canonical JSON hashing for payload conflict checks and SHA-256 for side-effe
 
 - [x] **Step 4: Run full domain tests and verify GREEN**
 
-Run: `docker run --rm -v "${PWD}:/src" -w /src golang:1.25-alpine sh -lc "go test ./internal/domain"`
+Run: `docker run --rm -v "${PWD}:/src" -w /src golang:1.25-alpine sh -c "go test ./internal/domain"`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add internal/domain/realtime.go internal/domain/realtime_test.go
@@ -268,7 +268,7 @@ git commit -m "feat: define realtime event contracts"
 - Produces: workspace tables and functions from spec section 7; `contact_timeline.origin_event_id`; trigger function `notifuse_capture_timeline_event()`; migration version `40.0`.
 - Consumed by: every runtime repository and worker.
 
-- [ ] **Step 1: Write failing migration SQL contract tests**
+- [x] **Step 1: Write failing migration SQL contract tests**
 
 Assert exact schema invariants, not SQL formatting:
 
@@ -285,15 +285,15 @@ func TestV40WorkspaceMigrationDefinesRealtimeTables(t *testing.T) {
 
 Integration test upgrades a real v39 workspace twice, verifies tables/constraints, inserts one timeline row, and asserts exactly one idempotency, ledger, and outbox row with the same origin event ID.
 
-- [ ] **Step 2: Run migration tests and verify RED**
+- [x] **Step 2: Run migration tests and verify RED**
 
 Run:
 
 ```powershell
-docker run --rm -v "${PWD}:/src" -w /src golang:1.25-alpine sh -lc "go test ./internal/migrations ./internal/database ./internal/database/schema -run 'TestV40|TestFresh.*Realtime'"
+docker run --rm -v "${PWD}:/src" -w /src golang:1.25-alpine sh -c "go test ./internal/migrations ./internal/database ./internal/database/schema -run 'TestV40|TestFresh.*Realtime'"
 ```
 
-- [ ] **Step 3: Implement v40 schema and bridge**
+- [x] **Step 3: Implement v40 schema and bridge**
 
 Implement `MajorMigrationInterface`, return `HasWorkspaceUpdate=true`, `HasSystemUpdate=false`, and regenerate every live automation trigger using the same per-automation savepoint and validation pattern as v38. The bridge inserts idempotency, partitioned ledger, and outbox in the timeline transaction with conflict-safe semantics.
 
@@ -302,9 +302,9 @@ Implement `MajorMigrationInterface`, return `HasWorkspaceUpdate=true`, `HasSyste
 Run:
 
 ```powershell
-docker run --rm -v "${PWD}:/src" -w /src golang:1.25-alpine sh -lc "go test ./internal/migrations ./internal/database ./internal/database/schema"
+docker run --rm -v "${PWD}:/src" -w /src golang:1.25-alpine sh -c "go test ./internal/migrations ./internal/database ./internal/database/schema"
 docker compose -f tests/compose.test.yaml up -d
-docker run --rm --network notifuse_test_network -e INTEGRATION_TESTS=true -v "${PWD}:/src" -w /src golang:1.25-alpine sh -lc "go test -tags integration ./tests/integration -run TestV40RealtimeMigration -v"
+docker run --rm --network notifuse_test_network -e INTEGRATION_TESTS=true -v "${PWD}:/src" -w /src golang:1.25-alpine sh -c "go test -tags integration ./tests/integration -run TestV40RealtimeMigration -v"
 ```
 
 - [ ] **Step 5: Commit**

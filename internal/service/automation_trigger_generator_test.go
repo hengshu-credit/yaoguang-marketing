@@ -951,7 +951,8 @@ BEGIN
         'golden1',
         NEW.email,
         'rootnode1',
-        'once'
+        'once',
+        NEW.origin_event_id
     );
     RETURN NEW;
 END;
@@ -962,6 +963,20 @@ $$ LANGUAGE plpgsql`
 	assert.NotContains(t, result.FunctionBody, "IF ")
 	assert.Empty(t, result.ConditionGuard)
 	assert.Empty(t, result.ValidationQuery)
+}
+
+func TestAutomationTriggerGeneratorCarriesOriginEventID(t *testing.T) {
+	result, err := NewAutomationTriggerGenerator(NewQueryBuilder()).Generate(&domain.Automation{
+		ID:         "origin1",
+		RootNodeID: "root1",
+		Trigger: &domain.TimelineTriggerConfig{
+			EventKind: "contact.created",
+			Frequency: domain.TriggerFrequencyEveryTime,
+		},
+	})
+	require.NoError(t, err)
+
+	assert.Contains(t, result.FunctionBody, "NEW.origin_event_id")
 }
 
 func TestAutomationTriggerGenerator_GuardWrapsEnrollment(t *testing.T) {

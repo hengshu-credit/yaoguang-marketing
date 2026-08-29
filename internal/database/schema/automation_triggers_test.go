@@ -54,3 +54,11 @@ func TestAutomationEnrollContactFunction_GuardPrecedesEveryWrite(t *testing.T) {
 		assert.Lessf(t, guard, idx, "the live guard must precede %q", write)
 	}
 }
+
+func TestAutomationEnrollContactFunctionCarriesOriginEventIdentity(t *testing.T) {
+	sql := AutomationEnrollContactFunction()
+
+	assert.Contains(t, sql, "p_origin_event_id UUID")
+	assert.Contains(t, sql, "origin_event_id")
+	assert.Contains(t, sql, "automation_version")
+}

@@ -295,7 +295,7 @@ func TestInitializeWorkspaceDatabase_Comprehensive(t *testing.T) {
 
 		// Mock all SQL statements - tables, indexes, trigger functions, and triggers
 		// Increased to accommodate all workspace tables, indexes, and webhook-related triggers
-		for i := 0; i < 150; i++ { // Allow for many SQL statements with buffer
+		for i := 0; i < 300; i++ { // Allow for many SQL statements with buffer
 			mock.ExpectExec(".+").WillReturnResult(sqlmock.NewResult(0, 0))
 		}
 
@@ -417,4 +417,16 @@ func TestInitializeWorkspaceDatabase_SubscriptionsPrecedeDeliveries(t *testing.T
 		rec.indexOfStatementContaining(t, "CREATE TABLE IF NOT EXISTS webhook_subscriptions"),
 		rec.indexOfStatementContaining(t, "CREATE TABLE IF NOT EXISTS webhook_deliveries"),
 	)
+}
+
+func TestInitializeWorkspaceDatabaseIncludesRealtimeAuthoritySchema(t *testing.T) {
+	rec := recordWorkspaceSchema(t)
+
+	assert.Less(t,
+		rec.indexOfStatementContaining(t, "CREATE TABLE IF NOT EXISTS event_idempotency"),
+		rec.indexOfStatementContaining(t, "CREATE TABLE IF NOT EXISTS event_ledger_"),
+	)
+	assert.NotEmpty(t, rec.statementContaining(t, "CREATE TABLE IF NOT EXISTS event_outbox"))
+	assert.NotEmpty(t, rec.statementContaining(t, "CREATE TABLE IF NOT EXISTS consumer_inbox"))
+	assert.NotEmpty(t, rec.statementContaining(t, "contact_timeline_realtime_bridge"))
 }

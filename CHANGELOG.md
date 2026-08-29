@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [40.0] - 2026-08-29
+
+- **Feature**: Added the durable realtime runtime foundation. Each workspace now records immutable events in a monthly partitioned PostgreSQL ledger and writes a transactional outbox in the same commit. A fixed `contact_timeline` bridge replaces automation-count-dependent fan-out at event capture time, while a separate idempotency registry protects event IDs across ledger partitions.
+
+- **Feature**: Added horizontally scalable runtime roles for API traffic, outbox relay, rule matching, journeys, delivery, analytics and scheduling. The local Compose topology now includes PgBouncer transaction pooling, RabbitMQ quorum queues with retry and dead-letter routing, Redis, ClickHouse and MinIO. `legacy`, `shadow` and `primary` modes provide a controlled migration path.
+
+- **Improvement**: Automation journeys now carry their origin event and automation version, plus optimistic state versions and expiring claim leases. External effects have a durable reservation table so retries and message replay can reuse one deterministic effect key instead of sending twice.
+
+- **Improvement**: Added indexed automation trigger bindings and per-event legacy/realtime match audits. This makes shadow comparisons explainable at event granularity and removes the need to scan every automation as the realtime matcher is enabled.
+
 ## [39.0] - 2026-08-18
 
 - **Feature**: Zapier. Settings → Integrations lists Zapier beside your other connectors, and connecting it creates an API key scoped to just what a Zap needs. From there a Zap can react to what happens in Notifuse — a contact created, a list subscribed to, a segment a contact entered — or reach the other way and create contacts, update them and subscribe them to your lists. Each Zap you switch on registers its own webhook subscription, which appears in Settings → Webhooks marked as Zapier's; switching the Zap off in Zapier removes it for you. Deleting the Zapier integration revokes the key it created, so the Zaps using it stop.

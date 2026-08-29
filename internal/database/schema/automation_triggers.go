@@ -20,11 +20,13 @@ func AutomationEnrollContactFunction() string {
 			p_automation_id VARCHAR(36),
 			p_contact_email VARCHAR(255),
 			p_root_node_id VARCHAR(36),
-			p_frequency VARCHAR(20)
+			p_frequency VARCHAR(20),
+			p_origin_event_id UUID DEFAULT NULL
 		) RETURNS VOID AS $$
 		DECLARE
 			v_already_triggered BOOLEAN;
 			v_new_id VARCHAR(36);
+			v_automation_version INTEGER;
 		BEGIN
 			-- 0. Enrol only while the automation is actually running.
 			--
@@ -46,6 +48,10 @@ func AutomationEnrollContactFunction() string {
 			) THEN
 				RETURN;
 			END IF;
+
+			SELECT version INTO v_automation_version
+			FROM automations
+			WHERE id = p_automation_id;
 
 			-- 1. For "once" frequency, check if already triggered
 			IF p_frequency = 'once' THEN
@@ -71,7 +77,7 @@ func AutomationEnrollContactFunction() string {
 			-- 3. Enroll contact in automation
 			INSERT INTO contact_automations (
 				id, automation_id, contact_email, current_node_id,
-				status, entered_at, scheduled_at
+				status, entered_at, scheduled_at, origin_event_id, automation_version
 			) VALUES (
 				v_new_id,
 				p_automation_id,
@@ -79,8 +85,26 @@ func AutomationEnrollContactFunction() string {
 				p_root_node_id,
 				'active',
 				NOW(),
-				NOW()
+				NOW(),
+				p_origin_event_id,
+				COALESCE(v_automation_version, 1)
 			);
+
+			IF p_origin_event_id IS NOT NULL THEN
+				INSERT INTO automation_match_audit (
+					event_id, automation_id, engine, matched, decision_hash,
+					contact_automation_id, reason
+				) VALUES (
+					p_origin_event_id,
+					p_automation_id,
+					'legacy',
+					TRUE,
+					md5(concat_ws(':', p_automation_id, COALESCE(v_automation_version, 1)::text, p_root_node_id, p_frequency)),
+					v_new_id,
+					jsonb_build_object('decision', 'enrolled')
+				)
+				ON CONFLICT (event_id, automation_id, engine) DO NOTHING;
+			END IF;
 
 			-- 4. Increment enrolled stat
 			UPDATE automations

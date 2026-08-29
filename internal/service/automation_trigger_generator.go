@@ -262,7 +262,8 @@ func (g *AutomationTriggerGenerator) buildFunctionBody(functionName string, auto
         %s,
         NEW.email,
         %s,
-        %s
+        %s,
+        NEW.origin_event_id
     );
     RETURN NEW;
 END;`,
@@ -279,7 +280,8 @@ END;`,
             %s,
             NEW.email,
             %s,
-            %s
+            %s,
+            NEW.origin_event_id
         );
     END IF;
     RETURN NEW;

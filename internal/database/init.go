@@ -256,6 +256,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_broadcasts_status_testing ON broadcasts(status) WHERE status IN ('testing', 'test_completed', 'winner_selected')`,
 		`CREATE TABLE IF NOT EXISTS contact_timeline (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			origin_event_id UUID NOT NULL DEFAULT gen_random_uuid(),
 			email VARCHAR(255) NOT NULL,
 			operation VARCHAR(20) NOT NULL,
 			entity_type VARCHAR(50) NOT NULL,
@@ -447,6 +448,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			root_node_id VARCHAR(36),
 			nodes JSONB DEFAULT '[]',
 			stats JSONB DEFAULT '{}',
+			version INTEGER NOT NULL DEFAULT 1,
 			created_at TIMESTAMPTZ DEFAULT NOW(),
 			updated_at TIMESTAMPTZ DEFAULT NOW(),
 			deleted_at TIMESTAMPTZ
@@ -467,6 +469,13 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			last_error TEXT,
 			last_retry_at TIMESTAMPTZ,
 			max_retries INTEGER DEFAULT 3,
+			origin_event_id UUID,
+			automation_version INTEGER NOT NULL DEFAULT 1,
+			state_version BIGINT NOT NULL DEFAULT 0,
+			claim_token UUID,
+			claimed_by TEXT,
+			claimed_at TIMESTAMPTZ,
+			claim_expires_at TIMESTAMPTZ,
 			UNIQUE(automation_id, contact_email, entered_at)
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_contact_automations_scheduled ON contact_automations(scheduled_at) WHERE status = 'active' AND scheduled_at IS NOT NULL`,
@@ -528,6 +537,20 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 	for _, query := range queries {
 		if _, err := db.Exec(query); err != nil {
 			return fmt.Errorf("failed to create workspace table: %w", err)
+		}
+	}
+
+	// Durable realtime authority tables and the fixed contact_timeline bridge.
+	// The same definitions are used by v40 so fresh and upgraded workspaces
+	// converge on the same constraints and indexes.
+	for _, query := range schema.RealtimeTableDefinitions() {
+		if _, err := db.Exec(query); err != nil {
+			return fmt.Errorf("failed to create realtime workspace table: %w", err)
+		}
+	}
+	for _, month := range schema.RealtimeBootstrapMonths(time.Now().UTC()) {
+		if _, err := db.Exec(schema.EventLedgerPartitionDDL(month)); err != nil {
+			return fmt.Errorf("failed to create event ledger partition: %w", err)
 		}
 	}
 
