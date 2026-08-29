@@ -562,10 +562,10 @@ func TestWorkspaceRepository_GetByID_Postgres(t *testing.T) {
 	settingsJSON, err := json.Marshal(settings)
 	require.NoError(t, err)
 
-	rows := sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at"}).
-		AddRow(workspaceID, "Test WS", settingsJSON, nil, createdAt, updatedAt)
+	rows := sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at", "workspace_sequence"}).
+		AddRow(workspaceID, "Test WS", settingsJSON, nil, createdAt, updatedAt, uint16(27))
 
-	mock.ExpectQuery(`SELECT id, name, settings, integrations, created_at, updated_at\s+FROM workspaces\s+WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, name, settings, integrations, created_at, updated_at, workspace_sequence\s+FROM workspaces\s+WHERE id = \$1`).
 		WithArgs(workspaceID).
 		WillReturnRows(rows)
 
@@ -575,9 +575,10 @@ func TestWorkspaceRepository_GetByID_Postgres(t *testing.T) {
 	assert.Equal(t, "Test WS", w.Name)
 	assert.Equal(t, "UTC", w.Settings.Timezone)
 	assert.Equal(t, "mysecret", w.Settings.SecretKey)
+	assert.Equal(t, uint16(27), w.Sequence)
 
 	// not found
-	mock.ExpectQuery(`SELECT id, name, settings, integrations, created_at, updated_at\s+FROM workspaces\s+WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, name, settings, integrations, created_at, updated_at, workspace_sequence\s+FROM workspaces\s+WHERE id = \$1`).
 		WithArgs("missing").
 		WillReturnError(sql.ErrNoRows)
 
@@ -586,7 +587,7 @@ func TestWorkspaceRepository_GetByID_Postgres(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found")
 
 	// db error
-	mock.ExpectQuery(`SELECT id, name, settings, integrations, created_at, updated_at\s+FROM workspaces\s+WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, name, settings, integrations, created_at, updated_at, workspace_sequence\s+FROM workspaces\s+WHERE id = \$1`).
 		WithArgs("boom").
 		WillReturnError(fmt.Errorf("db error"))
 
@@ -614,24 +615,25 @@ func TestWorkspaceRepository_List_Postgres(t *testing.T) {
 	newer := time.Now().Truncate(time.Second)
 	older := newer.Add(-time.Hour)
 
-	rows := sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at"}).
-		AddRow("w2", "Workspace 2", s1, nil, newer, newer).
-		AddRow("w1", "Workspace 1", s2, nil, older, older)
+	rows := sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at", "workspace_sequence"}).
+		AddRow("w2", "Workspace 2", s1, nil, newer, newer, uint16(2)).
+		AddRow("w1", "Workspace 1", s2, nil, older, older, uint16(1))
 
-	mock.ExpectQuery(`SELECT id, name, settings, integrations, created_at, updated_at\s+FROM workspaces\s+ORDER BY created_at DESC`).
+	mock.ExpectQuery(`SELECT id, name, settings, integrations, created_at, updated_at, workspace_sequence\s+FROM workspaces\s+ORDER BY created_at DESC`).
 		WillReturnRows(rows)
 
 	list, err := repo.List(context.Background())
 	require.NoError(t, err)
 	require.Len(t, list, 2)
 	assert.Equal(t, "w2", list[0].ID)
+	assert.Equal(t, uint16(2), list[0].Sequence)
 	assert.Equal(t, "s1", list[0].Settings.SecretKey)
 	assert.Equal(t, "w1", list[1].ID)
 	assert.Equal(t, "s2", list[1].Settings.SecretKey)
 
 	// empty result
-	emptyRows := sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at"})
-	mock.ExpectQuery(`SELECT id, name, settings, integrations, created_at, updated_at\s+FROM workspaces\s+ORDER BY created_at DESC`).
+	emptyRows := sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at", "workspace_sequence"})
+	mock.ExpectQuery(`SELECT id, name, settings, integrations, created_at, updated_at, workspace_sequence\s+FROM workspaces\s+ORDER BY created_at DESC`).
 		WillReturnRows(emptyRows)
 
 	list, err = repo.List(context.Background())
@@ -643,7 +645,7 @@ func TestWorkspaceRepository_List_Postgres(t *testing.T) {
 	assert.NotNil(t, list)
 
 	// db error
-	mock.ExpectQuery(`SELECT id, name, settings, integrations, created_at, updated_at\s+FROM workspaces\s+ORDER BY created_at DESC`).
+	mock.ExpectQuery(`SELECT id, name, settings, integrations, created_at, updated_at, workspace_sequence\s+FROM workspaces\s+ORDER BY created_at DESC`).
 		WillReturnError(fmt.Errorf("db err"))
 
 	_, err = repo.List(context.Background())
@@ -773,6 +775,46 @@ func TestWorkspaceRepository_Create_Postgres_ErrorsBeforeDBCreation(t *testing.T
 	// with proper cleanup requires integration tests or a more sophisticated mock setup
 	// that can handle database.EnsureWorkspaceDatabaseExists calls. The integration tests
 	// in tests/integration/workspace_test.go cover the full create flow including errors.
+}
+
+func TestWorkspaceRepository_InsertWorkspaceRecordAllocatesSequence(t *testing.T) {
+	db, mock, cleanup := testutil.SetupMockDB(t)
+	defer cleanup()
+
+	repo := NewWorkspaceRepository(db, &config.DatabaseConfig{Prefix: "notifuse"}, "secret-key", newMockConnectionManager(db)).(*workspaceRepository)
+	now := time.Now().UTC()
+	workspace := &domain.Workspace{ID: "ws1", Name: "Workspace 1", CreatedAt: now, UpdatedAt: now}
+	settings := []byte(`{"timezone":"UTC"}`)
+	integrations := []byte(`[]`)
+
+	mock.ExpectQuery(`INSERT INTO workspaces \(id, name, settings, integrations, created_at, updated_at\)\s+VALUES \(\$1, \$2, \$3, \$4, \$5, \$6\)\s+RETURNING workspace_sequence`).
+		WithArgs(workspace.ID, workspace.Name, settings, integrations, now, now).
+		WillReturnRows(sqlmock.NewRows([]string{"workspace_sequence"}).AddRow(uint16(27)))
+
+	err := repo.insertWorkspaceRecord(context.Background(), workspace, settings, integrations)
+
+	require.NoError(t, err)
+	assert.Equal(t, uint16(27), workspace.Sequence)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestWorkspaceRepository_InsertWorkspaceRecordMapsSequenceExhaustion(t *testing.T) {
+	db, mock, cleanup := testutil.SetupMockDB(t)
+	defer cleanup()
+
+	repo := NewWorkspaceRepository(db, &config.DatabaseConfig{Prefix: "notifuse"}, "secret-key", newMockConnectionManager(db)).(*workspaceRepository)
+	now := time.Now().UTC()
+	workspace := &domain.Workspace{ID: "ws1", Name: "Workspace 1", CreatedAt: now, UpdatedAt: now}
+
+	mock.ExpectQuery(`INSERT INTO workspaces`).
+		WillReturnError(&pq.Error{Code: pq.ErrorCode("2200H")})
+
+	err := repo.insertWorkspaceRecord(context.Background(), workspace, []byte(`{}`), []byte(`[]`))
+
+	var capacityErr *domain.ErrWorkspaceSequenceCapacity
+	require.ErrorAs(t, err, &capacityErr)
+	assert.Equal(t, uint16(9999), capacityErr.Maximum)
+	require.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestWorkspaceRepository_Delete_Postgres(t *testing.T) {
@@ -975,10 +1017,10 @@ func TestWorkspaceRepository_GetWorkspaceByCustomDomain(t *testing.T) {
 		integrationsJSON, _ := json.Marshal(integrations)
 
 		// Use a more flexible query matcher that accounts for whitespace
-		expectedQuery := "SELECT id, name, settings, integrations, created_at, updated_at"
+		expectedQuery := "SELECT id, name, settings, integrations, created_at, updated_at, workspace_sequence"
 
-		rows := sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at"}).
-			AddRow(workspaceID, workspaceName, settingsJSON, integrationsJSON, time.Now(), time.Now())
+		rows := sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at", "workspace_sequence"}).
+			AddRow(workspaceID, workspaceName, settingsJSON, integrationsJSON, time.Now(), time.Now(), uint16(27))
 
 		mock.ExpectQuery(expectedQuery).
 			WithArgs(customDomain).
@@ -995,7 +1037,7 @@ func TestWorkspaceRepository_GetWorkspaceByCustomDomain(t *testing.T) {
 	})
 
 	t.Run("workspace not found", func(t *testing.T) {
-		expectedQuery := "SELECT id, name, settings, integrations, created_at, updated_at"
+		expectedQuery := "SELECT id, name, settings, integrations, created_at, updated_at, workspace_sequence"
 
 		mock.ExpectQuery(expectedQuery).
 			WithArgs("nonexistent.example.com").
@@ -1020,10 +1062,10 @@ func TestWorkspaceRepository_GetWorkspaceByCustomDomain(t *testing.T) {
 		settingsJSON, _ := json.Marshal(settings)
 		integrationsJSON, _ := json.Marshal([]domain.Integration{})
 
-		expectedQuery := "SELECT id, name, settings, integrations, created_at, updated_at"
+		expectedQuery := "SELECT id, name, settings, integrations, created_at, updated_at, workspace_sequence"
 
-		rows := sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at"}).
-			AddRow(workspaceID, workspaceName, settingsJSON, integrationsJSON, time.Now(), time.Now())
+		rows := sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at", "workspace_sequence"}).
+			AddRow(workspaceID, workspaceName, settingsJSON, integrationsJSON, time.Now(), time.Now(), uint16(27))
 
 		mock.ExpectQuery(expectedQuery).
 			WithArgs(uppercaseDomain).
@@ -1037,7 +1079,7 @@ func TestWorkspaceRepository_GetWorkspaceByCustomDomain(t *testing.T) {
 	})
 
 	t.Run("database error", func(t *testing.T) {
-		expectedQuery := "SELECT id, name, settings, integrations, created_at, updated_at"
+		expectedQuery := "SELECT id, name, settings, integrations, created_at, updated_at, workspace_sequence"
 
 		mock.ExpectQuery(expectedQuery).
 			WithArgs(customDomain).

@@ -21,7 +21,8 @@ const (
 	// pgSyntaxErrorCode is PostgreSQL's syntax_error. DROP DATABASE ... WITH (FORCE)
 	// was introduced in PostgreSQL 13; older servers reject it while parsing, so this
 	// code tells us the statement never ran and a fallback is safe.
-	pgSyntaxErrorCode = "42601"
+	pgSyntaxErrorCode       = "42601"
+	pgSequenceExhaustedCode = "2200H"
 
 	// dropDatabaseTimeout bounds the workspace database drop. It is deliberately
 	// generous: DROP DATABASE marks the database invalid within milliseconds and
@@ -117,19 +118,7 @@ func (r *workspaceRepository) Create(ctx context.Context, workspace *domain.Work
 		return err
 	}
 
-	query := `
-		INSERT INTO workspaces (id, name, settings, integrations, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`
-	_, err = r.systemDB.ExecContext(ctx, query,
-		workspace.ID,
-		workspace.Name,
-		settings,
-		integrations,
-		workspace.CreatedAt,
-		workspace.UpdatedAt,
-	)
-	if err != nil {
+	if err := r.insertWorkspaceRecord(ctx, workspace, settings, integrations); err != nil {
 		// Clean up: delete the database we just created
 		_ = r.DeleteDatabase(ctx, workspace.ID)
 		return err
@@ -142,9 +131,39 @@ func (r *workspaceRepository) Create(ctx context.Context, workspace *domain.Work
 	return nil
 }
 
+func (r *workspaceRepository) insertWorkspaceRecord(
+	ctx context.Context,
+	workspace *domain.Workspace,
+	settings []byte,
+	integrations []byte,
+) error {
+	query := `
+		INSERT INTO workspaces (id, name, settings, integrations, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING workspace_sequence
+	`
+	err := r.systemDB.QueryRowContext(
+		ctx,
+		query,
+		workspace.ID,
+		workspace.Name,
+		settings,
+		integrations,
+		workspace.CreatedAt,
+		workspace.UpdatedAt,
+	).Scan(&workspace.Sequence)
+	if err != nil {
+		if details, ok := postgresdriver.ErrorDetails(err); ok && details.Code == pgSequenceExhaustedCode {
+			return &domain.ErrWorkspaceSequenceCapacity{Maximum: domain.MaxWorkspaceSequence}
+		}
+		return err
+	}
+	return nil
+}
+
 func (r *workspaceRepository) GetByID(ctx context.Context, id string) (*domain.Workspace, error) {
 	query := `
-		SELECT id, name, settings, integrations, created_at, updated_at
+		SELECT id, name, settings, integrations, created_at, updated_at, workspace_sequence
 		FROM workspaces
 		WHERE id = $1
 	`
@@ -168,7 +187,7 @@ func (r *workspaceRepository) GetWorkspaceByCustomDomain(ctx context.Context, ho
 	// Query to find workspace where custom_endpoint_url contains the hostname
 	// We need to extract the hostname from the URL and compare (case-insensitive)
 	query := `
-		SELECT id, name, settings, integrations, created_at, updated_at
+		SELECT id, name, settings, integrations, created_at, updated_at, workspace_sequence
 		FROM workspaces
 		WHERE settings->>'custom_endpoint_url' IS NOT NULL
 		  AND settings->>'custom_endpoint_url' != ''
@@ -201,7 +220,7 @@ func (r *workspaceRepository) GetWorkspaceByCustomDomain(ctx context.Context, ho
 
 func (r *workspaceRepository) List(ctx context.Context) ([]*domain.Workspace, error) {
 	query := `
-		SELECT id, name, settings, integrations, created_at, updated_at
+		SELECT id, name, settings, integrations, created_at, updated_at, workspace_sequence
 		FROM workspaces
 		ORDER BY created_at DESC
 	`

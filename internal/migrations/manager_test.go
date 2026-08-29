@@ -173,11 +173,11 @@ func TestManager_getAllWorkspaces_Success(t *testing.T) {
 
 	// Mock workspace query
 	now := time.Now()
-	rows := sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at"}).
-		AddRow("ws1", "Workspace 1", []byte("{}"), []byte("[]"), now, now).
-		AddRow("ws2", "Workspace 2", []byte("{}"), []byte("[]"), now, now)
+	rows := sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at", "workspace_sequence"}).
+		AddRow("ws1", "Workspace 1", []byte("{}"), []byte("[]"), now, now, uint16(1)).
+		AddRow("ws2", "Workspace 2", []byte("{}"), []byte("[]"), now, now, uint16(2))
 
-	mock.ExpectQuery("SELECT id, name, settings, integrations, created_at, updated_at FROM workspaces").
+	mock.ExpectQuery("SELECT id, name, settings, integrations, created_at, updated_at, workspace_sequence FROM workspaces").
 		WillReturnRows(rows)
 
 	workspaces, err := manager.getAllWorkspaces(ctx, db)
@@ -186,6 +186,7 @@ func TestManager_getAllWorkspaces_Success(t *testing.T) {
 	require.Len(t, workspaces, 2)
 	assert.Equal(t, "ws1", workspaces[0].ID)
 	assert.Equal(t, "Workspace 1", workspaces[0].Name)
+	assert.Equal(t, uint16(1), workspaces[0].Sequence)
 	assert.Equal(t, "ws2", workspaces[1].ID)
 	assert.Equal(t, "Workspace 2", workspaces[1].Name)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -200,7 +201,7 @@ func TestManager_getAllWorkspaces_QueryError(t *testing.T) {
 	ctx := context.Background()
 
 	// Mock query error
-	mock.ExpectQuery("SELECT id, name, settings, integrations, created_at, updated_at FROM workspaces").
+	mock.ExpectQuery("SELECT id, name, settings, integrations, created_at, updated_at, workspace_sequence FROM workspaces").
 		WillReturnError(errors.New("database error"))
 
 	workspaces, err := manager.getAllWorkspaces(ctx, db)
@@ -268,10 +269,10 @@ func TestManager_executeMigration_WorkspaceOnly(t *testing.T) {
 
 	// Mock workspace query
 	now := time.Now()
-	rows := sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at"}).
-		AddRow("ws1", "Workspace 1", []byte("{}"), []byte("[]"), now, now)
+	rows := sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at", "workspace_sequence"}).
+		AddRow("ws1", "Workspace 1", []byte("{}"), []byte("[]"), now, now, uint16(1))
 
-	mock.ExpectQuery("SELECT id, name, settings, integrations, created_at, updated_at FROM workspaces").
+	mock.ExpectQuery("SELECT id, name, settings, integrations, created_at, updated_at, workspace_sequence FROM workspaces").
 		WillReturnRows(rows)
 
 	// Mock workspace transaction expectations

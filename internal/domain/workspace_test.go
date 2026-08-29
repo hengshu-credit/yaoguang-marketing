@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
 	"github.com/asaskevich/govalidator"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -340,6 +340,8 @@ func (m *mockScanner) Scan(dest ...interface{}) error {
 			*v = m.values[i].([]byte)
 		case *time.Time:
 			*v = m.values[i].(time.Time)
+		case *uint16:
+			*v = m.values[i].(uint16)
 		}
 	}
 
@@ -375,6 +377,7 @@ func TestScanWorkspace(t *testing.T) {
 				integrationsJSON,
 				now,
 				now,
+				uint16(27),
 			},
 		}
 
@@ -391,6 +394,7 @@ func TestScanWorkspace(t *testing.T) {
 		assert.Equal(t, IntegrationTypeEmail, workspace.Integrations[0].Type)
 		assert.Equal(t, now, workspace.CreatedAt)
 		assert.Equal(t, now, workspace.UpdatedAt)
+		assert.Equal(t, uint16(27), workspace.Sequence)
 	})
 
 	t.Run("scan error", func(t *testing.T) {
@@ -413,6 +417,7 @@ func TestScanWorkspace(t *testing.T) {
 				integrationsJSON,
 				now,
 				now,
+				uint16(27),
 			},
 		}
 
@@ -430,6 +435,7 @@ func TestScanWorkspace(t *testing.T) {
 				[]byte("invalid json"),
 				now,
 				now,
+				uint16(27),
 			},
 		}
 
@@ -437,6 +443,11 @@ func TestScanWorkspace(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, workspace)
 	})
+}
+
+func TestErrWorkspaceSequenceCapacity_Error(t *testing.T) {
+	err := &ErrWorkspaceSequenceCapacity{Maximum: 9999}
+	assert.Equal(t, "workspace sequence capacity exhausted at 9999 historical workspaces", err.Error())
 }
 
 func TestErrUnauthorized_Error(t *testing.T) {

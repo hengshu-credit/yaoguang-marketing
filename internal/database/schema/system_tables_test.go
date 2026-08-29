@@ -177,6 +177,20 @@ func TestUsersTableHasLanguageColumn(t *testing.T) {
 		"fresh-install users table should define the language column")
 }
 
+func TestWorkspaceSequenceIsPermanentBoundedAndUnique(t *testing.T) {
+	definitions := strings.Join(TableDefinitions, "\n")
+	migrations := strings.Join(MigrationStatements, "\n")
+	allSQL := definitions + "\n" + migrations
+
+	assert.Contains(t, allSQL, "CREATE SEQUENCE IF NOT EXISTS workspace_sequence_number_seq")
+	assert.Contains(t, allSQL, "MAXVALUE 9999")
+	assert.Contains(t, allSQL, "NO CYCLE")
+	assert.Contains(t, allSQL, "workspace_sequence SMALLINT")
+	assert.Contains(t, allSQL, "DEFAULT nextval('workspace_sequence_number_seq')")
+	assert.Contains(t, allSQL, "CREATE UNIQUE INDEX IF NOT EXISTS idx_workspaces_workspace_sequence")
+	assert.Contains(t, allSQL, "CHECK (workspace_sequence BETWEEN 1 AND 9999)")
+}
+
 func TestSchemaConsistency(t *testing.T) {
 	t.Run("Migration statements reference some TableNames", func(t *testing.T) {
 		allStatements := strings.Join(MigrationStatements, " ")

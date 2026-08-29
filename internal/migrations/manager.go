@@ -249,7 +249,10 @@ func (m *Manager) executeMigration(ctx context.Context, cfg *config.Config, db *
 	if migration.HasWorkspaceUpdate() {
 		m.logger.WithField("version", fmt.Sprintf("%.0f", version)).Debug("Executing workspace migrations")
 
-		workspaces, err := m.getAllWorkspaces(ctx, db)
+		// Read through the active system transaction. A migration may add or
+		// backfill Workspace metadata that its Workspace phase needs immediately;
+		// querying the root *sql.DB here would not see those uncommitted changes.
+		workspaces, err := m.getAllWorkspaces(ctx, tx)
 		if err != nil {
 			return fmt.Errorf("failed to get workspaces: %w", err)
 		}
@@ -307,8 +310,8 @@ func (m *Manager) executeMigration(ctx context.Context, cfg *config.Config, db *
 }
 
 // getAllWorkspaces retrieves all workspaces from the database
-func (m *Manager) getAllWorkspaces(ctx context.Context, db *sql.DB) ([]domain.Workspace, error) {
-	rows, err := db.QueryContext(ctx, "SELECT id, name, settings, integrations, created_at, updated_at FROM workspaces")
+func (m *Manager) getAllWorkspaces(ctx context.Context, db DBExecutor) ([]domain.Workspace, error) {
+	rows, err := db.QueryContext(ctx, "SELECT id, name, settings, integrations, created_at, updated_at, workspace_sequence FROM workspaces")
 	if err != nil {
 		return nil, err
 	}
@@ -326,6 +329,7 @@ func (m *Manager) getAllWorkspaces(ctx context.Context, db *sql.DB) ([]domain.Wo
 			&workspace.Integrations,
 			&workspace.CreatedAt,
 			&workspace.UpdatedAt,
+			&workspace.Sequence,
 		)
 		if err != nil {
 			return nil, err

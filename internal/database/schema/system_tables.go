@@ -11,6 +11,8 @@ const RealtimeRuntimeCursorTableDefinition = `CREATE TABLE IF NOT EXISTS realtim
 // TableDefinitions contains all the SQL statements to create the database tables
 // Don't put REFERENCES and don't put CHECK constraints in the CREATE TABLE statements
 var TableDefinitions = []string{
+	`CREATE SEQUENCE IF NOT EXISTS workspace_sequence_number_seq
+		AS SMALLINT MINVALUE 1 MAXVALUE 9999 NO CYCLE`,
 	`CREATE TABLE IF NOT EXISTS users (
 		id UUID PRIMARY KEY,
 		type VARCHAR(20) NOT NULL,
@@ -30,6 +32,7 @@ var TableDefinitions = []string{
 	)`,
 	`CREATE TABLE IF NOT EXISTS workspaces (
 		id VARCHAR(20) PRIMARY KEY,
+		workspace_sequence SMALLINT NOT NULL DEFAULT nextval('workspace_sequence_number_seq'),
 		name VARCHAR(255) NOT NULL,
 		settings JSONB NOT NULL DEFAULT '{"timezone": "UTC"}',
 		integrations JSONB,
@@ -115,6 +118,51 @@ var TableDefinitions = []string{
 // MigrationStatements contains SQL statements to be run after table creation
 // These are for schema changes that need to be applied to existing databases
 var MigrationStatements = []string{
+	`CREATE SEQUENCE IF NOT EXISTS workspace_sequence_number_seq
+		AS SMALLINT MINVALUE 1 MAXVALUE 9999 NO CYCLE`,
+	`ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS workspace_sequence SMALLINT`,
+	`ALTER TABLE workspaces ALTER COLUMN workspace_sequence
+		SET DEFAULT nextval('workspace_sequence_number_seq')`,
+	`DO $$
+	DECLARE
+		v_last_allocated INTEGER;
+		v_max_persisted INTEGER;
+		v_resume_at INTEGER;
+	BEGIN
+		SELECT CASE WHEN is_called THEN last_value ELSE 0 END
+		INTO v_last_allocated
+		FROM workspace_sequence_number_seq;
+
+		SELECT COALESCE(MAX(workspace_sequence), 0)
+		INTO v_max_persisted
+		FROM workspaces;
+
+		v_resume_at := GREATEST(v_last_allocated, v_max_persisted);
+		IF v_resume_at = 0 THEN
+			PERFORM setval('workspace_sequence_number_seq', 1, false);
+		ELSE
+			PERFORM setval('workspace_sequence_number_seq', v_resume_at, true);
+		END IF;
+
+		UPDATE workspaces
+		SET workspace_sequence = nextval('workspace_sequence_number_seq')
+		WHERE workspace_sequence IS NULL;
+	END $$`,
+	`ALTER TABLE workspaces ALTER COLUMN workspace_sequence SET NOT NULL`,
+	`CREATE UNIQUE INDEX IF NOT EXISTS idx_workspaces_workspace_sequence
+		ON workspaces (workspace_sequence)`,
+	`DO $$
+	BEGIN
+		IF NOT EXISTS (
+			SELECT 1 FROM pg_constraint
+			WHERE conname = 'workspaces_workspace_sequence_check'
+			AND conrelid = 'workspaces'::regclass
+		) THEN
+			ALTER TABLE workspaces
+				ADD CONSTRAINT workspaces_workspace_sequence_check
+				CHECK (workspace_sequence BETWEEN 1 AND 9999);
+		END IF;
+	END $$`,
 	`DO $$
 	BEGIN
 		-- Add unique constraint on workspace_invitations (workspace_id, email) if it doesn't exist

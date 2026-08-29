@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hengshu-credit/yaoguang-marketing/pkg/crypto"
 	"github.com/asaskevich/govalidator"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/crypto"
 )
 
 // PermissionResource defines the different resources that can have permissions
@@ -672,6 +672,7 @@ func (ws *WorkspaceSettings) ValidateCustomFieldLabels() error {
 
 type Workspace struct {
 	ID           string            `json:"id"`
+	Sequence     uint16            `json:"workspace_sequence"`
 	Name         string            `json:"name"`
 	Settings     WorkspaceSettings `json:"settings"`
 	Integrations Integrations      `json:"integrations"`
@@ -953,6 +954,7 @@ type dbWorkspace struct {
 	Integrations []byte
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+	Sequence     uint16
 }
 
 // ScanWorkspace scans a workspace from the database
@@ -967,12 +969,14 @@ func ScanWorkspace(scanner interface {
 		&dbw.Integrations,
 		&dbw.CreatedAt,
 		&dbw.UpdatedAt,
+		&dbw.Sequence,
 	); err != nil {
 		return nil, err
 	}
 
 	w := &Workspace{
 		ID:        dbw.ID,
+		Sequence:  dbw.Sequence,
 		Name:      dbw.Name,
 		CreatedAt: dbw.CreatedAt,
 		UpdatedAt: dbw.UpdatedAt,
@@ -1153,6 +1157,17 @@ func (e *ErrTeamMemberLimitReached) Error() string {
 type ErrWorkspaceLimitReached struct {
 	Limit   int
 	Current int
+}
+
+// ErrWorkspaceSequenceCapacity is returned after all four-digit Workspace
+// sequence values have been permanently allocated. Deleting a Workspace does
+// not release its sequence.
+type ErrWorkspaceSequenceCapacity struct {
+	Maximum uint16
+}
+
+func (e *ErrWorkspaceSequenceCapacity) Error() string {
+	return fmt.Sprintf("workspace sequence capacity exhausted at %d historical workspaces", e.Maximum)
 }
 
 func (e *ErrWorkspaceLimitReached) Error() string {
