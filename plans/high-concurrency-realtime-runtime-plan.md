@@ -307,7 +307,7 @@ docker compose -f tests/compose.test.yaml up -d
 docker run --rm --network notifuse_test_network -e INTEGRATION_TESTS=true -v "${PWD}:/src" -w /src golang:1.25-alpine sh -c "go test -tags integration ./tests/integration -run TestV40RealtimeMigration -v"
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add internal/migrations/v40.go internal/migrations/v40_test.go internal/database/init.go internal/database/init_test.go internal/database/schema/automation_triggers.go internal/database/schema/automation_triggers_test.go config/config.go CHANGELOG.md tests/integration/v40_realtime_migration_test.go
@@ -370,7 +370,7 @@ Every completion/release includes the claim token predicate. A completed inbox r
 
 Run repository unit tests, then `TestRealtimeRepositoryConcurrentClaim` under `-race` using the integration Compose database.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add internal/domain/mocks/mock_realtime_repository.go internal/repository/realtime_postgres.go internal/repository/realtime_postgres_test.go tests/integration/realtime_repository_test.go
@@ -392,7 +392,7 @@ git commit -m "feat: add realtime persistence claims"
 - Produces: `Publisher.Publish(ctx, Message) error`, `Consumer.Consume(ctx, queue, Handler) error`, `Topology.Declare(context.Context) error`, delivery `Ack/Retry/DeadLetter` decisions.
 - Consumed by: relay and all consumers.
 
-- [ ] **Step 1: Write failing topology and confirm tests**
+- [x] **Step 1: Write failing topology and confirm tests**
 
 ```go
 func TestTopologyUsesQuorumQueuesAndManualAck(t *testing.T) {
@@ -408,11 +408,11 @@ func TestPublisherReturnsErrorWhenConfirmTimesOut(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run: `docker run --rm -v "${PWD}:/src" -w /src golang:1.25-alpine sh -lc "go test ./pkg/broker"`
 
-- [ ] **Step 3: Add `amqp091-go` and implement reconnect-safe confirms**
+- [x] **Step 3: Add `amqp091-go` and implement reconnect-safe confirms**
 
 Declare the four exchanges, quorum queues, four fixed TTL retry tiers, and dead queues. Publish persistent messages with `message_id`, `correlation_id`, content type, schema version, and tracing headers. Treat channel/connection closure and negative/expired confirms as failure.
 
@@ -420,7 +420,7 @@ Declare the four exchanges, quorum queues, four fixed TTL retry tiers, and dead 
 
 Run `go test ./pkg/broker` in the Go container, then a live test against the Compose RabbitMQ that publishes, receives, NACKs to retry, and dead-letters after the configured attempt limit.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add pkg/broker go.mod go.sum

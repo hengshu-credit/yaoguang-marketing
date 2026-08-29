@@ -47,7 +47,16 @@ if ($rendered.services.pgbouncer.environment.PGBOUNCER_DATABASE -ne '*') {
 $definitionsPath = Join-Path $repoRoot 'deploy/rabbitmq/definitions.json'
 $definitions = Get-Content -LiteralPath $definitionsPath -Raw | ConvertFrom-Json
 $queueNames = @($definitions.queues.name)
-foreach ($name in @('notifuse.rule', 'notifuse.journey', 'notifuse.delivery', 'notifuse.analytics', 'notifuse.dead-letter')) {
+foreach ($name in @(
+    'notifuse.rule',
+    'notifuse.journey',
+    'notifuse.delivery',
+    'notifuse.analytics',
+    'notifuse.rule.dead',
+    'notifuse.journey.dead',
+    'notifuse.delivery.dead',
+    'notifuse.analytics.dead'
+)) {
     if ($name -notin $queueNames) {
         throw "missing durable queue definition: $name"
     }
@@ -57,8 +66,9 @@ foreach ($queue in $definitions.queues) {
         throw "queue must be quorum: $($queue.name)"
     }
 }
-if (-not ($definitions.queues | Where-Object { $_.arguments.'x-message-ttl' -gt 0 })) {
-    throw 'at least one TTL retry queue is required'
+$retryQueues = @($definitions.queues | Where-Object { $_.arguments.'x-message-ttl' -gt 0 })
+if ($retryQueues.Count -ne 16) {
+    throw "four workers must each define four TTL retry queues; found $($retryQueues.Count)"
 }
 
 $managedServices = @(

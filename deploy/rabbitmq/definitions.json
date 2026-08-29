@@ -1,217 +1,72 @@
 {
   "exchanges": [
-    {
-      "name": "notifuse.events",
-      "vhost": "/",
-      "type": "topic",
-      "durable": true,
-      "auto_delete": false,
-      "internal": false,
-      "arguments": {}
-    },
-    {
-      "name": "notifuse.jobs",
-      "vhost": "/",
-      "type": "topic",
-      "durable": true,
-      "auto_delete": false,
-      "internal": false,
-      "arguments": {}
-    },
-    {
-      "name": "notifuse.retry",
-      "vhost": "/",
-      "type": "topic",
-      "durable": true,
-      "auto_delete": false,
-      "internal": false,
-      "arguments": {}
-    },
-    {
-      "name": "notifuse.dlx",
-      "vhost": "/",
-      "type": "topic",
-      "durable": true,
-      "auto_delete": false,
-      "internal": false,
-      "arguments": {}
-    }
+    {"name":"notifuse.events","vhost":"/","type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{}},
+    {"name":"notifuse.jobs","vhost":"/","type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{}},
+    {"name":"notifuse.retry","vhost":"/","type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{}},
+    {"name":"notifuse.dlx","vhost":"/","type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{}}
   ],
   "queues": [
-    {
-      "name": "notifuse.rule",
-      "vhost": "/",
-      "durable": true,
-      "auto_delete": false,
-      "arguments": {
-        "x-queue-type": "quorum",
-        "x-dead-letter-exchange": "notifuse.dlx",
-        "x-dead-letter-routing-key": "rule.failed"
-      }
-    },
-    {
-      "name": "notifuse.journey",
-      "vhost": "/",
-      "durable": true,
-      "auto_delete": false,
-      "arguments": {
-        "x-queue-type": "quorum",
-        "x-dead-letter-exchange": "notifuse.dlx",
-        "x-dead-letter-routing-key": "journey.failed"
-      }
-    },
-    {
-      "name": "notifuse.delivery",
-      "vhost": "/",
-      "durable": true,
-      "auto_delete": false,
-      "arguments": {
-        "x-queue-type": "quorum",
-        "x-dead-letter-exchange": "notifuse.dlx",
-        "x-dead-letter-routing-key": "delivery.failed"
-      }
-    },
-    {
-      "name": "notifuse.analytics",
-      "vhost": "/",
-      "durable": true,
-      "auto_delete": false,
-      "arguments": {
-        "x-queue-type": "quorum",
-        "x-dead-letter-exchange": "notifuse.dlx",
-        "x-dead-letter-routing-key": "analytics.failed"
-      }
-    },
-    {
-      "name": "notifuse.rule.retry.5s",
-      "vhost": "/",
-      "durable": true,
-      "auto_delete": false,
-      "arguments": {
-        "x-queue-type": "quorum",
-        "x-message-ttl": 5000,
-        "x-dead-letter-exchange": "notifuse.events",
-        "x-dead-letter-routing-key": "retry.rule"
-      }
-    },
-    {
-      "name": "notifuse.journey.retry.5s",
-      "vhost": "/",
-      "durable": true,
-      "auto_delete": false,
-      "arguments": {
-        "x-queue-type": "quorum",
-        "x-message-ttl": 5000,
-        "x-dead-letter-exchange": "notifuse.jobs",
-        "x-dead-letter-routing-key": "journey.retry"
-      }
-    },
-    {
-      "name": "notifuse.delivery.retry.5s",
-      "vhost": "/",
-      "durable": true,
-      "auto_delete": false,
-      "arguments": {
-        "x-queue-type": "quorum",
-        "x-message-ttl": 5000,
-        "x-dead-letter-exchange": "notifuse.jobs",
-        "x-dead-letter-routing-key": "delivery.retry"
-      }
-    },
-    {
-      "name": "notifuse.analytics.retry.5s",
-      "vhost": "/",
-      "durable": true,
-      "auto_delete": false,
-      "arguments": {
-        "x-queue-type": "quorum",
-        "x-message-ttl": 5000,
-        "x-dead-letter-exchange": "notifuse.events",
-        "x-dead-letter-routing-key": "retry.analytics"
-      }
-    },
-    {
-      "name": "notifuse.dead-letter",
-      "vhost": "/",
-      "durable": true,
-      "auto_delete": false,
-      "arguments": {
-        "x-queue-type": "quorum"
-      }
-    }
+    {"name":"notifuse.rule","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-dead-letter-exchange":"notifuse.dlx","x-dead-letter-routing-key":"rule.dead"}},
+    {"name":"notifuse.journey","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-dead-letter-exchange":"notifuse.dlx","x-dead-letter-routing-key":"journey.dead"}},
+    {"name":"notifuse.delivery","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-dead-letter-exchange":"notifuse.dlx","x-dead-letter-routing-key":"delivery.dead"}},
+    {"name":"notifuse.analytics","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-dead-letter-exchange":"notifuse.dlx","x-dead-letter-routing-key":"analytics.dead"}},
+
+    {"name":"notifuse.rule.dead","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum"}},
+    {"name":"notifuse.journey.dead","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum"}},
+    {"name":"notifuse.delivery.dead","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum"}},
+    {"name":"notifuse.analytics.dead","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum"}},
+
+    {"name":"notifuse.rule.retry.5s","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-message-ttl":5000,"x-dead-letter-exchange":"notifuse.events","x-dead-letter-routing-key":"retry.rule"}},
+    {"name":"notifuse.rule.retry.30s","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-message-ttl":30000,"x-dead-letter-exchange":"notifuse.events","x-dead-letter-routing-key":"retry.rule"}},
+    {"name":"notifuse.rule.retry.5m","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-message-ttl":300000,"x-dead-letter-exchange":"notifuse.events","x-dead-letter-routing-key":"retry.rule"}},
+    {"name":"notifuse.rule.retry.30m","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-message-ttl":1800000,"x-dead-letter-exchange":"notifuse.events","x-dead-letter-routing-key":"retry.rule"}},
+
+    {"name":"notifuse.journey.retry.5s","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-message-ttl":5000,"x-dead-letter-exchange":"notifuse.jobs","x-dead-letter-routing-key":"retry.journey"}},
+    {"name":"notifuse.journey.retry.30s","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-message-ttl":30000,"x-dead-letter-exchange":"notifuse.jobs","x-dead-letter-routing-key":"retry.journey"}},
+    {"name":"notifuse.journey.retry.5m","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-message-ttl":300000,"x-dead-letter-exchange":"notifuse.jobs","x-dead-letter-routing-key":"retry.journey"}},
+    {"name":"notifuse.journey.retry.30m","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-message-ttl":1800000,"x-dead-letter-exchange":"notifuse.jobs","x-dead-letter-routing-key":"retry.journey"}},
+
+    {"name":"notifuse.delivery.retry.5s","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-message-ttl":5000,"x-dead-letter-exchange":"notifuse.jobs","x-dead-letter-routing-key":"retry.delivery"}},
+    {"name":"notifuse.delivery.retry.30s","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-message-ttl":30000,"x-dead-letter-exchange":"notifuse.jobs","x-dead-letter-routing-key":"retry.delivery"}},
+    {"name":"notifuse.delivery.retry.5m","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-message-ttl":300000,"x-dead-letter-exchange":"notifuse.jobs","x-dead-letter-routing-key":"retry.delivery"}},
+    {"name":"notifuse.delivery.retry.30m","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-message-ttl":1800000,"x-dead-letter-exchange":"notifuse.jobs","x-dead-letter-routing-key":"retry.delivery"}},
+
+    {"name":"notifuse.analytics.retry.5s","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-message-ttl":5000,"x-dead-letter-exchange":"notifuse.events","x-dead-letter-routing-key":"retry.analytics"}},
+    {"name":"notifuse.analytics.retry.30s","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-message-ttl":30000,"x-dead-letter-exchange":"notifuse.events","x-dead-letter-routing-key":"retry.analytics"}},
+    {"name":"notifuse.analytics.retry.5m","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-message-ttl":300000,"x-dead-letter-exchange":"notifuse.events","x-dead-letter-routing-key":"retry.analytics"}},
+    {"name":"notifuse.analytics.retry.30m","vhost":"/","durable":true,"auto_delete":false,"arguments":{"x-queue-type":"quorum","x-message-ttl":1800000,"x-dead-letter-exchange":"notifuse.events","x-dead-letter-routing-key":"retry.analytics"}}
   ],
   "bindings": [
-    {
-      "source": "notifuse.events",
-      "vhost": "/",
-      "destination": "notifuse.rule",
-      "destination_type": "queue",
-      "routing_key": "#",
-      "arguments": {}
-    },
-    {
-      "source": "notifuse.events",
-      "vhost": "/",
-      "destination": "notifuse.analytics",
-      "destination_type": "queue",
-      "routing_key": "#",
-      "arguments": {}
-    },
-    {
-      "source": "notifuse.jobs",
-      "vhost": "/",
-      "destination": "notifuse.journey",
-      "destination_type": "queue",
-      "routing_key": "journey.#",
-      "arguments": {}
-    },
-    {
-      "source": "notifuse.jobs",
-      "vhost": "/",
-      "destination": "notifuse.delivery",
-      "destination_type": "queue",
-      "routing_key": "delivery.#",
-      "arguments": {}
-    },
-    {
-      "source": "notifuse.retry",
-      "vhost": "/",
-      "destination": "notifuse.rule.retry.5s",
-      "destination_type": "queue",
-      "routing_key": "rule.#",
-      "arguments": {}
-    },
-    {
-      "source": "notifuse.retry",
-      "vhost": "/",
-      "destination": "notifuse.journey.retry.5s",
-      "destination_type": "queue",
-      "routing_key": "journey.#",
-      "arguments": {}
-    },
-    {
-      "source": "notifuse.retry",
-      "vhost": "/",
-      "destination": "notifuse.delivery.retry.5s",
-      "destination_type": "queue",
-      "routing_key": "delivery.#",
-      "arguments": {}
-    },
-    {
-      "source": "notifuse.retry",
-      "vhost": "/",
-      "destination": "notifuse.analytics.retry.5s",
-      "destination_type": "queue",
-      "routing_key": "analytics.#",
-      "arguments": {}
-    },
-    {
-      "source": "notifuse.dlx",
-      "vhost": "/",
-      "destination": "notifuse.dead-letter",
-      "destination_type": "queue",
-      "routing_key": "#",
-      "arguments": {}
-    }
+    {"source":"notifuse.events","vhost":"/","destination":"notifuse.rule","destination_type":"queue","routing_key":"#","arguments":{}},
+    {"source":"notifuse.events","vhost":"/","destination":"notifuse.analytics","destination_type":"queue","routing_key":"#","arguments":{}},
+    {"source":"notifuse.jobs","vhost":"/","destination":"notifuse.journey","destination_type":"queue","routing_key":"journey.#","arguments":{}},
+    {"source":"notifuse.jobs","vhost":"/","destination":"notifuse.delivery","destination_type":"queue","routing_key":"delivery.#","arguments":{}},
+
+    {"source":"notifuse.events","vhost":"/","destination":"notifuse.rule","destination_type":"queue","routing_key":"retry.rule","arguments":{}},
+    {"source":"notifuse.jobs","vhost":"/","destination":"notifuse.journey","destination_type":"queue","routing_key":"retry.journey","arguments":{}},
+    {"source":"notifuse.jobs","vhost":"/","destination":"notifuse.delivery","destination_type":"queue","routing_key":"retry.delivery","arguments":{}},
+    {"source":"notifuse.events","vhost":"/","destination":"notifuse.analytics","destination_type":"queue","routing_key":"retry.analytics","arguments":{}},
+
+    {"source":"notifuse.dlx","vhost":"/","destination":"notifuse.rule.dead","destination_type":"queue","routing_key":"rule.#","arguments":{}},
+    {"source":"notifuse.dlx","vhost":"/","destination":"notifuse.journey.dead","destination_type":"queue","routing_key":"journey.#","arguments":{}},
+    {"source":"notifuse.dlx","vhost":"/","destination":"notifuse.delivery.dead","destination_type":"queue","routing_key":"delivery.#","arguments":{}},
+    {"source":"notifuse.dlx","vhost":"/","destination":"notifuse.analytics.dead","destination_type":"queue","routing_key":"analytics.#","arguments":{}},
+
+    {"source":"notifuse.retry","vhost":"/","destination":"notifuse.rule.retry.5s","destination_type":"queue","routing_key":"rule.5s","arguments":{}},
+    {"source":"notifuse.retry","vhost":"/","destination":"notifuse.rule.retry.30s","destination_type":"queue","routing_key":"rule.30s","arguments":{}},
+    {"source":"notifuse.retry","vhost":"/","destination":"notifuse.rule.retry.5m","destination_type":"queue","routing_key":"rule.5m","arguments":{}},
+    {"source":"notifuse.retry","vhost":"/","destination":"notifuse.rule.retry.30m","destination_type":"queue","routing_key":"rule.30m","arguments":{}},
+    {"source":"notifuse.retry","vhost":"/","destination":"notifuse.journey.retry.5s","destination_type":"queue","routing_key":"journey.5s","arguments":{}},
+    {"source":"notifuse.retry","vhost":"/","destination":"notifuse.journey.retry.30s","destination_type":"queue","routing_key":"journey.30s","arguments":{}},
+    {"source":"notifuse.retry","vhost":"/","destination":"notifuse.journey.retry.5m","destination_type":"queue","routing_key":"journey.5m","arguments":{}},
+    {"source":"notifuse.retry","vhost":"/","destination":"notifuse.journey.retry.30m","destination_type":"queue","routing_key":"journey.30m","arguments":{}},
+    {"source":"notifuse.retry","vhost":"/","destination":"notifuse.delivery.retry.5s","destination_type":"queue","routing_key":"delivery.5s","arguments":{}},
+    {"source":"notifuse.retry","vhost":"/","destination":"notifuse.delivery.retry.30s","destination_type":"queue","routing_key":"delivery.30s","arguments":{}},
+    {"source":"notifuse.retry","vhost":"/","destination":"notifuse.delivery.retry.5m","destination_type":"queue","routing_key":"delivery.5m","arguments":{}},
+    {"source":"notifuse.retry","vhost":"/","destination":"notifuse.delivery.retry.30m","destination_type":"queue","routing_key":"delivery.30m","arguments":{}},
+    {"source":"notifuse.retry","vhost":"/","destination":"notifuse.analytics.retry.5s","destination_type":"queue","routing_key":"analytics.5s","arguments":{}},
+    {"source":"notifuse.retry","vhost":"/","destination":"notifuse.analytics.retry.30s","destination_type":"queue","routing_key":"analytics.30s","arguments":{}},
+    {"source":"notifuse.retry","vhost":"/","destination":"notifuse.analytics.retry.5m","destination_type":"queue","routing_key":"analytics.5m","arguments":{}},
+    {"source":"notifuse.retry","vhost":"/","destination":"notifuse.analytics.retry.30m","destination_type":"queue","routing_key":"analytics.30m","arguments":{}}
   ]
 }
