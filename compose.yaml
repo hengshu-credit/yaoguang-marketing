@@ -1,97 +1,281 @@
-# ⚠️  IMPORTANT: If using a .env file with Docker Compose
-# Values containing # must be quoted: DB_PASSWORD="mypass#word123"
-# See env.example for more details.
+# Development topology for the durable realtime runtime. Every credential below
+# is a local-only default; override it through .env before any shared deployment.
+
+x-notifuse-environment: &notifuse-environment
+  SERVER_PORT: ${SERVER_PORT:-8080}
+  SERVER_HOST: ${SERVER_HOST:-0.0.0.0}
+  ENVIRONMENT: ${ENVIRONMENT:-development}
+  SECRET_KEY: ${SECRET_KEY:-d04zCk3Fa45oOjDWHpAvc1AZxnLdGffOnNWK+Jt2yXf37+FTfuMMHb8flcfPMqLluRR3rvhbr555r6j1DEigrA==}
+  DB_HOST: pgbouncer
+  DB_PORT: 6432
+  DB_USER: ${DB_USER:-postgres}
+  DB_PASSWORD: ${DB_PASSWORD:-postgres}
+  DB_PREFIX: ${DB_PREFIX:-notifuse}
+  DB_NAME: ${DB_NAME:-notifuse_system}
+  DB_SSLMODE: disable
+  DB_MAX_CONNECTIONS: ${DB_MAX_CONNECTIONS:-300}
+  DB_MAX_CONNECTIONS_PER_DB: ${DB_MAX_CONNECTIONS_PER_DB:-10}
+  REALTIME_MODE: ${REALTIME_MODE:-legacy}
+  RABBITMQ_URL: amqp://${RABBITMQ_USER:-notifuse}:${RABBITMQ_PASSWORD:-notifuse-rabbit}@rabbitmq:5672/
+  RABBITMQ_PREFETCH: ${RABBITMQ_PREFETCH:-100}
+  RABBITMQ_PUBLISH_CONFIRM_TIMEOUT: ${RABBITMQ_PUBLISH_CONFIRM_TIMEOUT:-5s}
+  REDIS_ADDR: redis:6379
+  REDIS_PASSWORD: ${REDIS_PASSWORD:-notifuse-redis}
+  REDIS_DB: ${REDIS_DB:-0}
+  CLICKHOUSE_ADDR: clickhouse:9000
+  CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE:-notifuse}
+  CLICKHOUSE_BATCH_SIZE: ${CLICKHOUSE_BATCH_SIZE:-1000}
+  CLICKHOUSE_FLUSH_INTERVAL: ${CLICKHOUSE_FLUSH_INTERVAL:-1s}
+  S3_ENDPOINT: http://minio:9000
+  S3_BUCKET: ${S3_BUCKET:-notifuse-assets}
+  S3_REGION: ${S3_REGION:-us-east-1}
+  S3_ACCESS_KEY: ${MINIO_ROOT_USER:-notifuse}
+  S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-notifuse-minio}
+  S3_FORCE_PATH_STYLE: 'true'
+  JOURNEY_LEASE: ${JOURNEY_LEASE:-60s}
+  JOURNEY_HEARTBEAT: ${JOURNEY_HEARTBEAT:-20s}
+  OUTBOX_BATCH_SIZE: ${OUTBOX_BATCH_SIZE:-200}
+  OUTBOX_LEASE: ${OUTBOX_LEASE:-30s}
+
+x-notifuse-dependencies: &notifuse-dependencies
+  pgbouncer:
+    condition: service_healthy
+  rabbitmq:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+  clickhouse:
+    condition: service_healthy
+  minio-init:
+    condition: service_completed_successfully
+
+x-notifuse-service: &notifuse-service
+  image: notifuse-local:dev
+  build:
+    context: .
+    dockerfile: Dockerfile
+  restart: unless-stopped
+  networks:
+    - notifuse-network
+  volumes:
+    - ./data:/app/data
+  depends_on: *notifuse-dependencies
 
 services:
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    <<: *notifuse-service
+    environment:
+      <<: *notifuse-environment
+      NOTIFUSE_ROLE: api
     ports:
       - '8081:8080'
       - '587:587'
-    environment:
-      # Server Configuration
-      - SERVER_PORT=${SERVER_PORT:-8080}
-      - SERVER_HOST=${SERVER_HOST:-0.0.0.0}
-      - ENVIRONMENT=${ENVIRONMENT:-production}
-
-      # Database Configuration (Required)
-      - DB_HOST=${DB_HOST:-postgres}
-      - DB_PORT=${DB_PORT:-5432}
-      - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-postgres}
-      - DB_PREFIX=${DB_PREFIX:-notifuse}
-      - DB_NAME=${DB_NAME:-notifuse_system}
-      - DB_SSLMODE=${DB_SSLMODE:-disable}
-
-      # Secret Key (Required) - Generate a secure random string for production
-      - SECRET_KEY=${SECRET_KEY:-d04zCk3Fa45oOjDWHpAvc1AZxnLdGffOnNWK+Jt2yXf37+FTfuMMHb8flcfPMqLluRR3rvhbr555r6j1DEigrA==}
-
-      # All other settings (ROOT_EMAIL, API_ENDPOINT, SMTP)
-      # can be configured through the Setup Wizard on first launch
-      # Or set them here as environment variables if you prefer
-      # - ROOT_EMAIL=${ROOT_EMAIL}
-      # - API_ENDPOINT=${API_ENDPOINT}
-      # - SMTP_HOST=${SMTP_HOST}
-      # - SMTP_PORT=${SMTP_PORT}
-      # - SMTP_USERNAME=${SMTP_USERNAME}
-      # - SMTP_PASSWORD=${SMTP_PASSWORD}
-      # - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
-      # - SMTP_FROM_NAME=${SMTP_FROM_NAME}
-
-      # SMTP Bridge Configuration (Optional - for receiving inbound emails)
-      # - SMTP_BRIDGE_ENABLED=${SMTP_BRIDGE_ENABLED}
-      # - SMTP_BRIDGE_PORT=${SMTP_BRIDGE_PORT}
-      # - SMTP_BRIDGE_DOMAIN=${SMTP_BRIDGE_DOMAIN}
-      # - SMTP_BRIDGE_TLS=${SMTP_BRIDGE_TLS}  # off | starttls | implicit (default: starttls when certs present)
-      # - SMTP_BRIDGE_TLS_CERT_BASE64=${SMTP_BRIDGE_TLS_CERT_BASE64}
-      # - SMTP_BRIDGE_TLS_KEY_BASE64=${SMTP_BRIDGE_TLS_KEY_BASE64}
-    depends_on:
-      - postgres
-    volumes:
-      - ./data:/app/data
-    restart: unless-stopped
-    networks:
-      - notifuse-network
     healthcheck:
-      test:
-        ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/healthz']
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/healthz']
       interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 10s
+      retries: 6
+      start_period: 20s
+
+  outbox-relay:
+    <<: *notifuse-service
+    environment:
+      <<: *notifuse-environment
+      NOTIFUSE_ROLE: outbox-relay
+
+  rule-worker:
+    <<: *notifuse-service
+    environment:
+      <<: *notifuse-environment
+      NOTIFUSE_ROLE: rule-worker
+
+  journey-worker:
+    <<: *notifuse-service
+    environment:
+      <<: *notifuse-environment
+      NOTIFUSE_ROLE: journey-worker
+
+  delivery-worker:
+    <<: *notifuse-service
+    environment:
+      <<: *notifuse-environment
+      NOTIFUSE_ROLE: delivery-worker
+
+  analytics-worker:
+    <<: *notifuse-service
+    environment:
+      <<: *notifuse-environment
+      NOTIFUSE_ROLE: analytics-worker
+
+  scheduler:
+    <<: *notifuse-service
+    environment:
+      <<: *notifuse-environment
+      NOTIFUSE_ROLE: scheduler
 
   postgres:
-    # Pinned to 17 deliberately. Bumping the major version here would break
-    # every existing install: the server refuses to start on a data directory
-    # from an older major without pg_upgrade, and postgres:18 also moved PGDATA
-    # to /var/lib/postgresql/18/docker (declaring VOLUME /var/lib/postgresql),
-    # so the volume mounted below would no longer receive the data at all.
-    # Notifuse runs on 17+; to move to 18, migrate with pg_upgrade and mount
-    # the volume at /var/lib/postgresql. For faster analytics, prefer
-    # compose.alloydb.yaml.
+    # PostgreSQL is the sole online source of truth. Keep the major pinned: an
+    # in-place major bump requires pg_upgrade and a deliberate volume migration.
     image: postgres:17-alpine
     ports:
-      - '5433:5432'
+      - '127.0.0.1:5433:5432'
     environment:
-      - POSTGRES_USER=${DB_USER:-postgres}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-      - POSTGRES_DB=${POSTGRES_DB:-postgres}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    command:
+      - postgres
+      - -c
+      - max_connections=${POSTGRES_MAX_CONNECTIONS:-300}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
     networks:
       - notifuse-network
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 12
+
+  pgbouncer:
+    image: bitnami/pgbouncer:1.23.1
+    ports:
+      - '127.0.0.1:6432:6432'
+    environment:
+      POSTGRESQL_HOST: postgres
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_USERNAME: ${DB_USER:-postgres}
+      POSTGRESQL_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRESQL_DATABASE: ${POSTGRES_DB:-postgres}
+      PGBOUNCER_DATABASE: '*'
+      PGBOUNCER_POOL_MODE: transaction
+      PGBOUNCER_MAX_CLIENT_CONN: ${PGBOUNCER_MAX_CLIENT_CONN:-5000}
+      PGBOUNCER_DEFAULT_POOL_SIZE: ${PGBOUNCER_DEFAULT_POOL_SIZE:-50}
+      PGBOUNCER_RESERVE_POOL_SIZE: ${PGBOUNCER_RESERVE_POOL_SIZE:-10}
+      PGBOUNCER_MAX_DB_CONNECTIONS: ${PGBOUNCER_MAX_DB_CONNECTIONS:-100}
+      PGBOUNCER_IGNORE_STARTUP_PARAMETERS: extra_float_digits
+      PGBOUNCER_SET_DATABASE_USER: 'yes'
+      PGBOUNCER_SET_DATABASE_PASSWORD: 'yes'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - notifuse-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -p 6432 -U "$${POSTGRESQL_USERNAME}" -d postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    ports:
+      - '127.0.0.1:5672:5672'
+      - '127.0.0.1:15672:15672'
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-notifuse}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-notifuse-rabbit}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+      - ./deploy/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+      - ./deploy/rabbitmq/rabbitmq.conf:/etc/rabbitmq/conf.d/20-notifuse.conf:ro
+    restart: unless-stopped
+    networks:
+      - notifuse-network
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '127.0.0.1:6379:6379'
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-notifuse-redis}
+    command: ['redis-server', '--appendonly', 'yes', '--requirepass', '${REDIS_PASSWORD:-notifuse-redis}']
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - notifuse-network
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -a "$${REDIS_PASSWORD}" ping | grep PONG']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.9
+    ports:
+      - '127.0.0.1:8123:8123'
+      - '127.0.0.1:9000:9000'
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DATABASE:-notifuse}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-notifuse}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-notifuse-clickhouse}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: '1'
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ./deploy/clickhouse/init:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    networks:
+      - notifuse-network
+    healthcheck:
+      test: ['CMD-SHELL', 'clickhouse-client --user "$${CLICKHOUSE_USER}" --password "$${CLICKHOUSE_PASSWORD}" --query "SELECT 1"']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  minio:
+    image: quay.io/minio/minio:latest
+    command: server /data --console-address ':9001'
+    ports:
+      - '127.0.0.1:9002:9000'
+      - '127.0.0.1:9001:9001'
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-notifuse}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-notifuse-minio}
+    volumes:
+      - minio-data:/data
+    restart: unless-stopped
+    networks:
+      - notifuse-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  minio-init:
+    image: quay.io/minio/mc:latest
+    environment:
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: ${S3_BUCKET:-notifuse-assets}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-notifuse}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-notifuse-minio}
+    volumes:
+      - ./deploy/minio/init.sh:/init/init.sh:ro
+    command: ['/bin/sh', '/init/init.sh']
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: 'no'
+    networks:
+      - notifuse-network
 
 volumes:
   postgres-data:
-    driver: local
+  rabbitmq-data:
+  redis-data:
+  clickhouse-data:
+  minio-data:
 
 networks:
   notifuse-network:

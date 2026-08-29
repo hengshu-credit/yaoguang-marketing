@@ -1,0 +1,217 @@
+{
+  "exchanges": [
+    {
+      "name": "notifuse.events",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "notifuse.jobs",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "notifuse.retry",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "notifuse.dlx",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "notifuse.rule",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-dead-letter-exchange": "notifuse.dlx",
+        "x-dead-letter-routing-key": "rule.failed"
+      }
+    },
+    {
+      "name": "notifuse.journey",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-dead-letter-exchange": "notifuse.dlx",
+        "x-dead-letter-routing-key": "journey.failed"
+      }
+    },
+    {
+      "name": "notifuse.delivery",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-dead-letter-exchange": "notifuse.dlx",
+        "x-dead-letter-routing-key": "delivery.failed"
+      }
+    },
+    {
+      "name": "notifuse.analytics",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-dead-letter-exchange": "notifuse.dlx",
+        "x-dead-letter-routing-key": "analytics.failed"
+      }
+    },
+    {
+      "name": "notifuse.rule.retry.5s",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-message-ttl": 5000,
+        "x-dead-letter-exchange": "notifuse.events",
+        "x-dead-letter-routing-key": "retry.rule"
+      }
+    },
+    {
+      "name": "notifuse.journey.retry.5s",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-message-ttl": 5000,
+        "x-dead-letter-exchange": "notifuse.jobs",
+        "x-dead-letter-routing-key": "journey.retry"
+      }
+    },
+    {
+      "name": "notifuse.delivery.retry.5s",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-message-ttl": 5000,
+        "x-dead-letter-exchange": "notifuse.jobs",
+        "x-dead-letter-routing-key": "delivery.retry"
+      }
+    },
+    {
+      "name": "notifuse.analytics.retry.5s",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-message-ttl": 5000,
+        "x-dead-letter-exchange": "notifuse.events",
+        "x-dead-letter-routing-key": "retry.analytics"
+      }
+    },
+    {
+      "name": "notifuse.dead-letter",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum"
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "source": "notifuse.events",
+      "vhost": "/",
+      "destination": "notifuse.rule",
+      "destination_type": "queue",
+      "routing_key": "#",
+      "arguments": {}
+    },
+    {
+      "source": "notifuse.events",
+      "vhost": "/",
+      "destination": "notifuse.analytics",
+      "destination_type": "queue",
+      "routing_key": "#",
+      "arguments": {}
+    },
+    {
+      "source": "notifuse.jobs",
+      "vhost": "/",
+      "destination": "notifuse.journey",
+      "destination_type": "queue",
+      "routing_key": "journey.#",
+      "arguments": {}
+    },
+    {
+      "source": "notifuse.jobs",
+      "vhost": "/",
+      "destination": "notifuse.delivery",
+      "destination_type": "queue",
+      "routing_key": "delivery.#",
+      "arguments": {}
+    },
+    {
+      "source": "notifuse.retry",
+      "vhost": "/",
+      "destination": "notifuse.rule.retry.5s",
+      "destination_type": "queue",
+      "routing_key": "rule.#",
+      "arguments": {}
+    },
+    {
+      "source": "notifuse.retry",
+      "vhost": "/",
+      "destination": "notifuse.journey.retry.5s",
+      "destination_type": "queue",
+      "routing_key": "journey.#",
+      "arguments": {}
+    },
+    {
+      "source": "notifuse.retry",
+      "vhost": "/",
+      "destination": "notifuse.delivery.retry.5s",
+      "destination_type": "queue",
+      "routing_key": "delivery.#",
+      "arguments": {}
+    },
+    {
+      "source": "notifuse.retry",
+      "vhost": "/",
+      "destination": "notifuse.analytics.retry.5s",
+      "destination_type": "queue",
+      "routing_key": "analytics.#",
+      "arguments": {}
+    },
+    {
+      "source": "notifuse.dlx",
+      "vhost": "/",
+      "destination": "notifuse.dead-letter",
+      "destination_type": "queue",
+      "routing_key": "#",
+      "arguments": {}
+    }
+  ]
+}

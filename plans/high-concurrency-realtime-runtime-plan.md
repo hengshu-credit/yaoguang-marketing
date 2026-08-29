@@ -106,7 +106,7 @@ Run the Step 2 command, then:
 docker run --rm -v "${PWD}:/src" -w /src golang:1.25-alpine sh -c "go test ./config ./internal/app"
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add config/realtime.go config/realtime_test.go config/config.go config/config_test.go internal/app/role.go internal/app/role_test.go
@@ -128,7 +128,7 @@ git commit -m "feat: add realtime runtime configuration"
 - Consumes: configuration names from Task 1.
 - Produces: healthy service names `postgres`, `pgbouncer`, `rabbitmq`, `redis`, `clickhouse`, `minio`, and process services for every runtime role.
 
-- [ ] **Step 1: Write the failing Compose structure test**
+- [x] **Step 1: Write the failing Compose structure test**
 
 ```powershell
 $rendered = docker compose config --format json | ConvertFrom-Json
@@ -140,13 +140,13 @@ if ($rendered.services.api.environment.NOTIFUSE_ROLE -ne 'api') { throw 'api rol
 if ($rendered.services.pgbouncer.environment.PGBOUNCER_POOL_MODE -ne 'transaction') { throw 'PgBouncer must use transaction pooling' }
 ```
 
-- [ ] **Step 2: Run the test and verify RED**
+- [x] **Step 2: Run the test and verify RED**
 
 Run: `powershell -ExecutionPolicy Bypass -File scripts/validate-realtime-compose.ps1`
 
 Expected: failure naming `pgbouncer` as the first missing service.
 
-- [ ] **Step 3: Add the infrastructure and role services**
+- [x] **Step 3: Add the infrastructure and role services**
 
 Use these image families and responsibilities:
 
