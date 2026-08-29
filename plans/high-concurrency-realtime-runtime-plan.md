@@ -137,7 +137,7 @@ foreach ($name in $required) {
   if (-not $rendered.services.PSObject.Properties.Name.Contains($name)) { throw "missing service: $name" }
 }
 if ($rendered.services.api.environment.NOTIFUSE_ROLE -ne 'api') { throw 'api role mismatch' }
-if ($rendered.services.pgbouncer.environment.PGBOUNCER_POOL_MODE -ne 'transaction') { throw 'PgBouncer must use transaction pooling' }
+if ($rendered.services.pgbouncer.environment.POOL_MODE -ne 'transaction') { throw 'PgBouncer must use transaction pooling' }
 ```
 
 - [x] **Step 2: Run the test and verify RED**
@@ -151,16 +151,16 @@ Expected: failure naming `pgbouncer` as the first missing service.
 Use these image families and responsibilities:
 
 ```yaml
-pgbouncer: { image: bitnami/pgbouncer:1.23.1 }
+pgbouncer: { image: edoburu/pgbouncer:v1.23.1-p3 }
 rabbitmq: { image: rabbitmq:4-management }
 redis: { image: redis:7-alpine }
 clickhouse: { image: clickhouse/clickhouse-server:24.9 }
 minio: { image: quay.io/minio/minio }
 ```
 
-Route every Notifuse role through PgBouncer port 6432, keep PostgreSQL port 5432 internal, configure health-conditioned dependencies, persistent volumes, RabbitMQ definitions, ClickHouse initialization, and MinIO bucket initialization. Do not expose management ports outside localhost in the default development Compose file.
+Route every Notifuse role through PgBouncer port 6432 using pgx named prepared statements, keep PostgreSQL port 5432 internal, configure health-conditioned dependencies, persistent volumes, one-shot RabbitMQ definition and MinIO bucket initialization, and make workers wait for the API migration gate. Do not expose published ports outside localhost in the default development Compose file.
 
-- [ ] **Step 4: Verify Compose rendering and container health**
+- [x] **Step 4: Verify Compose rendering and container health**
 
 Run:
 

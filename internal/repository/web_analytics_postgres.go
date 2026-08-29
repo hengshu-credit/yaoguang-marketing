@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/database/schema"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/Notifuse/notifuse/pkg/postgresdriver"
 )
 
 // Rows per INSERT statement. Sessions and goals carry ~60 bound parameters per
@@ -536,11 +536,11 @@ func isMissingPartitionError(err error) bool {
 	if err == nil {
 		return false
 	}
-	var pqErr *pq.Error
-	if !errors.As(err, &pqErr) {
+	details, ok := postgresdriver.ErrorDetails(err)
+	if !ok {
 		return false
 	}
-	return pqErr.Code == "23514" && strings.Contains(pqErr.Message, "no partition of relation")
+	return details.Code == "23514" && strings.Contains(details.Message, "no partition of relation")
 }
 
 func collectMonths(sessions []*domain.WebSession, pages []*domain.WebPage, goals []*domain.WebGoal) []time.Time {

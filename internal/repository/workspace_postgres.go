@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/database"
 	"github.com/Notifuse/notifuse/internal/domain"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
+	"github.com/Notifuse/notifuse/pkg/postgresdriver"
 )
 
 const (
@@ -473,8 +473,7 @@ func (r *workspaceRepository) DeleteDatabase(ctx context.Context, workspaceID st
 
 	// PostgreSQL below 13 rejects WITH (FORCE) while parsing, so nothing ran and it
 	// is safe to retry the pre-13 way.
-	var pqErr *pq.Error
-	if errors.As(err, &pqErr) && string(pqErr.Code) == pgSyntaxErrorCode {
+	if details, ok := postgresdriver.ErrorDetails(err); ok && details.Code == pgSyntaxErrorCode {
 		if fallbackErr := r.dropDatabaseWithoutForce(dropCtx, dbName, quotedDBName); fallbackErr != nil {
 			return fmt.Errorf("failed to drop workspace database %s (server predates WITH (FORCE)): %w", dbName, fallbackErr)
 		}

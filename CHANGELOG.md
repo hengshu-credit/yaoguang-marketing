@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Added a proxy-compatible PowerShell load check and tunable `INGEST_MAX_BATCH_SIZE` / `INGEST_MAX_INFLIGHT` settings for local and multi-replica deployments.
 
+- **Improvement**: Made the high-concurrency Compose runtime reproducible on current Docker Desktop releases. PgBouncer now uses a maintained 1.23.1 image with SCRAM and prepared-statement tracking, the application uses pgx so transaction pooling is safe, RabbitMQ and MinIO bootstrap through explicit one-shot jobs, workers wait for the API migration gate, published ports are localhost-only and configurable, and Docker build context excludes local dependency trees.
+
 ## [40.0] - 2026-08-29
 
 - **Feature**: Added the durable realtime runtime foundation. Each workspace now records immutable events in a monthly partitioned PostgreSQL ledger and writes a transactional outbox in the same commit. A fixed `contact_timeline` bridge replaces automation-count-dependent fan-out at event capture time, while a separate idempotency registry protects event IDs across ledger partitions.

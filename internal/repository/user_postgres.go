@@ -3,15 +3,14 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 	"go.opencensus.io/trace"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/postgresdriver"
 	"github.com/Notifuse/notifuse/pkg/tracing"
 )
 
@@ -60,8 +59,7 @@ func (r *userRepository) CreateUser(ctx context.Context, user *domain.User) erro
 		// degrades differently on a miss - setup stops treating an existing root user as
 		// success, the OIDC JIT path stops recovering onto the winner of a create race,
 		// and workspace API-user creation reports an outage instead of a duplicate.
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+		if details, ok := postgresdriver.ErrorDetails(err); ok && details.Code == "23505" {
 			return &domain.ErrUserExists{Message: "user already exists"}
 		}
 		return fmt.Errorf("failed to create user: %w", err)

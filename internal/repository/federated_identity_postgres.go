@@ -3,15 +3,14 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 	"go.opencensus.io/trace"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/postgresdriver"
 	"github.com/Notifuse/notifuse/pkg/tracing"
 )
 
@@ -97,8 +96,7 @@ func (r *federatedIdentityRepository) Create(ctx context.Context, fi *domain.Fed
 		// diagnosis - the caller can no longer tell a conflict from an outage, so a
 		// genuine same-link race stops resolving as an idempotent success and the user
 		// is sent to ?oidc_error=auth_failed, told to retry what cannot succeed.
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+		if details, ok := postgresdriver.ErrorDetails(err); ok && details.Code == "23505" {
 			return &domain.ErrFederatedIdentityExists{Message: "federated identity already exists"}
 		}
 		return fmt.Errorf("failed to create federated identity: %w", err)

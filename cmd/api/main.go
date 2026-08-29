@@ -9,8 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	_ "github.com/lib/pq"
-
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/app"
 	"github.com/Notifuse/notifuse/pkg/logger"

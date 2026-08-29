@@ -12,7 +12,8 @@
 本次交付必须同时提供：
 
 - PostgreSQL 17：唯一在线事实源；
-- PgBouncer：API 与工作进程的连接池代理；
+- PgBouncer：API 与工作进程的连接池代理（`edoburu/pgbouncer:v1.23.1-p3`）；
+- pgx/v5：`database/sql` PostgreSQL 驱动，使用稳定的命名 prepared statements，配合 PgBouncer transaction pooling 的语句映射；
 - RabbitMQ 4：耐久事件和任务消息；
 - Redis 7：跨实例频控、缓存和短期协调；
 - ClickHouse：可重建的事件分析投影；
@@ -61,11 +62,13 @@
 | 组件 | 权威数据 | 职责 | 明确禁止 |
 | --- | --- | --- | --- |
 | PostgreSQL | 是 | 用户、事件账本、outbox/inbox、旅程状态、幂等记录 | 不把分析查询放入发送热路径 |
-| PgBouncer | 否 | transaction pooling、连接数隔离 | 不使用 session 级状态依赖 |
+| PgBouncer | 否 | transaction pooling、连接数隔离、prepared statement 映射 | 不使用 session 级状态依赖；不接入不兼容的 unnamed-prepare 驱动 |
 | RabbitMQ | 否 | 事件与命令传递、背压、重试、故障隔离 | 不作为业务事实源 |
 | Redis | 否 | 跨实例频控、热点规则缓存、短期去重加速 | 不保存权威旅程状态 |
 | ClickHouse | 否 | 事件明细、漏斗、归因和分析投影 | 不反向同步 PostgreSQL |
 | MinIO/S3 | 素材二进制 | 素材、附件和预览截图 | 不保存模板业务元数据 |
+
+Compose 启动顺序也是运行时契约：RabbitMQ 和 MinIO 先由一次性初始化任务建立拓扑与 bucket；API 完成系统初始化和数据库迁移并通过健康检查；其余六个角色随后启动。这样滚动扩容不会让每个角色同时争抢 DDL。
 
 ## 4. 总体架构
 

@@ -12,7 +12,7 @@ import (
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/database"
-	"github.com/lib/pq"
+	"github.com/Notifuse/notifuse/pkg/postgresdriver"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -312,7 +312,7 @@ func (cm *connectionManager) createWorkspacePool(ctx context.Context, workspaceI
 // usable with a ping and a trivial query. Errors never include the DSN (which
 // contains the password).
 func (cm *connectionManager) openAndVerifyPool(ctx context.Context, dsn, workspaceID string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", dsn)
+	db, err := sql.Open(postgresdriver.Name, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open connection to workspace %s: %w", workspaceID, err)
 	}
@@ -334,11 +334,8 @@ func (cm *connectionManager) openAndVerifyPool(ctx context.Context, dsn, workspa
 // isDatabaseDoesNotExistErr reports whether err is PostgreSQL's
 // invalid_catalog_name (3D000), i.e. the target database does not exist.
 func isDatabaseDoesNotExistErr(err error) bool {
-	var pqErr *pq.Error
-	if errors.As(err, &pqErr) {
-		return pqErr.Code == "3D000"
-	}
-	return false
+	details, ok := postgresdriver.ErrorDetails(err)
+	return ok && details.Code == "3D000"
 }
 
 // hasCapacityForNewPool checks if we have capacity for a new connection pool.

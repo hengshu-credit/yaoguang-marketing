@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/config"
-	_ "github.com/lib/pq" // PostgreSQL driver
+	"github.com/Notifuse/notifuse/pkg/postgresdriver"
 )
 
 // GetConnectionPoolSettings returns connection pool settings based on environment
@@ -70,7 +70,7 @@ func ConnectToWorkspace(cfg *config.DatabaseConfig, workspaceID string) (*sql.DB
 	}
 
 	dsn := GetWorkspaceDSN(cfg, workspaceID)
-	db, err := sql.Open("postgres", dsn)
+	db, err := sql.Open(postgresdriver.Name, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to workspace database: %w", err)
 	}
@@ -99,7 +99,7 @@ func EnsureWorkspaceDatabaseExists(cfg *config.DatabaseConfig, workspaceID strin
 
 	// Connect to PostgreSQL server without specifying a database
 	pgDSN := GetPostgresDSN(cfg)
-	db, err := sql.Open("postgres", pgDSN)
+	db, err := sql.Open(postgresdriver.Name, pgDSN)
 	if err != nil {
 		return fmt.Errorf("failed to connect to PostgreSQL server: %w", err)
 	}
@@ -131,7 +131,7 @@ func EnsureWorkspaceDatabaseExists(cfg *config.DatabaseConfig, workspaceID strin
 		}
 
 		// Connect to the new database to initialize schema
-		wsDB, err := sql.Open("postgres", GetWorkspaceDSN(cfg, workspaceID))
+		wsDB, err := sql.Open(postgresdriver.Name, GetWorkspaceDSN(cfg, workspaceID))
 		if err != nil {
 			return fmt.Errorf("failed to connect to new workspace database: %w", err)
 		}
@@ -156,7 +156,7 @@ func EnsureWorkspaceDatabaseExists(cfg *config.DatabaseConfig, workspaceID strin
 // EnsureSystemDatabaseExists creates the system database if it doesn't exist
 func EnsureSystemDatabaseExists(dsn string, dbName string) error {
 	// Connect to PostgreSQL server without specifying a database
-	db, err := sql.Open("postgres", dsn)
+	db, err := sql.Open(postgresdriver.Name, dsn)
 	if err != nil {
 		return fmt.Errorf("failed to connect to PostgreSQL server: %w", err)
 	}

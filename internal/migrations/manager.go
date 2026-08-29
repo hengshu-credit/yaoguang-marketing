@@ -11,7 +11,7 @@ import (
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
-	_ "github.com/lib/pq" // PostgreSQL driver
+	"github.com/Notifuse/notifuse/pkg/postgresdriver"
 )
 
 // ErrRestartRequired is returned when a migration requires a server restart
@@ -48,7 +48,7 @@ func (c *defaultConnector) connectToWorkspace(cfg *config.DatabaseConfig, worksp
 		cfg.SSLMode,
 	)
 
-	db, err := sql.Open("postgres", dsn)
+	db, err := sql.Open(postgresdriver.Name, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to workspace database: %w", err)
 	}

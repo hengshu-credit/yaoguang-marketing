@@ -10,7 +10,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/lib/pq"
+	"github.com/Notifuse/notifuse/pkg/postgresdriver"
 )
 
 type templateRepository struct {
@@ -95,8 +95,7 @@ func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID str
 		// costs is the diagnosis - template.create answers 500 "Failed to create template"
 		// instead of 400 "Template id already exists", so the console shows a generic
 		// server error and the author never learns the id is taken.
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+		if details, ok := postgresdriver.ErrorDetails(err); ok && details.Code == "23505" {
 			return &domain.ErrTemplateExists{Message: "template id already exists"}
 		}
 		return fmt.Errorf("failed to create template: %w", err)
@@ -343,8 +342,7 @@ func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID str
 			// The base_version guard excluded the insert: the template advanced since.
 			return r.newVersionConflict(ctx, workspaceDB, template.ID, baseVersion)
 		}
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == "23505" && pqErr.Constraint == "templates_pkey" {
+		if details, ok := postgresdriver.ErrorDetails(err); ok && details.Code == "23505" && details.Constraint == "templates_pkey" {
 			// A concurrent save with the same base won the (id, version) race.
 			return r.newVersionConflict(ctx, workspaceDB, template.ID, baseVersion)
 		}

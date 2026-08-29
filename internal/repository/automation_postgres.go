@@ -11,8 +11,8 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/service"
+	"github.com/Notifuse/notifuse/pkg/postgresdriver"
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 )
 
 // AutomationRepository implements domain.AutomationRepository
@@ -1075,13 +1075,12 @@ func probeTriggerConditions(ctx context.Context, tx *sql.Tx, query string) error
 		return nil
 	}
 
-	var pqErr *pq.Error
-	if errors.As(err, &pqErr) {
+	if details, ok := postgresdriver.ErrorDetails(err); ok {
 		// Named codes, not the whole 42 class: class 42 also holds undefined_table and
 		// insufficient_privilege, which describe the workspace database rather than the
 		// condition. Blaming those on the caller answers 400 and tells them not to retry
 		// a condition that is perfectly well formed.
-		switch pqErr.Code {
+		switch details.Code {
 		case "42601", // syntax_error
 			"42703", // undefined_column
 			"42883", // undefined_function — includes "operator does not exist"

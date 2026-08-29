@@ -1,0 +1,14 @@
+.git
+.github
+.codex
+.env
+.env.*
+**/node_modules
+**/dist
+**/coverage
+**/*.log
+tmp
+server/tmp
+tests/integration/diagnostics
+plans
+docs

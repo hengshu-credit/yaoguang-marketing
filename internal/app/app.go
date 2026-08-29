@@ -27,6 +27,7 @@ import (
 	"github.com/Notifuse/notifuse/pkg/geoip"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/mailer"
+	"github.com/Notifuse/notifuse/pkg/postgresdriver"
 	"github.com/Notifuse/notifuse/pkg/ratelimiter"
 	"github.com/Notifuse/notifuse/pkg/smtp_bridge"
 	"github.com/Notifuse/notifuse/pkg/tracing"
@@ -323,7 +324,7 @@ func (a *App) InitDB() error {
 	a.logger.Info("System database check completed")
 
 	// If tracing is enabled, wrap the postgres driver
-	driverName := "postgres"
+	driverName := postgresdriver.Name
 	if a.config.Tracing.Enabled {
 		var err error
 		driverName, err = ocsql.Register(driverName, ocsql.WithAllTraceOptions())

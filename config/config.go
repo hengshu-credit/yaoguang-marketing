@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/Notifuse/notifuse/pkg/postgresdriver"
 	"github.com/Notifuse/notifuse/pkg/smtp_bridge"
-	_ "github.com/lib/pq" // PostgreSQL driver
 	"github.com/spf13/viper"
 )
 
@@ -662,7 +662,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	var systemSettings *SystemSettings
 	var isInstalled bool
 
-	db, err := sql.Open("postgres", getSystemDSN(&dbConfig))
+	db, err := sql.Open(postgresdriver.Name, getSystemDSN(&dbConfig))
 	if err == nil {
 		defer func() { _ = db.Close() }()
 		if err := db.Ping(); err == nil {

@@ -64,8 +64,8 @@ services:
       <<: *notifuse-environment
       NOTIFUSE_ROLE: api
     ports:
-      - '8081:8080'
-      - '587:587'
+      - '127.0.0.1:${API_HOST_PORT:-8081}:8080'
+      - '127.0.0.1:${SMTP_HOST_PORT:-1587}:587'
     healthcheck:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/healthz']
       interval: 10s
@@ -79,10 +79,14 @@ services:
       <<: *notifuse-environment
       NOTIFUSE_ROLE: outbox-relay
     depends_on:
+      api:
+        condition: service_healthy
       pgbouncer:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
 
   rule-worker:
     <<: *notifuse-service
@@ -90,10 +94,14 @@ services:
       <<: *notifuse-environment
       NOTIFUSE_ROLE: rule-worker
     depends_on:
+      api:
+        condition: service_healthy
       pgbouncer:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
 
   journey-worker:
     <<: *notifuse-service
@@ -101,10 +109,14 @@ services:
       <<: *notifuse-environment
       NOTIFUSE_ROLE: journey-worker
     depends_on:
+      api:
+        condition: service_healthy
       pgbouncer:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
 
   delivery-worker:
     <<: *notifuse-service
@@ -112,10 +124,14 @@ services:
       <<: *notifuse-environment
       NOTIFUSE_ROLE: delivery-worker
     depends_on:
+      api:
+        condition: service_healthy
       pgbouncer:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
 
@@ -125,10 +141,14 @@ services:
       <<: *notifuse-environment
       NOTIFUSE_ROLE: analytics-worker
     depends_on:
+      api:
+        condition: service_healthy
       pgbouncer:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
       clickhouse:
         condition: service_healthy
 
@@ -138,17 +158,21 @@ services:
       <<: *notifuse-environment
       NOTIFUSE_ROLE: scheduler
     depends_on:
+      api:
+        condition: service_healthy
       pgbouncer:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
 
   postgres:
     # PostgreSQL is the sole online source of truth. Keep the major pinned: an
     # in-place major bump requires pg_upgrade and a deliberate volume migration.
     image: postgres:17-alpine
     ports:
-      - '127.0.0.1:5433:5432'
+      - '127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432'
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
@@ -169,24 +193,24 @@ services:
       retries: 12
 
   pgbouncer:
-    image: bitnami/pgbouncer:1.23.1
+    image: edoburu/pgbouncer:v1.23.1-p3
     ports:
-      - '127.0.0.1:6432:6432'
+      - '127.0.0.1:${PGBOUNCER_HOST_PORT:-6432}:6432'
     environment:
-      POSTGRESQL_HOST: postgres
-      POSTGRESQL_PORT: 5432
-      POSTGRESQL_USERNAME: ${DB_USER:-postgres}
-      POSTGRESQL_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRESQL_DATABASE: ${POSTGRES_DB:-postgres}
-      PGBOUNCER_DATABASE: '*'
-      PGBOUNCER_POOL_MODE: transaction
-      PGBOUNCER_MAX_CLIENT_CONN: ${PGBOUNCER_MAX_CLIENT_CONN:-5000}
-      PGBOUNCER_DEFAULT_POOL_SIZE: ${PGBOUNCER_DEFAULT_POOL_SIZE:-50}
-      PGBOUNCER_RESERVE_POOL_SIZE: ${PGBOUNCER_RESERVE_POOL_SIZE:-10}
-      PGBOUNCER_MAX_DB_CONNECTIONS: ${PGBOUNCER_MAX_DB_CONNECTIONS:-100}
-      PGBOUNCER_IGNORE_STARTUP_PARAMETERS: extra_float_digits
-      PGBOUNCER_SET_DATABASE_USER: 'yes'
-      PGBOUNCER_SET_DATABASE_PASSWORD: 'yes'
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: '*'
+      LISTEN_PORT: 6432
+      AUTH_TYPE: scram-sha-256
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: ${PGBOUNCER_MAX_CLIENT_CONN:-5000}
+      DEFAULT_POOL_SIZE: ${PGBOUNCER_DEFAULT_POOL_SIZE:-50}
+      RESERVE_POOL_SIZE: ${PGBOUNCER_RESERVE_POOL_SIZE:-10}
+      MAX_DB_CONNECTIONS: ${PGBOUNCER_MAX_DB_CONNECTIONS:-100}
+      MAX_PREPARED_STATEMENTS: ${PGBOUNCER_MAX_PREPARED_STATEMENTS:-1000}
+      IGNORE_STARTUP_PARAMETERS: extra_float_digits
     depends_on:
       postgres:
         condition: service_healthy
@@ -194,7 +218,7 @@ services:
     networks:
       - notifuse-network
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -p 6432 -U "$${POSTGRESQL_USERNAME}" -d postgres']
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -p 6432 -U "$${DB_USER}" -d postgres']
       interval: 5s
       timeout: 5s
       retries: 12
@@ -202,15 +226,13 @@ services:
   rabbitmq:
     image: rabbitmq:4-management
     ports:
-      - '127.0.0.1:5672:5672'
-      - '127.0.0.1:15672:15672'
+      - '127.0.0.1:${RABBITMQ_HOST_PORT:-5672}:5672'
+      - '127.0.0.1:${RABBITMQ_MANAGEMENT_HOST_PORT:-15672}:15672'
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-notifuse}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-notifuse-rabbit}
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
-      - ./deploy/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
-      - ./deploy/rabbitmq/rabbitmq.conf:/etc/rabbitmq/conf.d/20-notifuse.conf:ro
     restart: unless-stopped
     networks:
       - notifuse-network
@@ -221,10 +243,28 @@ services:
       retries: 12
       start_period: 20s
 
+  rabbitmq-init:
+    image: rabbitmq:4-management
+    entrypoint: ['rabbitmqadmin']
+    command: ['definitions', 'import', '--file', '/etc/rabbitmq/definitions.json', '--non-interactive']
+    environment:
+      RABBITMQADMIN_TARGET_HOST: rabbitmq
+      RABBITMQADMIN_TARGET_PORT: 15672
+      RABBITMQADMIN_USERNAME: ${RABBITMQ_USER:-notifuse}
+      RABBITMQADMIN_PASSWORD: ${RABBITMQ_PASSWORD:-notifuse-rabbit}
+    volumes:
+      - ./deploy/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: 'no'
+    networks:
+      - notifuse-network
+
   redis:
     image: redis:7-alpine
     ports:
-      - '127.0.0.1:6379:6379'
+      - '127.0.0.1:${REDIS_HOST_PORT:-16380}:6379'
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-notifuse-redis}
     command: ['redis-server', '--appendonly', 'yes', '--requirepass', '${REDIS_PASSWORD:-notifuse-redis}']
@@ -242,8 +282,8 @@ services:
   clickhouse:
     image: clickhouse/clickhouse-server:24.9
     ports:
-      - '127.0.0.1:8123:8123'
-      - '127.0.0.1:9000:9000'
+      - '127.0.0.1:${CLICKHOUSE_HTTP_HOST_PORT:-8123}:8123'
+      - '127.0.0.1:${CLICKHOUSE_NATIVE_HOST_PORT:-9000}:9000'
     environment:
       CLICKHOUSE_DB: ${CLICKHOUSE_DATABASE:-notifuse}
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-notifuse}
@@ -266,8 +306,8 @@ services:
     image: quay.io/minio/minio:latest
     command: server /data --console-address ':9001'
     ports:
-      - '127.0.0.1:9002:9000'
-      - '127.0.0.1:9001:9001'
+      - '127.0.0.1:${MINIO_API_HOST_PORT:-9002}:9000'
+      - '127.0.0.1:${MINIO_CONSOLE_HOST_PORT:-9001}:9001'
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-notifuse}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-notifuse-minio}
@@ -292,7 +332,7 @@ services:
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-notifuse-minio}
     volumes:
       - ./deploy/minio/init.sh:/init/init.sh:ro
-    command: ['/bin/sh', '/init/init.sh']
+    entrypoint: ['/bin/sh', '/init/init.sh']
     depends_on:
       minio:
         condition: service_healthy
