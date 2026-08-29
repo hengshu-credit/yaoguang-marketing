@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/asaskevich/govalidator"
+	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/config"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/mailer"
-	"github.com/asaskevich/govalidator"
-	"github.com/google/uuid"
 )
 
 type WorkspaceService struct {
@@ -933,6 +933,37 @@ func (s *WorkspaceService) SetCustomFieldLabels(ctx context.Context, workspaceID
 
 	if err := s.repo.Update(ctx, existingWorkspace); err != nil {
 		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to update custom field labels")
+		return err
+	}
+
+	return nil
+}
+
+// SetUITranslations replaces the workspace's UI translation overrides. These
+// strings affect the console and system emails, so only a workspace owner may
+// change them.
+func (s *WorkspaceService) SetUITranslations(ctx context.Context, workspaceID string, translations map[string]map[string]string) error {
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to authenticate user: %w", err)
+	}
+	if userWorkspace.Role != "owner" {
+		return &domain.ErrUnauthorized{Message: "only workspace owners can set UI translations"}
+	}
+
+	existingWorkspace, err := s.repo.GetByID(ctx, workspaceID)
+	if err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to get existing workspace")
+		return err
+	}
+
+	existingWorkspace.Settings.UITranslations = translations
+	if err := existingWorkspace.Settings.ValidateUITranslations(); err != nil {
+		return err
+	}
+
+	if err := s.repo.Update(ctx, existingWorkspace); err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to update UI translations")
 		return err
 	}
 

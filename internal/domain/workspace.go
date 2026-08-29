@@ -479,14 +479,15 @@ type WorkspaceSettings struct {
 	// webhook_deliveries, and there are no block rows to trigger on. Adding them
 	// would mean inserting deliveries from the service layer — a second, parallel
 	// mechanism — so it is a deliberate initiative, not an oversight to patch.
-	TemplateBlocks    []TemplateBlock       `json:"template_blocks,omitempty"`
-	CustomEndpointURL *string               `json:"custom_endpoint_url,omitempty"`
-	CustomFieldLabels map[string]string     `json:"custom_field_labels,omitempty"`
-	BlogEnabled       bool                  `json:"blog_enabled"`            // Enable blog feature at workspace level
-	BlogSettings      *BlogSettings         `json:"blog_settings,omitempty"` // Blog styling and SEO settings
-	WebAnalytics      *WebAnalyticsSettings `json:"web_analytics,omitempty"` // Web analytics configuration
-	DefaultLanguage   string                `json:"default_language"`
-	Languages         []string              `json:"languages"`
+	TemplateBlocks    []TemplateBlock              `json:"template_blocks,omitempty"`
+	CustomEndpointURL *string                      `json:"custom_endpoint_url,omitempty"`
+	CustomFieldLabels map[string]string            `json:"custom_field_labels,omitempty"`
+	UITranslations    map[string]map[string]string `json:"ui_translations,omitempty"`
+	BlogEnabled       bool                         `json:"blog_enabled"`            // Enable blog feature at workspace level
+	BlogSettings      *BlogSettings                `json:"blog_settings,omitempty"` // Blog styling and SEO settings
+	WebAnalytics      *WebAnalyticsSettings        `json:"web_analytics,omitempty"` // Web analytics configuration
+	DefaultLanguage   string                       `json:"default_language"`
+	Languages         []string                     `json:"languages"`
 
 	// decoded secret key, not stored in the database
 	SecretKey string `json:"-"`
@@ -557,6 +558,10 @@ func (ws *WorkspaceSettings) Validate(passphrase string) error {
 	// Validate custom field labels if any are present
 	if err := ws.ValidateCustomFieldLabels(); err != nil {
 		return fmt.Errorf("invalid custom field labels: %w", err)
+	}
+
+	if err := ws.ValidateUITranslations(); err != nil {
+		return fmt.Errorf("invalid UI translations: %w", err)
 	}
 
 	// Validate default language is set
@@ -667,6 +672,52 @@ func (ws *WorkspaceSettings) ValidateCustomFieldLabels() error {
 		if len(label) > 100 {
 			return fmt.Errorf("custom field label for '%s' exceeds maximum length of 100 characters", fieldKey)
 		}
+	}
+
+	return nil
+}
+
+const (
+	maxUITranslationValueBytes = 2000
+	maxUITranslationEntries    = 5000
+	maxUITranslationsPayload   = 1 << 20
+)
+
+var compiledUITranslationID = regexp.MustCompile(`^[A-Za-z0-9+/=]+$`)
+
+// ValidateUITranslations validates the per-workspace overrides for the console
+// and system-email translation catalogue. Translation IDs are Lingui's compiled
+// message IDs and may include base64 characters.
+func (ws *WorkspaceSettings) ValidateUITranslations() error {
+	entries := 0
+	for locale, overrides := range ws.UITranslations {
+		if !IsSupportedUILanguage(locale) {
+			return fmt.Errorf("unsupported UI language: %s", locale)
+		}
+
+		for id, value := range overrides {
+			entries++
+			if entries > maxUITranslationEntries {
+				return fmt.Errorf("UI translations cannot exceed %d entries", maxUITranslationEntries)
+			}
+			if !compiledUITranslationID.MatchString(id) {
+				return fmt.Errorf("invalid UI translation ID: %s", id)
+			}
+			if strings.TrimSpace(value) == "" {
+				return fmt.Errorf("UI translation for '%s' cannot be blank", id)
+			}
+			if len(value) > maxUITranslationValueBytes {
+				return fmt.Errorf("UI translation for '%s' exceeds maximum length of %d bytes", id, maxUITranslationValueBytes)
+			}
+		}
+	}
+
+	encoded, err := json.Marshal(ws.UITranslations)
+	if err != nil {
+		return fmt.Errorf("failed to encode UI translations: %w", err)
+	}
+	if len(encoded) > maxUITranslationsPayload {
+		return fmt.Errorf("UI translations payload cannot exceed 1 MiB")
 	}
 
 	return nil
@@ -1211,6 +1262,7 @@ type WorkspaceServiceInterface interface {
 
 	// Custom field management
 	SetCustomFieldLabels(ctx context.Context, workspaceID string, labels map[string]string) error
+	SetUITranslations(ctx context.Context, workspaceID string, translations map[string]map[string]string) error
 
 	// Blog management. A nil enabled means the caller said nothing about the flag,
 	// and the stored one stands; the settings are replaced whole.
@@ -1661,6 +1713,34 @@ func (r *SetCustomFieldLabelsRequest) Validate() (workspaceID string, labels map
 	}
 
 	return r.WorkspaceID, r.CustomFieldLabels, nil
+}
+
+// SetUITranslationsRequest defines the request structure for replacing a
+// workspace's UI translation overrides.
+type SetUITranslationsRequest struct {
+	WorkspaceID    string                       `json:"workspace_id"`
+	UITranslations map[string]map[string]string `json:"ui_translations"`
+}
+
+// Validate validates the set UI translations request. An empty or nil map is
+// valid and clears all existing overrides.
+func (r *SetUITranslationsRequest) Validate() (workspaceID string, translations map[string]map[string]string, err error) {
+	if r.WorkspaceID == "" {
+		return "", nil, fmt.Errorf("invalid set UI translations request: workspace_id is required")
+	}
+	if !govalidator.IsAlphanumeric(r.WorkspaceID) {
+		return "", nil, fmt.Errorf("invalid set UI translations request: workspace_id must be alphanumeric")
+	}
+	if len(r.WorkspaceID) > 32 {
+		return "", nil, fmt.Errorf("invalid set UI translations request: workspace_id length must be between 1 and 32")
+	}
+
+	settings := &WorkspaceSettings{UITranslations: r.UITranslations}
+	if err := settings.ValidateUITranslations(); err != nil {
+		return "", nil, err
+	}
+
+	return r.WorkspaceID, r.UITranslations, nil
 }
 
 // SetBlogSettingsRequest defines the request structure for setting blog settings

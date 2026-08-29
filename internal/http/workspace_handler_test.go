@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/golang/mock/gomock"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/service"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -76,6 +76,7 @@ var demoRestrictedWorkspaceRoutes = []string{
 	"/api/workspaces.deleteInvitation",
 	"/api/workspaces.setUserPermissions",
 	"/api/workspaces.setCustomFieldLabels",
+	"/api/workspaces.setUITranslations",
 	"/api/workspaces.setBlogSettings",
 	"/api/workspaces.setWebAnalyticsSettings",
 	"/api/workspaces.createIntegration",
@@ -4175,6 +4176,71 @@ func TestWorkspaceHandler_HandleSetBlogSettings_SettingsPresenceReachesTheWrite(
 			Return(permErr)
 
 		w := post(t, `{"workspace_id":"workspace123","blog_enabled":false}`)
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+}
+func TestWorkspaceHandler_HandleSetUITranslations(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+	validBody := domain.SetUITranslationsRequest{
+		WorkspaceID:    "workspace123",
+		UITranslations: map[string]map[string]string{"zh-CN": {"zNkWa6": "Updated"}},
+	}
+
+	t.Run("successful update", func(t *testing.T) {
+		workspaceSvc.EXPECT().SetUITranslations(gomock.Any(), "workspace123", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, translations map[string]map[string]string) error {
+				assert.Equal(t, "Updated", translations["zh-CN"]["zNkWa6"])
+				return nil
+			})
+		body, err := json.Marshal(validBody)
+		require.NoError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.setUITranslations", bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var response map[string]string
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+		assert.Equal(t, "success", response["status"])
+		assert.Equal(t, "UI translations updated successfully", response["message"])
+	})
+
+	t.Run("method not allowed", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/workspaces.setUITranslations", nil)
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	})
+
+	t.Run("malformed JSON returns bad request", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.setUITranslations", strings.NewReader("not json"))
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("invalid locale returns bad request", func(t *testing.T) {
+		body, err := json.Marshal(domain.SetUITranslationsRequest{WorkspaceID: "workspace123", UITranslations: map[string]map[string]string{"xx": {"zNkWa6": "Updated"}}})
+		require.NoError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.setUITranslations", bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("non owner returns forbidden", func(t *testing.T) {
+		workspaceSvc.EXPECT().SetUITranslations(gomock.Any(), "workspace123", gomock.Any()).
+			Return(&domain.ErrUnauthorized{Message: "only workspace owners can set UI translations"})
+		body, err := json.Marshal(validBody)
+		require.NoError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.setUITranslations", bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
 }

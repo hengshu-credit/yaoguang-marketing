@@ -48,6 +48,7 @@ export interface WorkspaceSettings {
   template_blocks?: TemplateBlock[]
   custom_endpoint_url?: string
   custom_field_labels?: Record<string, string>
+  ui_translations?: Record<string, Record<string, string>>
   blog_enabled?: boolean
   blog_settings?: BlogSettings
   web_analytics?: import('./web_analytics').WebAnalyticsSettings
@@ -502,6 +503,16 @@ export interface SetCustomFieldLabelsResponse {
   message: string
 }
 
+export interface SetUITranslationsRequest {
+  workspace_id: string
+  ui_translations: Record<string, Record<string, string>>
+}
+
+export interface SetUITranslationsResponse {
+  status: string
+  message: string
+}
+
 export interface SetBlogSettingsRequest {
   workspace_id: string
   // Absent leaves the stored flag as it is; only the controls that exist to turn
@@ -628,6 +639,9 @@ export const workspaceService = {
 
   setCustomFieldLabels: (data: SetCustomFieldLabelsRequest) =>
     api.post<SetCustomFieldLabelsResponse>('/api/workspaces.setCustomFieldLabels', data),
+
+  setUITranslations: (data: SetUITranslationsRequest) =>
+    api.post<SetUITranslationsResponse>('/api/workspaces.setUITranslations', data),
 
   setBlogSettings: (data: SetBlogSettingsRequest) =>
     api.post<SetBlogSettingsResponse>('/api/workspaces.setBlogSettings', data)

@@ -81,6 +81,7 @@ func (h *WorkspaceHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/workspaces.deleteInvitation", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleDeleteInvitation))))
 	mux.Handle("/api/workspaces.setUserPermissions", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleSetUserPermissions))))
 	mux.Handle("/api/workspaces.setCustomFieldLabels", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleSetCustomFieldLabels))))
+	mux.Handle("/api/workspaces.setUITranslations", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleSetUITranslations))))
 	mux.Handle("/api/workspaces.setBlogSettings", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleSetBlogSettings))))
 	mux.Handle("/api/workspaces.setWebAnalyticsSettings", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleSetWebAnalyticsSettings))))
 
@@ -440,6 +441,44 @@ func (h *WorkspaceHandler) handleSetCustomFieldLabels(w http.ResponseWriter, r *
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"status":  "success",
 		"message": "Custom field labels updated successfully",
+	})
+}
+
+func (h *WorkspaceHandler) handleSetUITranslations(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req domain.SetUITranslationsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	workspaceID, translations, err := req.Validate()
+	if err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := h.workspaceService.SetUITranslations(r.Context(), workspaceID, translations); err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
+		var unauthorized *domain.ErrUnauthorized
+		if errors.As(err, &unauthorized) {
+			WriteJSONError(w, unauthorized.Message, http.StatusForbidden)
+			return
+		}
+		h.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to set UI translations")
+		WriteJSONError(w, "Failed to set UI translations", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"status":  "success",
+		"message": "UI translations updated successfully",
 	})
 }
 

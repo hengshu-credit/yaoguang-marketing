@@ -8,8 +8,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	domain "github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	gomock "github.com/golang/mock/gomock"
+	domain "github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
 // MockWorkspaceServiceInterface is a mock of WorkspaceServiceInterface interface.
@@ -299,6 +299,20 @@ func (m *MockWorkspaceServiceInterface) SetCustomFieldLabels(arg0 context.Contex
 func (mr *MockWorkspaceServiceInterfaceMockRecorder) SetCustomFieldLabels(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCustomFieldLabels", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).SetCustomFieldLabels), arg0, arg1, arg2)
+}
+
+// SetUITranslations mocks base method.
+func (m *MockWorkspaceServiceInterface) SetUITranslations(arg0 context.Context, arg1 string, arg2 map[string]map[string]string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetUITranslations", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetUITranslations indicates an expected call of SetUITranslations.
+func (mr *MockWorkspaceServiceInterfaceMockRecorder) SetUITranslations(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUITranslations", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).SetUITranslations), arg0, arg1, arg2)
 }
 
 // SetUserPermissions mocks base method.

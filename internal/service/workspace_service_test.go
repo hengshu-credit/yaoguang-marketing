@@ -5782,3 +5782,88 @@ func TestSetBlogSettings_UnspecifiedSettingsKeepTheStoredConfiguration(t *testin
 		assert.Nil(t, saved.Settings.BlogSettings.SEO)
 	})
 }
+func TestWorkspaceService_SetUITranslations(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockUserRepo := mocks.NewMockUserRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	service := NewWorkspaceService(
+		mockRepo, mockUserRepo, mocks.NewMockTaskRepository(ctrl), mockLogger,
+		mocks.NewMockUserServiceInterface(ctrl), mockAuthService, pkgmocks.NewMockMailer(ctrl),
+		&config.Config{RootEmail: "test@example.com"}, mocks.NewMockContactService(ctrl),
+		mocks.NewMockListService(ctrl), mocks.NewMockContactListService(ctrl),
+		mocks.NewMockTemplateService(ctrl), mocks.NewMockWebhookRegistrationService(ctrl),
+		"secret_key", &SupabaseService{}, &DNSVerificationService{}, &BlogService{},
+	)
+
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	ctx := context.Background()
+	const workspaceID = "testworkspace"
+	translations := map[string]map[string]string{"zh-CN": {"zNkWa6": "Updated"}}
+
+	t.Run("owner replaces only UI translations", func(t *testing.T) {
+		existing := &domain.Workspace{ID: workspaceID, Settings: domain.WorkspaceSettings{
+			WebsiteURL: "https://example.com", Timezone: "UTC", CustomFieldLabels: map[string]string{"custom_string_1": "Company"},
+			UITranslations: map[string]map[string]string{"en": {"zNkWa6": "Old"}},
+		}}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: "owner"}, &domain.UserWorkspace{UserID: "owner", WorkspaceID: workspaceID, Role: "owner"}, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(existing, nil)
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, workspace *domain.Workspace) error {
+			assert.Equal(t, translations, workspace.Settings.UITranslations)
+			assert.Equal(t, "https://example.com", workspace.Settings.WebsiteURL)
+			assert.Equal(t, map[string]string{"custom_string_1": "Company"}, workspace.Settings.CustomFieldLabels)
+			return nil
+		})
+
+		require.NoError(t, service.SetUITranslations(ctx, workspaceID, translations))
+	})
+
+	t.Run("non owner is unauthorized", func(t *testing.T) {
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: "member"}, &domain.UserWorkspace{UserID: "member", WorkspaceID: workspaceID, Role: "member"}, nil)
+
+		err := service.SetUITranslations(ctx, workspaceID, translations)
+		var unauthorized *domain.ErrUnauthorized
+		require.ErrorAs(t, err, &unauthorized)
+	})
+
+	t.Run("authentication failure propagates", func(t *testing.T) {
+		authErr := errors.New("authentication failed")
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, authErr)
+
+		assert.ErrorIs(t, service.SetUITranslations(ctx, workspaceID, translations), authErr)
+	})
+
+	t.Run("repository failure propagates", func(t *testing.T) {
+		repositoryErr := errors.New("workspace lookup failed")
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: "owner"}, &domain.UserWorkspace{UserID: "owner", WorkspaceID: workspaceID, Role: "owner"}, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(nil, repositoryErr)
+
+		assert.ErrorIs(t, service.SetUITranslations(ctx, workspaceID, translations), repositoryErr)
+	})
+
+	t.Run("repository update failure propagates", func(t *testing.T) {
+		updateErr := errors.New("workspace update failed")
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: "owner"}, &domain.UserWorkspace{UserID: "owner", WorkspaceID: workspaceID, Role: "owner"}, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(&domain.Workspace{ID: workspaceID}, nil)
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).Return(updateErr)
+
+		assert.ErrorIs(t, service.SetUITranslations(ctx, workspaceID, translations), updateErr)
+	})
+
+	t.Run("empty map clears translations", func(t *testing.T) {
+		existing := &domain.Workspace{ID: workspaceID, Settings: domain.WorkspaceSettings{UITranslations: map[string]map[string]string{"en": {"zNkWa6": "Old"}}}}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: "owner"}, &domain.UserWorkspace{UserID: "owner", WorkspaceID: workspaceID, Role: "owner"}, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(existing, nil)
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, workspace *domain.Workspace) error {
+			assert.Empty(t, workspace.Settings.UITranslations)
+			return nil
+		})
+
+		require.NoError(t, service.SetUITranslations(ctx, workspaceID, map[string]map[string]string{}))
+	})
+}

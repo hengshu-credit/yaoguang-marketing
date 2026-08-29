@@ -3,6 +3,7 @@ package domain
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -12,6 +13,126 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestSetUITranslationsRequest_Validate(t *testing.T) {
+	validTranslations := map[string]map[string]string{
+		"zh-CN": {"zNkWa6": "\u66f4\u65b0"},
+	}
+
+	testCases := []struct {
+		name         string
+		request      SetUITranslationsRequest
+		wantErr      string
+		wantSettings map[string]map[string]string
+	}{
+		{
+			name: "accepts a compiled ID for a supported locale",
+			request: SetUITranslationsRequest{
+				WorkspaceID:    "workspace123",
+				UITranslations: validTranslations,
+			},
+			wantSettings: validTranslations,
+		},
+		{
+			name: "accepts empty map to clear all translations",
+			request: SetUITranslationsRequest{
+				WorkspaceID:    "workspace123",
+				UITranslations: map[string]map[string]string{},
+			},
+			wantSettings: map[string]map[string]string{},
+		},
+		{
+			name:    "rejects missing workspace ID",
+			request: SetUITranslationsRequest{UITranslations: validTranslations},
+			wantErr: "workspace_id is required",
+		},
+		{
+			name:    "rejects non alphanumeric workspace ID",
+			request: SetUITranslationsRequest{WorkspaceID: "workspace-123", UITranslations: validTranslations},
+			wantErr: "workspace_id must be alphanumeric",
+		},
+		{
+			name:    "rejects oversized workspace ID",
+			request: SetUITranslationsRequest{WorkspaceID: strings.Repeat("a", 33), UITranslations: validTranslations},
+			wantErr: "workspace_id length must be between 1 and 32",
+		},
+		{
+			name:    "rejects unknown locale",
+			request: SetUITranslationsRequest{WorkspaceID: "workspace123", UITranslations: map[string]map[string]string{"xx": {"zNkWa6": "Updated"}}},
+			wantErr: "unsupported UI language",
+		},
+		{
+			name:    "rejects blank value",
+			request: SetUITranslationsRequest{WorkspaceID: "workspace123", UITranslations: map[string]map[string]string{"en": {"zNkWa6": ""}}},
+			wantErr: "cannot be blank",
+		},
+		{
+			name:    "rejects whitespace only value",
+			request: SetUITranslationsRequest{WorkspaceID: "workspace123", UITranslations: map[string]map[string]string{"en": {"zNkWa6": " \t"}}},
+			wantErr: "cannot be blank",
+		},
+		{
+			name:    "rejects compiled ID containing whitespace",
+			request: SetUITranslationsRequest{WorkspaceID: "workspace123", UITranslations: map[string]map[string]string{"en": {"zNk Wa6": "Updated"}}},
+			wantErr: "invalid UI translation ID",
+		},
+		{
+			name:    "rejects value over 2000 UTF-8 bytes",
+			request: SetUITranslationsRequest{WorkspaceID: "workspace123", UITranslations: map[string]map[string]string{"en": {"zNkWa6": strings.Repeat("a", 2001)}}},
+			wantErr: "exceeds maximum length of 2000 bytes",
+		},
+		{
+			name:    "rejects more than 5000 overrides",
+			request: SetUITranslationsRequest{WorkspaceID: "workspace123", UITranslations: map[string]map[string]string{"en": translationsForTest(5001, "Updated")}},
+			wantErr: "cannot exceed 5000 entries",
+		},
+		{
+			name:    "rejects payload over one MiB",
+			request: SetUITranslationsRequest{WorkspaceID: "workspace123", UITranslations: map[string]map[string]string{"en": translationsForTest(600, strings.Repeat("a", 2000))}},
+			wantErr: "cannot exceed 1 MiB",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			workspaceID, translations, err := tc.request.Validate()
+			if tc.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.wantErr)
+				assert.Empty(t, workspaceID)
+				assert.Nil(t, translations)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, "workspace123", workspaceID)
+			assert.Equal(t, tc.wantSettings, translations)
+		})
+	}
+}
+
+func TestWorkspaceSettings_UITranslationsValueAndScan(t *testing.T) {
+	settings := WorkspaceSettings{
+		UITranslations: map[string]map[string]string{
+			"zh-CN": {"zNkWa6": "\u66f4\u65b0"},
+		},
+	}
+
+	value, err := settings.Value()
+	require.NoError(t, err)
+
+	var decoded WorkspaceSettings
+	require.NoError(t, decoded.Scan(value))
+	assert.Equal(t, settings.UITranslations, decoded.UITranslations)
+}
+
+func translationsForTest(count int, value string) map[string]string {
+	translations := make(map[string]string, count)
+	for i := 0; i < count; i++ {
+		translations[fmt.Sprintf("zNkWa%d", i)] = value
+	}
+	return translations
+}
 
 func TestWorkspace_Validate(t *testing.T) {
 	passphrase := "test-passphrase"
