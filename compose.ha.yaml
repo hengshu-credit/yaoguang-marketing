@@ -1,4 +1,4 @@
-# Development topology for the durable realtime runtime. Every credential below
+# High-availability topology for the durable realtime runtime. Every credential below
 # is a local-only default; override it through .env before any shared deployment.
 
 x-notifuse-environment: &notifuse-environment
