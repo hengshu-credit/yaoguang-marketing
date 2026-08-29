@@ -551,10 +551,83 @@ type CustomerBatchUpsertResponse struct {
 	Results  []CustomerBatchItemResult `json:"results"`
 }
 
+type CustomerMergeRequest struct {
+	WorkspaceID    string          `json:"workspace_id"`
+	IdempotencyKey string          `json:"idempotency_key"`
+	Source         CustomerLocator `json:"source"`
+	Target         CustomerLocator `json:"target"`
+	Reason         string          `json:"reason,omitempty"`
+}
+
+func (request *CustomerMergeRequest) Validate() error {
+	if request == nil {
+		return fmt.Errorf("request is required")
+	}
+	request.WorkspaceID = strings.TrimSpace(request.WorkspaceID)
+	if request.WorkspaceID == "" || utf8.RuneCountInString(request.WorkspaceID) > 32 || !govalidator.IsAlphanumeric(request.WorkspaceID) {
+		return fmt.Errorf("workspace_id must be alphanumeric and contain 1 to 32 characters")
+	}
+	request.IdempotencyKey = trimUnicodeSpace(request.IdempotencyKey)
+	if request.IdempotencyKey == "" || utf8.RuneCountInString(request.IdempotencyKey) > 255 {
+		return fmt.Errorf("idempotency_key must contain 1 to 255 characters")
+	}
+	if err := request.Source.Validate(); err != nil {
+		return fmt.Errorf("invalid source locator: %w", err)
+	}
+	if err := request.Target.Validate(); err != nil {
+		return fmt.Errorf("invalid target locator: %w", err)
+	}
+	source, _ := json.Marshal(request.Source)
+	target, _ := json.Marshal(request.Target)
+	if string(source) == string(target) {
+		return fmt.Errorf("source and target locators must be different")
+	}
+	request.Reason = trimUnicodeSpace(request.Reason)
+	if utf8.RuneCountInString(request.Reason) > 500 {
+		return fmt.Errorf("merge reason cannot exceed 500 characters")
+	}
+	return nil
+}
+
+func (request CustomerMergeRequest) CanonicalPayloadHash() (string, error) {
+	if err := request.Validate(); err != nil {
+		return "", err
+	}
+	payload, err := json.Marshal(struct {
+		Source CustomerLocator `json:"source"`
+		Target CustomerLocator `json:"target"`
+		Reason string          `json:"reason,omitempty"`
+	}{Source: request.Source, Target: request.Target, Reason: request.Reason})
+	if err != nil {
+		return "", fmt.Errorf("encode canonical customer merge payload: %w", err)
+	}
+	sum := sha256.Sum256(payload)
+	return fmt.Sprintf("%x", sum[:]), nil
+}
+
+type CustomerMergeCommand struct {
+	WorkspaceID    string
+	IdempotencyKey string
+	PayloadHash    string
+	Source         CustomerLocator
+	Target         CustomerLocator
+	ActorID        string
+	Reason         string
+}
+
+type CustomerMergeResult struct {
+	SourceCustomerID string `json:"source_customer_id"`
+	TargetCustomerID string `json:"target_customer_id"`
+	TargetCustomerNo string `json:"target_customer_no"`
+	TargetVersion    int64  `json:"target_version"`
+	Replayed         bool   `json:"replayed"`
+}
+
 type CustomerService interface {
 	GetCustomer(ctx context.Context, request *GetCustomerRequest) (*Customer, error)
 	UpsertCustomer(ctx context.Context, request *UpsertCustomerRequest) (*CustomerMutationResult, error)
 	UpsertCustomerBatch(ctx context.Context, request *CustomerBatchUpsertRequest) (*CustomerBatchUpsertResponse, error)
+	MergeCustomer(ctx context.Context, request *CustomerMergeRequest) (*CustomerMergeResult, error)
 }
 
 //go:generate mockgen -destination mocks/mock_customer_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain CustomerService
@@ -613,6 +686,7 @@ type CustomerUpsertCommand struct {
 type CustomerRepository interface {
 	Upsert(ctx context.Context, command CustomerUpsertCommand) (*CustomerMutationResult, error)
 	Get(ctx context.Context, workspaceID string, locator CustomerLocator) (*Customer, error)
+	Merge(ctx context.Context, command CustomerMergeCommand) (*CustomerMergeResult, error)
 }
 
 //go:generate mockgen -destination mocks/mock_customer_repository.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain CustomerRepository

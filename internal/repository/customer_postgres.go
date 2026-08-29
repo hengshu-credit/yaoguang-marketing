@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -150,12 +151,17 @@ func (r *CustomerPostgresRepository) Upsert(ctx context.Context, command domain.
 
 	var result *domain.CustomerMutationResult
 	err := r.workspaceRepo.WithWorkspaceTransaction(ctx, command.WorkspaceID, func(tx *sql.Tx) error {
-		claimed, replayed, err := claimCustomerIdempotency(ctx, tx, command.IdempotencyKey, command.PayloadHash)
+		claimed, replayResponse, err := claimCustomerIdempotency(ctx, tx, "customer.upsert", command.IdempotencyKey, command.PayloadHash)
 		if err != nil {
 			return err
 		}
 		if !claimed {
-			result = replayed
+			var replayed domain.CustomerMutationResult
+			if err := json.Unmarshal(replayResponse, &replayed); err != nil {
+				return fmt.Errorf("decode customer idempotency response: %w", err)
+			}
+			replayed.Replayed = true
+			result = &replayed
 			return nil
 		}
 
@@ -232,9 +238,9 @@ func (r *CustomerPostgresRepository) Upsert(ctx context.Context, command domain.
 	return result, nil
 }
 
-func claimCustomerIdempotency(ctx context.Context, tx *sql.Tx, key, payloadHash string) (bool, *domain.CustomerMutationResult, error) {
+func claimCustomerIdempotency(ctx context.Context, tx *sql.Tx, operation, key, payloadHash string) (bool, []byte, error) {
 	result, err := tx.ExecContext(ctx, `INSERT INTO customer_idempotency (operation, idempotency_key, payload_hash)
-		VALUES ($1, $2, $3) ON CONFLICT (operation, idempotency_key) DO NOTHING`, "customer.upsert", key, payloadHash)
+		VALUES ($1, $2, $3) ON CONFLICT (operation, idempotency_key) DO NOTHING`, operation, key, payloadHash)
 	if err != nil {
 		return false, nil, fmt.Errorf("claim customer idempotency key: %w", err)
 	}
@@ -249,7 +255,7 @@ func claimCustomerIdempotency(ctx context.Context, tx *sql.Tx, key, payloadHash 
 	var storedHash string
 	var response []byte
 	if err := tx.QueryRowContext(ctx, `SELECT payload_hash, response FROM customer_idempotency
-		WHERE operation = $1 AND idempotency_key = $2 FOR UPDATE`, "customer.upsert", key).Scan(&storedHash, &response); err != nil {
+		WHERE operation = $1 AND idempotency_key = $2 FOR UPDATE`, operation, key).Scan(&storedHash, &response); err != nil {
 		return false, nil, fmt.Errorf("read customer idempotency replay: %w", err)
 	}
 	if storedHash != payloadHash {
@@ -258,12 +264,181 @@ func claimCustomerIdempotency(ctx context.Context, tx *sql.Tx, key, payloadHash 
 	if len(response) == 0 {
 		return false, nil, errors.New("customer idempotency response is incomplete")
 	}
-	var replayed domain.CustomerMutationResult
-	if err := json.Unmarshal(response, &replayed); err != nil {
-		return false, nil, fmt.Errorf("decode customer idempotency response: %w", err)
+	return false, response, nil
+}
+
+func (r *CustomerPostgresRepository) Merge(ctx context.Context, command domain.CustomerMergeCommand) (*domain.CustomerMergeResult, error) {
+	command.WorkspaceID = strings.TrimSpace(command.WorkspaceID)
+	command.IdempotencyKey = strings.TrimSpace(command.IdempotencyKey)
+	command.PayloadHash = strings.TrimSpace(command.PayloadHash)
+	command.ActorID = strings.TrimSpace(command.ActorID)
+	command.Reason = strings.TrimSpace(command.Reason)
+	if command.WorkspaceID == "" || command.IdempotencyKey == "" || command.PayloadHash == "" {
+		return nil, errors.New("workspace ID, idempotency key, and payload hash are required")
 	}
-	replayed.Replayed = true
-	return false, &replayed, nil
+	if err := command.Source.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid source customer locator: %w", err)
+	}
+	if err := command.Target.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid target customer locator: %w", err)
+	}
+
+	var result *domain.CustomerMergeResult
+	err := r.workspaceRepo.WithWorkspaceTransaction(ctx, command.WorkspaceID, func(tx *sql.Tx) error {
+		claimed, replayResponse, err := claimCustomerIdempotency(ctx, tx, "customer.merge", command.IdempotencyKey, command.PayloadHash)
+		if err != nil {
+			return err
+		}
+		if !claimed {
+			var replayed domain.CustomerMergeResult
+			if err := json.Unmarshal(replayResponse, &replayed); err != nil {
+				return fmt.Errorf("decode customer merge idempotency response: %w", err)
+			}
+			replayed.Replayed = true
+			result = &replayed
+			return nil
+		}
+
+		sourceCandidate, err := r.findCustomer(ctx, tx, command.WorkspaceID, command.Source)
+		if err != nil {
+			return fmt.Errorf("resolve merge source: %w", err)
+		}
+		targetCandidate, err := r.findCustomer(ctx, tx, command.WorkspaceID, command.Target)
+		if err != nil {
+			return fmt.Errorf("resolve merge target: %w", err)
+		}
+		if sourceCandidate.ID == targetCandidate.ID {
+			return &domain.ErrCustomerMergeRejected{Reason: "source and target resolve to the same customer"}
+		}
+
+		lockIDs := []string{sourceCandidate.ID, targetCandidate.ID}
+		sort.Strings(lockIDs)
+		locked := make(map[string]*domain.Customer, 2)
+		for _, customerID := range lockIDs {
+			customer, err := r.findCustomerWithLock(ctx, tx, command.WorkspaceID, domain.CustomerLocator{CustomerID: customerID}, true)
+			if err != nil {
+				return fmt.Errorf("lock merge customer %s: %w", customerID, err)
+			}
+			locked[customerID] = customer
+		}
+		source := locked[sourceCandidate.ID]
+		target := locked[targetCandidate.ID]
+		if source.MergedIntoID != nil {
+			if *source.MergedIntoID != target.ID {
+				return &domain.ErrCustomerMergeRejected{Reason: "source was already merged into another customer"}
+			}
+			result = &domain.CustomerMergeResult{
+				SourceCustomerID: source.ID, TargetCustomerID: target.ID,
+				TargetCustomerNo: target.CustomerNo, TargetVersion: target.Version,
+			}
+			return storeCustomerIdempotencyResponse(ctx, tx, "customer.merge", command.IdempotencyKey, target.ID, result)
+		}
+		if target.MergedIntoID != nil {
+			return &domain.ErrCustomerMergeRejected{Reason: "target customer has already been merged"}
+		}
+		if source.ExternalUserID != nil {
+			return &domain.ErrCustomerMergeRejected{Reason: "source must be anonymous and have no external user ID"}
+		}
+		if target.ExternalUserID == nil {
+			return &domain.ErrCustomerMergeRejected{Reason: "target must be known and have an external user ID"}
+		}
+		if err := r.loadCustomerChildren(ctx, tx, source); err != nil {
+			return fmt.Errorf("snapshot merge source: %w", err)
+		}
+		snapshot, err := json.Marshal(source)
+		if err != nil {
+			return fmt.Errorf("encode merge source snapshot: %w", err)
+		}
+		now := r.now().UTC()
+		if err := moveCustomerAggregate(ctx, tx, source.ID, target.ID, now); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE customers SET merged_into_id = $1, merged_at = $2,
+			version = version + 1, updated_at = $2 WHERE id = $3`, target.ID, now, source.ID); err != nil {
+			return fmt.Errorf("mark merge source redirected: %w", err)
+		}
+		if err := tx.QueryRowContext(ctx, `UPDATE customers SET version = version + 1, updated_at = $1
+			WHERE id = $2 RETURNING version`, now, target.ID).Scan(&target.Version); err != nil {
+			return fmt.Errorf("increment merge target version: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO customer_merge_log (
+			id, source_customer_id, target_customer_id, actor_id, reason, source_snapshot, created_at
+		) VALUES ($1, $2, $3, NULLIF($4, ''), NULLIF($5, ''), $6, $7)`,
+			uuid.New(), source.ID, target.ID, command.ActorID, command.Reason, snapshot, now); err != nil {
+			return fmt.Errorf("write customer merge audit: %w", err)
+		}
+		result = &domain.CustomerMergeResult{
+			SourceCustomerID: source.ID, TargetCustomerID: target.ID,
+			TargetCustomerNo: target.CustomerNo, TargetVersion: target.Version,
+		}
+		return storeCustomerIdempotencyResponse(ctx, tx, "customer.merge", command.IdempotencyKey, target.ID, result)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func moveCustomerAggregate(ctx context.Context, tx *sql.Tx, sourceID, targetID string, now time.Time) error {
+	statements := []struct {
+		query string
+		args  []interface{}
+	}{
+		{query: `INSERT INTO customer_profiles (customer_id, status, language, timezone, attributes, version, created_at, updated_at)
+			SELECT $1, status, language, timezone, attributes, version, created_at, $3
+			FROM customer_profiles WHERE customer_id = $2
+			ON CONFLICT (customer_id) DO UPDATE SET
+				status = COALESCE(customer_profiles.status, EXCLUDED.status),
+				language = COALESCE(customer_profiles.language, EXCLUDED.language),
+				timezone = COALESCE(customer_profiles.timezone, EXCLUDED.timezone),
+				attributes = EXCLUDED.attributes || customer_profiles.attributes,
+				version = customer_profiles.version + 1, updated_at = EXCLUDED.updated_at`, args: []interface{}{targetID, sourceID, now}},
+		{query: `DELETE FROM customer_profiles WHERE customer_id = $1`, args: []interface{}{sourceID}},
+		{query: `DELETE FROM customer_identities source_identity USING customer_identities target_identity
+			WHERE source_identity.customer_id = $1 AND target_identity.customer_id = $2
+			AND source_identity.identity_type = target_identity.identity_type
+			AND source_identity.lookup_fingerprint = target_identity.lookup_fingerprint`, args: []interface{}{sourceID, targetID}},
+		{query: `UPDATE customer_identities source_identity SET is_primary = FALSE
+			FROM customer_identities target_identity
+			WHERE source_identity.customer_id = $1 AND target_identity.customer_id = $2
+			AND source_identity.identity_type = target_identity.identity_type
+			AND source_identity.is_primary AND target_identity.is_primary AND target_identity.enabled`, args: []interface{}{sourceID, targetID}},
+		{query: `UPDATE customer_identities SET customer_id = $1, updated_at = $3 WHERE customer_id = $2`, args: []interface{}{targetID, sourceID, now}},
+		{query: `INSERT INTO customer_tags (customer_id, tag, created_at)
+			SELECT $1, tag, created_at FROM customer_tags WHERE customer_id = $2
+			ON CONFLICT (customer_id, tag) DO NOTHING`, args: []interface{}{targetID, sourceID}},
+		{query: `DELETE FROM customer_tags WHERE customer_id = $1`, args: []interface{}{sourceID}},
+		{query: `INSERT INTO customer_consents (id, customer_id, purpose, channel, status, source, valid_from, revoked_at, metadata, created_at, updated_at)
+			SELECT id, $1, purpose, channel, status, source, valid_from, revoked_at, metadata, created_at, updated_at
+			FROM customer_consents WHERE customer_id = $2
+			ON CONFLICT (customer_id, purpose, channel) DO NOTHING`, args: []interface{}{targetID, sourceID}},
+		{query: `DELETE FROM customer_consents WHERE customer_id = $1`, args: []interface{}{sourceID}},
+		{query: `INSERT INTO customer_list_memberships (customer_id, list_id, status, created_at, updated_at)
+			SELECT $1, list_id, status, created_at, updated_at FROM customer_list_memberships WHERE customer_id = $2
+			ON CONFLICT (customer_id, list_id) DO NOTHING`, args: []interface{}{targetID, sourceID}},
+		{query: `DELETE FROM customer_list_memberships WHERE customer_id = $1`, args: []interface{}{sourceID}},
+		{query: `UPDATE contact_endpoints SET customer_id = $1 WHERE customer_id = $2`, args: []interface{}{targetID, sourceID}},
+		{query: `UPDATE contacts SET customer_id = $1 WHERE customer_id = $2`, args: []interface{}{targetID, sourceID}},
+	}
+	for _, statement := range statements {
+		if _, err := tx.ExecContext(ctx, statement.query, statement.args...); err != nil {
+			return fmt.Errorf("move customer aggregate: %w", err)
+		}
+	}
+	return nil
+}
+
+func storeCustomerIdempotencyResponse(ctx context.Context, tx *sql.Tx, operation, key, customerID string, response interface{}) error {
+	encoded, err := json.Marshal(response)
+	if err != nil {
+		return fmt.Errorf("encode customer idempotency response: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE customer_idempotency SET customer_id = $1, response = $2,
+		updated_at = CURRENT_TIMESTAMP WHERE operation = $3 AND idempotency_key = $4`,
+		customerID, encoded, operation, key); err != nil {
+		return fmt.Errorf("store customer idempotency response: %w", err)
+	}
+	return nil
 }
 
 func (r *CustomerPostgresRepository) resolveCustomerForUpsert(ctx context.Context, tx *sql.Tx, workspaceID string, input domain.CustomerUpsertInput) (*domain.Customer, error) {

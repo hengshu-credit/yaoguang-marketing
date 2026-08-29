@@ -112,6 +112,37 @@ func (s *CustomerService) UpsertCustomerBatch(ctx context.Context, request *doma
 	return response, nil
 }
 
+func (s *CustomerService) MergeCustomer(ctx context.Context, request *domain.CustomerMergeRequest) (*domain.CustomerMergeResult, error) {
+	if request == nil {
+		return nil, domain.NewValidationError("request is required")
+	}
+	if err := request.Validate(); err != nil {
+		return nil, domain.NewValidationError(err.Error())
+	}
+	payloadHash, err := request.CanonicalPayloadHash()
+	if err != nil {
+		return nil, domain.NewValidationError(err.Error())
+	}
+	authenticatedCtx, user, membership, err := s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate customer merge request: %w", err)
+	}
+	if membership == nil || !membership.HasPermission(domain.PermissionResourceCustomers, domain.PermissionTypeWrite) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceCustomers, domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to customers required",
+		)
+	}
+	actorID := ""
+	if user != nil {
+		actorID = user.ID
+	}
+	return s.repository.Merge(authenticatedCtx, domain.CustomerMergeCommand{
+		WorkspaceID: request.WorkspaceID, IdempotencyKey: request.IdempotencyKey, PayloadHash: payloadHash,
+		Source: request.Source, Target: request.Target, ActorID: actorID, Reason: request.Reason,
+	})
+}
+
 func (s *CustomerService) authorize(ctx context.Context, workspaceID string, permission domain.PermissionType) (context.Context, error) {
 	authenticatedCtx, _, membership, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {

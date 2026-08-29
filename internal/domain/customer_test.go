@@ -451,6 +451,43 @@ func TestCustomerBatchUpsertRequestLeavesItemValidationToCompleteResultProcessin
 	require.NoError(t, request.Validate(10_000))
 }
 
+func TestCustomerMergeRequestAllowsOnlyTwoDistinctExplicitLocators(t *testing.T) {
+	request := CustomerMergeRequest{
+		WorkspaceID: "workspace123", IdempotencyKey: "merge-1", Reason: "anonymous login",
+		Source: CustomerLocator{Identity: &CustomerIdentityLocator{Type: CustomerIdentityAnonymousID, Value: "anon-1"}},
+		Target: CustomerLocator{ExternalUserID: "known-1"},
+	}
+	require.NoError(t, request.Validate())
+	hash, err := request.CanonicalPayloadHash()
+	require.NoError(t, err)
+	assert.Regexp(t, `^[0-9a-f]{64}$`, hash)
+
+	request.Target = request.Source
+	err = request.Validate()
+	assert.ErrorContains(t, err, "different")
+}
+
+func TestCustomerMergeRequestValidatesWorkspaceIdempotencyAndReason(t *testing.T) {
+	validSource := CustomerLocator{CustomerID: "11111111-1111-4111-8111-111111111111"}
+	validTarget := CustomerLocator{CustomerID: "22222222-2222-4222-8222-222222222222"}
+	tests := []struct {
+		name    string
+		request CustomerMergeRequest
+		wantErr string
+	}{
+		{name: "workspace", request: CustomerMergeRequest{IdempotencyKey: "merge", Source: validSource, Target: validTarget}, wantErr: "workspace_id"},
+		{name: "idempotency", request: CustomerMergeRequest{WorkspaceID: "workspace123", Source: validSource, Target: validTarget}, wantErr: "idempotency_key"},
+		{name: "reason", request: CustomerMergeRequest{WorkspaceID: "workspace123", IdempotencyKey: "merge", Source: validSource, Target: validTarget, Reason: strings.Repeat("x", 501)}, wantErr: "reason"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.request.Validate()
+			require.Error(t, err)
+			assert.ErrorContains(t, err, tt.wantErr)
+		})
+	}
+}
+
 func stringPointer(value string) *string { return &value }
 
 func stringSlicePointer(value []string) *[]string { return &value }

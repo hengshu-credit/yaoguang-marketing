@@ -159,6 +159,56 @@ func TestCustomerServiceBatchLimitIsConfigurable(t *testing.T) {
 	assert.ErrorContains(t, err, "2")
 }
 
+func TestCustomerServiceMergeRequiresWriteAndPassesActorAndCanonicalHash(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	repository := mocks.NewMockCustomerRepository(ctrl)
+	workspaceRepository := mocks.NewMockWorkspaceRepository(ctrl)
+	auth := mocks.NewMockAuthService(ctrl)
+	service, err := NewCustomerService(CustomerServiceDependencies{
+		Repository: repository, WorkspaceRepository: workspaceRepository, AuthService: auth, MaxSyncBatchSize: 10_000,
+	})
+	require.NoError(t, err)
+	ctx := context.Background()
+	auth.EXPECT().AuthenticateUserForWorkspace(ctx, "workspace1").
+		Return(ctx, &domain.User{ID: "user-1"}, customerMembership(false, true), nil)
+	repository.EXPECT().Merge(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, command domain.CustomerMergeCommand) (*domain.CustomerMergeResult, error) {
+		assert.Equal(t, "user-1", command.ActorID)
+		assert.Equal(t, "anonymous login", command.Reason)
+		assert.Regexp(t, `^[0-9a-f]{64}$`, command.PayloadHash)
+		return &domain.CustomerMergeResult{SourceCustomerID: "source", TargetCustomerID: "target"}, nil
+	})
+
+	result, err := service.MergeCustomer(ctx, &domain.CustomerMergeRequest{
+		WorkspaceID: "workspace1", IdempotencyKey: "merge-1", Reason: " anonymous login ",
+		Source: domain.CustomerLocator{CustomerID: "11111111-1111-4111-8111-111111111111"},
+		Target: domain.CustomerLocator{CustomerID: "22222222-2222-4222-8222-222222222222"},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "target", result.TargetCustomerID)
+}
+
+func TestCustomerServiceMergeRejectsMissingWritePermission(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	repository := mocks.NewMockCustomerRepository(ctrl)
+	workspaceRepository := mocks.NewMockWorkspaceRepository(ctrl)
+	auth := mocks.NewMockAuthService(ctrl)
+	service, err := NewCustomerService(CustomerServiceDependencies{
+		Repository: repository, WorkspaceRepository: workspaceRepository, AuthService: auth, MaxSyncBatchSize: 10_000,
+	})
+	require.NoError(t, err)
+	ctx := context.Background()
+	auth.EXPECT().AuthenticateUserForWorkspace(ctx, "workspace1").
+		Return(ctx, &domain.User{ID: "user-1"}, customerMembership(true, false), nil)
+
+	_, err = service.MergeCustomer(ctx, &domain.CustomerMergeRequest{
+		WorkspaceID: "workspace1", IdempotencyKey: "merge-1",
+		Source: domain.CustomerLocator{CustomerID: "11111111-1111-4111-8111-111111111111"},
+		Target: domain.CustomerLocator{CustomerID: "22222222-2222-4222-8222-222222222222"},
+	})
+	var permission *domain.PermissionError
+	assert.ErrorAs(t, err, &permission)
+}
+
 func customerMembership(read, write bool) *domain.UserWorkspace {
 	return &domain.UserWorkspace{Role: "member", Permissions: domain.UserPermissions{
 		domain.PermissionResourceCustomers: {Read: read, Write: write},

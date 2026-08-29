@@ -286,6 +286,188 @@ func TestMapCustomerMutationErrorUsesConstraintNames(t *testing.T) {
 	}
 }
 
+func TestCustomerRepositoryMergeMovesAnonymousAggregateIntoKnownTarget(t *testing.T) {
+	now := time.Date(2026, 8, 30, 1, 2, 3, 0, time.UTC)
+	sourceID := "22222222-2222-4222-8222-222222222222"
+	targetID := "11111111-1111-4111-8111-111111111111"
+	sourceNo := "U0042202608300902030822222222222242228222222222222222"
+	targetNo := "U0042202608300902030811111111111141118111111111111111"
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	ctrl := gomock.NewController(t)
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	expectWorkspaceTransaction(workspaceRepo, db, "workspace1")
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`INSERT INTO customer_idempotency`).
+		WithArgs("customer.merge", "merge-1", "merge-hash").WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(`WHERE c.id = \$1$`).WithArgs(sourceID).
+		WillReturnRows(sqlmock.NewRows(customerAggregateColumns).AddRow(sourceID, sourceNo, nil, nil, 2, now, now))
+	mock.ExpectQuery(`WHERE c.id = \$1$`).WithArgs(targetID).
+		WillReturnRows(sqlmock.NewRows(customerAggregateColumns).AddRow(targetID, targetNo, "known-1", nil, 7, now, now))
+	// Target UUID sorts first, so it must be locked first regardless of request order.
+	mock.ExpectQuery(`WHERE c.id = \$1 FOR UPDATE`).WithArgs(targetID).
+		WillReturnRows(sqlmock.NewRows(customerAggregateColumns).AddRow(targetID, targetNo, "known-1", nil, 7, now, now))
+	mock.ExpectQuery(`WHERE c.id = \$1 FOR UPDATE`).WithArgs(sourceID).
+		WillReturnRows(sqlmock.NewRows(customerAggregateColumns).AddRow(sourceID, sourceNo, nil, nil, 2, now, now))
+	expectCustomerAggregateChildren(mock, now)
+	mock.ExpectExec(`INSERT INTO customer_profiles.*SELECT \$1`).WithArgs(targetID, sourceID, now).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`DELETE FROM customer_profiles`).WithArgs(sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`DELETE FROM customer_identities source_identity`).WithArgs(sourceID, targetID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE customer_identities source_identity SET is_primary = FALSE`).WithArgs(sourceID, targetID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE customer_identities SET customer_id`).WithArgs(targetID, sourceID, now).WillReturnResult(sqlmock.NewResult(0, 2))
+	mock.ExpectExec(`INSERT INTO customer_tags`).WithArgs(targetID, sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`DELETE FROM customer_tags`).WithArgs(sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`INSERT INTO customer_consents`).WithArgs(targetID, sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`DELETE FROM customer_consents`).WithArgs(sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`INSERT INTO customer_list_memberships`).WithArgs(targetID, sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`DELETE FROM customer_list_memberships`).WithArgs(sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE contact_endpoints SET customer_id`).WithArgs(targetID, sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE contacts SET customer_id`).WithArgs(targetID, sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE customers SET merged_into_id`).WithArgs(targetID, now, sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(`UPDATE customers SET version = version \+ 1.*RETURNING version`).WithArgs(now, targetID).
+		WillReturnRows(sqlmock.NewRows([]string{"version"}).AddRow(8))
+	mock.ExpectExec(`INSERT INTO customer_merge_log`).
+		WithArgs(sqlmock.AnyArg(), sourceID, targetID, "user-1", "anonymous login", sqlmock.AnyArg(), now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE customer_idempotency SET customer_id`).
+		WithArgs(targetID, sqlmock.AnyArg(), "customer.merge", "merge-1").WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	repo, err := NewCustomerRepository(workspaceRepo, "secret")
+	require.NoError(t, err)
+	repo.now = func() time.Time { return now }
+	result, err := repo.Merge(context.Background(), domain.CustomerMergeCommand{
+		WorkspaceID: "workspace1", IdempotencyKey: "merge-1", PayloadHash: "merge-hash",
+		Source: domain.CustomerLocator{CustomerID: sourceID}, Target: domain.CustomerLocator{CustomerID: targetID},
+		ActorID: "user-1", Reason: "anonymous login",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, sourceID, result.SourceCustomerID)
+	assert.Equal(t, targetID, result.TargetCustomerID)
+	assert.Equal(t, int64(8), result.TargetVersion)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCustomerRepositoryMergeRejectsKnownSourceBeforeMutation(t *testing.T) {
+	now := time.Date(2026, 8, 30, 1, 2, 3, 0, time.UTC)
+	sourceID := "11111111-1111-4111-8111-111111111111"
+	targetID := "22222222-2222-4222-8222-222222222222"
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	ctrl := gomock.NewController(t)
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	expectWorkspaceTransaction(workspaceRepo, db, "workspace1")
+	mock.ExpectBegin()
+	mock.ExpectExec(`INSERT INTO customer_idempotency`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(`WHERE c.id = \$1$`).WithArgs(sourceID).WillReturnRows(sqlmock.NewRows(customerAggregateColumns).
+		AddRow(sourceID, "source-no", "known-source", nil, 1, now, now))
+	mock.ExpectQuery(`WHERE c.id = \$1$`).WithArgs(targetID).WillReturnRows(sqlmock.NewRows(customerAggregateColumns).
+		AddRow(targetID, "target-no", "known-target", nil, 1, now, now))
+	mock.ExpectQuery(`WHERE c.id = \$1 FOR UPDATE`).WithArgs(sourceID).WillReturnRows(sqlmock.NewRows(customerAggregateColumns).
+		AddRow(sourceID, "source-no", "known-source", nil, 1, now, now))
+	mock.ExpectQuery(`WHERE c.id = \$1 FOR UPDATE`).WithArgs(targetID).WillReturnRows(sqlmock.NewRows(customerAggregateColumns).
+		AddRow(targetID, "target-no", "known-target", nil, 1, now, now))
+	mock.ExpectRollback()
+
+	repo, err := NewCustomerRepository(workspaceRepo, "secret")
+	require.NoError(t, err)
+	_, err = repo.Merge(context.Background(), domain.CustomerMergeCommand{
+		WorkspaceID: "workspace1", IdempotencyKey: "merge-1", PayloadHash: "merge-hash",
+		Source: domain.CustomerLocator{CustomerID: sourceID}, Target: domain.CustomerLocator{CustomerID: targetID},
+	})
+	var rejected *domain.ErrCustomerMergeRejected
+	assert.ErrorAs(t, err, &rejected)
+	assert.ErrorContains(t, err, "source must be anonymous")
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCustomerRepositoryMergeRejectsInvalidResolvedRoles(t *testing.T) {
+	now := time.Date(2026, 8, 30, 1, 2, 3, 0, time.UTC)
+	sourceID := "11111111-1111-4111-8111-111111111111"
+	targetID := "22222222-2222-4222-8222-222222222222"
+	thirdID := "33333333-3333-4333-8333-333333333333"
+	tests := []struct {
+		name             string
+		sourceMergedInto interface{}
+		targetExternal   interface{}
+		sameResolved     bool
+		wantReason       string
+	}{
+		{name: "same resolved customer", targetExternal: "known", sameResolved: true, wantReason: "same customer"},
+		{name: "anonymous target", targetExternal: nil, wantReason: "target must be known"},
+		{name: "source merged elsewhere", sourceMergedInto: thirdID, targetExternal: "known", wantReason: "another customer"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+			require.NoError(t, err)
+			defer db.Close()
+			ctrl := gomock.NewController(t)
+			workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+			expectWorkspaceTransaction(workspaceRepo, db, "workspace1")
+			mock.ExpectBegin()
+			mock.ExpectExec(`INSERT INTO customer_idempotency`).WillReturnResult(sqlmock.NewResult(0, 1))
+			mock.ExpectQuery(`WHERE c.id = \$1$`).WithArgs(sourceID).WillReturnRows(sqlmock.NewRows(customerAggregateColumns).
+				AddRow(sourceID, "source-no", nil, tt.sourceMergedInto, 1, now, now))
+			resolvedTargetID := targetID
+			if tt.sameResolved {
+				resolvedTargetID = sourceID
+			}
+			mock.ExpectQuery(`WHERE c.id = \$1$`).WithArgs(targetID).WillReturnRows(sqlmock.NewRows(customerAggregateColumns).
+				AddRow(resolvedTargetID, "target-no", tt.targetExternal, nil, 1, now, now))
+			if !tt.sameResolved {
+				mock.ExpectQuery(`WHERE c.id = \$1 FOR UPDATE`).WithArgs(sourceID).WillReturnRows(sqlmock.NewRows(customerAggregateColumns).
+					AddRow(sourceID, "source-no", nil, tt.sourceMergedInto, 1, now, now))
+				mock.ExpectQuery(`WHERE c.id = \$1 FOR UPDATE`).WithArgs(targetID).WillReturnRows(sqlmock.NewRows(customerAggregateColumns).
+					AddRow(targetID, "target-no", tt.targetExternal, nil, 1, now, now))
+			}
+			mock.ExpectRollback()
+
+			repo, err := NewCustomerRepository(workspaceRepo, "secret")
+			require.NoError(t, err)
+			_, err = repo.Merge(context.Background(), domain.CustomerMergeCommand{
+				WorkspaceID: "workspace1", IdempotencyKey: "merge-1", PayloadHash: "merge-hash",
+				Source: domain.CustomerLocator{CustomerID: sourceID}, Target: domain.CustomerLocator{CustomerID: targetID},
+			})
+			var rejected *domain.ErrCustomerMergeRejected
+			assert.ErrorAs(t, err, &rejected)
+			assert.ErrorContains(t, err, tt.wantReason)
+			require.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestCustomerRepositoryMergeReplaysCompletedResult(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	ctrl := gomock.NewController(t)
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	expectWorkspaceTransaction(workspaceRepo, db, "workspace1")
+	mock.ExpectBegin()
+	mock.ExpectExec(`INSERT INTO customer_idempotency`).
+		WithArgs("customer.merge", "merge-1", "merge-hash").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectQuery(`SELECT payload_hash, response FROM customer_idempotency`).
+		WithArgs("customer.merge", "merge-1").WillReturnRows(sqlmock.NewRows([]string{"payload_hash", "response"}).
+		AddRow("merge-hash", []byte(`{"source_customer_id":"source","target_customer_id":"target","target_customer_no":"target-no","target_version":8}`)))
+	mock.ExpectCommit()
+
+	repo, err := NewCustomerRepository(workspaceRepo, "secret")
+	require.NoError(t, err)
+	result, err := repo.Merge(context.Background(), domain.CustomerMergeCommand{
+		WorkspaceID: "workspace1", IdempotencyKey: "merge-1", PayloadHash: "merge-hash",
+		Source: domain.CustomerLocator{CustomerID: "11111111-1111-4111-8111-111111111111"},
+		Target: domain.CustomerLocator{CustomerID: "22222222-2222-4222-8222-222222222222"},
+	})
+	require.NoError(t, err)
+	assert.True(t, result.Replayed)
+	assert.Equal(t, "target", result.TargetCustomerID)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestCustomerRepositoryUpsertAtomicallyUpdatesProfileIdentityTagsListsAndContactProjection(t *testing.T) {
 	now := time.Date(2026, 8, 30, 1, 2, 3, 0, time.UTC)
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
