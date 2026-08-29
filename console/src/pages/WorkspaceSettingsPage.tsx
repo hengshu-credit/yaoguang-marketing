@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from '@tanstack/react-router'
 import { Layout } from 'antd'
 import { useLingui } from '@lingui/react/macro'
@@ -33,12 +33,14 @@ export function WorkspaceSettingsPage() {
   const [members, setMembers] = useState<WorkspaceMember[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [membersLoaded, setMembersLoaded] = useState(false)
+  const [memberAccessResolved, setMemberAccessResolved] = useState(false)
   const [isOwner, setIsOwner] = useState(false)
   const [canManageCustomFields, setCanManageCustomFields] = useState(false)
   const [canManageBlog, setCanManageBlog] = useState(false)
   const [canManageWebAnalytics, setCanManageWebAnalytics] = useState(false)
   const { refreshWorkspaces, user, workspaces } = useAuth()
   const navigate = useNavigate()
+  const membersRequestGeneration = useRef(0)
   const currentLocale = locales.includes(i18n.locale as Locale)
     ? (i18n.locale as Locale)
     : 'en'
@@ -60,28 +62,43 @@ export function WorkspaceSettingsPage() {
   }, [section, workspaceId, navigate])
 
   useEffect(() => {
-    if (section !== 'languages' || !membersLoaded || isOwner) return
+    if (section !== 'languages' || !membersLoaded || !memberAccessResolved || isOwner) return
     navigate({
       to: '/console/workspace/$workspaceId/settings/$section',
       params: { workspaceId, section: 'team' },
       replace: true
     })
-  }, [isOwner, membersLoaded, navigate, section, workspaceId])
+  }, [isOwner, memberAccessResolved, membersLoaded, navigate, section, workspaceId])
 
   useEffect(() => {
     // Find the workspace from the auth context
     const currentWorkspace = workspaces.find((w) => w.id === workspaceId) || null
     setWorkspace(currentWorkspace)
-    setMembersLoaded(false)
-
-    fetchMembers()
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchMembers is stable
   }, [workspaceId, workspaces])
 
+  useEffect(() => {
+    setMembersLoaded(false)
+    setMemberAccessResolved(false)
+    setMembers([])
+    setIsOwner(false)
+    setCanManageCustomFields(false)
+    setCanManageBlog(false)
+    setCanManageWebAnalytics(false)
+
+    void fetchMembers()
+    return () => {
+      membersRequestGeneration.current += 1
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchMembers is stable
+  }, [workspaceId, user?.id])
+
   const fetchMembers = async () => {
+    const generation = ++membersRequestGeneration.current
+    const requestedWorkspaceId = workspaceId
     setLoadingMembers(true)
     try {
-      const response = await workspaceService.getMembers(workspaceId)
+      const response = await workspaceService.getMembers(requestedWorkspaceId)
+      if (generation !== membersRequestGeneration.current) return
       setMembers(response.members)
 
       // Check if current user is an owner
@@ -108,9 +125,12 @@ export function WorkspaceSettingsPage() {
             currentUserMember?.permissions?.web_analytics?.write === true
         )
       }
+      setMemberAccessResolved(true)
     } catch (error) {
+      if (generation !== membersRequestGeneration.current) return
       console.error(t`Failed to fetch workspace members`, error)
     } finally {
+      if (generation !== membersRequestGeneration.current) return
       setLoadingMembers(false)
       setMembersLoaded(true)
     }

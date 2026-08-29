@@ -87,6 +87,31 @@ export function UITranslationsSettings({
   }, [inventory, savedFingerprint, workspace.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const localeOrder = useMemo(() => orderLocales(currentLocale), [currentLocale])
+  const hierarchyLabels = useMemo<Record<string, string>>(
+    () => ({
+      Navigation: t`Navigation`,
+      Settings: t`Settings`,
+      Workspace: t`Workspace`,
+      Integrations: t`Integrations`,
+      Webhooks: t`Webhooks`,
+      'Web Analytics': t`Web Analytics`,
+      Dashboard: t`Dashboard`,
+      Analytics: t`Analytics`,
+      'File Manager': t`File Manager`,
+      Logs: t`Logs`,
+      Automations: t`Automations`,
+      'Transactional Notifications': t`Transactional Notifications`,
+      Templates: t`Templates`,
+      Lists: t`Lists`,
+      Contacts: t`Contacts`,
+      Segments: t`Segments`,
+      Broadcasts: t`Broadcasts`,
+      Blog: t`Blog`,
+      Shared: t`Shared`,
+      Other: t`Other`
+    }),
+    [t]
+  )
   const dirty = useMemo(
     () => serializeOverrides(draftOverrides) !== serializeOverrides(savedOverrides),
     [draftOverrides, savedOverrides]
@@ -98,14 +123,14 @@ export function UITranslationsSettings({
     () =>
       normalizedSearch
         ? inventory.filter((item) =>
-            localeOrder.some((locale) =>
-              effectiveValue(item, locale, draftOverrides)
-                .toLocaleLowerCase()
-                .includes(normalizedSearch)
-            )
+            [
+              hierarchyLabels[item.menuKey] ?? item.menuKey,
+              hierarchyLabels[item.pageKey] ?? item.pageKey,
+              ...localeOrder.map((locale) => effectiveValue(item, locale, draftOverrides))
+            ].some((value) => value.toLocaleLowerCase().includes(normalizedSearch))
           )
         : inventory,
-    [draftOverrides, inventory, localeOrder, normalizedSearch]
+    [draftOverrides, hierarchyLabels, inventory, localeOrder, normalizedSearch]
   )
   const tree = useMemo(() => buildTree(visibleItems), [visibleItems])
   const searchExpandedKeys = useMemo(
@@ -164,17 +189,22 @@ export function UITranslationsSettings({
         fixed: 'left',
         width: 260,
         render: (_, record) => {
+          const displayLabel = record.item
+            ? record.label
+            : (hierarchyLabels[record.label] ?? record.label)
           const restoredCount = record.item
             ? countItemOverrides(draftOverrides, record.item.id)
             : countScopedOverrides(draftOverrides, inventory, record)
           const restoreLabel = record.item
-            ? t`Restore item ${record.label}`
+            ? t`Restore item ${displayLabel}`
             : record.kind === 'page'
-              ? t`Restore page ${record.label}`
-              : t`Restore menu ${record.label}`
+              ? t`Restore page ${displayLabel}`
+              : t`Restore menu ${displayLabel}`
           return (
             <div className="flex min-w-0 items-center justify-between gap-2">
-              <span className={record.item ? 'truncate text-sm' : 'font-medium'}>{record.label}</span>
+              <span className={record.item ? 'truncate text-sm' : 'font-medium'}>
+                {displayLabel}
+              </span>
               <Button
                 type="link"
                 size="small"
@@ -251,7 +281,7 @@ export function UITranslationsSettings({
         }
       }))
     ],
-    [draftOverrides, invalidCells, inventory, localeOrder, t]
+    [draftOverrides, hierarchyLabels, invalidCells, inventory, localeOrder, t]
   )
 
   if (!isOwner) {

@@ -171,6 +171,15 @@ describe('UITranslationsSettings', () => {
     await waitFor(() => expect(screen.queryByText('Workspace name')).not.toBeInTheDocument())
   })
 
+  it('finds descendants by their localized hierarchy labels', async () => {
+    renderSettings()
+
+    await searchFor('Settings')
+
+    expect(await translationInput('Workspace name')).toBeInTheDocument()
+    expect(await translationInput('Blog title')).toBeInTheDocument()
+  })
+
   it('stores only the edited cell and removes it when the bundled default is entered', async () => {
     renderSettings()
     await searchFor('Workspace name')
