@@ -1,44 +1,36 @@
 root = "."
-testdata_dir = "testdata"
-tmp_dir = "tmp"
+tmp_dir = "/cache/notifuse-air"
 
 [build]
-  args_bin = []
-  bin = "./tmp/main"
-  cmd = "go build -o ./tmp/main ./cmd/api"
-  delay = 1000
-  exclude_dir = ["docs", "console", "notification_center", ".git", ".github", "assets", "tmp", "vendor", "testdata", "node_modules"]
-  exclude_file = []
-  exclude_regex = ["_test.go"]
-  exclude_unchanged = false
+  bin = "/cache/notifuse-bin/server"
+  cmd = "go build -o /cache/notifuse-bin/server ./cmd/api"
+  delay = 500
+  exclude_dir = [
+    ".git",
+    "console",
+    "data",
+    "notification_center",
+    "plans",
+    "tmp",
+    "vendor",
+    "web_analytics_sdk/node_modules"
+  ]
+  exclude_regex = ["_test\\.go$"]
+  exclude_unchanged = true
   follow_symlink = false
-  full_bin = ""
-  include_dir = []
-  include_ext = ["go", "tpl", "tmpl", "html"]
-  include_file = []
-  kill_delay = "0s"
-  log = "build-errors.log"
-  poll = false
-  poll_interval = 0
-  rerun = true
-  rerun_delay = 500
-  send_interrupt = false
+  include_dir = ["cmd", "config", "internal", "pkg", "web_analytics_sdk"]
+  include_ext = ["go", "html", "js", "tmpl", "tpl"]
+  include_file = ["go.mod", "go.sum"]
+  kill_delay = "5s"
+  poll = true
+  poll_interval = 500
+  send_interrupt = true
   stop_on_error = true
-
-[color]
-  app = ""
-  build = "yellow"
-  main = "magenta"
-  runner = "green"
-  watcher = "cyan"
 
 [log]
   main_only = false
-  time = false
-
-[misc]
-  clean_on_exit = false
+  time = true
 
 [screen]
   clear_on_rebuild = false
-  keep_scroll = true 
+  keep_scroll = true

@@ -1,0 +1,32 @@
+ARG FRONTEND_BASE_IMAGE=node:22-alpine
+
+FROM golang:1.25-alpine AS backend-dev
+
+RUN apk add --no-cache \
+    ca-certificates \
+    git \
+    postgresql-client \
+    tini \
+    tzdata
+RUN go install github.com/air-verse/air@v1.63.0
+
+WORKDIR /workspace
+COPY deploy/dev/backend-entrypoint.sh /usr/local/bin/notifuse-backend-dev
+RUN chmod +x /usr/local/bin/notifuse-backend-dev
+
+EXPOSE 587 8080
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/notifuse-backend-dev"]
+
+FROM ${FRONTEND_BASE_IMAGE} AS frontend-dev
+
+RUN apk add --no-cache nginx tini
+
+WORKDIR /workspace
+RUN mkdir -p /etc/notifuse
+COPY deploy/dev/frontend-entrypoint.sh /usr/local/bin/notifuse-frontend-dev
+COPY deploy/dev/nginx.hot.conf /etc/notifuse/nginx.hot.conf
+COPY deploy/dev/nginx.static.conf /etc/notifuse/nginx.static.conf
+RUN chmod +x /usr/local/bin/notifuse-frontend-dev
+
+EXPOSE 8080
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/notifuse-frontend-dev"]

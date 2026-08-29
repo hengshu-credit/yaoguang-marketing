@@ -99,18 +99,39 @@ Notifuse follows clean architecture principles with clear separation of concerns
 
 ### Realtime runtime and local deployment
 
-The Compose stack runs separate `api`, `outbox-relay`, `rule-worker`, `journey-worker`, `delivery-worker`, `analytics-worker`, and `scheduler` roles. `REALTIME_MODE=legacy|shadow|primary` controls migration from database triggers to the indexed realtime matcher; Compose defaults to `primary` for a fresh local environment.
+The default Compose stack is optimized for source development. It runs two application containers: `backend` combines the API, outbox relay, rule, journey, delivery and analytics workers plus the scheduler, while `frontend` runs the Console, Notification Center and their Nginx gateway. Six long-running infrastructure containers provide PostgreSQL/PgBouncer, RabbitMQ, Redis, ClickHouse and MinIO; two initialization jobs exit after importing queues and creating the asset bucket.
+
+Go and React source is bind-mounted into both application containers. Hot reload is enabled by default: Air rebuilds Go and Vite reloads both React applications, so ordinary source changes need no Compose command.
 
 On Windows with the local proxy from this environment:
 
 ```powershell
-$env:HTTP_PROXY='http://127.0.0.1:7897'
-$env:HTTPS_PROXY='http://127.0.0.1:7897'
 docker compose up -d --build
 docker compose ps
 ```
 
-The console and API are served at `http://localhost:8081`; RabbitMQ management is at `http://localhost:15672` and MinIO is at `http://localhost:9001`. Infrastructure and application ports bind to localhost and can be overridden with the matching `*_HOST_PORT` environment variables (Redis defaults to `16380` to avoid common local conflicts). Before a shared or production deployment, replace every example credential in `.env`.
+This checkout defaults container and image-build traffic to `http://host.docker.internal:7897`, which is the container-visible form of the local `127.0.0.1:7897` proxy. Override `CONTAINER_HTTP_PROXY`, `CONTAINER_HTTPS_PROXY`, `DOCKER_BUILD_HTTP_PROXY`, and `DOCKER_BUILD_HTTPS_PROXY` when the proxy differs. The Console and API are served at `http://localhost:8081/console/`; Notification Center is at `http://localhost:8081/notification-center/`, RabbitMQ management at `http://localhost:15672`, and MinIO at `http://localhost:9001`.
+
+To disable automatic reload, set `DEV_HOT_RELOAD=false` and recreate the two application containers once. After that, mounted Go/React source changes are applied only when the containers restart:
+
+```powershell
+$env:DEV_HOT_RELOAD='false'
+docker compose up -d --force-recreate backend frontend
+
+# Run this after each source change while reload is disabled.
+docker compose restart backend frontend
+```
+
+Changing the switch itself requires `docker compose up -d --force-recreate backend frontend`; `restart` deliberately keeps the environment stored in the existing containers. Package lock changes are installed by the frontend entrypoint on its next restart. Dockerfile changes require `docker compose up -d --build`.
+
+The separate-role high-availability topology remains available in `compose.ha.yaml`. Stop the development topology before switching because both use the same local ports and persistent data volumes:
+
+```powershell
+docker compose down
+docker compose -f compose.ha.yaml up -d --build
+```
+
+`REALTIME_MODE=legacy|shadow|primary` controls migration from database triggers to the indexed realtime matcher; both Compose topologies default to `primary` for a fresh local environment. Infrastructure and application ports bind to localhost and can be overridden with matching `*_HOST_PORT` variables (Redis defaults to `16380`). Before a shared or production deployment, replace every example credential in `.env`.
 
 External systems can synchronize users and emit realtime events through `POST /api/ingest.batch`. One request can combine contact field updates, application lifecycle status, arbitrary JSON attributes, tag set/add/remove operations, list membership status, encrypted Twilio/FCM/APNs/Web Push client endpoints and idempotent custom events. The endpoint accepts at most 500 records, returns a result for every item, requires Contacts write (and Lists write for membership changes), and returns `429 Retry-After: 1` instead of building an unbounded in-process queue. Active endpoint metadata can be read through `GET /api/contactEndpoints.list`; provider addresses are never returned. Profile data is exposed to templates as `contact.profile` and to segments through `profile_status`, `profile_tags`, and `profile_attributes`. See [the ingest contract](docs/superpowers/specs/2026-08-29-external-audience-ingest-design.md) and [the omnichannel endpoint design](docs/superpowers/specs/2026-08-29-omnichannel-endpoints-design.md).
 

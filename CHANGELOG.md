@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [45.0] - 2026-08-29
 
+- **Improvement**: Replaced the default local Compose topology with two source-mounted application containers. One Go backend runs all realtime roles and one frontend runs both Vite applications behind Nginx; Air/Vite hot reload is enabled by default and can be switched to restart-only mode with `DEV_HOT_RELOAD=false`.
+
+- **Improvement**: Preserved the separately scalable worker layout as `compose.ha.yaml`, added persistent Go/npm dependency caches and made the Node 22 development base image and local container/build proxy endpoints configurable.
+
 - **Feature**: Added `POST /api/channelMessages.send`, a unified authenticated SMS/push send path that resolves encrypted contact endpoints, renders the saved versioned template with contact/workspace/custom Liquid data, selects its language variant and invokes the configured Twilio or FCM provider.
 
 - **Feature**: Added a PostgreSQL `channel_send_executions` authority ledger. Stable effect keys provide concurrent replay protection and payload-conflict detection; successful provider acceptance and encrypted message history commit in one transaction, while known failure and ambiguous network or malformed-success outcomes remain distinguishable.
