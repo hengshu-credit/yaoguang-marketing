@@ -53,6 +53,7 @@ type AppInterface interface {
 	GetUserRepository() domain.UserRepository
 	GetWorkspaceRepository() domain.WorkspaceRepository
 	GetContactRepository() domain.ContactRepository
+	GetCustomerRepository() domain.CustomerRepository
 	GetListRepository() domain.ListRepository
 	GetTemplateRepository() domain.TemplateRepository
 	GetBroadcastRepository() domain.BroadcastRepository
@@ -107,6 +108,7 @@ type App struct {
 	authRepo                      domain.AuthRepository
 	settingRepo                   domain.SettingRepository
 	contactRepo                   domain.ContactRepository
+	customerRepo                  domain.CustomerRepository
 	listRepo                      domain.ListRepository
 	contactListRepo               domain.ContactListRepository
 	templateRepo                  domain.TemplateRepository
@@ -141,6 +143,7 @@ type App struct {
 	oidcService                      *service.OIDCService
 	workspaceService                 *service.WorkspaceService
 	contactService                   *service.ContactService
+	customerService                  *service.CustomerService
 	listService                      *service.ListService
 	contactListService               *service.ContactListService
 	templateService                  *service.TemplateService
@@ -449,6 +452,10 @@ func (a *App) InitRepositories() error {
 	a.settingRepo = repository.NewSQLSettingRepository(a.db)
 	a.workspaceRepo = repository.NewWorkspaceRepository(a.db, &a.config.Database, a.config.Security.SecretKey, connManager)
 	a.contactRepo = repository.NewContactRepository(a.workspaceRepo)
+	a.customerRepo, err = repository.NewCustomerRepository(a.workspaceRepo, a.config.Security.SecretKey)
+	if err != nil {
+		return fmt.Errorf("failed to initialize customer repository: %w", err)
+	}
 	a.listRepo = repository.NewListRepository(a.workspaceRepo)
 	a.contactListRepo = repository.NewContactListRepository(a.workspaceRepo)
 	a.templateRepo = repository.NewTemplateRepository(a.workspaceRepo)
@@ -668,6 +675,19 @@ func (a *App) InitServices() error {
 		a.contactSegmentQueueRepo,
 		a.logger,
 	)
+	customerSyncMaxBatchSize := a.config.Ingest.CustomerSyncMaxBatchSize
+	if customerSyncMaxBatchSize == 0 {
+		customerSyncMaxBatchSize = service.DefaultCustomerSyncMaxBatchSize
+	}
+	a.customerService, err = service.NewCustomerService(service.CustomerServiceDependencies{
+		Repository:          a.customerRepo,
+		WorkspaceRepository: a.workspaceRepo,
+		AuthService:         a.authService,
+		MaxSyncBatchSize:    customerSyncMaxBatchSize,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to initialize customer service: %w", err)
+	}
 
 	// Initialize contact list service
 	a.contactListService = service.NewContactListService(
@@ -1401,6 +1421,7 @@ func (a *App) InitHandlers() error {
 		a.config.IsDemo(),
 	).WithWebAnalyticsCacheInvalidator(a.webAnalyticsService.InvalidateWorkspaceCache)
 	contactHandler := httpHandler.NewContactHandler(a.contactService, getJWTSecret, a.logger)
+	customerHandler := httpHandler.NewCustomerHandler(a.customerService, getJWTSecret, a.logger)
 	listHandler := httpHandler.NewListHandler(a.listService, getJWTSecret, a.logger)
 	contactListHandler := httpHandler.NewContactListHandler(a.contactListService, getJWTSecret, a.logger)
 	templateHandler := httpHandler.NewTemplateHandler(a.templateService, getJWTSecret, a.logger)
@@ -1523,6 +1544,7 @@ func (a *App) InitHandlers() error {
 	workspaceHandler.RegisterRoutes(a.mux)
 	rootHandler.RegisterRoutes(a.mux)
 	contactHandler.RegisterRoutes(a.mux)
+	customerHandler.RegisterRoutes(a.mux)
 	listHandler.RegisterRoutes(a.mux)
 	contactListHandler.RegisterRoutes(a.mux)
 	templateHandler.RegisterRoutes(a.mux)
@@ -2156,6 +2178,10 @@ func (a *App) GetWorkspaceRepository() domain.WorkspaceRepository {
 
 func (a *App) GetContactRepository() domain.ContactRepository {
 	return a.contactRepo
+}
+
+func (a *App) GetCustomerRepository() domain.CustomerRepository {
+	return a.customerRepo
 }
 
 // GetWebAnalyticsRepository exposes the repository for tests that need to assert

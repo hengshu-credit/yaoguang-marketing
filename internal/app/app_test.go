@@ -18,12 +18,12 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/golang/mock/gomock"
 	"github.com/hengshu-credit/yaoguang-marketing/config"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	pkgDatabase "github.com/hengshu-credit/yaoguang-marketing/pkg/database"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/mailer"
 	pkgmocks "github.com/hengshu-credit/yaoguang-marketing/pkg/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -263,6 +263,7 @@ func TestAppInitRepositories(t *testing.T) {
 	assert.NotNil(t, appImpl.workspaceRepo)
 	assert.NotNil(t, appImpl.authRepo)
 	assert.NotNil(t, appImpl.contactRepo)
+	assert.NotNil(t, appImpl.customerRepo)
 	assert.NotNil(t, appImpl.listRepo)
 	assert.NotNil(t, appImpl.contactListRepo)
 	assert.NotNil(t, appImpl.templateRepo)
@@ -524,6 +525,7 @@ func TestAppInitServices(t *testing.T) {
 	assert.NotNil(t, appImpl.userService, "User service should be initialized")
 	assert.NotNil(t, appImpl.workspaceService, "Workspace service should be initialized")
 	assert.NotNil(t, appImpl.contactService, "Contact service should be initialized")
+	assert.NotNil(t, appImpl.customerService, "Customer service should be initialized")
 	assert.NotNil(t, appImpl.listService, "List service should be initialized")
 	assert.NotNil(t, appImpl.contactListService, "ContactList service should be initialized")
 	assert.NotNil(t, appImpl.templateService, "Template service should be initialized")
@@ -705,6 +707,10 @@ func TestAppInitHandlers(t *testing.T) {
 		"/api/templateBlocks.create",
 		"/api/templateBlocks.update",
 		"/api/templateBlocks.delete",
+		"/api/customers.get",
+		"/api/customers.upsert",
+		"/api/customers.batch",
+		"/api/customers.merge",
 	}
 
 	for _, route := range testRoutes {
@@ -1123,6 +1129,11 @@ func TestApp_RepositoryGetters(t *testing.T) {
 	t.Run("GetContactRepository", func(t *testing.T) {
 		repo := app.GetContactRepository()
 		_ = repo // Just call the getter to increase coverage
+	})
+
+	t.Run("GetCustomerRepository", func(t *testing.T) {
+		repo := app.GetCustomerRepository()
+		_ = repo
 	})
 
 	t.Run("GetListRepository", func(t *testing.T) {

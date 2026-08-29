@@ -5,9 +5,37 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"regexp"
+	"strings"
 
+	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
+
+var safeRequestIDPattern = regexp.MustCompile(`^[A-Za-z0-9._:-]{1,128}$`)
+
+type apiErrorBody struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+func requestIDFor(r *http.Request) string {
+	if r != nil {
+		requestID := strings.TrimSpace(r.Header.Get("X-Request-ID"))
+		if safeRequestIDPattern.MatchString(requestID) {
+			return requestID
+		}
+	}
+	return uuid.NewString()
+}
+
+func writeAPIError(w http.ResponseWriter, requestID, code, message string, status int) {
+	w.Header().Set("X-Request-ID", requestID)
+	writeJSON(w, status, map[string]interface{}{
+		"request_id": requestID,
+		"error":      apiErrorBody{Code: code, Message: message},
+	})
+}
 
 // WriteJSONError writes a JSON error response with the given message and status code.
 // It sets the Content-Type header to application/json and automatically formats
