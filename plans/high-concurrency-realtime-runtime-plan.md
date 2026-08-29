@@ -173,7 +173,7 @@ docker compose ps
 
 Expected: validation exits 0 and all six dependencies become healthy.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add compose.yaml env.example deploy scripts/validate-realtime-compose.ps1
@@ -326,7 +326,7 @@ git commit -m "feat: add realtime event schema migration"
 - Produces: `RealtimeRepository` methods `ClaimOutbox`, `MarkOutboxPublished`, `ReleaseOutbox`, `ClaimInbox`, `CompleteInbox`, `ListTriggerBindings`, `WriteMatchAudit`, `ReserveSideEffect`, and `GetEvent`.
 - Consumed by: relay, matcher, journey, delivery, and projector.
 
-- [ ] **Step 1: Write failing SQL and concurrency tests**
+- [x] **Step 1: Write failing SQL and concurrency tests**
 
 ```go
 type RealtimeRepository interface {
@@ -339,11 +339,11 @@ type RealtimeRepository interface {
 
 The integration race launches ten claimers against one outbox row and asserts one claim token wins.
 
-- [ ] **Step 2: Run repository tests and verify RED**
+- [x] **Step 2: Run repository tests and verify RED**
 
-Run: `docker run --rm -v "${PWD}:/src" -w /src golang:1.25-alpine sh -lc "go test ./internal/repository -run TestRealtimeRepository"`
+Run: `docker run --rm -v "${PWD}:/src" -w /src golang:1.25-alpine sh -c "go test ./internal/repository -run TestRealtimeRepository"`
 
-- [ ] **Step 3: Implement atomic claims and generated mock**
+- [x] **Step 3: Implement atomic claims and generated mock**
 
 Use one atomic statement for claims:
 

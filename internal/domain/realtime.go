@@ -2,9 +2,12 @@ package domain
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -133,6 +136,7 @@ type InboxClaim struct {
 	ProcessedAt    *time.Time  `json:"processed_at,omitempty"`
 	LastError      *string     `json:"last_error,omitempty"`
 	CreatedAt      time.Time   `json:"created_at"`
+	Acquired       bool        `json:"-"`
 }
 
 type TriggerBinding struct {
@@ -202,6 +206,35 @@ type SideEffectExecution struct {
 	LastError           *string          `json:"last_error,omitempty"`
 	CreatedAt           time.Time        `json:"created_at"`
 	UpdatedAt           time.Time        `json:"updated_at"`
+}
+
+type EventAppendResult struct {
+	EventID    uuid.UUID `json:"event_id"`
+	MessageID  uuid.UUID `json:"message_id"`
+	ReceivedAt time.Time `json:"received_at"`
+	Duplicate  bool      `json:"duplicate"`
+}
+
+var (
+	ErrEventPayloadConflict   = errors.New("event id already exists with a different payload")
+	ErrMatchAuditConflict     = errors.New("match audit decision changed for the same event and engine")
+	ErrSideEffectHashConflict = errors.New("side effect key already exists with a different request hash")
+)
+
+// RealtimeRepository is the PostgreSQL authority boundary consumed by the
+// relay and workers. Transactional inbox methods deliberately accept the
+// caller's transaction so claiming and business state changes commit together.
+type RealtimeRepository interface {
+	AppendEvent(ctx context.Context, workspaceID string, envelope EventEnvelope, receivedAt time.Time) (EventAppendResult, error)
+	ClaimOutbox(ctx context.Context, workspaceID, workerID string, now time.Time, lease time.Duration, limit int) ([]OutboxMessage, error)
+	MarkOutboxPublished(ctx context.Context, workspaceID string, id, claimToken uuid.UUID, publishedAt time.Time) (bool, error)
+	ReleaseOutbox(ctx context.Context, workspaceID string, id, claimToken uuid.UUID, availableAt time.Time, lastError string, dead bool) (bool, error)
+	ClaimInbox(ctx context.Context, tx *sql.Tx, workspaceID, consumer string, messageID uuid.UUID, now time.Time, lease time.Duration) (InboxClaim, error)
+	CompleteInbox(ctx context.Context, tx *sql.Tx, workspaceID, consumer string, messageID, claimToken uuid.UUID, completedAt time.Time) (bool, error)
+	ListTriggerBindings(ctx context.Context, workspaceID, eventType, subjectType string) ([]TriggerBinding, error)
+	WriteMatchAudit(ctx context.Context, workspaceID string, audit MatchAudit) error
+	ReserveSideEffect(ctx context.Context, workspaceID string, execution SideEffectExecution) (SideEffectExecution, bool, error)
+	GetEvent(ctx context.Context, workspaceID string, eventID uuid.UUID) (*EventEnvelope, error)
 }
 
 // CanonicalJSONHash normalizes JSON object ordering before hashing. The
