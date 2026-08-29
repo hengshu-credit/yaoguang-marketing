@@ -1,0 +1,92 @@
+package migrations
+
+import (
+	"context"
+	"regexp"
+	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/hengshu-credit/yaoguang-marketing/config"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/database/schema"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestV46MigrationMetadataAndRegistration(t *testing.T) {
+	migration := &V46Migration{}
+	assert.Equal(t, 46.0, migration.GetMajorVersion())
+	assert.True(t, migration.HasSystemUpdate())
+	assert.True(t, migration.HasWorkspaceUpdate())
+	assert.False(t, migration.ShouldRestartServer())
+	assert.Equal(t, "46.0", config.VERSION)
+	registered, ok := GetRegisteredMigration(46.0)
+	require.True(t, ok)
+	assert.IsType(t, &V46Migration{}, registered)
+}
+
+func TestV46UpdateSystemAllocatesSequencesAndCopiesContactPermissions(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+
+	for _, statement := range schema.WorkspaceSequenceMigrationStatements() {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	mock.ExpectExec("UPDATE user_workspaces.*jsonb_build_object.*customers.*contacts").
+		WillReturnResult(sqlmock.NewResult(0, 2))
+	mock.ExpectExec("UPDATE workspace_invitations.*jsonb_build_object.*customers.*contacts").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = (&V46Migration{}).UpdateSystem(context.Background(), &config.Config{}, db)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestV46UpdateWorkspaceBackfillsCustomerProfileAndEncryptedIdentities(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+
+	for _, statement := range schema.CustomerTableDefinitions() {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	mock.ExpectQuery("SELECT external_id.*HAVING COUNT").
+		WillReturnRows(sqlmock.NewRows([]string{"external_id"}))
+	mock.ExpectQuery("SELECT LOWER.*email.*HAVING COUNT").
+		WillReturnRows(sqlmock.NewRows([]string{"normalized_email"}))
+	mock.ExpectExec("WITH customer_seeds AS.*INSERT INTO customers.*UPDATE contacts").
+		WithArgs(uint16(42)).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec("INSERT INTO customer_profiles").WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec("INSERT INTO customer_tags").WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec("INSERT INTO customer_list_memberships").WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec("UPDATE contact_endpoints").WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery("SELECT c.customer_id, c.email, c.phone.*FROM contacts c").
+		WillReturnRows(sqlmock.NewRows([]string{"customer_id", "email", "phone"}).
+			AddRow("11111111-1111-4111-8111-111111111111", "Alice@Example.COM", "+86 138-0013-8000"))
+	mock.ExpectExec("INSERT INTO customer_identities").
+		WithArgs(sqlmock.AnyArg(), "11111111-1111-4111-8111-111111111111", "email", sqlmock.AnyArg(), sqlmock.AnyArg(), "a***@example.com", true).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec("INSERT INTO customer_identities").
+		WithArgs(sqlmock.AnyArg(), "11111111-1111-4111-8111-111111111111", "phone", sqlmock.AnyArg(), sqlmock.AnyArg(), "+86*******8000", true).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = (&V46Migration{}).UpdateWorkspace(
+		context.Background(),
+		&config.Config{Security: config.SecurityConfig{SecretKey: "workspace-secret"}},
+		&domain.Workspace{ID: "workspace-1", Sequence: 42},
+		db,
+	)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestV46UpdateWorkspaceRejectsInvalidSequenceOrMissingSecret(t *testing.T) {
+	migration := &V46Migration{}
+
+	err := migration.UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "workspace-1"}, nil)
+	assert.ErrorContains(t, err, "workspace sequence")
+
+	err = migration.UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "workspace-1", Sequence: 1}, nil)
+	assert.ErrorContains(t, err, "secret")
+}

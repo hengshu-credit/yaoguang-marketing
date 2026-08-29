@@ -13,6 +13,7 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/google/uuid"
+	pkgcrypto "github.com/hengshu-credit/yaoguang-marketing/pkg/crypto"
 )
 
 const (
@@ -168,6 +169,18 @@ func NormalizeCustomerIdentity(input CustomerIdentityInput) (NormalizedCustomerI
 		Value:       value,
 		DisplayHint: maskCustomerIdentity(identityType, value),
 	}, nil
+}
+
+// CustomerIdentityFingerprint produces a deterministic lookup key without
+// exposing the normalized identity value in indexes or query logs.
+func CustomerIdentityFingerprint(secretKey string, identity NormalizedCustomerIdentity) (string, error) {
+	if strings.TrimSpace(secretKey) == "" {
+		return "", fmt.Errorf("customer identity fingerprint secret must not be empty")
+	}
+	if identity.Type == "" || identity.Value == "" {
+		return "", fmt.Errorf("normalized customer identity must include type and value")
+	}
+	return pkgcrypto.ComputeHMAC256([]byte(string(identity.Type)+"\x00"+identity.Value), secretKey), nil
 }
 
 func normalizeCustomerE164(value string) (string, error) {

@@ -173,6 +173,25 @@ func TestNormalizeCustomerIdentityRejectsUnsupportedOrMalformedValues(t *testing
 	}
 }
 
+func TestCustomerIdentityFingerprintScopesNormalizedValueByType(t *testing.T) {
+	email, err := NormalizeCustomerIdentity(CustomerIdentityInput{Type: CustomerIdentityEmail, Value: " Alice@Example.COM "})
+	require.NoError(t, err)
+	custom, err := NormalizeCustomerIdentity(CustomerIdentityInput{Type: CustomerIdentityCustom, Value: "alice@example.com"})
+	require.NoError(t, err)
+
+	emailFingerprint, err := CustomerIdentityFingerprint("workspace-secret", email)
+	require.NoError(t, err)
+	customFingerprint, err := CustomerIdentityFingerprint("workspace-secret", custom)
+	require.NoError(t, err)
+
+	assert.Len(t, emailFingerprint, 64)
+	assert.NotEqual(t, emailFingerprint, customFingerprint)
+	assert.NotContains(t, emailFingerprint, email.Value)
+
+	_, err = CustomerIdentityFingerprint("", email)
+	assert.ErrorContains(t, err, "secret")
+}
+
 func TestApplyCustomerAttributesPatchSetsMergesAndUnsetsWithoutDeletingJSONNull(t *testing.T) {
 	current := map[string]interface{}{
 		"discarded": true,

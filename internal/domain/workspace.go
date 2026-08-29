@@ -21,6 +21,7 @@ type PermissionResource string
 
 const (
 	PermissionResourceContacts       PermissionResource = "contacts"
+	PermissionResourceCustomers      PermissionResource = "customers"
 	PermissionResourceLists          PermissionResource = "lists"
 	PermissionResourceTemplates      PermissionResource = "templates"
 	PermissionResourceBroadcasts     PermissionResource = "broadcasts"
@@ -50,6 +51,7 @@ const (
 var AllPermissionResources = []PermissionResource{
 	// Audience
 	PermissionResourceContacts,
+	PermissionResourceCustomers,
 	PermissionResourceSegments,
 	PermissionResourceLists,
 	// Content

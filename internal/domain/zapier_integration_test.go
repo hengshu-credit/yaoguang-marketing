@@ -39,6 +39,7 @@ func TestZapierKeyPermissions(t *testing.T) {
 	// stored false there is permanent, since backfills only ever add the keys a row is missing.
 	expected := UserPermissions{
 		PermissionResourceContacts:             {Read: true, Write: true},
+		PermissionResourceCustomers:            {Read: false, Write: false},
 		PermissionResourceSegments:             {Read: true, Write: false},
 		PermissionResourceLists:                {Read: true, Write: true},
 		PermissionResourceTemplates:            {Read: false, Write: false},

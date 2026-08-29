@@ -115,15 +115,16 @@ var TableDefinitions = []string{
 	RealtimeRuntimeCursorTableDefinition,
 }
 
-// MigrationStatements contains SQL statements to be run after table creation
-// These are for schema changes that need to be applied to existing databases
-var MigrationStatements = []string{
-	`CREATE SEQUENCE IF NOT EXISTS workspace_sequence_number_seq
+// WorkspaceSequenceMigrationStatements returns the idempotent system-schema
+// changes used both during startup initialization and by the V46 migration.
+func WorkspaceSequenceMigrationStatements() []string {
+	return []string{
+		`CREATE SEQUENCE IF NOT EXISTS workspace_sequence_number_seq
 		AS SMALLINT MINVALUE 1 MAXVALUE 9999 NO CYCLE`,
-	`ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS workspace_sequence SMALLINT`,
-	`ALTER TABLE workspaces ALTER COLUMN workspace_sequence
+		`ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS workspace_sequence SMALLINT`,
+		`ALTER TABLE workspaces ALTER COLUMN workspace_sequence
 		SET DEFAULT nextval('workspace_sequence_number_seq')`,
-	`DO $$
+		`DO $$
 	DECLARE
 		v_last_allocated INTEGER;
 		v_max_persisted INTEGER;
@@ -148,10 +149,10 @@ var MigrationStatements = []string{
 		SET workspace_sequence = nextval('workspace_sequence_number_seq')
 		WHERE workspace_sequence IS NULL;
 	END $$`,
-	`ALTER TABLE workspaces ALTER COLUMN workspace_sequence SET NOT NULL`,
-	`CREATE UNIQUE INDEX IF NOT EXISTS idx_workspaces_workspace_sequence
+		`ALTER TABLE workspaces ALTER COLUMN workspace_sequence SET NOT NULL`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_workspaces_workspace_sequence
 		ON workspaces (workspace_sequence)`,
-	`DO $$
+		`DO $$
 	BEGIN
 		IF NOT EXISTS (
 			SELECT 1 FROM pg_constraint
@@ -163,6 +164,12 @@ var MigrationStatements = []string{
 				CHECK (workspace_sequence BETWEEN 1 AND 9999);
 		END IF;
 	END $$`,
+	}
+}
+
+// MigrationStatements contains SQL statements to be run after table creation
+// These are for schema changes that need to be applied to existing databases.
+var MigrationStatements = append(WorkspaceSequenceMigrationStatements(), []string{
 	`DO $$
 	BEGIN
 		-- Add unique constraint on workspace_invitations (workspace_id, email) if it doesn't exist
@@ -205,7 +212,7 @@ var MigrationStatements = []string{
 				FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 		END IF;
 	END $$`,
-}
+}...)
 
 // GetMigrationStatements returns migration statements for database schema setup
 func GetMigrationStatements() []string {

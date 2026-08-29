@@ -191,6 +191,17 @@ func TestWorkspaceSequenceIsPermanentBoundedAndUnique(t *testing.T) {
 	assert.Contains(t, allSQL, "CHECK (workspace_sequence BETWEEN 1 AND 9999)")
 }
 
+func TestWorkspaceSequenceMigrationStatementsAreReusableByVersionedMigrations(t *testing.T) {
+	statements := WorkspaceSequenceMigrationStatements()
+	allSQL := strings.Join(statements, "\n")
+
+	assert.Len(t, statements, 7)
+	assert.Contains(t, allSQL, "CREATE SEQUENCE IF NOT EXISTS workspace_sequence_number_seq")
+	assert.Contains(t, allSQL, "UPDATE workspaces")
+	assert.Contains(t, allSQL, "SET NOT NULL")
+	assert.Contains(t, allSQL, "BETWEEN 1 AND 9999")
+}
+
 func TestSchemaConsistency(t *testing.T) {
 	t.Run("Migration statements reference some TableNames", func(t *testing.T) {
 		allStatements := strings.Join(MigrationStatements, " ")

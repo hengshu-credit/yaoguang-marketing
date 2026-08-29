@@ -5564,6 +5564,7 @@ func TestWorkspaceSettings_ResolveEndpoint(t *testing.T) {
 func TestAllPermissionResources(t *testing.T) {
 	assert.Equal(t, []PermissionResource{
 		"contacts",
+		"customers",
 		"segments",
 		"lists",
 		"templates",
