@@ -207,8 +207,9 @@ type AutomationSchedulerConfig struct {
 }
 
 type IngestConfig struct {
-	MaxBatchSize int
-	MaxInFlight  int
+	MaxBatchSize             int
+	MaxInFlight              int
+	CustomerSyncMaxBatchSize int
 }
 
 // PlanLimitsConfig holds the quotas of the subscribed plan. Notifuse Cloud sets
@@ -512,6 +513,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	v.SetDefault("AUTOMATION_SCHEDULER_BATCH_SIZE", 50)
 	v.SetDefault("INGEST_MAX_BATCH_SIZE", 500)
 	v.SetDefault("INGEST_MAX_INFLIGHT", 32)
+	v.SetDefault("CUSTOMER_SYNC_MAX_BATCH_SIZE", 10000)
 
 	// Realtime runtime defaults preserve the existing single-process behavior.
 	v.SetDefault("NOTIFUSE_ROLE", string(RoleAll))
@@ -1060,8 +1062,9 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 			BatchSize: v.GetInt("AUTOMATION_SCHEDULER_BATCH_SIZE"),
 		},
 		Ingest: IngestConfig{
-			MaxBatchSize: v.GetInt("INGEST_MAX_BATCH_SIZE"),
-			MaxInFlight:  v.GetInt("INGEST_MAX_INFLIGHT"),
+			MaxBatchSize:             v.GetInt("INGEST_MAX_BATCH_SIZE"),
+			MaxInFlight:              v.GetInt("INGEST_MAX_INFLIGHT"),
+			CustomerSyncMaxBatchSize: v.GetInt("CUSTOMER_SYNC_MAX_BATCH_SIZE"),
 		},
 		Realtime: realtimeConfig,
 		Plan:     planConfig,

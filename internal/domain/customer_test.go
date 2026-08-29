@@ -2,6 +2,7 @@ package domain
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -421,6 +422,33 @@ func TestUpsertCustomerRequestValidateRequiresWorkspaceAndIdempotencyKey(t *test
 			assert.ErrorContains(t, err, tt.wantErr)
 		})
 	}
+}
+
+func TestCustomerBatchUpsertRequestValidateUsesConfigurableLargeLimit(t *testing.T) {
+	items := make([]CustomerBatchUpsertItem, 10_000)
+	for index := range items {
+		items[index] = CustomerBatchUpsertItem{
+			IdempotencyKey: fmt.Sprintf("batch-%d", index),
+			Customer:       CustomerUpsertInput{ExternalUserID: stringPointer(fmt.Sprintf("external-%d", index))},
+		}
+	}
+	request := CustomerBatchUpsertRequest{WorkspaceID: "workspace123", Items: items}
+	require.NoError(t, request.Validate(10_000))
+
+	request.Items = append(request.Items, CustomerBatchUpsertItem{IdempotencyKey: "overflow", Customer: CustomerUpsertInput{ExternalUserID: stringPointer("overflow")}})
+	err := request.Validate(10_000)
+	assert.ErrorContains(t, err, "10000")
+}
+
+func TestCustomerBatchUpsertRequestLeavesItemValidationToCompleteResultProcessing(t *testing.T) {
+	request := CustomerBatchUpsertRequest{
+		WorkspaceID: "workspace123",
+		Items: []CustomerBatchUpsertItem{
+			{IdempotencyKey: "valid", Customer: CustomerUpsertInput{ExternalUserID: stringPointer("external-1")}},
+			{},
+		},
+	}
+	require.NoError(t, request.Validate(10_000))
 }
 
 func stringPointer(value string) *string { return &value }

@@ -147,6 +147,26 @@ func TestLoadIngestBackpressureDefaultsAndOverrides(t *testing.T) {
 	})
 }
 
+func TestLoadCustomerSyncBatchLimitDefaultsAndOverrides(t *testing.T) {
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
+	defer os.Unsetenv("SECRET_KEY")
+
+	t.Run("defaults to ten thousand", func(t *testing.T) {
+		_ = os.Unsetenv("CUSTOMER_SYNC_MAX_BATCH_SIZE")
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.Equal(t, 10_000, cfg.Ingest.CustomerSyncMaxBatchSize)
+	})
+
+	t.Run("supports backend override", func(t *testing.T) {
+		_ = os.Setenv("CUSTOMER_SYNC_MAX_BATCH_SIZE", "25000")
+		defer os.Unsetenv("CUSTOMER_SYNC_MAX_BATCH_SIZE")
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.Equal(t, 25_000, cfg.Ingest.CustomerSyncMaxBatchSize)
+	})
+}
+
 func TestInvalidKeysHandling(t *testing.T) {
 	t.Run("missing_secret_key", func(t *testing.T) {
 		// Clear any existing environment variables

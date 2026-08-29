@@ -486,6 +486,79 @@ func (request *UpsertCustomerRequest) Validate() error {
 	return request.Customer.Validate()
 }
 
+type GetCustomerRequest struct {
+	WorkspaceID string          `json:"workspace_id"`
+	Locator     CustomerLocator `json:"locator"`
+}
+
+func (request *GetCustomerRequest) Validate() error {
+	if request == nil {
+		return fmt.Errorf("request is required")
+	}
+	request.WorkspaceID = strings.TrimSpace(request.WorkspaceID)
+	if request.WorkspaceID == "" || utf8.RuneCountInString(request.WorkspaceID) > 32 || !govalidator.IsAlphanumeric(request.WorkspaceID) {
+		return fmt.Errorf("workspace_id must be alphanumeric and contain 1 to 32 characters")
+	}
+	return request.Locator.Validate()
+}
+
+type CustomerBatchUpsertItem struct {
+	IdempotencyKey string              `json:"idempotency_key"`
+	Customer       CustomerUpsertInput `json:"customer"`
+}
+
+type CustomerBatchUpsertRequest struct {
+	WorkspaceID string                    `json:"workspace_id"`
+	Items       []CustomerBatchUpsertItem `json:"items"`
+}
+
+func (request *CustomerBatchUpsertRequest) Validate(maxItems int) error {
+	if request == nil {
+		return fmt.Errorf("request is required")
+	}
+	request.WorkspaceID = strings.TrimSpace(request.WorkspaceID)
+	if request.WorkspaceID == "" || utf8.RuneCountInString(request.WorkspaceID) > 32 || !govalidator.IsAlphanumeric(request.WorkspaceID) {
+		return fmt.Errorf("workspace_id must be alphanumeric and contain 1 to 32 characters")
+	}
+	if maxItems <= 0 {
+		return fmt.Errorf("customer batch limit must be positive")
+	}
+	if len(request.Items) == 0 {
+		return fmt.Errorf("customer batch must contain at least one item")
+	}
+	if len(request.Items) > maxItems {
+		return fmt.Errorf("customer batch cannot exceed %d items", maxItems)
+	}
+	return nil
+}
+
+type CustomerBatchItemError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+type CustomerBatchItemResult struct {
+	Index          int                     `json:"index"`
+	IdempotencyKey string                  `json:"idempotency_key,omitempty"`
+	Status         string                  `json:"status"`
+	Customer       *CustomerMutationResult `json:"customer,omitempty"`
+	Error          *CustomerBatchItemError `json:"error,omitempty"`
+}
+
+type CustomerBatchUpsertResponse struct {
+	Accepted int                       `json:"accepted"`
+	Failed   int                       `json:"failed"`
+	Results  []CustomerBatchItemResult `json:"results"`
+}
+
+type CustomerService interface {
+	GetCustomer(ctx context.Context, request *GetCustomerRequest) (*Customer, error)
+	UpsertCustomer(ctx context.Context, request *UpsertCustomerRequest) (*CustomerMutationResult, error)
+	UpsertCustomerBatch(ctx context.Context, request *CustomerBatchUpsertRequest) (*CustomerBatchUpsertResponse, error)
+}
+
+//go:generate mockgen -destination mocks/mock_customer_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain CustomerService
+
 type Customer struct {
 	ID                     string                   `json:"customer_id"`
 	CustomerNo             string                   `json:"customer_no"`
