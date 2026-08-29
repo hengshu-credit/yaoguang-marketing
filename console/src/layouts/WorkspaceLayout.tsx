@@ -26,6 +26,7 @@ import { useState, useEffect } from 'react'
 import { FileManagerProvider } from '../components/file_manager/context'
 import { FileManagerSettings } from '../components/file_manager/interfaces'
 import { workspaceService } from '../services/api/workspace'
+import { clearWorkspaceCatalog, setWorkspaceCatalog } from '../i18n/workspaceCatalog'
 import { createEmptyPermissions, createFullPermissions } from '../services/api/permissions'
 import { isRootUser } from '../services/api/auth'
 import {
@@ -61,6 +62,7 @@ export function WorkspaceLayout() {
   const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   const { signout, workspaces, user, refreshWorkspaces } = useAuth()
+  const workspaceTranslations = workspaces.find((workspace) => workspace.id === workspaceId)?.settings.ui_translations
   const navigate = useNavigate()
   const [collapsed, setCollapsed] = useState(false)
   const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null)
@@ -91,6 +93,18 @@ export function WorkspaceLayout() {
     if (collapsed) return
     setOpenKeys(activeGroup ? [activeGroup] : [])
   }, [activeGroup, collapsed])
+
+  useEffect(() => {
+    void setWorkspaceCatalog(workspaceId, workspaceTranslations ?? {}).catch((error) => {
+      console.error('Failed to apply workspace translations', error)
+    })
+
+    return () => {
+      void clearWorkspaceCatalog(workspaceId).catch((error) => {
+        console.error('Failed to clear workspace translations', error)
+      })
+    }
+  }, [workspaceId, workspaceTranslations])
 
   // Fetch user permissions for the current workspace
   useEffect(() => {

@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
+import { I18nProvider } from '@lingui/react'
+import { i18n, loadLocale } from '../i18n'
 import { WorkspaceLayout } from '../layouts/WorkspaceLayout'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from '@tanstack/react-router'
@@ -10,6 +12,10 @@ import { workspaceService } from '../services/api/workspace'
 
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: vi.fn()
+}))
+
+vi.mock('../i18n/locales/zh-CN.po', () => ({
+  messages: { Dashboard: '工作台' }
 }))
 
 // Read at render time, so a test can put the layout on any route before rendering.
@@ -61,7 +67,7 @@ const grantAll = (value: boolean) => ({
   web_analytics: { read: value, write: value }
 })
 
-const signInAsRoot = () => {
+const signInAsRoot = (settings: Record<string, unknown> = {}) => {
   vi.clearAllMocks()
   currentPathname = '/console/workspace/ws1'
   vi.mocked(useNavigate).mockReturnValue(mockNavigate as never)
@@ -69,10 +75,57 @@ const signInAsRoot = () => {
   vi.mocked(useAuth).mockReturnValue({
     signout: vi.fn(),
     refreshWorkspaces: vi.fn(),
-    workspaces: [{ id: 'ws1', name: 'Workspace One', settings: {} }],
+    workspaces: [{ id: 'ws1', name: 'Workspace One', settings }],
     user: { id: 'u1', email: 'root@example.com' }
   } as never)
 }
+
+describe('WorkspaceLayout workspace catalog scope', () => {
+  beforeEach(signInAsRoot)
+
+  it('renders a workspace sidebar override and restores the bundled value after unmount', async () => {
+    await loadLocale('zh-CN')
+    signInAsRoot({
+      ui_translations: {
+        'zh-CN': { Dashboard: '自定义工作台' }
+      }
+    })
+
+    const view = render(
+      <I18nProvider i18n={i18n}>
+        <WorkspaceLayout />
+      </I18nProvider>
+    )
+
+    await waitFor(() => {
+      expect(i18n._('Dashboard')).toBe('自定义工作台')
+    })
+    view.rerender(
+      <I18nProvider i18n={i18n}>
+        <WorkspaceLayout />
+      </I18nProvider>
+    )
+    expect(screen.getByText('自定义工作台')).toBeInTheDocument()
+
+    view.unmount()
+    signInAsRoot()
+    const restoredView = render(
+      <I18nProvider i18n={i18n}>
+        <WorkspaceLayout />
+      </I18nProvider>
+    )
+
+    await waitFor(() => {
+      expect(i18n._('Dashboard')).toBe('工作台')
+    })
+    restoredView.rerender(
+      <I18nProvider i18n={i18n}>
+        <WorkspaceLayout />
+      </I18nProvider>
+    )
+    expect(screen.getByText('工作台')).toBeInTheDocument()
+  })
+})
 
 describe('WorkspaceLayout sidebar groups', () => {
   beforeEach(signInAsRoot)

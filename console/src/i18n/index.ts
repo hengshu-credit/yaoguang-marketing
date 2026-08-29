@@ -1,4 +1,9 @@
 import { i18n } from "@lingui/core"
+import {
+  isCatalogGenerationCurrent,
+  loadWorkspaceCatalog,
+  nextCatalogGeneration,
+} from './workspaceCatalog'
 
 // Keep this list in sync with the backend's canonical set:
 // domain.SupportedUILanguages (internal/domain/languages.go) and the
@@ -43,8 +48,6 @@ export interface LoadLocaleOptions {
 // that was actually requested. LocaleProvider routinely has two loads in flight
 // (the localStorage bootstrap and the users.language sync), so this is the
 // normal path, not an edge case.
-let loadGeneration = 0
-
 /**
  * Load and activate a locale.
  *
@@ -56,14 +59,13 @@ export async function loadLocale(
   locale: Locale,
   { persist = false }: LoadLocaleOptions = {},
 ): Promise<Locale | null> {
-  const generation = ++loadGeneration
+  const generation = nextCatalogGeneration()
   try {
-    const { messages } = await import(`./locales/${locale}.po`)
+    const isCurrentGeneration = await loadWorkspaceCatalog(locale, generation)
     // Cache the catalog before deciding whether to activate it: the import
     // succeeded, and it is the only catalog the app has if the newer load is
     // about to fail.
-    i18n.load(locale, messages)
-    if (generation !== loadGeneration) {
+    if (!isCurrentGeneration) {
       // A newer request owns the choice, so do not activate over it or record a
       // preference — except when nothing is active at all. The newer load can
       // fail (its chunk 404s after a deploy while an open tab still holds the
@@ -79,7 +81,7 @@ export async function loadLocale(
     return locale
   } catch (error) {
     console.error(`Failed to load locale ${locale}:`, error)
-    if (generation !== loadGeneration) return null
+    if (!isCatalogGenerationCurrent(generation)) return null
     // Fall back to English, and never persist it: the user did not choose it,
     // and overwriting their stored preference here would outlive the reload
     // that fixes a transient import failure.
