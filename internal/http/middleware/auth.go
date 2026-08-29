@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/service"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 // writeJSONError writes a JSON error response with the given message and status code
@@ -24,6 +24,7 @@ func writeJSONError(w http.ResponseWriter, message string, statusCode int) {
 // AuthConfig holds the configuration for the auth middleware
 type AuthConfig struct {
 	GetJWTSecret func() ([]byte, error)
+	ErrorWriter  func(http.ResponseWriter, *http.Request, string, int)
 }
 
 // NewAuthMiddleware creates a new auth middleware with the given JWT secret provider
@@ -33,19 +34,27 @@ func NewAuthMiddleware(getJWTSecret func() ([]byte, error)) *AuthConfig {
 	}
 }
 
+func (ac *AuthConfig) writeError(w http.ResponseWriter, r *http.Request, message string, statusCode int) {
+	if ac.ErrorWriter != nil {
+		ac.ErrorWriter(w, r, message, statusCode)
+		return
+	}
+	writeJSONError(w, message, statusCode)
+}
+
 // RequireAuth creates a middleware that verifies the JWT token and user session
 func (ac *AuthConfig) RequireAuth() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
-				writeJSONError(w, "Authorization header is required", http.StatusUnauthorized)
+				ac.writeError(w, r, "Authorization header is required", http.StatusUnauthorized)
 				return
 			}
 
 			parts := strings.Split(authHeader, " ")
 			if len(parts) != 2 || parts[0] != "Bearer" {
-				writeJSONError(w, "Invalid authorization header format", http.StatusUnauthorized)
+				ac.writeError(w, r, "Invalid authorization header format", http.StatusUnauthorized)
 				return
 			}
 
@@ -54,7 +63,7 @@ func (ac *AuthConfig) RequireAuth() func(http.Handler) http.Handler {
 			// Get JWT secret
 			secret, err := ac.GetJWTSecret()
 			if err != nil {
-				writeJSONError(w, "Authentication unavailable", http.StatusServiceUnavailable)
+				ac.writeError(w, r, "Authentication unavailable", http.StatusServiceUnavailable)
 				return
 			}
 
@@ -70,25 +79,25 @@ func (ac *AuthConfig) RequireAuth() func(http.Handler) http.Handler {
 
 			// CRITICAL: Check both error AND token.Valid
 			if err != nil {
-				writeJSONError(w, fmt.Sprintf("Invalid token: %v", err), http.StatusUnauthorized)
+				ac.writeError(w, r, fmt.Sprintf("Invalid token: %v", err), http.StatusUnauthorized)
 				return
 			}
 			if !token.Valid {
-				writeJSONError(w, "Invalid token", http.StatusUnauthorized)
+				ac.writeError(w, r, "Invalid token", http.StatusUnauthorized)
 				return
 			}
 
 			// Validate required claims
 			if claims.UserID == "" {
-				writeJSONError(w, "User ID not found in token", http.StatusUnauthorized)
+				ac.writeError(w, r, "User ID not found in token", http.StatusUnauthorized)
 				return
 			}
 			if claims.Type == "" {
-				writeJSONError(w, "User type not found in token", http.StatusUnauthorized)
+				ac.writeError(w, r, "User type not found in token", http.StatusUnauthorized)
 				return
 			}
 			if claims.Type == string(domain.UserTypeUser) && claims.SessionID == "" {
-				writeJSONError(w, "Session ID not found in token", http.StatusUnauthorized)
+				ac.writeError(w, r, "Session ID not found in token", http.StatusUnauthorized)
 				return
 			}
 

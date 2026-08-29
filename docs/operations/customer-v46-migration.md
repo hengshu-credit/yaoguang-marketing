@@ -11,10 +11,10 @@ V46 introduces the Workspace-local `customers` authority, encrypted identities, 
 5. Run the following preflight in every Workspace database. Each query must return no rows:
 
 ```sql
-SELECT external_id, COUNT(*)
+SELECT BTRIM(external_id) AS normalized_external_id, COUNT(*)
 FROM contacts
 WHERE NULLIF(BTRIM(external_id), '') IS NOT NULL
-GROUP BY external_id
+GROUP BY BTRIM(external_id)
 HAVING COUNT(*) > 1;
 
 SELECT LOWER(BTRIM(email)) AS normalized_email, COUNT(*)

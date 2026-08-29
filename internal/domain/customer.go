@@ -335,12 +335,12 @@ type CustomerListMembershipInput struct {
 }
 
 type CustomerUpsertInput struct {
-	Locator         *CustomerLocator              `json:"locator,omitempty"`
-	ExternalUserID  *string                       `json:"external_user_id,omitempty"`
-	Profile         *CustomerProfilePatch         `json:"profile,omitempty"`
-	Identities      []CustomerIdentityInput       `json:"identities,omitempty"`
-	Tags            *[]string                     `json:"tags,omitempty"`
-	ListMemberships []CustomerListMembershipInput `json:"list_memberships,omitempty"`
+	Locator         *CustomerLocator               `json:"locator,omitempty"`
+	ExternalUserID  *string                        `json:"external_user_id,omitempty"`
+	Profile         *CustomerProfilePatch          `json:"profile,omitempty"`
+	Identities      []CustomerIdentityInput        `json:"identities,omitempty"`
+	Tags            *[]string                      `json:"tags,omitempty"`
+	ListMemberships *[]CustomerListMembershipInput `json:"list_memberships,omitempty"`
 }
 
 func (input *CustomerUpsertInput) Validate() error {
@@ -413,25 +413,27 @@ func (input *CustomerUpsertInput) Validate() error {
 		*input.Tags = normalizedTags
 	}
 
-	seenLists := make(map[string]struct{}, len(input.ListMemberships))
-	for index := range input.ListMemberships {
-		membership := &input.ListMemberships[index]
-		membership.ListID = trimUnicodeSpace(membership.ListID)
-		if membership.ListID == "" || utf8.RuneCountInString(membership.ListID) > 32 || !govalidator.IsAlphanumeric(membership.ListID) {
-			return fmt.Errorf("list_id must be alphanumeric and contain 1 to 32 characters")
-		}
-		if _, exists := seenLists[membership.ListID]; exists {
-			return fmt.Errorf("duplicate list membership %s", membership.ListID)
-		}
-		seenLists[membership.ListID] = struct{}{}
-		membership.Status = strings.ToLower(trimUnicodeSpace(membership.Status))
-		if membership.Status == "" {
-			membership.Status = "active"
-		}
-		switch membership.Status {
-		case "active", "pending", "unsubscribed", "bounced", "complained":
-		default:
-			return fmt.Errorf("list membership status is invalid")
+	if input.ListMemberships != nil {
+		seenLists := make(map[string]struct{}, len(*input.ListMemberships))
+		for index := range *input.ListMemberships {
+			membership := &(*input.ListMemberships)[index]
+			membership.ListID = trimUnicodeSpace(membership.ListID)
+			if membership.ListID == "" || utf8.RuneCountInString(membership.ListID) > 32 || !govalidator.IsAlphanumeric(membership.ListID) {
+				return fmt.Errorf("list_id must be alphanumeric and contain 1 to 32 characters")
+			}
+			if _, exists := seenLists[membership.ListID]; exists {
+				return fmt.Errorf("duplicate list membership %s", membership.ListID)
+			}
+			seenLists[membership.ListID] = struct{}{}
+			membership.Status = strings.ToLower(trimUnicodeSpace(membership.Status))
+			if membership.Status == "" {
+				membership.Status = "active"
+			}
+			switch membership.Status {
+			case "active", "pending", "unsubscribed", "bounced", "complained":
+			default:
+				return fmt.Errorf("list membership status is invalid")
+			}
 		}
 	}
 	return nil
@@ -454,9 +456,11 @@ func (input CustomerUpsertInput) CanonicalPayloadHash() (string, error) {
 		right := string(canonical.Identities[j].Type) + "\x00" + canonical.Identities[j].Value
 		return left < right
 	})
-	sort.Slice(canonical.ListMemberships, func(i, j int) bool {
-		return canonical.ListMemberships[i].ListID < canonical.ListMemberships[j].ListID
-	})
+	if canonical.ListMemberships != nil {
+		sort.Slice(*canonical.ListMemberships, func(i, j int) bool {
+			return (*canonical.ListMemberships)[i].ListID < (*canonical.ListMemberships)[j].ListID
+		})
+	}
 	encoded, err = json.Marshal(canonical)
 	if err != nil {
 		return "", fmt.Errorf("encode canonical customer payload: %w", err)

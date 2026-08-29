@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"sort"
+	"sync"
 	"testing"
 
 	"github.com/hengshu-credit/yaoguang-marketing/config"
@@ -102,6 +104,66 @@ func TestCustomerProfileAPIIntegration(t *testing.T) {
 		assert.Equal(t, "identity_conflict", apiError.Error.Code)
 	})
 
+	t.Run("concurrent identity claim has one authority owner", func(t *testing.T) {
+		type claimResult struct {
+			Status int
+			Body   []byte
+			Err    error
+		}
+		start := make(chan struct{})
+		results := make(chan claimResult, 2)
+		var workers sync.WaitGroup
+		for index := 0; index < 2; index++ {
+			index := index
+			workers.Add(1)
+			go func() {
+				defer workers.Done()
+				<-start
+				response, requestErr := suite.APIClient.Post("/api/customers.upsert", map[string]interface{}{
+					"workspace_id":    workspaceOne.ID,
+					"idempotency_key": fmt.Sprintf("concurrent-identity-%d", index),
+					"customer": map[string]interface{}{
+						"external_user_id": fmt.Sprintf("concurrent-user-%d", index),
+						"identities":       []map[string]interface{}{{"type": "email", "value": "concurrent.claim@example.com"}},
+					},
+				})
+				if requestErr != nil {
+					results <- claimResult{Err: requestErr}
+					return
+				}
+				defer response.Body.Close()
+				body, readErr := io.ReadAll(response.Body)
+				results <- claimResult{Status: response.StatusCode, Body: body, Err: readErr}
+			}()
+		}
+		close(start)
+		workers.Wait()
+		close(results)
+
+		statuses := make([]int, 0, 2)
+		for result := range results {
+			require.NoError(t, result.Err)
+			statuses = append(statuses, result.Status)
+			if result.Status == http.StatusConflict {
+				var apiError customerErrorEnvelope
+				require.NoError(t, json.Unmarshal(result.Body, &apiError))
+				assert.Contains(t, []string{"identity_conflict", "external_id_conflict"}, apiError.Error.Code)
+			}
+		}
+		sort.Ints(statuses)
+		assert.Equal(t, []int{http.StatusOK, http.StatusConflict}, statuses)
+
+		workspaceDB, dbErr := suite.DBManager.GetWorkspaceDB(workspaceOne.ID)
+		require.NoError(t, dbErr)
+		var customerCount, consistentProjectionCount int
+		require.NoError(t, workspaceDB.QueryRow(`SELECT COUNT(*) FROM customers WHERE external_user_id IN ('concurrent-user-0', 'concurrent-user-1')`).Scan(&customerCount))
+		require.NoError(t, workspaceDB.QueryRow(`SELECT COUNT(*) FROM contacts c
+			JOIN customer_identities ci ON ci.customer_id = c.customer_id
+			WHERE c.email = 'concurrent.claim@example.com' AND ci.identity_type = 'email'`).Scan(&consistentProjectionCount))
+		assert.Equal(t, 1, customerCount)
+		assert.Equal(t, 1, consistentProjectionCount)
+	})
+
 	t.Run("all lookup forms mask identities", func(t *testing.T) {
 		locators := []struct {
 			name    string
@@ -160,6 +222,43 @@ func TestCustomerProfileAPIIntegration(t *testing.T) {
 		assert.Zero(t, contactCount)
 	})
 
+	t.Run("disabled email is not searchable or projected", func(t *testing.T) {
+		response := postCustomer(t, suite.APIClient, "/api/customers.upsert", map[string]interface{}{
+			"workspace_id":    workspaceOne.ID,
+			"idempotency_key": "enabled-then-disabled",
+			"customer": map[string]interface{}{
+				"external_user_id": "disable-user",
+				"identities":       []map[string]interface{}{{"type": "email", "value": "disable.me@example.com", "enabled": true}},
+			},
+		}, http.StatusOK)
+		var created customerMutationEnvelope
+		decodeCustomerResponse(t, response, &created)
+
+		response = postCustomer(t, suite.APIClient, "/api/customers.upsert", map[string]interface{}{
+			"workspace_id":    workspaceOne.ID,
+			"idempotency_key": "disable-existing-email",
+			"customer": map[string]interface{}{
+				"locator":    map[string]interface{}{"customer_id": created.Customer.CustomerID},
+				"identities": []map[string]interface{}{{"type": "email", "value": "disable.me@example.com", "enabled": false}},
+			},
+		}, http.StatusOK)
+		response.Body.Close()
+
+		response = postCustomer(t, suite.APIClient, "/api/customers.get", map[string]interface{}{
+			"workspace_id": workspaceOne.ID,
+			"locator":      map[string]interface{}{"identity": map[string]interface{}{"type": "email", "value": "disable.me@example.com"}},
+		}, http.StatusNotFound)
+		response.Body.Close()
+
+		workspaceDB, dbErr := suite.DBManager.GetWorkspaceDB(workspaceOne.ID)
+		require.NoError(t, dbErr)
+		var enabled, contactLinked bool
+		require.NoError(t, workspaceDB.QueryRow(`SELECT enabled FROM customer_identities WHERE customer_id = $1 AND identity_type = 'email'`, created.Customer.CustomerID).Scan(&enabled))
+		require.NoError(t, workspaceDB.QueryRow(`SELECT EXISTS (SELECT 1 FROM contacts WHERE email = 'disable.me@example.com' AND customer_id IS NOT NULL)`).Scan(&contactLinked))
+		assert.False(t, enabled)
+		assert.False(t, contactLinked)
+	})
+
 	t.Run("complete ordered batch results", func(t *testing.T) {
 		response := postCustomer(t, suite.APIClient, "/api/customers.batch", map[string]interface{}{
 			"workspace_id": workspaceOne.ID,
@@ -190,16 +289,29 @@ func TestCustomerProfileAPIIntegration(t *testing.T) {
 	})
 
 	t.Run("explicit anonymous to known merge redirects source", func(t *testing.T) {
+		anonymousEmail := "anonymous.session@example.com"
 		response := postCustomer(t, suite.APIClient, "/api/customers.upsert", map[string]interface{}{
 			"workspace_id":    workspaceOne.ID,
 			"idempotency_key": "anonymous-source",
 			"customer": map[string]interface{}{
-				"identities": []map[string]interface{}{{"type": "anonymous_id", "value": "browser-session-123"}},
-				"profile":    map[string]interface{}{"attributes": map[string]interface{}{"merge": map[string]interface{}{"first_seen_campaign": "spring"}}},
+				"identities": []map[string]interface{}{
+					{"type": "anonymous_id", "value": "browser-session-123"},
+					{"type": "email", "value": anonymousEmail, "primary": true},
+				},
+				"profile": map[string]interface{}{"attributes": map[string]interface{}{"merge": map[string]interface{}{"first_seen_campaign": "spring"}}},
 			},
 		}, http.StatusOK)
 		var anonymous customerMutationEnvelope
 		decodeCustomerResponse(t, response, &anonymous)
+		workspaceDB, dbErr := suite.DBManager.GetWorkspaceDB(workspaceOne.ID)
+		require.NoError(t, dbErr)
+		_, err = workspaceDB.Exec(`INSERT INTO customer_consents
+			(id, customer_id, purpose, channel, status) VALUES
+			('11111111-1111-4111-8111-111111111101', $1, 'marketing', 'email', 'granted'),
+			('11111111-1111-4111-8111-111111111102', $2, 'marketing', 'email', 'denied'),
+			('11111111-1111-4111-8111-111111111103', $2, 'analytics', 'email', 'granted')`,
+			knownOne.Customer.CustomerID, anonymous.Customer.CustomerID)
+		require.NoError(t, err)
 
 		mergeResponse := postCustomer(t, suite.APIClient, "/api/customers.merge", map[string]interface{}{
 			"workspace_id":    workspaceOne.ID,
@@ -221,6 +333,20 @@ func TestCustomerProfileAPIIntegration(t *testing.T) {
 		decodeCustomerResponse(t, getResponse, &resolved)
 		assert.Equal(t, knownOne.Customer.CustomerID, resolved.Customer.CustomerID)
 		assert.Equal(t, anonymous.Customer.CustomerID, resolved.Customer.ResolvedFromCustomerID)
+
+		var targetContactCount, detachedSourceContactCount int
+		require.NoError(t, workspaceDB.QueryRow(`SELECT COUNT(*) FROM contacts WHERE customer_id = $1`, knownOne.Customer.CustomerID).Scan(&targetContactCount))
+		require.NoError(t, workspaceDB.QueryRow(`SELECT COUNT(*) FROM contacts WHERE email = $1 AND customer_id IS NULL`, anonymousEmail).Scan(&detachedSourceContactCount))
+		assert.Equal(t, 1, targetContactCount)
+		assert.Equal(t, 1, detachedSourceContactCount)
+		var sourceConsentCount int
+		var marketingStatus, analyticsStatus string
+		require.NoError(t, workspaceDB.QueryRow(`SELECT COUNT(*) FROM customer_consents WHERE customer_id = $1`, anonymous.Customer.CustomerID).Scan(&sourceConsentCount))
+		require.NoError(t, workspaceDB.QueryRow(`SELECT status FROM customer_consents WHERE customer_id = $1 AND purpose = 'marketing' AND channel = 'email'`, knownOne.Customer.CustomerID).Scan(&marketingStatus))
+		require.NoError(t, workspaceDB.QueryRow(`SELECT status FROM customer_consents WHERE customer_id = $1 AND purpose = 'analytics' AND channel = 'email'`, knownOne.Customer.CustomerID).Scan(&analyticsStatus))
+		assert.Zero(t, sourceConsentCount)
+		assert.Equal(t, "granted", marketingStatus)
+		assert.Equal(t, "granted", analyticsStatus)
 	})
 
 	t.Run("legacy Contact backfill", func(t *testing.T) {
@@ -252,6 +378,22 @@ func TestCustomerProfileAPIIntegration(t *testing.T) {
 		var profileCount int
 		require.NoError(t, workspaceDB.QueryRow(`SELECT COUNT(*) FROM customer_profiles WHERE customer_id = $1`, customerID).Scan(&profileCount))
 		assert.Equal(t, 1, profileCount)
+	})
+
+	t.Run("legacy backfill rejects whitespace-normalized external ID collision", func(t *testing.T) {
+		legacyWorkspace, createErr := suite.DataFactory.CreateWorkspace(testutil.WithWorkspaceName("V46 trimmed external conflict"))
+		require.NoError(t, createErr)
+		_, createErr = suite.DataFactory.CreateContact(legacyWorkspace.ID,
+			testutil.WithContactEmail("trimmed.one@example.com"), testutil.WithContactExternalID("crm-trimmed"))
+		require.NoError(t, createErr)
+		_, createErr = suite.DataFactory.CreateContact(legacyWorkspace.ID,
+			testutil.WithContactEmail("trimmed.two@example.com"), testutil.WithContactExternalID(" crm-trimmed "))
+		require.NoError(t, createErr)
+		workspaceDB, dbErr := suite.DBManager.GetWorkspaceDB(legacyWorkspace.ID)
+		require.NoError(t, dbErr)
+
+		migrationErr := (&migrations.V46Migration{}).UpdateWorkspace(context.Background(), suite.Config, legacyWorkspace, workspaceDB)
+		assert.ErrorContains(t, migrationErr, `duplicate external user ID "crm-trimmed"`)
 	})
 }
 

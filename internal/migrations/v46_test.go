@@ -51,7 +51,7 @@ func TestV46UpdateWorkspaceBackfillsCustomerProfileAndEncryptedIdentities(t *tes
 	for _, statement := range schema.CustomerTableDefinitions() {
 		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
 	}
-	mock.ExpectQuery("SELECT external_id.*HAVING COUNT").
+	mock.ExpectQuery("SELECT BTRIM.*external_id.*HAVING COUNT").
 		WillReturnRows(sqlmock.NewRows([]string{"external_id"}))
 	mock.ExpectQuery("SELECT LOWER.*email.*HAVING COUNT").
 		WillReturnRows(sqlmock.NewRows([]string{"normalized_email"}))
@@ -89,4 +89,31 @@ func TestV46UpdateWorkspaceRejectsInvalidSequenceOrMissingSecret(t *testing.T) {
 
 	err = migration.UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "workspace-1", Sequence: 1}, nil)
 	assert.ErrorContains(t, err, "secret")
+}
+
+func TestInsertV46IdentityRejectsConflictInsteadOfSilentlyDroppingIdentity(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	mock.ExpectExec("INSERT INTO customer_identities").
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
+	err = insertV46Identity(
+		context.Background(), db, "workspace-secret", "workspace-1",
+		"11111111-1111-4111-8111-111111111111", domain.CustomerIdentityPhone, "+8613800138000", true,
+	)
+	assert.ErrorContains(t, err, "already belongs to another customer")
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestRejectV46DuplicateContactKeysNormalizesExternalIDsBeforeGrouping(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	mock.ExpectQuery(`SELECT BTRIM\(external_id\).*GROUP BY BTRIM\(external_id\)`).
+		WillReturnRows(sqlmock.NewRows([]string{"external_id"}).AddRow("crm-42"))
+
+	err = rejectV46DuplicateContactKeys(context.Background(), "workspace-1", db)
+	assert.ErrorContains(t, err, `duplicate external user ID "crm-42"`)
+	require.NoError(t, mock.ExpectationsWereMet())
 }

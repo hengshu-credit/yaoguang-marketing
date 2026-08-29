@@ -269,6 +269,7 @@ func TestApplyCustomerAttributesPatchRejectsAmbiguousOrMalformedOperations(t *te
 func TestCustomerUpsertInputValidateAllowsExternalIDWithoutEmailAndCanonicalizesChildren(t *testing.T) {
 	externalID := " core-user-42 "
 	tags := []string{" vip ", "active", "vip"}
+	memberships := []CustomerListMembershipInput{{ListID: "list123", Status: " active "}}
 	input := CustomerUpsertInput{
 		ExternalUserID: &externalID,
 		Profile: &CustomerProfilePatch{
@@ -281,10 +282,8 @@ func TestCustomerUpsertInputValidateAllowsExternalIDWithoutEmailAndCanonicalizes
 			{Type: CustomerIdentityEmail, Value: " Alice@Example.COM ", Primary: true},
 			{Type: CustomerIdentityDeviceID, Value: " Device-AbC-42 "},
 		},
-		Tags: &tags,
-		ListMemberships: []CustomerListMembershipInput{
-			{ListID: "list123", Status: " active "},
-		},
+		Tags:            &tags,
+		ListMemberships: &memberships,
 	}
 
 	err := input.Validate()
@@ -297,7 +296,7 @@ func TestCustomerUpsertInputValidateAllowsExternalIDWithoutEmailAndCanonicalizes
 	assert.Equal(t, "alice@example.com", input.Identities[0].Value)
 	assert.Equal(t, "Device-AbC-42", input.Identities[1].Value)
 	assert.Equal(t, []string{"active", "vip"}, *input.Tags)
-	assert.Equal(t, "active", input.ListMemberships[0].Status)
+	assert.Equal(t, "active", (*input.ListMemberships)[0].Status)
 }
 
 func TestCustomerUpsertInputValidateRequiresResolvableIdentityAndRejectsNormalizedDuplicates(t *testing.T) {
@@ -332,7 +331,7 @@ func TestCustomerUpsertInputValidateRequiresResolvableIdentityAndRejectsNormaliz
 			name: "invalid list status",
 			input: CustomerUpsertInput{
 				ExternalUserID:  stringPointer("user-1"),
-				ListMemberships: []CustomerListMembershipInput{{ListID: "list123", Status: "unknown"}},
+				ListMemberships: customerListMembershipSlicePointer([]CustomerListMembershipInput{{ListID: "list123", Status: "unknown"}}),
 			},
 			wantErr: "list membership status",
 		},
@@ -377,6 +376,20 @@ func TestCustomerUpsertInputCanonicalPayloadHashUsesNormalizedBusinessPayload(t 
 	differentHash, err := second.CanonicalPayloadHash()
 	require.NoError(t, err)
 	assert.NotEqual(t, firstHash, differentHash)
+}
+
+func TestCustomerUpsertInputCanonicalPayloadHashDistinguishesOmittedAndEmptyMemberships(t *testing.T) {
+	omitted := CustomerUpsertInput{ExternalUserID: stringPointer("core-user-42")}
+	empty := CustomerUpsertInput{
+		ExternalUserID:  stringPointer("core-user-42"),
+		ListMemberships: customerListMembershipSlicePointer([]CustomerListMembershipInput{}),
+	}
+
+	omittedHash, err := omitted.CanonicalPayloadHash()
+	require.NoError(t, err)
+	emptyHash, err := empty.CanonicalPayloadHash()
+	require.NoError(t, err)
+	assert.NotEqual(t, omittedHash, emptyHash)
 }
 
 func TestUpsertCustomerRequestValidateRequiresWorkspaceAndIdempotencyKey(t *testing.T) {
@@ -491,3 +504,7 @@ func TestCustomerMergeRequestValidatesWorkspaceIdempotencyAndReason(t *testing.T
 func stringPointer(value string) *string { return &value }
 
 func stringSlicePointer(value []string) *[]string { return &value }
+
+func customerListMembershipSlicePointer(value []CustomerListMembershipInput) *[]CustomerListMembershipInput {
+	return &value
+}

@@ -214,7 +214,7 @@ func (r *CustomerPostgresRepository) Upsert(ctx context.Context, command domain.
 		if err := replaceCustomerListMemberships(ctx, tx, customer.ID, command.Input.ListMemberships, now); err != nil {
 			return err
 		}
-		if err := projectCustomerContact(ctx, tx, customer, profile, command.Input.Identities, now); err != nil {
+		if err := projectCustomerContact(ctx, tx, customer, profile, command.Input.Identities, action == "created", now); err != nil {
 			return err
 		}
 
@@ -408,17 +408,22 @@ func moveCustomerAggregate(ctx context.Context, tx *sql.Tx, sourceID, targetID s
 			SELECT $1, tag, created_at FROM customer_tags WHERE customer_id = $2
 			ON CONFLICT (customer_id, tag) DO NOTHING`, args: []interface{}{targetID, sourceID}},
 		{query: `DELETE FROM customer_tags WHERE customer_id = $1`, args: []interface{}{sourceID}},
-		{query: `INSERT INTO customer_consents (id, customer_id, purpose, channel, status, source, valid_from, revoked_at, metadata, created_at, updated_at)
-			SELECT id, $1, purpose, channel, status, source, valid_from, revoked_at, metadata, created_at, updated_at
-			FROM customer_consents WHERE customer_id = $2
-			ON CONFLICT (customer_id, purpose, channel) DO NOTHING`, args: []interface{}{targetID, sourceID}},
-		{query: `DELETE FROM customer_consents WHERE customer_id = $1`, args: []interface{}{sourceID}},
+		{query: `DELETE FROM customer_consents source_consent USING customer_consents target_consent
+			WHERE source_consent.customer_id = $1 AND target_consent.customer_id = $2
+			AND source_consent.purpose = target_consent.purpose AND source_consent.channel = target_consent.channel`, args: []interface{}{sourceID, targetID}},
+		{query: `UPDATE customer_consents SET customer_id = $1, updated_at = $3 WHERE customer_id = $2`, args: []interface{}{targetID, sourceID, now}},
 		{query: `INSERT INTO customer_list_memberships (customer_id, list_id, status, created_at, updated_at)
 			SELECT $1, list_id, status, created_at, updated_at FROM customer_list_memberships WHERE customer_id = $2
 			ON CONFLICT (customer_id, list_id) DO NOTHING`, args: []interface{}{targetID, sourceID}},
 		{query: `DELETE FROM customer_list_memberships WHERE customer_id = $1`, args: []interface{}{sourceID}},
 		{query: `UPDATE contact_endpoints SET customer_id = $1 WHERE customer_id = $2`, args: []interface{}{targetID, sourceID}},
-		{query: `UPDATE contacts SET customer_id = $1 WHERE customer_id = $2`, args: []interface{}{targetID, sourceID}},
+		{query: `UPDATE contacts source_contact
+			SET customer_id = CASE
+				WHEN EXISTS (SELECT 1 FROM contacts target_contact WHERE target_contact.customer_id = $1) THEN NULL
+				ELSE $1
+			END,
+			updated_at = $3
+			WHERE source_contact.customer_id = $2`, args: []interface{}{targetID, sourceID, now}},
 	}
 	for _, statement := range statements {
 		if _, err := tx.ExecContext(ctx, statement.query, statement.args...); err != nil {
@@ -613,24 +618,35 @@ func (r *CustomerPostgresRepository) upsertCustomerIdentities(ctx context.Contex
 		if input.Metadata == nil {
 			metadata = []byte("{}")
 		}
+		enabled := true
+		if input.Enabled != nil {
+			enabled = *input.Enabled
+		}
 		if input.Primary {
 			if _, err := tx.ExecContext(ctx, `UPDATE customer_identities SET is_primary = FALSE, updated_at = CURRENT_TIMESTAMP WHERE customer_id = $1 AND identity_type = $2 AND is_primary`, customerID, normalized.Type); err != nil {
 				return fmt.Errorf("demote primary customer identity: %w", err)
 			}
 		}
-		_, err = tx.ExecContext(ctx, `INSERT INTO customer_identities (
+		result, err := tx.ExecContext(ctx, `INSERT INTO customer_identities (
 			id, customer_id, identity_type, value_ciphertext, lookup_fingerprint, display_hint,
-			verified, is_primary, metadata, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
+			verified, is_primary, enabled, metadata, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
 		ON CONFLICT (identity_type, lookup_fingerprint) DO UPDATE SET
 			verified = customer_identities.verified OR EXCLUDED.verified,
 			is_primary = EXCLUDED.is_primary, metadata = customer_identities.metadata || EXCLUDED.metadata,
-			enabled = TRUE, updated_at = EXCLUDED.updated_at
+			enabled = EXCLUDED.enabled, updated_at = EXCLUDED.updated_at
 		WHERE customer_identities.customer_id = EXCLUDED.customer_id`,
 			uuid.New(), customerID, normalized.Type, ciphertext, fingerprint, normalized.DisplayHint,
-			input.Verified, input.Primary, metadata, now)
+			input.Verified, input.Primary, enabled, metadata, now)
 		if err != nil {
 			return mapCustomerMutationError(err, normalized.Type)
+		}
+		affected, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("read customer identity upsert result: %w", err)
+		}
+		if affected != 1 {
+			return &domain.ErrCustomerIdentityConflict{IdentityType: normalized.Type}
 		}
 	}
 	return nil
@@ -651,14 +667,14 @@ func replaceCustomerTags(ctx context.Context, tx *sql.Tx, customerID string, tag
 	return nil
 }
 
-func replaceCustomerListMemberships(ctx context.Context, tx *sql.Tx, customerID string, memberships []domain.CustomerListMembershipInput, now time.Time) error {
+func replaceCustomerListMemberships(ctx context.Context, tx *sql.Tx, customerID string, memberships *[]domain.CustomerListMembershipInput, now time.Time) error {
 	if memberships == nil {
 		return nil
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM customer_list_memberships WHERE customer_id = $1`, customerID); err != nil {
 		return fmt.Errorf("replace customer list memberships: %w", err)
 	}
-	for _, membership := range memberships {
+	for _, membership := range *memberships {
 		if _, err := tx.ExecContext(ctx, `INSERT INTO customer_list_memberships (customer_id, list_id, status, created_at, updated_at) VALUES ($1, $2, $3, $4, $4)`,
 			customerID, membership.ListID, membership.Status, now); err != nil {
 			return fmt.Errorf("insert customer list membership: %w", err)
@@ -667,17 +683,31 @@ func replaceCustomerListMemberships(ctx context.Context, tx *sql.Tx, customerID 
 	return nil
 }
 
-func projectCustomerContact(ctx context.Context, tx *sql.Tx, customer *domain.Customer, profile *customerProfileProjection, identities []domain.CustomerIdentityInput, now time.Time) error {
+func projectCustomerContact(ctx context.Context, tx *sql.Tx, customer *domain.Customer, profile *customerProfileProjection, identities []domain.CustomerIdentityInput, created bool, now time.Time) error {
 	var email string
+	disabledEmails := make([]string, 0)
 	for _, identity := range identities {
-		if identity.Type == domain.CustomerIdentityEmail && (email == "" || identity.Primary) {
+		enabled := identity.Enabled == nil || *identity.Enabled
+		if identity.Type == domain.CustomerIdentityEmail && !enabled {
+			disabledEmails = append(disabledEmails, identity.Value)
+		}
+		if enabled && identity.Type == domain.CustomerIdentityEmail && (email == "" || identity.Primary) {
 			email = identity.Value
-			if identity.Primary {
-				break
-			}
 		}
 	}
-	if email == "" {
+	if created && email == "" {
+		return nil
+	}
+	for _, disabledEmail := range disabledEmails {
+		if _, err := tx.ExecContext(ctx, `UPDATE contacts SET customer_id = NULL, updated_at = $3
+			WHERE customer_id = $1 AND email = $2`, customer.ID, disabledEmail, now); err != nil {
+			return fmt.Errorf("detach disabled customer contact projection: %w", err)
+		}
+	}
+	if len(disabledEmails) > 0 && email == "" && profile == nil {
+		return nil
+	}
+	if email == "" && profile == nil && customer.ExternalUserID == nil {
 		return nil
 	}
 	var language, timezone interface{}
@@ -685,15 +715,36 @@ func projectCustomerContact(ctx context.Context, tx *sql.Tx, customer *domain.Cu
 		language = profile.Language
 		timezone = profile.Timezone
 	}
-	_, err := tx.ExecContext(ctx, `INSERT INTO contacts (
+	result, err := tx.ExecContext(ctx, `UPDATE contacts SET external_id = COALESCE($2, external_id),
+		timezone = COALESCE($3, timezone), language = COALESCE($4, language), updated_at = $5
+		WHERE customer_id = $1`, customer.ID, customer.ExternalUserID, timezone, language, now)
+	if err != nil {
+		return fmt.Errorf("update customer contact projection: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read customer contact projection result: %w", err)
+	}
+	if affected > 0 || email == "" {
+		return nil
+	}
+	result, err = tx.ExecContext(ctx, `INSERT INTO contacts (
 		email, external_id, timezone, language, customer_id, created_at, updated_at
 	) VALUES ($1, $2, $3, $4, $5, $6, $7)
 	ON CONFLICT (email) DO UPDATE SET external_id = COALESCE(EXCLUDED.external_id, contacts.external_id),
 		timezone = COALESCE(EXCLUDED.timezone, contacts.timezone), language = COALESCE(EXCLUDED.language, contacts.language),
-		customer_id = EXCLUDED.customer_id, updated_at = EXCLUDED.updated_at`,
+		customer_id = EXCLUDED.customer_id, updated_at = EXCLUDED.updated_at
+	WHERE contacts.customer_id IS NULL OR contacts.customer_id = EXCLUDED.customer_id`,
 		email, customer.ExternalUserID, timezone, language, customer.ID, now, now)
 	if err != nil {
-		return fmt.Errorf("project customer contact: %w", err)
+		return mapCustomerMutationError(err, domain.CustomerIdentityEmail)
+	}
+	affected, err = result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read customer contact projection insert result: %w", err)
+	}
+	if affected != 1 {
+		return &domain.ErrCustomerIdentityConflict{IdentityType: domain.CustomerIdentityEmail}
 	}
 	return nil
 }
@@ -735,7 +786,7 @@ func loadCustomerProfile(ctx context.Context, db customerQueryer, customer *doma
 	row := db.QueryRowContext(ctx, `SELECT status, language, timezone, attributes, version, created_at, updated_at FROM customer_profiles WHERE customer_id = $1`, customer.ID)
 	var status, language, timezone sql.NullString
 	var attributes []byte
-	profile := &domain.CustomerProfile{}
+	profile := &domain.CustomerProfile{CustomerID: customer.ID}
 	if err := row.Scan(&status, &language, &timezone, &attributes, &profile.Version, &profile.CreatedAt, &profile.UpdatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil

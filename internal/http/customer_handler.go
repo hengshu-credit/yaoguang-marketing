@@ -25,6 +25,13 @@ func NewCustomerHandler(service domain.CustomerService, getJWTSecret func() ([]b
 
 func (handler *CustomerHandler) RegisterRoutes(mux *http.ServeMux) {
 	auth := middleware.NewAuthMiddleware(handler.getJWTSecret)
+	auth.ErrorWriter = func(w http.ResponseWriter, r *http.Request, message string, status int) {
+		code := "unauthorized"
+		if status == http.StatusServiceUnavailable {
+			code = "authentication_unavailable"
+		}
+		writeAPIError(w, requestIDFor(r), code, message, status)
+	}
 	mux.Handle("/api/customers.get", auth.RequireAuth()(http.HandlerFunc(handler.handleGet)))
 	mux.Handle("/api/customers.upsert", auth.RequireAuth()(http.HandlerFunc(handler.handleUpsert)))
 	mux.Handle("/api/customers.batch", auth.RequireAuth()(http.HandlerFunc(handler.handleBatch)))

@@ -135,7 +135,7 @@ func rejectV46DuplicateContactKeys(ctx context.Context, workspaceID string, db D
 		query string
 		name  string
 	}{
-		{query: `SELECT external_id FROM contacts WHERE NULLIF(BTRIM(external_id), '') IS NOT NULL GROUP BY external_id HAVING COUNT(*) > 1 LIMIT 1`, name: "external user ID"},
+		{query: `SELECT BTRIM(external_id) AS normalized_external_id FROM contacts WHERE NULLIF(BTRIM(external_id), '') IS NOT NULL GROUP BY BTRIM(external_id) HAVING COUNT(*) > 1 LIMIT 1`, name: "external user ID"},
 		{query: `SELECT LOWER(BTRIM(email)) AS normalized_email FROM contacts GROUP BY LOWER(BTRIM(email)) HAVING COUNT(*) > 1 LIMIT 1`, name: "normalized email identity"},
 	}
 	for _, check := range checks {
@@ -200,12 +200,22 @@ func insertV46Identity(ctx context.Context, db DBExecutor, secretKey, workspaceI
 	if err != nil {
 		return err
 	}
-	_, err = db.ExecContext(ctx, `INSERT INTO customer_identities (
+	result, err := db.ExecContext(ctx, `INSERT INTO customer_identities (
 		id, customer_id, identity_type, value_ciphertext, lookup_fingerprint, display_hint, is_primary
 	) VALUES ($1, $2, $3, $4, $5, $6, $7)
 	ON CONFLICT (identity_type, lookup_fingerprint) DO NOTHING`,
 		uuid.New(), customerID, normalized.Type, ciphertext, fingerprint, normalized.DisplayHint, primary)
-	return err
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read migrated identity result: %w", err)
+	}
+	if affected != 1 {
+		return fmt.Errorf("identity %s already belongs to another customer; resolve the collision before migration", normalized.Type)
+	}
+	return nil
 }
 
 func init() { Register(&V46Migration{}) }

@@ -32,12 +32,14 @@
 - Add the `zh-CN` locale entry point without weakening catalogue completeness checks.
 - Detailed plan: `plans/yaoguang-brand-shell-plan.md`.
 
-### Batch 2: Customer Identity and Profile Ingestion
+### Batch 2: Customer Identity and Profile Ingestion — Complete
 
 - Add workspace sequence allocation, `customer_no`, `external_user_id`, aliases, anonymous identities, and merge history.
 - Implement single and bulk Customer Profile APIs with idempotency and workspace-scoped lookup.
 - Add merge rules: only explicit anonymous-to-known merge is supported in the first phase; known-to-known and similarity-based automatic merge are prohibited.
 - Provide migration, repository, service, HTTP, and integration tests.
+- Detailed plan: `docs/superpowers/plans/2026-08-30-customer-identity-profile-ingestion.md`.
+- Migration runbook: `docs/operations/customer-v46-migration.md`.
 
 ### Batch 3: Event Ledger and Realtime Triggering
 

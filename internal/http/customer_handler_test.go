@@ -156,3 +156,25 @@ func TestCustomerHandlerRejectsWrongMethodMalformedAndTrailingJSON(t *testing.T)
 	handler.handleMerge(trailing, httptest.NewRequest(http.MethodPost, "/api/customers.merge", strings.NewReader(`{} {}`)))
 	assert.Equal(t, http.StatusBadRequest, trailing.Code)
 }
+
+func TestCustomerRoutesReturnStructuredRequestIDForAuthenticationFailures(t *testing.T) {
+	handler := NewCustomerHandler(
+		&customerServiceHTTPStub{},
+		func() ([]byte, error) { return []byte("customer-handler-test-jwt-secret-32-bytes"), nil },
+		logger.NewLogger(),
+	)
+	mux := http.NewServeMux()
+	handler.RegisterRoutes(mux)
+	request := httptest.NewRequest(http.MethodPost, "/api/customers.get", strings.NewReader(`{}`))
+	request.Header.Set("X-Request-ID", "auth-request-1")
+	response := httptest.NewRecorder()
+
+	mux.ServeHTTP(response, request)
+
+	assert.Equal(t, http.StatusUnauthorized, response.Code)
+	assert.Equal(t, "auth-request-1", response.Header().Get("X-Request-ID"))
+	assert.JSONEq(t, `{
+		"request_id":"auth-request-1",
+		"error":{"code":"unauthorized","message":"Authorization header is required"}
+	}`, response.Body.String())
+}

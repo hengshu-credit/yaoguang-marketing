@@ -226,6 +226,7 @@ CustomerUpsertInput:
       type: array
       items:
         $ref: '#/CustomerListMembershipInput'
+      description: When present, replaces all list memberships. An empty array clears them; omission leaves them unchanged.
 
 Customer:
   type: object
@@ -479,6 +480,7 @@ CustomerAPIError:
             - request_too_large
             - validation_error
             - unauthorized
+            - authentication_unavailable
             - forbidden
             - workspace_not_found
             - customer_not_found
