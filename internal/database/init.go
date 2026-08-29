@@ -577,6 +577,11 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			return fmt.Errorf("failed to create contact endpoint table: %w", err)
 		}
 	}
+	for _, query := range schema.CustomerTableDefinitions() {
+		if _, err := db.Exec(query); err != nil {
+			return fmt.Errorf("failed to create customer authority table: %w", err)
+		}
+	}
 	for _, query := range schema.ChannelSendTableDefinitions() {
 		if _, err := db.Exec(query); err != nil {
 			return fmt.Errorf("failed to create channel send table: %w", err)

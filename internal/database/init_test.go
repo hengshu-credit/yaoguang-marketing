@@ -430,3 +430,12 @@ func TestInitializeWorkspaceDatabaseIncludesRealtimeAuthoritySchema(t *testing.T
 	assert.NotEmpty(t, rec.statementContaining(t, "CREATE TABLE IF NOT EXISTS consumer_inbox"))
 	assert.NotEmpty(t, rec.statementContaining(t, "contact_timeline_realtime_bridge"))
 }
+
+func TestInitializeWorkspaceDatabaseIncludesCustomerAuthoritySchema(t *testing.T) {
+	rec := recordWorkspaceSchema(t)
+
+	rec.indexOfStatementContaining(t, "CREATE TABLE IF NOT EXISTS customers")
+	rec.indexOfStatementContaining(t, "CREATE TABLE IF NOT EXISTS customer_identities")
+	rec.indexOfStatementContaining(t, "ALTER TABLE contacts ADD COLUMN IF NOT EXISTS customer_id UUID")
+	rec.indexOfStatementContaining(t, "ALTER TABLE contact_endpoints ADD COLUMN IF NOT EXISTS customer_id UUID")
+}
