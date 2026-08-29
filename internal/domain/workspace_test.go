@@ -18,6 +18,10 @@ func TestSetUITranslationsRequest_Validate(t *testing.T) {
 	validTranslations := map[string]map[string]string{
 		"zh-CN": {"zNkWa6": "\u66f4\u65b0"},
 	}
+	fullCatalogTranslations := make(map[string]map[string]string, len(SupportedUILanguages))
+	for locale := range SupportedUILanguages {
+		fullCatalogTranslations[locale] = translationsForTest(3037, "Updated")
+	}
 
 	testCases := []struct {
 		name         string
@@ -40,6 +44,14 @@ func TestSetUITranslationsRequest_Validate(t *testing.T) {
 				UITranslations: map[string]map[string]string{},
 			},
 			wantSettings: map[string]map[string]string{},
+		},
+		{
+			name: "accepts every static catalog cell across all supported locales",
+			request: SetUITranslationsRequest{
+				WorkspaceID:    "workspace123",
+				UITranslations: fullCatalogTranslations,
+			},
+			wantSettings: fullCatalogTranslations,
 		},
 		{
 			name:    "rejects missing workspace ID",
@@ -82,14 +94,14 @@ func TestSetUITranslationsRequest_Validate(t *testing.T) {
 			wantErr: "exceeds maximum length of 2000 bytes",
 		},
 		{
-			name:    "rejects more than 5000 overrides",
-			request: SetUITranslationsRequest{WorkspaceID: "workspace123", UITranslations: map[string]map[string]string{"en": translationsForTest(5001, "Updated")}},
-			wantErr: "cannot exceed 5000 entries",
+			name:    "rejects more than 50000 overrides",
+			request: SetUITranslationsRequest{WorkspaceID: "workspace123", UITranslations: map[string]map[string]string{"en": translationsForTest(50001, "Updated")}},
+			wantErr: "cannot exceed 50000 entries",
 		},
 		{
-			name:    "rejects payload over one MiB",
-			request: SetUITranslationsRequest{WorkspaceID: "workspace123", UITranslations: map[string]map[string]string{"en": translationsForTest(600, strings.Repeat("a", 2000))}},
-			wantErr: "cannot exceed 1 MiB",
+			name:    "rejects payload over eight MiB",
+			request: SetUITranslationsRequest{WorkspaceID: "workspace123", UITranslations: map[string]map[string]string{"en": translationsForTest(4300, strings.Repeat("a", 2000))}},
+			wantErr: "cannot exceed 8 MiB",
 		},
 	}
 

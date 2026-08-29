@@ -679,8 +679,10 @@ func (ws *WorkspaceSettings) ValidateCustomFieldLabels() error {
 
 const (
 	maxUITranslationValueBytes = 2000
-	maxUITranslationEntries    = 5000
-	maxUITranslationsPayload   = 1 << 20
+	// The console currently exposes roughly 3,000 safe static messages across
+	// nine locales. Leave enough headroom for every cell plus catalog growth.
+	maxUITranslationEntries  = 50000
+	maxUITranslationsPayload = 8 << 20
 )
 
 var compiledUITranslationID = regexp.MustCompile(`^[A-Za-z0-9+/=]+$`)
@@ -717,7 +719,7 @@ func (ws *WorkspaceSettings) ValidateUITranslations() error {
 		return fmt.Errorf("failed to encode UI translations: %w", err)
 	}
 	if len(encoded) > maxUITranslationsPayload {
-		return fmt.Errorf("UI translations payload cannot exceed 1 MiB")
+		return fmt.Errorf("UI translations payload cannot exceed 8 MiB")
 	}
 
 	return nil
