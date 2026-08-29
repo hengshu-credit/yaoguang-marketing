@@ -43,7 +43,7 @@
 - Produces: `config.RuntimeRole`, `config.RealtimeMode`, `config.RealtimeConfig`, `config.ParseRuntimeRole(string)`, `config.ParseRealtimeMode(string)`, and `RuntimeRole.Runs(config.RuntimeCapability) bool`.
 - Consumed by: application wiring and every worker task below.
 
-- [ ] **Step 1: Write failing role and configuration tests**
+- [x] **Step 1: Write failing role and configuration tests**
 
 ```go
 func TestParseRuntimeRoleRejectsUnknown(t *testing.T) {
@@ -62,17 +62,17 @@ func TestAPIRoleDoesNotRunBackgroundWorkers(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run the focused tests and verify RED**
+- [x] **Step 2: Run the focused tests and verify RED**
 
 Run:
 
 ```powershell
-docker run --rm -v "${PWD}:/src" -w /src golang:1.25-alpine sh -lc "go test ./config ./internal/app -run 'Test(ParseRuntimeRole|PrimaryRequires|APIRole)'"
+docker run --rm -v "${PWD}:/src" -w /src golang:1.25-alpine sh -c "go test ./config ./internal/app -run 'Test(ParseRuntimeRole|PrimaryRequires|APIRole)'"
 ```
 
 Expected: compilation fails because the realtime types and role policy do not exist.
 
-- [ ] **Step 3: Implement the minimal typed configuration**
+- [x] **Step 3: Implement the minimal typed configuration**
 
 ```go
 type RuntimeRole string
@@ -98,12 +98,12 @@ func (r RuntimeRole) Runs(capability RuntimeCapability) bool
 
 Register every environment key from the spec in Viper, parse strict enums, and add `Realtime RealtimeConfig` to `Config`.
 
-- [ ] **Step 4: Run config/app tests and verify GREEN**
+- [x] **Step 4: Run config/app tests and verify GREEN**
 
 Run the Step 2 command, then:
 
 ```powershell
-docker run --rm -v "${PWD}:/src" -w /src golang:1.25-alpine sh -lc "go test ./config ./internal/app"
+docker run --rm -v "${PWD}:/src" -w /src golang:1.25-alpine sh -c "go test ./config ./internal/app"
 ```
 
 - [ ] **Step 5: Commit**

@@ -29,6 +29,7 @@ type Config struct {
 	Broadcast           BroadcastConfig
 	TaskScheduler       TaskSchedulerConfig
 	AutomationScheduler AutomationSchedulerConfig
+	Realtime            RealtimeConfig
 	Plan                PlanLimitsConfig
 	Telemetry           bool
 	CheckForUpdates     bool
@@ -504,6 +505,30 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	v.SetDefault("AUTOMATION_SCHEDULER_INTERVAL", "10s")
 	v.SetDefault("AUTOMATION_SCHEDULER_BATCH_SIZE", 50)
 
+	// Realtime runtime defaults preserve the existing single-process behavior.
+	v.SetDefault("NOTIFUSE_ROLE", string(RoleAll))
+	v.SetDefault("REALTIME_MODE", string(RealtimeModeLegacy))
+	v.SetDefault("RABBITMQ_URL", "")
+	v.SetDefault("RABBITMQ_PREFETCH", 100)
+	v.SetDefault("RABBITMQ_PUBLISH_CONFIRM_TIMEOUT", "5s")
+	v.SetDefault("REDIS_ADDR", "")
+	v.SetDefault("REDIS_PASSWORD", "")
+	v.SetDefault("REDIS_DB", 0)
+	v.SetDefault("CLICKHOUSE_ADDR", "")
+	v.SetDefault("CLICKHOUSE_DATABASE", "notifuse")
+	v.SetDefault("CLICKHOUSE_BATCH_SIZE", 1000)
+	v.SetDefault("CLICKHOUSE_FLUSH_INTERVAL", "1s")
+	v.SetDefault("S3_ENDPOINT", "")
+	v.SetDefault("S3_BUCKET", "notifuse-assets")
+	v.SetDefault("S3_REGION", "us-east-1")
+	v.SetDefault("S3_ACCESS_KEY", "")
+	v.SetDefault("S3_SECRET_KEY", "")
+	v.SetDefault("S3_FORCE_PATH_STYLE", true)
+	v.SetDefault("JOURNEY_LEASE", "60s")
+	v.SetDefault("JOURNEY_HEARTBEAT", "20s")
+	v.SetDefault("OUTBOX_BATCH_SIZE", 200)
+	v.SetDefault("OUTBOX_LEASE", "30s")
+
 	// Plan limit defaults: 0 = unlimited, so a self-hosted install that sets none
 	// of them is unaffected. Unlike SMTP_BRIDGE_ENABLED/OIDC_*, these have no
 	// database fallback, so a viper default shadows nothing.
@@ -536,6 +561,50 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	// Read environment variables
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	runtimeRole, err := ParseRuntimeRole(v.GetString("NOTIFUSE_ROLE"))
+	if err != nil {
+		return nil, err
+	}
+	realtimeMode, err := ParseRealtimeMode(v.GetString("REALTIME_MODE"))
+	if err != nil {
+		return nil, err
+	}
+	realtimeConfig := RealtimeConfig{
+		Role: runtimeRole,
+		Mode: realtimeMode,
+		RabbitMQ: RabbitMQConfig{
+			URL:                   v.GetString("RABBITMQ_URL"),
+			Prefetch:              v.GetInt("RABBITMQ_PREFETCH"),
+			PublishConfirmTimeout: v.GetDuration("RABBITMQ_PUBLISH_CONFIRM_TIMEOUT"),
+		},
+		Redis: RedisConfig{
+			Addr:     v.GetString("REDIS_ADDR"),
+			Password: v.GetString("REDIS_PASSWORD"),
+			DB:       v.GetInt("REDIS_DB"),
+		},
+		ClickHouse: ClickHouseConfig{
+			Addr:          v.GetString("CLICKHOUSE_ADDR"),
+			Database:      v.GetString("CLICKHOUSE_DATABASE"),
+			BatchSize:     v.GetInt("CLICKHOUSE_BATCH_SIZE"),
+			FlushInterval: v.GetDuration("CLICKHOUSE_FLUSH_INTERVAL"),
+		},
+		ObjectStore: ObjectStoreConfig{
+			Endpoint:       v.GetString("S3_ENDPOINT"),
+			Bucket:         v.GetString("S3_BUCKET"),
+			Region:         v.GetString("S3_REGION"),
+			AccessKey:      v.GetString("S3_ACCESS_KEY"),
+			SecretKey:      v.GetString("S3_SECRET_KEY"),
+			ForcePathStyle: v.GetBool("S3_FORCE_PATH_STYLE"),
+		},
+		JourneyLease:     v.GetDuration("JOURNEY_LEASE"),
+		JourneyHeartbeat: v.GetDuration("JOURNEY_HEARTBEAT"),
+		OutboxBatchSize:  v.GetInt("OUTBOX_BATCH_SIZE"),
+		OutboxLease:      v.GetDuration("OUTBOX_LEASE"),
+	}
+	if err := realtimeConfig.Validate(v.GetString("ENVIRONMENT") == "production"); err != nil {
+		return nil, err
+	}
 
 	// Build database config first (needed to load system settings)
 	dbConfig := DatabaseConfig{
@@ -975,7 +1044,8 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 			Interval:  v.GetDuration("AUTOMATION_SCHEDULER_INTERVAL"),
 			BatchSize: v.GetInt("AUTOMATION_SCHEDULER_BATCH_SIZE"),
 		},
-		Plan: planConfig,
+		Realtime: realtimeConfig,
+		Plan:     planConfig,
 
 		RootEmail:        rootEmail,
 		Environment:      v.GetString("ENVIRONMENT"),
