@@ -8,9 +8,11 @@ export interface Template {
   id: string
   name: string
   version: number
-  channel: 'email' | 'web'
+  channel: 'email' | 'web' | 'sms' | 'push'
   email?: EmailTemplate
   web?: WebTemplate
+  sms?: SMSTemplate
+  push?: PushTemplate
   category: string
   template_macro_id?: string
   integration_id?: string
@@ -42,9 +44,24 @@ export interface WebTemplate {
   plain_text?: string // Extracted text for search indexing
 }
 
+export interface SMSTemplate {
+  body: string
+  sender_id?: string
+}
+
+export interface PushTemplate {
+  title: string
+  body: string
+  image_url?: string
+  deep_link?: string
+  data?: Record<string, unknown>
+}
+
 export interface TemplateTranslation {
   email?: EmailTemplate
   web?: WebTemplate
+  sms?: SMSTemplate
+  push?: PushTemplate
 }
 
 export interface GetTemplatesRequest {
@@ -66,6 +83,8 @@ export interface CreateTemplateRequest {
   channel: string
   email?: EmailTemplate
   web?: WebTemplate
+  sms?: SMSTemplate
+  push?: PushTemplate
   category: string
   template_macro_id?: string
   utm_source?: string
@@ -83,6 +102,8 @@ export interface UpdateTemplateRequest {
   channel: string
   email?: EmailTemplate
   web?: WebTemplate
+  sms?: SMSTemplate
+  push?: PushTemplate
   category: string
   template_macro_id?: string
   utm_source?: string
@@ -171,6 +192,54 @@ export interface CompileTemplateResponse {
   test_data?: Record<string, unknown> // Effective template data used to render (includes the injected workspace object)
 }
 
+export interface PreviewTemplateRequest {
+  workspace_id: string
+  channel: 'sms' | 'push'
+  sms?: SMSTemplate
+  push?: PushTemplate
+  translations?: Record<string, TemplateTranslation>
+  language?: string
+  platform?: 'android' | 'ios' | 'web'
+  test_data?: Record<string, unknown>
+}
+
+export interface PreviewWarning {
+  code: string
+  message: string
+}
+
+export interface SMSPreview {
+  body: string
+  sender_id?: string
+  encoding: 'gsm-7' | 'ucs-2'
+  character_count: number
+  unit_count: number
+  segment_count: number
+  per_segment: number
+  remaining: number
+}
+
+export interface PushPreview {
+  title: string
+  body: string
+  image_url?: string
+  deep_link?: string
+  data?: Record<string, unknown>
+  platform: 'android' | 'ios' | 'web'
+  payload_bytes: number
+  warnings: PreviewWarning[]
+}
+
+export interface PreviewTemplateResponse {
+  channel: 'sms' | 'push'
+  requested_language?: string
+  resolved_language: string
+  fallback_used: boolean
+  sms?: SMSPreview
+  push?: PushPreview
+  test_data?: Record<string, unknown>
+}
+
 export interface TestEmailProviderRequest {
   provider: EmailProvider
   to: string
@@ -206,6 +275,7 @@ export interface TemplatesApi {
   update: (params: UpdateTemplateRequest) => Promise<UpdateTemplateResponse>
   delete: (params: DeleteTemplateRequest) => Promise<DeleteTemplateResponse>
   compile: (params: CompileTemplateRequest) => Promise<CompileTemplateResponse>
+  preview: (params: PreviewTemplateRequest) => Promise<PreviewTemplateResponse>
 }
 
 export const templatesApi: TemplatesApi = {
@@ -240,5 +310,8 @@ export const templatesApi: TemplatesApi = {
   compile: async (params: CompileTemplateRequest): Promise<CompileTemplateResponse> => {
     const response = await api.post<CompileTemplateResponse>(`/api/templates.compile`, params)
     return response
+  },
+  preview: async (params: PreviewTemplateRequest): Promise<PreviewTemplateResponse> => {
+    return api.post<PreviewTemplateResponse>(`/api/templates.preview`, params)
   }
 }

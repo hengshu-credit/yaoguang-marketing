@@ -38,6 +38,7 @@ func (h *TemplateHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/templates.update", requireAuth(http.HandlerFunc(h.handleUpdate)))
 	mux.Handle("/api/templates.delete", requireAuth(http.HandlerFunc(h.handleDelete)))
 	mux.Handle("/api/templates.compile", requireAuth(http.HandlerFunc(h.handleCompile)))
+	mux.Handle("/api/templates.preview", requireAuth(http.HandlerFunc(h.handlePreview)))
 }
 
 func (h *TemplateHandler) handleList(w http.ResponseWriter, r *http.Request) {
@@ -237,5 +238,33 @@ func (h *TemplateHandler) handleCompile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (h *TemplateHandler) handlePreview(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req domain.PreviewTemplateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if err := req.Validate(); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.service.PreviewTemplate(r.Context(), req)
+	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
+		h.logger.WithField("error", err.Error()).Warn("Template preview failed")
+		WriteJSONError(w, fmt.Sprintf("Preview failed: %s", err.Error()), http.StatusBadRequest)
+		return
+	}
 	writeJSON(w, http.StatusOK, resp)
 }

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [43.0] - 2026-08-29
+
+- **Feature**: Added first-class versioned SMS and mobile push templates with per-workspace language translations, Liquid variables, custom push payload data, image and deep-link fields, and optimistic edit conflict protection through the existing template lifecycle.
+
+- **Feature**: Added authenticated server-side draft preview through `POST /api/templates.preview`. SMS previews report GSM-7 or UCS-2 encoding, character units, segment count and remaining capacity; push previews render Android, iOS and Web device layouts and return platform length and payload-size warnings without silently truncating content.
+
+- **Feature**: Added a low-code SMS/push editor to the console with unsaved server preview, locale tabs, JSON payload validation, channel-aware list, edit and clone actions, and reusable phone/device preview components.
+
 ## [42.0] - 2026-08-29
 
 - **Feature**: Added encrypted multi-device contact endpoints for push delivery. External systems can idempotently register or disable FCM, APNs and Web Push endpoints through `/api/ingest.batch`, including platform, locale, timezone, application/device identifiers and custom attributes.

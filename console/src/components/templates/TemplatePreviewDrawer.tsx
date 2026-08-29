@@ -3,11 +3,12 @@ import { useLingui } from '@lingui/react/macro'
 import { Drawer, Typography, Spin, Alert, Tabs, Tag, Space, Descriptions, Segmented } from 'antd'
 import type { Template, MjmlCompileError, Workspace } from '../../services/api/types'
 import { templatesApi } from '../../services/api/template'
-import type { CompileTemplateRequest } from '../../services/api/template'
+import type { CompileTemplateRequest, PreviewTemplateResponse } from '../../services/api/template'
 import type { EmailBlock } from '../email_builder/types'
 import { Highlight, themes } from 'prism-react-renderer'
 import type { MessageHistory } from '../../services/api/messages_history'
 import { SUPPORTED_LANGUAGES } from '../../lib/languages'
+import ChannelMessagePreview from './ChannelMessagePreview'
 
 const { Text } = Typography
 
@@ -40,6 +41,8 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   // Effective template data returned by the compile endpoint (includes the workspace
   // object the server injects). Displayed in the Template Data tab so it matches the render.
   const [effectiveTestData, setEffectiveTestData] = useState<Record<string, unknown> | null>(null)
+  const [channelPreview, setChannelPreview] = useState<PreviewTemplateResponse | null>(null)
+  const [pushPlatform, setPushPlatform] = useState<'android' | 'ios' | 'web'>('android')
 
   const availableLanguages = useMemo(() => {
     if (messageHistory) return []
@@ -49,17 +52,19 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     ]
     if (record.translations) {
       for (const [code, translation] of Object.entries(record.translations)) {
-        if (
-          code !== defaultLang &&
-          translation.email &&
-          (translation.email.visual_editor_tree || translation.email.mjml_source)
-        ) {
+        const hasContent =
+          (record.channel === 'email' &&
+            translation.email &&
+            (translation.email.visual_editor_tree || translation.email.mjml_source)) ||
+          (record.channel === 'sms' && Boolean(translation.sms)) ||
+          (record.channel === 'push' && Boolean(translation.push))
+        if (code !== defaultLang && hasContent) {
           langs.push({ label: SUPPORTED_LANGUAGES[code] || code, value: code })
         }
       }
     }
     return langs
-  }, [record.translations, workspace.settings?.default_language, messageHistory])
+  }, [record.channel, record.translations, workspace.settings?.default_language, messageHistory])
 
   const showLanguageSelector = availableLanguages.length > 1
   const effectiveLanguage = selectedLanguage || workspace.settings?.default_language || 'en'
@@ -71,9 +76,16 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   }, [effectiveLanguage, record.email, record.translations, workspace.settings?.default_language])
 
   const fetchPreview = async () => {
+    const isMessageChannel = record.channel === 'sms' || record.channel === 'push'
     const isCodeMode = effectiveEmail?.editor_mode === 'code'
 
-    if (!workspace.id || (!isCodeMode && !effectiveEmail?.visual_editor_tree) || (isCodeMode && !effectiveEmail?.mjml_source)) {
+    const missingMessageContent =
+      (record.channel === 'sms' && !record.sms) || (record.channel === 'push' && !record.push)
+    const missingEmailContent =
+      record.channel === 'email' &&
+      ((!isCodeMode && !effectiveEmail?.visual_editor_tree) ||
+        (isCodeMode && !effectiveEmail?.mjml_source))
+    if (!workspace.id || missingMessageContent || missingEmailContent) {
       setError(t`Missing workspace ID or template data.`)
       setMjmlError(null)
       setPreviewMjml(null)
@@ -89,9 +101,26 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     setRenderedSubject(null)
     setRenderedSubjectPreview(null)
     setEffectiveTestData(null)
+    setChannelPreview(null)
     setActiveTabKey('1') // Reset to HTML tab on new fetch
 
     try {
+      if (isMessageChannel) {
+        const response = await templatesApi.preview({
+          workspace_id: workspace.id,
+          channel: record.channel as 'sms' | 'push',
+          sms: record.sms,
+          push: record.push,
+          translations: record.translations,
+          language: effectiveLanguage,
+          platform: record.channel === 'push' ? pushPlatform : undefined,
+          test_data: templateData || record.test_data || {}
+        })
+        setChannelPreview(response)
+        setEffectiveTestData(response.test_data ?? null)
+        return
+      }
+
       // Build compile request based on editor mode.
       // Subject and subject_preview are sent so the server can render them with
       // the same Liquid engine used at send time, keeping preview and send in sync.
@@ -172,6 +201,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       setError(errorMsg)
       setMjmlError(null)
       setPreviewMjml(null)
+      setChannelPreview(null)
     } finally {
       setIsLoading(false)
     }
@@ -191,12 +221,28 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       setRenderedSubject(null)
       setRenderedSubjectPreview(null)
       setEffectiveTestData(null)
+      setChannelPreview(null)
       setSelectedLanguage(null)
+      setPushPlatform('android')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchPreview is stable
-  }, [isOpen, record.id, record.version, workspace.id, effectiveLanguage])
+  }, [isOpen, record.id, record.version, workspace.id, effectiveLanguage, pushPlatform])
 
   const items = []
+
+  if (channelPreview) {
+    items.push({
+      key: '1',
+      label: t`Client Preview`,
+      children: (
+        <ChannelMessagePreview
+          preview={channelPreview}
+          platform={pushPlatform}
+          onPlatformChange={setPushPlatform}
+        />
+      )
+    })
+  }
 
   if (previewHtml) {
     items.push({
@@ -247,7 +293,9 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     <div>
       {/* Header details */}
       <Descriptions bordered={false} size="small" column={1} className="mb-4">
-        <Descriptions.Item label={t`From`}>
+        {record.channel === 'email' && (
+          <>
+            <Descriptions.Item label={t`From`}>
           {messageHistory?.channel_options?.from_name ? (
             <>
               <Text>
@@ -283,10 +331,10 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
               )}
             </>
           )}
-        </Descriptions.Item>
+            </Descriptions.Item>
 
-        {(record.email?.reply_to || messageHistory?.channel_options?.reply_to) && (
-          <Descriptions.Item label={t`Reply to`}>
+            {(record.email?.reply_to || messageHistory?.channel_options?.reply_to) && (
+              <Descriptions.Item label={t`Reply to`}>
             {messageHistory?.channel_options?.reply_to ? (
               <>
                 <Text>{messageHistory.channel_options.reply_to}</Text>
@@ -299,22 +347,22 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
             ) : (
               <Text>{record.email?.reply_to || t`Not set`}</Text>
             )}
-          </Descriptions.Item>
-        )}
+              </Descriptions.Item>
+            )}
 
-        <Descriptions.Item label={t`Subject`}>
-          <Text>{renderedSubject ?? effectiveEmail?.subject}</Text>
-        </Descriptions.Item>
+            <Descriptions.Item label={t`Subject`}>
+              <Text>{renderedSubject ?? effectiveEmail?.subject}</Text>
+            </Descriptions.Item>
 
-        {(renderedSubjectPreview || effectiveEmail?.subject_preview) && (
-          <Descriptions.Item label={t`Subject preview`}>
-            <Text>{renderedSubjectPreview ?? effectiveEmail?.subject_preview}</Text>
-          </Descriptions.Item>
-        )}
+            {(renderedSubjectPreview || effectiveEmail?.subject_preview) && (
+              <Descriptions.Item label={t`Subject preview`}>
+                <Text>{renderedSubjectPreview ?? effectiveEmail?.subject_preview}</Text>
+              </Descriptions.Item>
+            )}
 
         {/* Channel Options Display - CC and BCC */}
-        {messageHistory?.channel_options?.cc && messageHistory.channel_options.cc.length > 0 && (
-          <Descriptions.Item label={t`CC`}>
+            {messageHistory?.channel_options?.cc && messageHistory.channel_options.cc.length > 0 && (
+              <Descriptions.Item label={t`CC`}>
             <Space size={[0, 4]} wrap>
               {messageHistory.channel_options.cc.map((email, idx) => (
                 <Tag variant="filled" key={idx} color="blue" className="text-xs">
@@ -322,11 +370,11 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
                 </Tag>
               ))}
             </Space>
-          </Descriptions.Item>
-        )}
+              </Descriptions.Item>
+            )}
 
-        {messageHistory?.channel_options?.bcc && messageHistory.channel_options.bcc.length > 0 && (
-          <Descriptions.Item label={t`BCC`}>
+            {messageHistory?.channel_options?.bcc && messageHistory.channel_options.bcc.length > 0 && (
+              <Descriptions.Item label={t`BCC`}>
             <Space size={[0, 4]} wrap>
               {messageHistory.channel_options.bcc.map((email, idx) => (
                 <Tag variant="filled" key={idx} color="purple" className="text-xs">
@@ -334,6 +382,18 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
                 </Tag>
               ))}
             </Space>
+              </Descriptions.Item>
+            )}
+          </>
+        )}
+        {record.channel === 'sms' && channelPreview?.sms?.sender_id && (
+          <Descriptions.Item label={t`Sender ID`}>
+            <Text>{channelPreview.sms.sender_id}</Text>
+          </Descriptions.Item>
+        )}
+        {record.channel === 'push' && (
+          <Descriptions.Item label={t`Platform`}>
+            <Text>{pushPlatform}</Text>
           </Descriptions.Item>
         )}
         {showLanguageSelector && (

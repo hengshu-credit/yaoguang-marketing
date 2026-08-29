@@ -894,6 +894,47 @@ func TestHandleCompile_WithMjmlSource(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
+func TestHandlePreviewSMS(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	expected := &domain.PreviewTemplateResponse{
+		Channel:          domain.ChannelSMS,
+		ResolvedLanguage: "en",
+		SMS: &domain.SMSPreview{
+			Body: "Hello Alice", Encoding: "gsm-7", CharacterCount: 11,
+			UnitCount: 11, SegmentCount: 1, PerSegment: 160, Remaining: 149,
+		},
+	}
+	mockService.EXPECT().PreviewTemplate(gomock.Any(), gomock.Any()).Return(expected, nil)
+
+	payload := domain.PreviewTemplateRequest{
+		WorkspaceID: "workspace123", Channel: domain.ChannelSMS,
+		SMS:      &domain.SMSTemplate{Body: "Hello {{ contact.first_name }}"},
+		TestData: domain.MapOfAny{"contact": domain.MapOfAny{"first_name": "Alice"}},
+	}
+	resp := sendRequest(t, http.MethodPost, serverURL+"/api/templates.preview", createTestToken(secretKey), payload)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var decoded domain.PreviewTemplateResponse
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&decoded))
+	require.NotNil(t, decoded.SMS)
+	assert.Equal(t, "Hello Alice", decoded.SMS.Body)
+	assert.Equal(t, 1, decoded.SMS.SegmentCount)
+}
+
+func TestHandlePreviewRejectsInvalidChannel(t *testing.T) {
+	_, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	resp := sendRequest(t, http.MethodPost, serverURL+"/api/templates.preview", createTestToken(secretKey), map[string]interface{}{
+		"workspace_id": "workspace123", "channel": "email",
+	})
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
 func TestHandleCreate_CodeModeTemplate(t *testing.T) {
 	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
 	defer cleanup()
@@ -907,9 +948,9 @@ func TestHandleCreate_CodeModeTemplate(t *testing.T) {
 		"channel":      "email",
 		"category":     "marketing",
 		"email": map[string]interface{}{
-			"editor_mode":     "code",
-			"mjml_source":     mjmlSrc,
-			"subject":         "Test Subject",
+			"editor_mode":      "code",
+			"mjml_source":      mjmlSrc,
+			"subject":          "Test Subject",
 			"compiled_preview": mjmlSrc,
 		},
 	}
@@ -969,9 +1010,9 @@ func TestHandleUpdate_CodeModeTemplate(t *testing.T) {
 		"channel":      "email",
 		"category":     "marketing",
 		"email": map[string]interface{}{
-			"editor_mode":     "code",
-			"mjml_source":     mjmlSrc,
-			"subject":         "Updated Subject",
+			"editor_mode":      "code",
+			"mjml_source":      mjmlSrc,
+			"subject":          "Updated Subject",
 			"compiled_preview": mjmlSrc,
 		},
 	}

@@ -60,6 +60,8 @@ func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID str
 			channel,
 			email,
 			web,
+			sms,
+			push,
 			category,
 			template_macro_id,
 			integration_id,
@@ -69,7 +71,7 @@ func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID str
 			created_at,
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 	`
 	_, err = workspaceDB.ExecContext(ctx, query,
 		template.ID,
@@ -78,6 +80,8 @@ func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID str
 		template.Channel,
 		template.Email,
 		template.Web,
+		template.SMS,
+		template.Push,
 		template.Category,
 		template.TemplateMacroID,
 		template.IntegrationID,
@@ -123,6 +127,8 @@ func (r *templateRepository) GetTemplateByID(ctx context.Context, workspaceID st
 				channel,
 				email,
 				web,
+				sms,
+				push,
 				category,
 				template_macro_id,
 				integration_id,
@@ -145,6 +151,8 @@ func (r *templateRepository) GetTemplateByID(ctx context.Context, workspaceID st
 				channel,
 				email,
 				web,
+				sms,
+				push,
 				category,
 				template_macro_id,
 				integration_id,
@@ -224,6 +232,8 @@ func (r *templateRepository) GetTemplates(ctx context.Context, workspaceID strin
 		"t.channel",
 		"t.email",
 		"t.web",
+		"t.sms",
+		"t.push",
 		"t.category",
 		"t.template_macro_id",
 		"t.integration_id",
@@ -296,7 +306,7 @@ func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID str
 
 	// Append-only versioning with atomic optimistic concurrency. The new version is
 	// computed as MAX(version)+1 inside the statement, and the row is only inserted when
-	// the caller's base_version still matches the latest ($14 = 0 skips the check for
+	// the caller's base_version still matches the latest ($16 = 0 skips the check for
 	// legacy last-writer-wins callers). This closes the read-then-write race two ways:
 	//   - base already stale before the statement ran → WHERE yields no row → ErrNoRows
 	//   - a concurrent writer with the same base committed first → the PRIMARY KEY
@@ -309,16 +319,16 @@ func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID str
 			WHERE id = $1
 		)
 		INSERT INTO templates (
-			id, name, version, channel, email, web, category,
+			id, name, version, channel, email, web, sms, push, category,
 			template_macro_id, integration_id, test_data, settings, translations,
 			created_at, updated_at
 		)
 		SELECT
-			$1, $2, curr.max_v + 1, $3, $4, $5, $6,
-			$7, $8, $9, $10, $11,
-			$12, $13
+			$1, $2, curr.max_v + 1, $3, $4, $5, $6, $7, $8,
+			$9, $10, $11, $12, $13,
+			$14, $15
 		FROM curr
-		WHERE $14 = 0 OR curr.max_v = $14
+		WHERE $16 = 0 OR curr.max_v = $16
 		RETURNING version
 	`
 	err = workspaceDB.QueryRowContext(ctx, query,
@@ -327,6 +337,8 @@ func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID str
 		template.Channel,
 		template.Email,
 		template.Web,
+		template.SMS,
+		template.Push,
 		template.Category,
 		template.TemplateMacroID,
 		template.IntegrationID,
@@ -406,6 +418,8 @@ func scanTemplate(scanner interface {
 		&template.Channel,
 		&template.Email,
 		&template.Web,
+		&template.SMS,
+		&template.Push,
 		&template.Category,
 		&templateMacroID,
 		&integrationID,

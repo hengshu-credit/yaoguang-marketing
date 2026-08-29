@@ -68,7 +68,8 @@ Privacy-first, cookieless web analytics built in — the [Staminads](https://git
 
 - **S3 File Manager**: Integrated file management with CDN delivery
 - **Notification Center**: Centralized notification system for your applications
-- **Responsive Templates**: Mobile-optimized email templates
+- **Omnichannel Templates**: Versioned email, SMS and push content with Liquid variables and workspace-language translations
+- **Channel Preview**: Server-rendered SMS segmentation and Android, iOS and Web push previews before saving or delivery
 - **Custom Fields**: Flexible contact data management
 - **Workspace Management**: Multi-tenant support for teams and agencies
 
@@ -112,6 +113,8 @@ docker compose ps
 The console and API are served at `http://localhost:8081`; RabbitMQ management is at `http://localhost:15672` and MinIO is at `http://localhost:9001`. Infrastructure and application ports bind to localhost and can be overridden with the matching `*_HOST_PORT` environment variables (Redis defaults to `16380` to avoid common local conflicts). Before a shared or production deployment, replace every example credential in `.env`.
 
 External systems can synchronize users and emit realtime events through `POST /api/ingest.batch`. One request can combine contact field updates, application lifecycle status, arbitrary JSON attributes, tag set/add/remove operations, list membership status, encrypted FCM/APNs/Web Push client endpoints and idempotent custom events. The endpoint accepts at most 500 records, returns a result for every item, requires Contacts write (and Lists write for membership changes), and returns `429 Retry-After: 1` instead of building an unbounded in-process queue. Active endpoint metadata can be read through `GET /api/contactEndpoints.list`; provider addresses are never returned. Profile data is exposed to templates as `contact.profile` and to segments through `profile_status`, `profile_tags`, and `profile_attributes`. See [the ingest contract](docs/superpowers/specs/2026-08-29-external-audience-ingest-design.md) and [the omnichannel endpoint design](docs/superpowers/specs/2026-08-29-omnichannel-endpoints-design.md).
+
+SMS and push creatives use the same versioned template API as email. The console exposes locale-aware low-code editors, and `POST /api/templates.preview` renders an unsaved draft with the server Liquid engine. SMS responses include encoding and multipart segment metrics; push responses include platform-specific title/body and payload-size warnings for Android, iOS and Web. See [the template and preview design](docs/superpowers/specs/2026-08-29-sms-push-template-preview-design.md).
 
 After creating an API key and workspace, run the included latency smoke test:
 

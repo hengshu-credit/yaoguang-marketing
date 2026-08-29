@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -1955,6 +1956,110 @@ func TestCompileTemplate_InjectsOverNonMapWorkspace(t *testing.T) {
 	assert.Equal(t, "https://app.example.com", ws["website_url"])
 	require.NotNil(t, resp.HTML)
 	assert.Contains(t, *resp.HTML, "https://app.example.com/verify")
+}
+
+func TestPreviewTemplateSMSLocalizedAndSegmented(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	svc, _, workspaceRepo, authService, _ := setupTemplateServiceTest(ctrl)
+	ctx := context.Background()
+	workspaceID := "ws_123"
+	userID := "user_abc"
+
+	authService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+		UserID: userID, WorkspaceID: workspaceID,
+		Permissions: domain.UserPermissions{domain.PermissionResourceTemplates: {Read: true}},
+	}, nil)
+	workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{
+		ID: workspaceID,
+		Settings: domain.WorkspaceSettings{
+			DefaultLanguage: "en", Languages: []string{"en", "fr"}, WebsiteURL: "https://shop.example.com/",
+		},
+	}, nil)
+
+	resp, err := svc.PreviewTemplate(ctx, domain.PreviewTemplateRequest{
+		WorkspaceID: workspaceID,
+		Channel:     domain.ChannelSMS,
+		Language:    "fr",
+		SMS:         &domain.SMSTemplate{Body: "Hello {{ contact.first_name }}"},
+		Translations: map[string]domain.TemplateTranslation{
+			"fr": {SMS: &domain.SMSTemplate{Body: "Bonjour {{ contact.first_name }} - {{ workspace.website_url }}"}},
+		},
+		TestData: domain.MapOfAny{"contact": domain.MapOfAny{"first_name": "Alice"}},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp.SMS)
+	assert.Equal(t, "fr", resp.ResolvedLanguage)
+	assert.False(t, resp.FallbackUsed)
+	assert.Equal(t, "Bonjour Alice - https://shop.example.com", resp.SMS.Body)
+	assert.Equal(t, "gsm-7", resp.SMS.Encoding)
+	assert.Equal(t, 1, resp.SMS.SegmentCount)
+	require.Contains(t, resp.TestData, "workspace")
+}
+
+func TestPreviewTemplateSMSUnicodeConcatenation(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	svc, _, workspaceRepo, authService, _ := setupTemplateServiceTest(ctrl)
+	ctx := context.Background()
+	workspaceID := "ws_123"
+
+	authService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{ID: "user"}, &domain.UserWorkspace{
+		Permissions: domain.UserPermissions{domain.PermissionResourceTemplates: {Read: true}},
+	}, nil)
+	workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{
+		ID: workspaceID, Settings: domain.WorkspaceSettings{DefaultLanguage: "zh", Languages: []string{"zh"}},
+	}, nil)
+
+	resp, err := svc.PreviewTemplate(ctx, domain.PreviewTemplateRequest{
+		WorkspaceID: workspaceID, Channel: domain.ChannelSMS,
+		SMS: &domain.SMSTemplate{Body: strings.Repeat("你", 71)},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp.SMS)
+	assert.Equal(t, "ucs-2", resp.SMS.Encoding)
+	assert.Equal(t, 71, resp.SMS.CharacterCount)
+	assert.Equal(t, 2, resp.SMS.SegmentCount)
+	assert.Equal(t, 67, resp.SMS.PerSegment)
+	assert.Equal(t, 63, resp.SMS.Remaining)
+}
+
+func TestPreviewTemplatePushRendersNestedDataAndWarnings(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	svc, _, workspaceRepo, authService, _ := setupTemplateServiceTest(ctrl)
+	ctx := context.Background()
+	workspaceID := "ws_123"
+
+	authService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{ID: "user"}, &domain.UserWorkspace{
+		Permissions: domain.UserPermissions{domain.PermissionResourceTemplates: {Read: true}},
+	}, nil)
+	workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{
+		ID: workspaceID, Settings: domain.WorkspaceSettings{DefaultLanguage: "en", Languages: []string{"en"}},
+	}, nil)
+
+	resp, err := svc.PreviewTemplate(ctx, domain.PreviewTemplateRequest{
+		WorkspaceID: workspaceID, Channel: domain.ChannelPush, Platform: domain.EndpointPlatformIOS,
+		Push: &domain.PushTemplate{
+			Title: strings.Repeat("T", 51), Body: "Order {{ order.id }} shipped",
+			DeepLink: "notifuse://orders/{{ order.id }}",
+			Data:     domain.MapOfAny{"order": domain.MapOfAny{"id": "{{ order.id }}"}},
+		},
+		TestData: domain.MapOfAny{"order": domain.MapOfAny{"id": "42"}},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp.Push)
+	assert.Equal(t, domain.EndpointPlatformIOS, resp.Push.Platform)
+	assert.Equal(t, "Order 42 shipped", resp.Push.Body)
+	assert.Equal(t, "notifuse://orders/42", resp.Push.DeepLink)
+	nested, ok := resp.Push.Data["order"].(domain.MapOfAny)
+	require.True(t, ok)
+	assert.Equal(t, "42", nested["id"])
+	assert.NotZero(t, resp.Push.PayloadBytes)
+	require.NotEmpty(t, resp.Push.Warnings)
+	assert.Equal(t, "title_may_truncate", resp.Push.Warnings[0].Code)
 }
 
 func TestTemplateService_UpdateEmailMetadataBlocks_CodeMode(t *testing.T) {

@@ -82,6 +82,8 @@ func (t TemplateCategory) Validate() error {
 type TemplateTranslation struct {
 	Email *EmailTemplate `json:"email,omitempty"`
 	Web   *WebTemplate   `json:"web,omitempty"`
+	SMS   *SMSTemplate   `json:"sms,omitempty"`
+	Push  *PushTemplate  `json:"push,omitempty"`
 }
 
 // validateTranslations validates translation language keys, channel match, and content.
@@ -90,28 +92,11 @@ func validateTranslations(translations map[string]TemplateTranslation, channel s
 		if !IsValidLanguage(lang) {
 			return fmt.Errorf("invalid translation language code: %s", lang)
 		}
-		if translation.Email == nil && translation.Web == nil {
-			return fmt.Errorf("translation '%s': must have either email or web content", lang)
+		if translation.Email == nil && translation.Web == nil && translation.SMS == nil && translation.Push == nil {
+			return fmt.Errorf("translation '%s': content is required", lang)
 		}
-		switch channel {
-		case ChannelEmail:
-			if translation.Web != nil {
-				return fmt.Errorf("translation '%s': web content not allowed for email channel", lang)
-			}
-			if translation.Email != nil {
-				if err := translation.Email.Validate(testData); err != nil {
-					return fmt.Errorf("translation '%s': %w", lang, err)
-				}
-			}
-		case ChannelWeb:
-			if translation.Email != nil {
-				return fmt.Errorf("translation '%s': email content not allowed for web channel", lang)
-			}
-			if translation.Web != nil {
-				if err := translation.Web.Validate(testData); err != nil {
-					return fmt.Errorf("translation '%s': %w", lang, err)
-				}
-			}
+		if err := validateTemplateContent(channel, translation.Email, translation.Web, translation.SMS, translation.Push, testData); err != nil {
+			return fmt.Errorf("translation '%s': %w", lang, err)
 		}
 	}
 	return nil
@@ -121,9 +106,11 @@ type Template struct {
 	ID              string                         `json:"id"`
 	Name            string                         `json:"name"`
 	Version         int64                          `json:"version"`
-	Channel         string                         `json:"channel"` // email or web
+	Channel         string                         `json:"channel"`
 	Email           *EmailTemplate                 `json:"email,omitempty"`
 	Web             *WebTemplate                   `json:"web,omitempty"`
+	SMS             *SMSTemplate                   `json:"sms,omitempty"`
+	Push            *PushTemplate                  `json:"push,omitempty"`
 	Category        string                         `json:"category"`
 	TemplateMacroID *string                        `json:"template_macro_id,omitempty"`
 	IntegrationID   *string                        `json:"integration_id,omitempty"` // Set if template is managed by an integration (e.g., Supabase)
@@ -199,6 +186,26 @@ func (t *Template) ResolveWebContent(contactLanguage string, workspaceDefaultLan
 	return t.Web
 }
 
+func (t *Template) ResolveSMSContent(contactLanguage string, workspaceDefaultLanguage string) *SMSTemplate {
+	if t.SMS == nil || t.Translations == nil || contactLanguage == "" || contactLanguage == workspaceDefaultLanguage {
+		return t.SMS
+	}
+	if translation, ok := t.Translations[contactLanguage]; ok && translation.SMS != nil {
+		return translation.SMS
+	}
+	return t.SMS
+}
+
+func (t *Template) ResolvePushContent(contactLanguage string, workspaceDefaultLanguage string) *PushTemplate {
+	if t.Push == nil || t.Translations == nil || contactLanguage == "" || contactLanguage == workspaceDefaultLanguage {
+		return t.Push
+	}
+	if translation, ok := t.Translations[contactLanguage]; ok && translation.Push != nil {
+		return translation.Push
+	}
+	return t.Push
+}
+
 func (t *Template) Validate() error {
 	// First validate the template itself
 	if err := validateTemplateID(t.ID); err != nil {
@@ -223,9 +230,8 @@ func (t *Template) Validate() error {
 		return fmt.Errorf("invalid template: channel length must be between 1 and 20")
 	}
 
-	// Validate channel is either email or web
-	if t.Channel != ChannelEmail && t.Channel != ChannelWeb {
-		return fmt.Errorf("invalid template: channel must be either '%s' or '%s'", ChannelEmail, ChannelWeb)
+	if !isTemplateChannel(t.Channel) {
+		return fmt.Errorf("invalid template: channel must be one of '%s', '%s', '%s', or '%s'", ChannelEmail, ChannelWeb, ChannelSMS, ChannelPush)
 	}
 
 	if t.Category == "" {
@@ -239,30 +245,8 @@ func (t *Template) Validate() error {
 		t.TestData = MapOfAny{}
 	}
 
-	// Channel-specific validation
-	switch t.Channel {
-	case ChannelEmail:
-		// Email channel requires email field, web must be nil
-		if t.Email == nil {
-			return fmt.Errorf("invalid template: email is required for channel '%s'", ChannelEmail)
-		}
-		if t.Web != nil {
-			return fmt.Errorf("invalid template: web must be nil for channel '%s'", ChannelEmail)
-		}
-		if err := t.Email.Validate(t.TestData); err != nil {
-			return fmt.Errorf("invalid template: %w", err)
-		}
-	case ChannelWeb:
-		// Web channel requires web field, email must be nil
-		if t.Web == nil {
-			return fmt.Errorf("invalid template: web is required for channel '%s'", ChannelWeb)
-		}
-		if t.Email != nil {
-			return fmt.Errorf("invalid template: email must be nil for channel '%s'", ChannelWeb)
-		}
-		if err := t.Web.Validate(t.TestData); err != nil {
-			return fmt.Errorf("invalid template: %w", err)
-		}
+	if err := validateTemplateContent(t.Channel, t.Email, t.Web, t.SMS, t.Push, t.TestData); err != nil {
+		return fmt.Errorf("invalid template: %w", err)
 	}
 
 	// Validate translations: language keys, channel match, and content
@@ -538,6 +522,8 @@ type CreateTemplateRequest struct {
 	Channel         string                         `json:"channel"`
 	Email           *EmailTemplate                 `json:"email,omitempty"`
 	Web             *WebTemplate                   `json:"web,omitempty"`
+	SMS             *SMSTemplate                   `json:"sms,omitempty"`
+	Push            *PushTemplate                  `json:"push,omitempty"`
 	Category        string                         `json:"category"`
 	TemplateMacroID *string                        `json:"template_macro_id,omitempty"`
 	TestData        MapOfAny                       `json:"test_data,omitempty"`
@@ -567,9 +553,8 @@ func (r *CreateTemplateRequest) Validate() (template *Template, workspaceID stri
 		return nil, "", fmt.Errorf("invalid create template request: channel length must be between 1 and 20")
 	}
 
-	// Validate channel is either email or web
-	if r.Channel != ChannelEmail && r.Channel != ChannelWeb {
-		return nil, "", fmt.Errorf("invalid create template request: channel must be either '%s' or '%s'", ChannelEmail, ChannelWeb)
+	if !isTemplateChannel(r.Channel) {
+		return nil, "", fmt.Errorf("invalid create template request: channel must be one of '%s', '%s', '%s', or '%s'", ChannelEmail, ChannelWeb, ChannelSMS, ChannelPush)
 	}
 
 	if r.Category == "" {
@@ -579,28 +564,8 @@ func (r *CreateTemplateRequest) Validate() (template *Template, workspaceID stri
 		return nil, "", fmt.Errorf("invalid create template request: category length must be between 1 and 20")
 	}
 
-	// Channel-specific validation
-	switch r.Channel {
-	case ChannelEmail:
-		if r.Email == nil {
-			return nil, "", fmt.Errorf("invalid create template request: email is required for channel '%s'", ChannelEmail)
-		}
-		if r.Web != nil {
-			return nil, "", fmt.Errorf("invalid create template request: web must be nil for channel '%s'", ChannelEmail)
-		}
-		if err := r.Email.Validate(r.TestData); err != nil {
-			return nil, "", fmt.Errorf("invalid create template request: %w", err)
-		}
-	case ChannelWeb:
-		if r.Web == nil {
-			return nil, "", fmt.Errorf("invalid create template request: web is required for channel '%s'", ChannelWeb)
-		}
-		if r.Email != nil {
-			return nil, "", fmt.Errorf("invalid create template request: email must be nil for channel '%s'", ChannelWeb)
-		}
-		if err := r.Web.Validate(r.TestData); err != nil {
-			return nil, "", fmt.Errorf("invalid create template request: %w", err)
-		}
+	if err := validateTemplateContent(r.Channel, r.Email, r.Web, r.SMS, r.Push, r.TestData); err != nil {
+		return nil, "", fmt.Errorf("invalid create template request: %w", err)
 	}
 
 	if err := validateTranslations(r.Translations, r.Channel, r.TestData); err != nil {
@@ -614,6 +579,8 @@ func (r *CreateTemplateRequest) Validate() (template *Template, workspaceID stri
 		Channel:         r.Channel,
 		Email:           r.Email,
 		Web:             r.Web,
+		SMS:             r.SMS,
+		Push:            r.Push,
 		Category:        r.Category,
 		TemplateMacroID: r.TemplateMacroID,
 		TestData:        r.TestData,
@@ -692,6 +659,8 @@ type UpdateTemplateRequest struct {
 	Channel         string                         `json:"channel"`
 	Email           *EmailTemplate                 `json:"email,omitempty"`
 	Web             *WebTemplate                   `json:"web,omitempty"`
+	SMS             *SMSTemplate                   `json:"sms,omitempty"`
+	Push            *PushTemplate                  `json:"push,omitempty"`
 	Category        string                         `json:"category"`
 	TemplateMacroID *string                        `json:"template_macro_id,omitempty"`
 	TestData        MapOfAny                       `json:"test_data,omitempty"`
@@ -724,9 +693,8 @@ func (r *UpdateTemplateRequest) Validate() (template *Template, workspaceID stri
 		return nil, "", fmt.Errorf("invalid update template request: channel length must be between 1 and 20")
 	}
 
-	// Validate channel is either email or web
-	if r.Channel != ChannelEmail && r.Channel != ChannelWeb {
-		return nil, "", fmt.Errorf("invalid update template request: channel must be either '%s' or '%s'", ChannelEmail, ChannelWeb)
+	if !isTemplateChannel(r.Channel) {
+		return nil, "", fmt.Errorf("invalid update template request: channel must be one of '%s', '%s', '%s', or '%s'", ChannelEmail, ChannelWeb, ChannelSMS, ChannelPush)
 	}
 
 	if r.Category == "" {
@@ -736,28 +704,8 @@ func (r *UpdateTemplateRequest) Validate() (template *Template, workspaceID stri
 		return nil, "", fmt.Errorf("invalid update template request: category length must be between 1 and 20")
 	}
 
-	// Channel-specific validation
-	switch r.Channel {
-	case ChannelEmail:
-		if r.Email == nil {
-			return nil, "", fmt.Errorf("invalid update template request: email is required for channel '%s'", ChannelEmail)
-		}
-		if r.Web != nil {
-			return nil, "", fmt.Errorf("invalid update template request: web must be nil for channel '%s'", ChannelEmail)
-		}
-		if err := r.Email.Validate(r.TestData); err != nil {
-			return nil, "", fmt.Errorf("invalid update template request: %w", err)
-		}
-	case ChannelWeb:
-		if r.Web == nil {
-			return nil, "", fmt.Errorf("invalid update template request: web is required for channel '%s'", ChannelWeb)
-		}
-		if r.Email != nil {
-			return nil, "", fmt.Errorf("invalid update template request: email must be nil for channel '%s'", ChannelWeb)
-		}
-		if err := r.Web.Validate(r.TestData); err != nil {
-			return nil, "", fmt.Errorf("invalid update template request: %w", err)
-		}
+	if err := validateTemplateContent(r.Channel, r.Email, r.Web, r.SMS, r.Push, r.TestData); err != nil {
+		return nil, "", fmt.Errorf("invalid update template request: %w", err)
 	}
 
 	if err := validateTranslations(r.Translations, r.Channel, r.TestData); err != nil {
@@ -770,6 +718,8 @@ func (r *UpdateTemplateRequest) Validate() (template *Template, workspaceID stri
 		Channel:         r.Channel,
 		Email:           r.Email,
 		Web:             r.Web,
+		SMS:             r.SMS,
+		Push:            r.Push,
 		Category:        r.Category,
 		TemplateMacroID: r.TemplateMacroID,
 		TestData:        r.TestData,
@@ -823,6 +773,9 @@ type TemplateService interface {
 
 	// CompileTemplate compiles a visual editor tree to MJML and HTML
 	CompileTemplate(ctx context.Context, payload CompileTemplateRequest) (*CompileTemplateResponse, error) // Use notifuse_mjml.EmailBlock
+
+	// PreviewTemplate renders unsaved SMS or push content with channel-specific diagnostics.
+	PreviewTemplate(ctx context.Context, payload PreviewTemplateRequest) (*PreviewTemplateResponse, error)
 }
 
 // TemplateRepository provides database operations for templates

@@ -26,7 +26,7 @@ import {
 } from '@fortawesome/free-regular-svg-icons'
 import { faTerminal } from '@fortawesome/free-solid-svg-icons'
 import { CreateTemplateDrawer } from '../components/templates/CreateTemplateDrawer'
-import { renderCategoryTag } from '../components/templates'
+import { MessageTemplateDrawer, renderCategoryTag } from '../components/templates'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import dayjs from '../lib/dayjs'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
@@ -146,15 +146,22 @@ export function TemplatesPage() {
   const { data, isLoading } = useQuery({
     // Use selectedCategory from search params in queryKey
     queryKey: ['templates', workspaceId, selectedCategory],
-    queryFn: () => {
-      const params: { workspace_id: string; category?: string; channel?: string } = {
-        workspace_id: workspaceId,
-        channel: 'email'
+    queryFn: async () => {
+      const responses = await Promise.all(
+        (['email', 'sms', 'push'] as const).map((channel) => {
+          const params: { workspace_id: string; category?: string; channel: string } = {
+            workspace_id: workspaceId,
+            channel
+          }
+          if (selectedCategory !== 'all') params.category = selectedCategory
+          return templatesApi.list(params)
+        })
+      )
+      return {
+        templates: responses
+          .flatMap((response) => response.templates)
+          .sort((left, right) => right.updated_at.localeCompare(left.updated_at))
       }
-      if (selectedCategory !== 'all') {
-        params.category = selectedCategory
-      }
-      return templatesApi.list(params)
     }
   })
 
@@ -220,6 +227,9 @@ export function TemplatesPage() {
             <Tooltip title={t`ID for API:` + ' ' + record.id}>
               <Text strong>{text}</Text>
             </Tooltip>
+            <Tag color={record.channel === 'email' ? 'blue' : record.channel === 'sms' ? 'green' : 'purple'}>
+              {record.channel.toUpperCase()}
+            </Tag>
             {record.email?.editor_mode === 'code' && (
               <Tag variant="filled" color="geekblue">{t`Code`}</Tag>
             )}
@@ -237,6 +247,8 @@ export function TemplatesPage() {
       title: t`Sender`,
       key: 'sender',
       render: (_: unknown, record: Template) => {
+        if (record.channel === 'sms' && record.sms?.sender_id) return record.sms.sender_id
+        if (record.channel === 'push') return <Text type="secondary">{t`Device notification`}</Text>
         if (workspace && record.email?.sender_id) {
           const isMarketing = record.category === 'marketing'
           const emailProvider = isMarketing ? marketingEmailProvider : transactionalEmailProvider
@@ -255,21 +267,30 @@ export function TemplatesPage() {
       }
     },
     {
-      title: t`Subject`,
-      dataIndex: ['email', 'subject'],
-      key: 'subject',
-      render: (subject: string, record: Template) => (
-        <div>
-          <Text>{subject}</Text>
-          {record.email?.subject_preview && (
+      title: t`Content`,
+      key: 'content',
+      render: (_: unknown, record: Template) => {
+        const primary =
+          record.channel === 'sms'
+            ? record.sms?.body
+            : record.channel === 'push'
+              ? record.push?.title
+              : record.email?.subject
+        const secondary =
+          record.channel === 'push' ? record.push?.body : record.email?.subject_preview
+        return (
+          <div className="max-w-md">
+            <Text ellipsis={{ tooltip: primary }}>{primary}</Text>
+            {secondary && (
             <div>
-              <Text type="secondary" className="text-xs">
-                {record.email.subject_preview}
+              <Text type="secondary" className="text-xs" ellipsis={{ tooltip: secondary }}>
+                {secondary}
               </Text>
             </div>
-          )}
-        </div>
-      )
+            )}
+          </div>
+        )
+      }
     },
     {
       title: t`Created`,
@@ -301,16 +322,29 @@ export function TemplatesPage() {
               }
             >
               <div>
-                <CreateTemplateDrawer
-                  template={record}
-                  workspace={workspace}
-                  buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
-                  buttonProps={{
-                    type: 'text',
-                    size: 'small',
-                    disabled: !permissions?.templates?.write
-                  }}
-                />
+                {record.channel === 'email' ? (
+                  <CreateTemplateDrawer
+                    template={record}
+                    workspace={workspace}
+                    buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
+                    buttonProps={{
+                      type: 'text',
+                      size: 'small',
+                      disabled: !permissions?.templates?.write
+                    }}
+                  />
+                ) : (
+                  <MessageTemplateDrawer
+                    template={record}
+                    workspace={workspace}
+                    buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
+                    buttonProps={{
+                      type: 'text',
+                      size: 'small',
+                      disabled: !permissions?.templates?.write
+                    }}
+                  />
+                )}
               </div>
             </Tooltip>
           )}
@@ -323,16 +357,29 @@ export function TemplatesPage() {
               }
             >
               <div>
-                <CreateTemplateDrawer
-                  fromTemplate={record}
-                  workspace={workspace}
-                  buttonContent={<FontAwesomeIcon icon={faCopy} style={{ opacity: 0.7 }} />}
-                  buttonProps={{
-                    type: 'text',
-                    size: 'small',
-                    disabled: !permissions?.templates?.write
-                  }}
-                />
+                {record.channel === 'email' ? (
+                  <CreateTemplateDrawer
+                    fromTemplate={record}
+                    workspace={workspace}
+                    buttonContent={<FontAwesomeIcon icon={faCopy} style={{ opacity: 0.7 }} />}
+                    buttonProps={{
+                      type: 'text',
+                      size: 'small',
+                      disabled: !permissions?.templates?.write
+                    }}
+                  />
+                ) : (
+                  <MessageTemplateDrawer
+                    fromTemplate={record}
+                    workspace={workspace}
+                    buttonContent={<FontAwesomeIcon icon={faCopy} style={{ opacity: 0.7 }} />}
+                    buttonProps={{
+                      type: 'text',
+                      size: 'small',
+                      disabled: !permissions?.templates?.write
+                    }}
+                  />
+                )}
               </div>
             </Tooltip>
           )}
@@ -369,7 +416,7 @@ export function TemplatesPage() {
               }}
             />
           </Tooltip>
-          <Tooltip
+          {record.channel === 'email' && <Tooltip
             title={
               !(permissions?.templates?.read && permissions?.contacts?.write)
                 ? t`You need read template and write contact permissions to send test emails`
@@ -382,7 +429,7 @@ export function TemplatesPage() {
               onClick={() => handleTestTemplate(record)}
               disabled={!(permissions?.templates?.read && permissions?.contacts?.write)}
             />
-          </Tooltip>
+          </Tooltip>}
           <Tooltip title={t`Preview Template`}>
             <>
               <TemplatePreviewDrawer record={record} workspace={workspace}>
@@ -410,14 +457,20 @@ export function TemplatesPage() {
                 : undefined
             }
           >
-            <div>
+            <Space>
               <CreateTemplateDrawer
                 workspace={workspace}
                 buttonProps={{
                   disabled: !permissions?.templates?.write
                 }}
               />
-            </div>
+              <MessageTemplateDrawer
+                workspace={workspace}
+                buttonProps={{
+                  disabled: !permissions?.templates?.write
+                }}
+              />
+            </Space>
           </Tooltip>
         )}
       </div>
@@ -471,7 +524,7 @@ export function TemplatesPage() {
                         : undefined
                     }
                   >
-                    <div>
+                    <Space>
                       <CreateTemplateDrawer
                         workspace={workspace}
                         buttonProps={{
@@ -479,7 +532,14 @@ export function TemplatesPage() {
                           disabled: !permissions?.templates?.write
                         }}
                       />
-                    </div>
+                      <MessageTemplateDrawer
+                        workspace={workspace}
+                        buttonProps={{
+                          size: 'large',
+                          disabled: !permissions?.templates?.write
+                        }}
+                      />
+                    </Space>
                   </Tooltip>
                 )}
               </div>

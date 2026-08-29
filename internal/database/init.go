@@ -149,6 +149,8 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			channel VARCHAR(20) NOT NULL,
 			email JSONB,
 			web JSONB,
+			sms JSONB,
+			push JSONB,
 			category VARCHAR(20) NOT NULL,
 			template_macro_id VARCHAR(32),
 			integration_id VARCHAR(255),

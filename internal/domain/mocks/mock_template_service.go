@@ -109,6 +109,21 @@ func (mr *MockTemplateServiceMockRecorder) GetTemplates(arg0, arg1, arg2, arg3 i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTemplates", reflect.TypeOf((*MockTemplateService)(nil).GetTemplates), arg0, arg1, arg2, arg3)
 }
 
+// PreviewTemplate mocks base method.
+func (m *MockTemplateService) PreviewTemplate(arg0 context.Context, arg1 domain.PreviewTemplateRequest) (*domain.PreviewTemplateResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PreviewTemplate", arg0, arg1)
+	ret0, _ := ret[0].(*domain.PreviewTemplateResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PreviewTemplate indicates an expected call of PreviewTemplate.
+func (mr *MockTemplateServiceMockRecorder) PreviewTemplate(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreviewTemplate", reflect.TypeOf((*MockTemplateService)(nil).PreviewTemplate), arg0, arg1)
+}
+
 // UpdateTemplate mocks base method.
 func (m *MockTemplateService) UpdateTemplate(arg0 context.Context, arg1 string, arg2 *domain.Template) error {
 	m.ctrl.T.Helper()
