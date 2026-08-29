@@ -122,6 +122,7 @@ func (r *EmailQueueRepository) EnqueueTx(ctx context.Context, tx *sql.Tx, entrie
 		)
 	}
 
+	insertBuilder = insertBuilder.Suffix("ON CONFLICT (id) DO NOTHING")
 	query, args, err := insertBuilder.ToSql()
 	if err != nil {
 		return fmt.Errorf("failed to build query: %w", err)

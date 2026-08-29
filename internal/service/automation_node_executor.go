@@ -290,8 +290,15 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 		}
 	}
 
-	// 5. Generate message ID
-	messageID := fmt.Sprintf("%s_%s", params.WorkspaceID, uuid.New().String())
+	// 5. Generate message and queue IDs. Realtime commands carry a stable effect
+	// key, so a RabbitMQ replay after a crash produces the same rows.
+	messageUUID := uuid.New()
+	queueID := uuid.New().String()
+	if effectKey, ok := params.ExecutionContext[realtimeEffectKeyContext].(string); ok && effectKey != "" {
+		messageUUID = uuid.NewSHA1(uuid.NameSpaceOID, []byte(effectKey+":email-message"))
+		queueID = uuid.NewSHA1(uuid.NameSpaceOID, []byte(effectKey+":email-queue")).String()
+	}
+	messageID := fmt.Sprintf("%s_%s", params.WorkspaceID, messageUUID.String())
 
 	// 6. Setup tracking settings, including this contact's web analytics identity
 	trackingSettings := e.buildTrackingSettings(params, workspace, config.TemplateID, messageID)
@@ -388,7 +395,7 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 	// domain.WebIdentifyTokenTTL sits in the database. Only the TrackingSettings
 	// struct itself stays out of storage; the HTML it produced does not.
 	entry := &domain.EmailQueueEntry{
-		ID:            uuid.New().String(),
+		ID:            queueID,
 		Status:        domain.EmailQueueStatusPending,
 		Priority:      domain.EmailQueuePriorityMarketing,
 		SourceType:    domain.EmailQueueSourceAutomation,
@@ -1142,6 +1149,9 @@ func (e *WebhookNodeExecutor) Execute(ctx context.Context, params NodeExecutionP
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
+	if effectKey, ok := params.ExecutionContext[realtimeEffectKeyContext].(string); ok && effectKey != "" {
+		req.Header.Set("Idempotency-Key", effectKey)
+	}
 	if config.Secret != nil && *config.Secret != "" {
 		req.Header.Set("Authorization", "Bearer "+*config.Secret)
 	}

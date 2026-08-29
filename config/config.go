@@ -516,6 +516,8 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	v.SetDefault("REDIS_DB", 0)
 	v.SetDefault("CLICKHOUSE_ADDR", "")
 	v.SetDefault("CLICKHOUSE_DATABASE", "notifuse")
+	v.SetDefault("CLICKHOUSE_USER", "notifuse")
+	v.SetDefault("CLICKHOUSE_PASSWORD", "")
 	v.SetDefault("CLICKHOUSE_BATCH_SIZE", 1000)
 	v.SetDefault("CLICKHOUSE_FLUSH_INTERVAL", "1s")
 	v.SetDefault("S3_ENDPOINT", "")
@@ -586,6 +588,8 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		ClickHouse: ClickHouseConfig{
 			Addr:          v.GetString("CLICKHOUSE_ADDR"),
 			Database:      v.GetString("CLICKHOUSE_DATABASE"),
+			Username:      v.GetString("CLICKHOUSE_USER"),
+			Password:      v.GetString("CLICKHOUSE_PASSWORD"),
 			BatchSize:     v.GetInt("CLICKHOUSE_BATCH_SIZE"),
 			FlushInterval: v.GetDuration("CLICKHOUSE_FLUSH_INTERVAL"),
 		},

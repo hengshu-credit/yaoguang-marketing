@@ -27,6 +27,25 @@ type AutomationExecutor struct {
 	apiEndpoint     string
 }
 
+const (
+	realtimeEffectKeyContext  = "realtime_effect_key"
+	realtimeOccurredAtContext = "realtime_occurred_at"
+)
+
+type journeySideEffectData struct {
+	ContactAutomationID string                 `json:"contact_automation_id"`
+	AutomationID        string                 `json:"automation_id"`
+	AutomationName      string                 `json:"automation_name"`
+	AutomationVersion   int                    `json:"automation_version"`
+	AutomationListID    string                 `json:"automation_list_id"`
+	AutomationExitReply bool                   `json:"automation_exit_on_reply"`
+	StateVersion        int64                  `json:"state_version"`
+	ContactEmail        string                 `json:"contact_email"`
+	NodeID              string                 `json:"node_id"`
+	NodeType            domain.NodeType        `json:"node_type"`
+	NodeConfig          map[string]interface{} `json:"node_config"`
+}
+
 // NewAutomationExecutor creates a new AutomationExecutor
 func NewAutomationExecutor(
 	automationRepo domain.AutomationRepository,
@@ -299,6 +318,69 @@ func (e *AutomationExecutor) PlanClaimedJourneyStep(
 	return commit, nil
 }
 
+// ExecuteJourneySideEffect materializes a command created by
+// PlanClaimedJourneyStep. It uses the automation/node snapshot in the command,
+// so an edit made after the journey transition cannot silently change the
+// already-authorized delivery.
+func (e *AutomationExecutor) ExecuteJourneySideEffect(
+	ctx context.Context,
+	envelope domain.EventEnvelope,
+	effectKey string,
+) error {
+	if effectKey == "" {
+		return fmt.Errorf("realtime effect key is required")
+	}
+	var command journeySideEffectData
+	if err := json.Unmarshal(envelope.Data, &command); err != nil {
+		return fmt.Errorf("decode journey side effect command: %w", err)
+	}
+	if command.ContactAutomationID == "" || command.AutomationID == "" ||
+		command.ContactEmail == "" || command.NodeID == "" {
+		return fmt.Errorf("journey side effect identity is incomplete")
+	}
+	if _, supported := journeySideEffectChannel(command.NodeType); !supported {
+		return fmt.Errorf("unsupported journey side effect node type %q", command.NodeType)
+	}
+	nodeExecutor, ok := e.nodeExecutors[command.NodeType]
+	if !ok {
+		return fmt.Errorf("journey side effect executor is not configured for %q", command.NodeType)
+	}
+
+	var contactData *domain.Contact
+	var err error
+	if command.NodeType == domain.NodeTypeEmail || command.NodeType == domain.NodeTypeWebhook {
+		contactData, err = e.contactRepo.GetContactByEmail(ctx, envelope.WorkspaceID, command.ContactEmail)
+		if err != nil {
+			return fmt.Errorf("load contact for journey side effect: %w", err)
+		}
+	}
+	contactAutomation := &domain.ContactAutomation{
+		ID: command.ContactAutomationID, AutomationID: command.AutomationID,
+		ContactEmail: command.ContactEmail, Status: domain.ContactAutomationStatusActive,
+	}
+	automation := &domain.Automation{
+		ID: command.AutomationID, WorkspaceID: envelope.WorkspaceID, Name: command.AutomationName,
+		ListID: command.AutomationListID, ExitOnReply: command.AutomationExitReply,
+	}
+	_, err = nodeExecutor.Execute(ctx, NodeExecutionParams{
+		WorkspaceID: envelope.WorkspaceID,
+		Contact:     contactAutomation,
+		Node: &domain.AutomationNode{
+			ID: command.NodeID, Type: command.NodeType, Config: command.NodeConfig,
+		},
+		Automation:  automation,
+		ContactData: contactData,
+		ExecutionContext: map[string]interface{}{
+			realtimeEffectKeyContext:  effectKey,
+			realtimeOccurredAtContext: envelope.OccurredAt.UTC(),
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("execute journey side effect %s: %w", effectKey, err)
+	}
+	return nil
+}
+
 func journeyNodeNeedsContactData(nodeType domain.NodeType) bool {
 	switch nodeType {
 	case domain.NodeTypeBranch, domain.NodeTypeFilter, domain.NodeTypeListStatusBranch:
@@ -350,15 +432,18 @@ func planJourneySideEffect(
 		origin := *claim.OriginEventID
 		causationID = &origin
 	}
-	data, err := json.Marshal(map[string]interface{}{
-		"contact_automation_id": next.ID,
-		"automation_id":         automation.ID,
-		"automation_version":    claim.AutomationVersion,
-		"state_version":         claim.StateVersion,
-		"contact_email":         next.ContactEmail,
-		"node_id":               node.ID,
-		"node_type":             node.Type,
-		"node_config":           node.Config,
+	data, err := json.Marshal(journeySideEffectData{
+		ContactAutomationID: next.ID,
+		AutomationID:        automation.ID,
+		AutomationName:      automation.Name,
+		AutomationVersion:   claim.AutomationVersion,
+		AutomationListID:    automation.ListID,
+		AutomationExitReply: automation.ExitOnReply,
+		StateVersion:        claim.StateVersion,
+		ContactEmail:        next.ContactEmail,
+		NodeID:              node.ID,
+		NodeType:            node.Type,
+		NodeConfig:          node.Config,
 	})
 	if err != nil {
 		return domain.JourneyStateCommit{}, fmt.Errorf("marshal journey side effect data: %w", err)

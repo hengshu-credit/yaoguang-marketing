@@ -84,6 +84,7 @@ func TestRuntimeRoleCapabilityMatrix(t *testing.T) {
 		CapabilityScheduler,
 	} {
 		assert.True(t, RoleAll.Runs(capability), "all must run %s", capability)
+		assert.True(t, RuntimeRole("").Runs(capability), "zero role must preserve all capability for direct configs: %s", capability)
 	}
 }
 

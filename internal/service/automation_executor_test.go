@@ -75,6 +75,49 @@ func TestAutomationExecutor_PlanClaimedEmailStepIsDeterministicAndSideEffectFree
 	assert.Equal(t, now, *first.ContactAutomation.ScheduledAt)
 }
 
+type recordingSideEffectNodeExecutor struct {
+	params NodeExecutionParams
+	calls  int
+}
+
+func (e *recordingSideEffectNodeExecutor) NodeType() domain.NodeType { return domain.NodeTypeEmail }
+func (e *recordingSideEffectNodeExecutor) Execute(_ context.Context, params NodeExecutionParams) (*NodeExecutionResult, error) {
+	e.calls++
+	e.params = params
+	return &NodeExecutionResult{Status: domain.ContactAutomationStatusCompleted}, nil
+}
+
+func TestAutomationExecutorExecuteJourneySideEffectUsesCommandSnapshotAndEffectKey(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	contactRepo := mocks.NewMockContactRepository(ctrl)
+	contactRepo.EXPECT().GetContactByEmail(gomock.Any(), "workspace-1", "person@example.com").
+		Return(&domain.Contact{Email: "person@example.com"}, nil)
+	nodeExecutor := &recordingSideEffectNodeExecutor{}
+	executor := &AutomationExecutor{
+		contactRepo:   contactRepo,
+		nodeExecutors: map[domain.NodeType]NodeExecutor{domain.NodeTypeEmail: nodeExecutor},
+	}
+	now := time.Date(2026, 8, 29, 10, 0, 0, 0, time.UTC)
+	data, err := json.Marshal(journeySideEffectData{
+		ContactAutomationID: "ca-1", AutomationID: "automation-1", AutomationName: "Welcome",
+		AutomationVersion: 3, AutomationListID: "list-1", AutomationExitReply: true,
+		StateVersion: 7, ContactEmail: "person@example.com", NodeID: "email-1",
+		NodeType: domain.NodeTypeEmail, NodeConfig: map[string]interface{}{"template_id": "template-1"},
+	})
+	require.NoError(t, err)
+
+	err = executor.ExecuteJourneySideEffect(context.Background(), domain.EventEnvelope{
+		WorkspaceID: "workspace-1", OccurredAt: now, Data: data,
+	}, "effect-1")
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, nodeExecutor.calls)
+	assert.Equal(t, "Welcome", nodeExecutor.params.Automation.Name)
+	assert.Equal(t, "list-1", nodeExecutor.params.Automation.ListID)
+	assert.True(t, nodeExecutor.params.Automation.ExitOnReply)
+	assert.Equal(t, "effect-1", nodeExecutor.params.ExecutionContext[realtimeEffectKeyContext])
+}
+
 func TestAutomationExecutor_Execute_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

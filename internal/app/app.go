@@ -166,6 +166,7 @@ type App struct {
 	webhookDeliveryWorker            *service.WebhookDeliveryWorker
 	automationService                *service.AutomationService
 	automationScheduler              *service.AutomationScheduler
+	automationExecutor               *service.AutomationExecutor
 	llmService                       *service.LLMService
 	emailQueueWorker                 *queue.EmailQueueWorker
 	dataFeedFetcher                  broadcast.DataFeedFetcher
@@ -173,6 +174,8 @@ type App struct {
 	webAnalyticsBuffer               *service.WebAnalyticsBuffer
 	webAnalyticsMaintenanceWorker    *service.WebAnalyticsMaintenanceWorker
 	usageService                     *service.UsageService
+	realtimeDependencies             *RealtimeDependencies
+	realtimeFactory                  RealtimeComponentFactory
 	// providers
 	postmarkService     *service.PostmarkService
 	mailgunService      *service.MailgunService
@@ -237,6 +240,14 @@ func WithMockMailer(m mailer.Mailer) AppOption {
 func WithLogger(logger logger.Logger) AppOption {
 	return func(a *App) {
 		a.logger = logger
+	}
+}
+
+// WithRealtimeComponentFactory replaces external realtime dependencies in
+// lifecycle tests without opening network connections.
+func WithRealtimeComponentFactory(factory RealtimeComponentFactory) AppOption {
+	return func(a *App) {
+		a.realtimeFactory = factory
 	}
 }
 
@@ -1138,7 +1149,7 @@ func (a *App) InitServices() error {
 	})
 
 	// Initialize automation executor and scheduler
-	automationExecutor := service.NewAutomationExecutor(
+	a.automationExecutor = service.NewAutomationExecutor(
 		a.automationRepo,
 		a.contactRepo,
 		a.workspaceRepo,
@@ -1151,7 +1162,7 @@ func (a *App) InitServices() error {
 		a.config.APIEndpoint,
 	)
 	a.automationScheduler = service.NewAutomationScheduler(
-		automationExecutor,
+		a.automationExecutor,
 		a.logger,
 		a.config.AutomationScheduler.Interval,
 		a.config.AutomationScheduler.BatchSize,
@@ -1216,6 +1227,29 @@ func (a *App) InitServices() error {
 		}).Info("SMTP bridge server initialized successfully")
 	}
 
+	return nil
+}
+
+// InitRealtimeDependencies builds only the worker capabilities owned by this
+// process role. Legacy mode deliberately creates none.
+func (a *App) InitRealtimeDependencies() error {
+	if a.config.Realtime.Mode == "" || a.config.Realtime.Mode == config.RealtimeModeLegacy {
+		a.realtimeDependencies = nil
+		return nil
+	}
+	factory := a.realtimeFactory
+	if factory == nil {
+		defaultFactory, err := newAppRealtimeComponentFactory(a)
+		if err != nil {
+			return err
+		}
+		factory = defaultFactory
+	}
+	dependencies, err := NewRealtimeDependencies(a.config.Realtime.Role, factory)
+	if err != nil {
+		return err
+	}
+	a.realtimeDependencies = dependencies
 	return nil
 }
 
@@ -1424,6 +1458,17 @@ func (a *App) InitHandlers() error {
 
 // Start starts the HTTP server
 func (a *App) Start() error {
+	if a.realtimeDependencies != nil {
+		if err := a.realtimeDependencies.Start(a.GetShutdownContext()); err != nil {
+			return fmt.Errorf("start realtime runtime: %w", err)
+		}
+	}
+	if !a.config.Realtime.Role.Runs(config.CapabilityHTTP) {
+		a.startWorkerRoleBackgroundServices()
+		<-a.GetShutdownContext().Done()
+		return nil
+	}
+
 	// Create server with wrapped handler for CORS and tracing
 	var handler http.Handler = a.mux
 
@@ -1477,12 +1522,12 @@ func (a *App) Start() error {
 	// Partition maintenance runs in demo mode too: it only touches the
 	// workspace databases (no external side effects) and its own initial
 	// delay keeps it away from the boot path.
-	if a.webAnalyticsMaintenanceWorker != nil {
+	if a.webAnalyticsMaintenanceWorker != nil && a.config.Realtime.Role.Runs(config.CapabilityScheduler) {
 		go a.webAnalyticsMaintenanceWorker.Start(a.GetShutdownContext())
 	}
 
 	// Start internal task scheduler if enabled (with 30 second delay)
-	if a.config.TaskScheduler.Enabled && a.taskScheduler != nil {
+	if a.config.Realtime.Role.Runs(config.CapabilityScheduler) && a.config.TaskScheduler.Enabled && a.taskScheduler != nil {
 		go func() {
 			// Wait 30 seconds before starting to avoid hitting DB on server start
 			a.logger.Info("Task scheduler will start in 30 seconds...")
@@ -1524,7 +1569,7 @@ func (a *App) Start() error {
 
 	// Start webhook delivery worker (with 30 second delay like task scheduler)
 	// Disabled in demo mode to prevent sending webhooks to external endpoints
-	if a.webhookDeliveryWorker != nil && !a.config.IsDemo() {
+	if a.config.Realtime.Role.Runs(config.CapabilityDelivery) && a.webhookDeliveryWorker != nil && !a.config.IsDemo() {
 		go func() {
 			a.logger.Info("Webhook delivery worker will start in 30 seconds...")
 
@@ -1549,7 +1594,7 @@ func (a *App) Start() error {
 
 	// Start email queue worker (with 30 second delay)
 	// Disabled in demo mode to prevent sending marketing emails
-	if a.emailQueueWorker != nil && !a.config.IsDemo() {
+	if a.config.Realtime.Role.Runs(config.CapabilityDelivery) && a.emailQueueWorker != nil && !a.config.IsDemo() {
 		go func() {
 			a.logger.Info("Email queue worker will start in 30 seconds...")
 
@@ -1576,7 +1621,9 @@ func (a *App) Start() error {
 
 	// Start automation scheduler (with configurable delay)
 	// Disabled in demo mode to prevent executing automations
-	if a.automationScheduler != nil && !a.config.IsDemo() {
+	if a.config.Realtime.Role.Runs(config.CapabilityScheduler) &&
+		(a.config.Realtime.Mode == "" || a.config.Realtime.Mode == config.RealtimeModeLegacy) &&
+		a.automationScheduler != nil && !a.config.IsDemo() {
 		go func() {
 			ctx := a.GetShutdownContext()
 			delay := a.config.AutomationScheduler.Delay
@@ -1610,12 +1657,48 @@ func (a *App) Start() error {
 	return a.server.ListenAndServe()
 }
 
+// startWorkerRoleBackgroundServices keeps the legacy durable queues that are
+// still authoritative (email/webhook/task) attached only to their owning role.
+// Realtime RabbitMQ components have already started before this method runs.
+func (a *App) startWorkerRoleBackgroundServices() {
+	ctx := a.GetShutdownContext()
+	if a.config.Realtime.Role.Runs(config.CapabilityScheduler) {
+		if a.webAnalyticsMaintenanceWorker != nil {
+			go a.webAnalyticsMaintenanceWorker.Start(ctx)
+		}
+		if a.config.TaskScheduler.Enabled && a.taskScheduler != nil {
+			go a.taskScheduler.Start(ctx)
+		}
+		if (a.config.Realtime.Mode == "" || a.config.Realtime.Mode == config.RealtimeModeLegacy) &&
+			a.automationScheduler != nil && !a.config.IsDemo() {
+			go a.automationScheduler.Start(ctx)
+		}
+	}
+	if a.config.Realtime.Role.Runs(config.CapabilityDelivery) && !a.config.IsDemo() {
+		if a.webhookDeliveryWorker != nil {
+			go a.webhookDeliveryWorker.Start(ctx)
+		}
+		if a.emailQueueWorker != nil {
+			go func() {
+				if err := a.emailQueueWorker.Start(ctx); err != nil && ctx.Err() == nil {
+					a.logger.WithField("error", err.Error()).Error("Failed to start email queue worker")
+				}
+			}()
+		}
+	}
+}
+
 // Shutdown gracefully shuts down the server
 func (a *App) Shutdown(ctx context.Context) error {
 	a.logger.Info("Starting graceful shutdown...")
 
 	// Signal shutdown to all components
 	a.shutdownCancel()
+	if a.realtimeDependencies != nil {
+		if err := a.realtimeDependencies.Shutdown(ctx); err != nil {
+			a.logger.WithField("error", err.Error()).Error("Error shutting down realtime runtime")
+		}
+	}
 
 	// Stop blog cache cleanup goroutine
 	if a.blogCache != nil {
@@ -1911,14 +1994,20 @@ func (a *App) Initialize() error {
 		return err
 	}
 
-	if err := a.InitHandlers(); err != nil {
-		return err
+	if err := a.InitRealtimeDependencies(); err != nil {
+		return fmt.Errorf("failed to initialize realtime runtime: %w", err)
+	}
+
+	if a.config.Realtime.Role.Runs(config.CapabilityHTTP) {
+		if err := a.InitHandlers(); err != nil {
+			return err
+		}
 	}
 
 	a.logger.Info("Application successfully initialized")
 
 	// Send startup telemetry metrics
-	if a.telemetryService != nil {
+	if a.telemetryService != nil && a.config.Realtime.Role.Runs(config.CapabilityHTTP) {
 		go func() {
 			ctx := context.Background()
 			if err := a.telemetryService.SendMetricsForAllWorkspaces(ctx); err != nil {

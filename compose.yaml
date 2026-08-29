@@ -15,7 +15,7 @@ x-notifuse-environment: &notifuse-environment
   DB_SSLMODE: disable
   DB_MAX_CONNECTIONS: ${DB_MAX_CONNECTIONS:-300}
   DB_MAX_CONNECTIONS_PER_DB: ${DB_MAX_CONNECTIONS_PER_DB:-10}
-  REALTIME_MODE: ${REALTIME_MODE:-legacy}
+  REALTIME_MODE: ${REALTIME_MODE:-primary}
   RABBITMQ_URL: amqp://${RABBITMQ_USER:-notifuse}:${RABBITMQ_PASSWORD:-notifuse-rabbit}@rabbitmq:5672/
   RABBITMQ_PREFETCH: ${RABBITMQ_PREFETCH:-100}
   RABBITMQ_PUBLISH_CONFIRM_TIMEOUT: ${RABBITMQ_PUBLISH_CONFIRM_TIMEOUT:-5s}
@@ -24,6 +24,8 @@ x-notifuse-environment: &notifuse-environment
   REDIS_DB: ${REDIS_DB:-0}
   CLICKHOUSE_ADDR: clickhouse:9000
   CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE:-notifuse}
+  CLICKHOUSE_USER: ${CLICKHOUSE_USER:-notifuse}
+  CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-notifuse-clickhouse}
   CLICKHOUSE_BATCH_SIZE: ${CLICKHOUSE_BATCH_SIZE:-1000}
   CLICKHOUSE_FLUSH_INTERVAL: ${CLICKHOUSE_FLUSH_INTERVAL:-1s}
   S3_ENDPOINT: http://minio:9000
@@ -37,17 +39,9 @@ x-notifuse-environment: &notifuse-environment
   OUTBOX_BATCH_SIZE: ${OUTBOX_BATCH_SIZE:-200}
   OUTBOX_LEASE: ${OUTBOX_LEASE:-30s}
 
-x-notifuse-dependencies: &notifuse-dependencies
+x-notifuse-db-dependencies: &notifuse-db-dependencies
   pgbouncer:
     condition: service_healthy
-  rabbitmq:
-    condition: service_healthy
-  redis:
-    condition: service_healthy
-  clickhouse:
-    condition: service_healthy
-  minio-init:
-    condition: service_completed_successfully
 
 x-notifuse-service: &notifuse-service
   image: notifuse-local:dev
@@ -59,7 +53,7 @@ x-notifuse-service: &notifuse-service
     - notifuse-network
   volumes:
     - ./data:/app/data
-  depends_on: *notifuse-dependencies
+  depends_on: *notifuse-db-dependencies
 
 services:
   api:
@@ -82,36 +76,70 @@ services:
     environment:
       <<: *notifuse-environment
       NOTIFUSE_ROLE: outbox-relay
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   rule-worker:
     <<: *notifuse-service
     environment:
       <<: *notifuse-environment
       NOTIFUSE_ROLE: rule-worker
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   journey-worker:
     <<: *notifuse-service
     environment:
       <<: *notifuse-environment
       NOTIFUSE_ROLE: journey-worker
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   delivery-worker:
     <<: *notifuse-service
     environment:
       <<: *notifuse-environment
       NOTIFUSE_ROLE: delivery-worker
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   analytics-worker:
     <<: *notifuse-service
     environment:
       <<: *notifuse-environment
       NOTIFUSE_ROLE: analytics-worker
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
 
   scheduler:
     <<: *notifuse-service
     environment:
       <<: *notifuse-environment
       NOTIFUSE_ROLE: scheduler
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   postgres:
     # PostgreSQL is the sole online source of truth. Keep the major pinned: an

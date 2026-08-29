@@ -61,6 +61,8 @@ type RedisConfig struct {
 type ClickHouseConfig struct {
 	Addr          string
 	Database      string
+	Username      string
+	Password      string
 	BatchSize     int
 	FlushInterval time.Duration
 }
@@ -111,7 +113,10 @@ func ParseRealtimeMode(value string) (RealtimeMode, error) {
 // Runs reports whether a role owns a capability. Unknown capabilities are
 // rejected even for RoleAll so wiring mistakes fail closed.
 func (r RuntimeRole) Runs(capability RuntimeCapability) bool {
-	if r == RoleAll {
+	// The zero value preserves pre-role behavior for tests and embedders that
+	// construct Config directly. LoadConfig still rejects an explicitly invalid
+	// NOTIFUSE_ROLE before an application is created.
+	if r == "" || r == RoleAll {
 		switch capability {
 		case CapabilityHTTP, CapabilityOutboxRelay, CapabilityRule, CapabilityJourney,
 			CapabilityDelivery, CapabilityAnalytics, CapabilityScheduler:
@@ -182,7 +187,6 @@ func (c RealtimeConfig) Validate(production bool) error {
 	if c.RabbitMQ.URL == "" {
 		return fmt.Errorf("RABBITMQ_URL is required when REALTIME_MODE=%s", c.Mode)
 	}
-
 	rabbitURL, err := url.Parse(c.RabbitMQ.URL)
 	if err != nil || (rabbitURL.Scheme != "amqp" && rabbitURL.Scheme != "amqps") || rabbitURL.Host == "" {
 		return fmt.Errorf("RABBITMQ_URL must be a valid amqp or amqps URL")
@@ -192,6 +196,14 @@ func (c RealtimeConfig) Validate(production bool) error {
 		username := rabbitURL.User.Username()
 		if strings.EqualFold(username, "guest") || strings.EqualFold(password, "guest") {
 			return fmt.Errorf("RABBITMQ_URL must not use example credentials in production primary mode")
+		}
+	}
+	if c.Role.Runs(CapabilityAnalytics) {
+		if strings.TrimSpace(c.ClickHouse.Addr) == "" {
+			return fmt.Errorf("CLICKHOUSE_ADDR is required for analytics capability")
+		}
+		if strings.TrimSpace(c.ClickHouse.Database) == "" {
+			return fmt.Errorf("CLICKHOUSE_DATABASE is required for analytics capability")
 		}
 	}
 

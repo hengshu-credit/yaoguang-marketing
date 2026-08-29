@@ -11,6 +11,31 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 )
 
+// EnsureRabbitMQTopology performs a bounded connection/readiness check and
+// idempotently declares the durable exchanges, quorum queues, retries and DLQs.
+func EnsureRabbitMQTopology(ctx context.Context, url string, timeout time.Duration) error {
+	if url == "" {
+		return errors.New("rabbitmq url is required")
+	}
+	if timeout <= 0 {
+		return errors.New("rabbitmq readiness timeout must be positive")
+	}
+	connection, err := amqp091.DialConfig(url, amqp091.Config{Dial: amqp091.DefaultDial(timeout)})
+	if err != nil {
+		return fmt.Errorf("dial rabbitmq: %w", err)
+	}
+	defer connection.Close()
+	channel, err := connection.Channel()
+	if err != nil {
+		return fmt.Errorf("open rabbitmq readiness channel: %w", err)
+	}
+	defer channel.Close()
+	if err := DefaultTopology().Declare(ctx, AMQPTopologyDeclarer{Channel: channel}); err != nil {
+		return fmt.Errorf("declare rabbitmq topology: %w", err)
+	}
+	return nil
+}
+
 var (
 	ErrPublishConfirmTimeout = errors.New("rabbitmq publish confirm timed out")
 	ErrPublishNack           = errors.New("rabbitmq rejected published message")
@@ -238,6 +263,11 @@ func (p *RabbitPublisher) connect() error {
 	if err != nil {
 		_ = connection.Close()
 		return fmt.Errorf("open rabbitmq channel: %w", err)
+	}
+	if err := DefaultTopology().Declare(context.Background(), AMQPTopologyDeclarer{Channel: channel}); err != nil {
+		_ = channel.Close()
+		_ = connection.Close()
+		return fmt.Errorf("declare rabbitmq topology: %w", err)
 	}
 	publisher, err := NewPublisher(newAMQPPublishChannel(channel), p.confirmTimeout)
 	if err != nil {
