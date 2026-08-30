@@ -394,8 +394,12 @@ describe('Page Smoke Tests', () => {
       const Wrapper = createWrapper()
       expect(() => render(<AnalyticsPage />, { wrapper: Wrapper })).not.toThrow()
       await waitFor(() => {
-        expect(document.body).toBeTruthy()
+        expect(screen.getByRole('navigation', { name: 'Data Analytics' })).toBeInTheDocument()
       })
+      expect(screen.getByRole('tab', { name: 'Marketing Overview' })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
     })
 
     it('BroadcastsPage renders without error', async () => {
@@ -426,8 +430,12 @@ describe('Page Smoke Tests', () => {
       const Wrapper = createWrapper()
       expect(() => render(<TemplatesPage />, { wrapper: Wrapper })).not.toThrow()
       await waitFor(() => {
-        expect(document.body).toBeTruthy()
+        expect(screen.getByRole('navigation', { name: 'Content Center' })).toBeInTheDocument()
       })
+      expect(screen.getByRole('tab', { name: 'Template Management' })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
     })
 
     it('AutomationsPage renders without error', async () => {
@@ -466,32 +474,48 @@ describe('Page Smoke Tests', () => {
       const Wrapper = createWrapper()
       expect(() => render(<FileManagerPage />, { wrapper: Wrapper })).not.toThrow()
       await waitFor(() => {
-        expect(document.body).toBeTruthy()
+        expect(screen.getByRole('navigation', { name: 'Content Center' })).toBeInTheDocument()
       })
+      expect(screen.getByRole('tab', { name: 'File Manager' })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
     })
 
     it('BlogPage renders without error', async () => {
       const Wrapper = createWrapper()
       expect(() => render(<BlogPage />, { wrapper: Wrapper })).not.toThrow()
       await waitFor(() => {
-        expect(document.body).toBeTruthy()
+        expect(screen.getByRole('navigation', { name: 'Content Center' })).toBeInTheDocument()
       })
+      expect(screen.getByRole('tab', { name: 'Blog Content' })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
     })
 
     it('WebAnalyticsPage renders without error', async () => {
       const Wrapper = createWrapper()
       expect(() => render(<WebAnalyticsPage />, { wrapper: Wrapper })).not.toThrow()
       await waitFor(() => {
-        expect(document.body).toBeTruthy()
+        expect(screen.getByRole('navigation', { name: 'Data Analytics' })).toBeInTheDocument()
       })
+      expect(screen.getByRole('tab', { name: 'Website Overview' })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
     })
 
     it('WebAnalyticsLivePage renders without error', async () => {
       const Wrapper = createWrapper()
       expect(() => render(<WebAnalyticsLivePage />, { wrapper: Wrapper })).not.toThrow()
       await waitFor(() => {
-        expect(document.body).toBeTruthy()
+        expect(screen.getByRole('navigation', { name: 'Data Analytics' })).toBeInTheDocument()
       })
+      expect(screen.getByRole('tab', { name: 'Live Visitors' })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
     })
 
     it('DebugSegmentPage renders without error', async () => {

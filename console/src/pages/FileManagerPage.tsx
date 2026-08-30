@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { workspaceService } from '../services/api/workspace'
 import { Workspace, FileManagerSettings } from '../services/api/types'
 import { useWorkspacePermissions } from '../contexts/AuthContext'
+import { ContentCenterTabs } from '../components/navigation/WorkspaceSectionTabs'
 import { workspaceFileManagerRoute } from '../router'
 
 export function FileManagerPage() {
@@ -118,6 +119,8 @@ export function FileManagerPage() {
       <div className="flex justify-between items-center mb-6">
         <div className="text-2xl font-medium">{t`File Manager`}</div>
       </div>
+
+      <ContentCenterTabs workspaceId={workspaceId} activeKey="file-manager" />
 
       <div className="border border-gray-200 rounded-md p-4">
         <FileManager {...fileManagerProps} />

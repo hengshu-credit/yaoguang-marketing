@@ -282,13 +282,21 @@ export function WorkspaceLayout() {
         </Link>
       )
     },
-    hasAccess('web_analytics') && {
+    (hasAccess('message_history') || hasAccess('web_analytics')) && {
       key: 'data',
       icon: <BarChartOutlined />,
       label: (
         <Link
-          to="/console/workspace/$workspaceId/web-analytics/$tab"
-          params={{ workspaceId, tab: 'dashboard' }}
+          to={
+            hasAccess('message_history')
+              ? '/console/workspace/$workspaceId/analytics'
+              : '/console/workspace/$workspaceId/web-analytics/$tab'
+          }
+          params={
+            hasAccess('message_history')
+              ? { workspaceId }
+              : { workspaceId, tab: 'dashboard' }
+          }
         >
           {t`Data Analytics`}
         </Link>

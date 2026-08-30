@@ -22,6 +22,7 @@ import {
 } from '../components/web_analytics/lib/query'
 import { useMinuteTick } from '../components/web_analytics/lib/useMinuteTick'
 import { ResolvedRange } from '../components/web_analytics/lib/types'
+import { DataAnalyticsTabs } from '../components/navigation/WorkspaceSectionTabs'
 
 const REFRESH_MS = 10_000
 const WINDOW_MINUTES = 30
@@ -117,6 +118,8 @@ function LiveView(props: { workspaceId: string }) {
 
   return (
     <div className="p-4 md:p-6">
+      <DataAnalyticsTabs workspaceId={props.workspaceId} activeKey="live" />
+
       <div className="mb-6 flex items-center justify-between">
         <Link
           to="/console/workspace/$workspaceId/web-analytics/$tab"

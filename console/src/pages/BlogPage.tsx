@@ -11,6 +11,7 @@ import { DeleteCategoryModal } from '../components/blog/DeleteCategoryModal'
 import { PostDrawer } from '../components/blog/PostDrawer'
 import { blogCategoriesApi, blogPostsApi, BlogCategory } from '../services/api/blog'
 import { useAuth } from '../contexts/AuthContext'
+import { ContentCenterTabs } from '../components/navigation/WorkspaceSectionTabs'
 
 const { Sider, Content } = Layout
 
@@ -114,73 +115,79 @@ export function BlogPage() {
   }
 
   return (
-    <Layout style={{ minHeight: 'calc(100vh - 48px)' }}>
-      <Sider
-        width={250}
-        style={{
-          borderRight: '1px solid #f0f0f0',
-          overflow: 'auto'
-        }}
-      >
-        <BlogSidebar
+    <>
+      <div className="px-6 pt-6">
+        <ContentCenterTabs workspaceId={workspaceId} activeKey="blog" />
+      </div>
+
+      <Layout style={{ minHeight: 'calc(100vh - 48px)' }}>
+        <Sider
+          width={250}
+          style={{
+            borderRight: '1px solid #f0f0f0',
+            overflow: 'auto'
+          }}
+        >
+          <BlogSidebar
+            workspaceId={workspaceId}
+            activeCategoryId={activeCategoryId}
+            onCategoryChange={handleCategoryChange}
+            onNewCategory={handleNewCategory}
+            onEditCategory={handleEditCategory}
+            onDeleteCategory={handleDeleteCategory}
+          />
+        </Sider>
+        <Layout>
+          <Content>
+            <div style={{ padding: '24px' }}>
+              {!hasCategories ? (
+                <Empty description={t`No categories yet`} style={{ marginTop: '100px' }}>
+                  <Button type="primary" icon={<PlusOutlined />} onClick={handleNewCategory}>
+                    {t`Create Your First Category`}
+                  </Button>
+                </Empty>
+              ) : !hasPosts && !activeCategoryId ? (
+                <Empty
+                  description={t`Create your first blog post to get started`}
+                  style={{ marginTop: '100px' }}
+                >
+                  <Button type="primary" icon={<PlusOutlined />} onClick={handleCreatePost}>
+                    {t`Create Your First Post`}
+                  </Button>
+                </Empty>
+              ) : (
+                <PostsTable />
+              )}
+            </div>
+          </Content>
+        </Layout>
+
+        <CategoryDrawer
+          open={categoryDrawerOpen}
+          onClose={handleCategoryDrawerClose}
+          category={editingCategory}
           workspaceId={workspaceId}
-          activeCategoryId={activeCategoryId}
-          onCategoryChange={handleCategoryChange}
-          onNewCategory={handleNewCategory}
-          onEditCategory={handleEditCategory}
-          onDeleteCategory={handleDeleteCategory}
         />
-      </Sider>
-      <Layout>
-        <Content>
-          <div style={{ padding: '24px' }}>
-            {!hasCategories ? (
-              <Empty description={t`No categories yet`} style={{ marginTop: '100px' }}>
-                <Button type="primary" icon={<PlusOutlined />} onClick={handleNewCategory}>
-                  {t`Create Your First Category`}
-                </Button>
-              </Empty>
-            ) : !hasPosts && !activeCategoryId ? (
-              <Empty
-                description={t`Create your first blog post to get started`}
-                style={{ marginTop: '100px' }}
-              >
-                <Button type="primary" icon={<PlusOutlined />} onClick={handleCreatePost}>
-                  {t`Create Your First Post`}
-                </Button>
-              </Empty>
-            ) : (
-              <PostsTable />
-            )}
-          </div>
-        </Content>
+
+        <DeleteCategoryModal
+          open={deleteCategoryModalOpen}
+          category={categoryToDelete}
+          onConfirm={() => categoryToDelete && deleteCategoryMutation.mutate(categoryToDelete.id)}
+          onCancel={() => {
+            setDeleteCategoryModalOpen(false)
+            setCategoryToDelete(null)
+          }}
+          loading={deleteCategoryMutation.isPending}
+        />
+
+        <PostDrawer
+          open={postDrawerOpen}
+          onClose={handlePostDrawerClose}
+          post={null}
+          workspace={workspace}
+          initialCategoryId={activeCategoryId}
+        />
       </Layout>
-
-      <CategoryDrawer
-        open={categoryDrawerOpen}
-        onClose={handleCategoryDrawerClose}
-        category={editingCategory}
-        workspaceId={workspaceId}
-      />
-
-      <DeleteCategoryModal
-        open={deleteCategoryModalOpen}
-        category={categoryToDelete}
-        onConfirm={() => categoryToDelete && deleteCategoryMutation.mutate(categoryToDelete.id)}
-        onCancel={() => {
-          setDeleteCategoryModalOpen(false)
-          setCategoryToDelete(null)
-        }}
-        loading={deleteCategoryMutation.isPending}
-      />
-
-      <PostDrawer
-        open={postDrawerOpen}
-        onClose={handlePostDrawerClose}
-        post={null}
-        workspace={workspace}
-        initialCategoryId={activeCategoryId}
-      />
-    </Layout>
+    </>
   )
 }

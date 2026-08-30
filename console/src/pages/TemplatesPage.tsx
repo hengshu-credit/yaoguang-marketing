@@ -32,6 +32,7 @@ import dayjs from '../lib/dayjs'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
 import { useLingui } from '@lingui/react/macro'
+import { ContentCenterTabs } from '../components/navigation/WorkspaceSectionTabs'
 
 const { Title, Paragraph, Text } = Typography
 
@@ -472,8 +473,10 @@ export function TemplatesPage() {
               />
             </Space>
           </Tooltip>
-        )}
+          )}
       </div>
+
+      <ContentCenterTabs workspaceId={workspaceId} activeKey="templates" />
 
       <div className="flex justify-between items-center mb-4 gap-4">
         <Segmented

@@ -16142,3 +16142,39 @@ msgstr "Window calculation"
 #: src/components/frequency/FrequencyPolicyForm.tsx:61
 msgid "Workspace-wide limit"
 msgstr "Workspace-wide limit"
+
+#: src/components/navigation/WorkspaceSectionTabs.tsx:184
+msgid "Analytics Annotations"
+msgstr "Analytics Annotations"
+
+#: src/components/navigation/WorkspaceSectionTabs.tsx:173
+msgid "Attribution Rules"
+msgstr "Attribution Rules"
+
+#: src/components/navigation/WorkspaceSectionTabs.tsx:73
+msgid "Blog Content"
+msgstr "Blog Content"
+
+#: src/components/navigation/WorkspaceSectionTabs.tsx:162
+msgid "Conversion Goals"
+msgstr "Conversion Goals"
+
+#: src/components/navigation/WorkspaceSectionTabs.tsx:140
+msgid "Live Visitors"
+msgstr "Live Visitors"
+
+#: src/components/navigation/WorkspaceSectionTabs.tsx:114
+msgid "Marketing Overview"
+msgstr "Marketing Overview"
+
+#: src/components/navigation/WorkspaceSectionTabs.tsx:151
+msgid "Multidimensional Analysis"
+msgstr "Multidimensional Analysis"
+
+#: src/components/navigation/WorkspaceSectionTabs.tsx:61
+msgid "Template Management"
+msgstr "Template Management"
+
+#: src/components/navigation/WorkspaceSectionTabs.tsx:129
+msgid "Website Overview"
+msgstr "Website Overview"

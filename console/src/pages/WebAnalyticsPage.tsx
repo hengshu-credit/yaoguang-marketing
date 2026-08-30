@@ -18,6 +18,7 @@ import { FilterBuilder } from '../components/web_analytics/FilterBuilder'
 import { DashboardTab } from '../components/web_analytics/tabs/DashboardTab'
 import { FiltersTab } from '../components/web_analytics/tabs/FiltersTab'
 import { LiveButton } from '../components/web_analytics/LiveButton'
+import { DataAnalyticsTabs } from '../components/navigation/WorkspaceSectionTabs'
 
 // Explore and Goals pull in the drill-down table and the goal drawer, neither
 // of which the landing section needs.
@@ -62,14 +63,14 @@ export function WebAnalyticsPage() {
 
   return (
     <WebAnalyticsProvider workspaceId={workspaceId}>
-      <WebAnalyticsSection tab={tab as WebAnalyticsTab} />
+      <WebAnalyticsSection workspaceId={workspaceId} tab={tab as WebAnalyticsTab} />
     </WebAnalyticsProvider>
   )
 }
 
 // Sections are reached from the workspace sidebar; the route param alone says
 // which one to render.
-function WebAnalyticsSection(props: { tab: WebAnalyticsTab }) {
+function WebAnalyticsSection(props: { workspaceId: string; tab: WebAnalyticsTab }) {
   const { t } = useLingui()
   const { settings, dimensions, setDimensions, workspace } = useWebAnalytics()
 
@@ -167,6 +168,8 @@ function WebAnalyticsSection(props: { tab: WebAnalyticsTab }) {
 
   return (
     <div className="p-4 md:p-6">
+      <DataAnalyticsTabs workspaceId={props.workspaceId} activeKey={activeTab} />
+
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="text-2xl font-medium">{titles[activeTab]}</div>

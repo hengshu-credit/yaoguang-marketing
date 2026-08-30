@@ -7,6 +7,7 @@ import { AnalyticsDashboard } from '../components/analytics/AnalyticsDashboard'
 import { TIMEZONE_OPTIONS } from '../lib/timezones'
 import { getBrowserTimezone } from '../lib/timezoneNormalizer'
 import { useLingui } from '@lingui/react/macro'
+import { DataAnalyticsTabs } from '../components/navigation/WorkspaceSectionTabs'
 
 type TimePeriod = '7D' | '14D' | '30D' | '90D'
 
@@ -101,6 +102,9 @@ export function AnalyticsPage() {
           />
         </Space>
       </div>
+
+      <DataAnalyticsTabs workspaceId={workspaceId} activeKey="marketing" />
+
       <AnalyticsDashboard workspace={workspace} timeRange={timeRange} timezone={selectedTimezone} />
     </div>
   )

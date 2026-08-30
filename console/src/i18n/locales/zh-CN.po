@@ -16123,3 +16123,39 @@ msgstr "窗口计算方式"
 #: src/components/frequency/FrequencyPolicyForm.tsx:61
 msgid "Workspace-wide limit"
 msgstr "Workspace 全量限制"
+
+#: src/components/navigation/WorkspaceSectionTabs.tsx:184
+msgid "Analytics Annotations"
+msgstr "分析标注"
+
+#: src/components/navigation/WorkspaceSectionTabs.tsx:173
+msgid "Attribution Rules"
+msgstr "归因规则"
+
+#: src/components/navigation/WorkspaceSectionTabs.tsx:73
+msgid "Blog Content"
+msgstr "Blog 内容"
+
+#: src/components/navigation/WorkspaceSectionTabs.tsx:162
+msgid "Conversion Goals"
+msgstr "转化目标"
+
+#: src/components/navigation/WorkspaceSectionTabs.tsx:140
+msgid "Live Visitors"
+msgstr "实时访客"
+
+#: src/components/navigation/WorkspaceSectionTabs.tsx:114
+msgid "Marketing Overview"
+msgstr "营销概览"
+
+#: src/components/navigation/WorkspaceSectionTabs.tsx:151
+msgid "Multidimensional Analysis"
+msgstr "多维分析"
+
+#: src/components/navigation/WorkspaceSectionTabs.tsx:61
+msgid "Template Management"
+msgstr "模板管理"
+
+#: src/components/navigation/WorkspaceSectionTabs.tsx:129
+msgid "Website Overview"
+msgstr "网站概览"

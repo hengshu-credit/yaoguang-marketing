@@ -242,4 +242,50 @@ describe('WorkspaceLayout product navigation', () => {
       '/console/workspace/$workspaceId/blog'
     )
   })
+
+  it('opens marketing overview when message history is the available analytics capability', async () => {
+    vi.mocked(isRootUser).mockReturnValue(false)
+    vi.mocked(workspaceService.getMembers).mockResolvedValue({
+      members: [
+        {
+          user_id: 'u1',
+          permissions: {
+            ...grantAll(false),
+            message_history: { read: true, write: false }
+          }
+        }
+      ]
+    } as never)
+
+    render(<WorkspaceLayout />)
+    const dataEntry = await screen.findByText('Data Analytics')
+
+    expect(dataEntry.closest('a')).toHaveAttribute(
+      'data-to',
+      '/console/workspace/$workspaceId/analytics'
+    )
+  })
+
+  it('falls back to website overview when message history is unavailable', async () => {
+    vi.mocked(isRootUser).mockReturnValue(false)
+    vi.mocked(workspaceService.getMembers).mockResolvedValue({
+      members: [
+        {
+          user_id: 'u1',
+          permissions: {
+            ...grantAll(false),
+            web_analytics: { read: true, write: false }
+          }
+        }
+      ]
+    } as never)
+
+    render(<WorkspaceLayout />)
+    const dataEntry = await screen.findByText('Data Analytics')
+
+    expect(dataEntry.closest('a')).toHaveAttribute(
+      'data-to',
+      '/console/workspace/$workspaceId/web-analytics/$tab'
+    )
+  })
 })
