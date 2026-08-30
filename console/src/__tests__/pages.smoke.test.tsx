@@ -400,6 +400,7 @@ describe('Page Smoke Tests', () => {
         'aria-selected',
         'true'
       )
+      expect(screen.getByText('Data Analytics')).toBeInTheDocument()
     })
 
     it('BroadcastsPage renders without error', async () => {
@@ -516,6 +517,7 @@ describe('Page Smoke Tests', () => {
         'aria-selected',
         'true'
       )
+      expect(screen.getAllByRole('link', { name: 'Website Overview' })).toHaveLength(2)
     })
 
     it('DebugSegmentPage renders without error', async () => {

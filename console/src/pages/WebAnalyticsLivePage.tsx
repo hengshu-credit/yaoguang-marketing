@@ -127,7 +127,7 @@ function LiveView(props: { workspaceId: string }) {
           className="flex items-center gap-1 text-gray-500 transition-colors hover:text-gray-700"
         >
           <ArrowLeft size={16} />
-          <span className="text-sm">{t`Dashboard`}</span>
+          <span className="text-sm">{t`Website Overview`}</span>
         </Link>
         <div className="flex items-center gap-3">
           <span className="relative flex h-2 w-2">

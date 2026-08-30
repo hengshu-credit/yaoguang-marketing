@@ -15,7 +15,7 @@ vi.mock('../contexts/AuthContext', () => ({
 }))
 
 vi.mock('../i18n/locales/zh-CN.po', () => ({
-  messages: { Dashboard: ['工作台'] }
+  messages: { 'Data Analytics': ['数据分析'] }
 }))
 
 vi.mock('../i18n/locales/en.po', () => ({
@@ -97,7 +97,7 @@ describe('WorkspaceLayout workspace catalog scope', () => {
     await loadLocale('zh-CN')
     signInAsRoot({
       ui_translations: {
-        'zh-CN': { Dashboard: '自定义工作台' }
+        'zh-CN': { 'Data Analytics': '自定义数据分析' }
       }
     })
 
@@ -108,14 +108,14 @@ describe('WorkspaceLayout workspace catalog scope', () => {
     )
 
     await waitFor(() => {
-      expect(i18n._('Dashboard')).toBe('自定义工作台')
+      expect(i18n._('Data Analytics')).toBe('自定义数据分析')
     })
     view.rerender(
       <I18nProvider i18n={i18n}>
         <WorkspaceLayout />
       </I18nProvider>
     )
-    expect(screen.getByText('自定义工作台')).toBeInTheDocument()
+    expect(screen.getByText('自定义数据分析')).toBeInTheDocument()
 
     view.unmount()
     signInAsRoot()
@@ -126,14 +126,14 @@ describe('WorkspaceLayout workspace catalog scope', () => {
     )
 
     await waitFor(() => {
-      expect(i18n._('Dashboard')).toBe('工作台')
+      expect(i18n._('Data Analytics')).toBe('数据分析')
     })
     restoredView.rerender(
       <I18nProvider i18n={i18n}>
         <WorkspaceLayout />
       </I18nProvider>
     )
-    expect(screen.getByText('工作台')).toBeInTheDocument()
+    expect(screen.getByText('数据分析')).toBeInTheDocument()
   })
 })
 
@@ -151,11 +151,10 @@ describe('WorkspaceLayout product navigation', () => {
     expect(screen.getByText('观心知意，循光达客')).toBeInTheDocument()
   })
 
-  it('renders the nine approved flat first-level entries', async () => {
+  it('renders the eight merged flat first-level entries without a duplicate dashboard', async () => {
     render(<WorkspaceLayout />)
 
     const expectedEntries = [
-      'Dashboard',
       'Customers',
       'Audiences',
       'Marketing Campaigns',
@@ -169,13 +168,15 @@ describe('WorkspaceLayout product navigation', () => {
     for (const entry of expectedEntries) {
       expect(await screen.findByText(entry)).toBeInTheDocument()
     }
-    expect(document.querySelectorAll('.workspace-sider-nav .ant-menu-item')).toHaveLength(9)
+    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument()
+    expect(document.querySelectorAll('.workspace-sider-nav .ant-menu-item')).toHaveLength(8)
     expect(document.querySelector('.workspace-sider-nav .ant-menu-submenu')).not.toBeInTheDocument()
   })
 
   const selectedLabel = () => document.querySelector('.ant-menu-item-selected')?.textContent ?? null
 
   it.each([
+    ['', 'Data Analytics'],
     ['/customers', 'Customers'],
     ['/contacts', 'Customers'],
     ['/audiences', 'Audiences'],

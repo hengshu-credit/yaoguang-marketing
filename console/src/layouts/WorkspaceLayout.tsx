@@ -27,7 +27,6 @@ import { clearWorkspaceCatalog, setWorkspaceCatalog } from '../i18n/workspaceCat
 import { createEmptyPermissions, createFullPermissions } from '../services/api/permissions'
 import { isRootUser } from '../services/api/auth'
 import {
-  AppstoreOutlined,
   BarChartOutlined,
   FileTextOutlined,
   RocketOutlined,
@@ -143,7 +142,7 @@ export function WorkspaceLayout() {
   }
 
   // Determine which key should be selected based on the current path
-  let selectedKey = 'dashboard'
+  let selectedKey = 'data'
   if (currentPath.includes('/settings')) {
     selectedKey = 'settings'
   } else if (currentPath.includes('/customers') || currentPath.includes('/contacts')) {
@@ -214,15 +213,6 @@ export function WorkspaceLayout() {
   }
 
   const menuItems = [
-    hasAccess('message_history') && {
-      key: 'dashboard',
-      icon: <AppstoreOutlined />,
-      label: (
-        <Link to="/console/workspace/$workspaceId" params={{ workspaceId }}>
-          {t`Dashboard`}
-        </Link>
-      )
-    },
     (hasAccess('customers') || hasAccess('contacts')) && {
       key: 'customers',
       icon: <TeamOutlined />,

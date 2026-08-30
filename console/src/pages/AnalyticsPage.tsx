@@ -75,7 +75,7 @@ export function AnalyticsPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">{t`Dashboard`}</div>
+        <div className="text-2xl font-medium">{t`Data Analytics`}</div>
         <Space>
           <Select
             value={selectedTimezone}
