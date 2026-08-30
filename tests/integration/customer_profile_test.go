@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"regexp"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"testing"
 
@@ -20,7 +22,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var integrationCustomerNumberPattern = regexp.MustCompile(`^U[0-9]{4}[0-9]{14}08[0-9a-f]{32}$`)
+var (
+	integrationCustomerNumberPattern       = regexp.MustCompile(`^U[0-9a-z]{3}[0-9]{14}08[0-9a-z]{6}$`)
+	integrationLegacyCustomerNumberPattern = regexp.MustCompile(`^U[0-9]{4}[0-9]{14}08[0-9a-f]{32}$`)
+)
+
+func integrationWorkspaceCode(sequence uint16) string {
+	encoded := strconv.FormatUint(uint64(sequence), 36)
+	return strings.Repeat("0", 3-len(encoded)) + encoded
+}
 
 func TestCustomerProfileAPIIntegration(t *testing.T) {
 	testutil.SkipIfShort(t)
@@ -69,8 +79,8 @@ func TestCustomerProfileAPIIntegration(t *testing.T) {
 	require.NotEqual(t, knownOne.Customer.CustomerID, knownTwo.Customer.CustomerID)
 	require.True(t, integrationCustomerNumberPattern.MatchString(knownOne.Customer.CustomerNo))
 	require.True(t, integrationCustomerNumberPattern.MatchString(knownTwo.Customer.CustomerNo))
-	require.Contains(t, knownOne.Customer.CustomerNo, fmt.Sprintf("U%04d", workspaceOne.Sequence))
-	require.Contains(t, knownTwo.Customer.CustomerNo, fmt.Sprintf("U%04d", workspaceTwo.Sequence))
+	require.True(t, strings.HasPrefix(knownOne.Customer.CustomerNo, "U"+integrationWorkspaceCode(workspaceOne.Sequence)))
+	require.True(t, strings.HasPrefix(knownTwo.Customer.CustomerNo, "U"+integrationWorkspaceCode(workspaceTwo.Sequence)))
 
 	t.Run("workspace isolation and conflicts", func(t *testing.T) {
 		response := postCustomer(t, suite.APIClient, "/api/customers.upsert", map[string]interface{}{
@@ -399,7 +409,7 @@ func TestCustomerProfileAPIIntegration(t *testing.T) {
 			JOIN customer_identities ci ON ci.customer_id = cu.id AND ci.identity_type = 'email'
 			WHERE c.email = $1`, legacyEmail).Scan(&customerID, &customerNo, &ciphertext, &fingerprint, &displayHint))
 		assert.NotEmpty(t, customerID)
-		assert.True(t, integrationCustomerNumberPattern.MatchString(customerNo))
+		assert.True(t, integrationLegacyCustomerNumberPattern.MatchString(customerNo))
 		assert.NotEqual(t, legacyEmail, ciphertext)
 		assert.Len(t, fingerprint, 64)
 		assert.NotEqual(t, legacyEmail, displayHint)

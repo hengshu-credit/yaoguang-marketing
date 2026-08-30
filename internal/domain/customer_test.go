@@ -12,15 +12,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGenerateCustomerNumberUsesWorkspaceSequenceShanghaiTimeAndFullUUID(t *testing.T) {
+func TestGenerateCustomerNumberUsesBase36WorkspaceCodeShanghaiTimeAndShortRandomSuffix(t *testing.T) {
 	id := uuid.MustParse("A9B4C7D2-1F6E-4D01-A932-5FC80B7312AE")
 	instant := time.Date(2026, time.August, 29, 7, 30, 45, 987654321, time.UTC)
 
 	got, err := GenerateCustomerNumber(27, instant, id)
 
 	require.NoError(t, err)
-	assert.Equal(t, "U00272026082915304508a9b4c7d21f6e4d01a9325fc80b7312ae", got)
-	assert.Len(t, got, 53)
+	assert.Equal(t, "U00r2026082915304508jgosku", got)
+	assert.Len(t, got, 26)
 }
 
 func TestGenerateCustomerNumberAcceptsSequenceBoundaries(t *testing.T) {
@@ -35,12 +35,12 @@ func TestGenerateCustomerNumberAcceptsSequenceBoundaries(t *testing.T) {
 		{
 			name:     "first workspace",
 			sequence: 1,
-			want:     "U0001202601021604050800000000000000000000000000000001",
+			want:     "U0012026010216040508000001",
 		},
 		{
 			name:     "last workspace",
 			sequence: 9999,
-			want:     "U9999202601021604050800000000000000000000000000000001",
+			want:     "U7pr2026010216040508000001",
 		},
 	}
 
@@ -73,7 +73,8 @@ func TestGenerateCustomerNumberRejectsNilCustomerID(t *testing.T) {
 
 func TestCustomerLocatorValidateRequiresExactlyOneLookupForm(t *testing.T) {
 	validID := "a9b4c7d2-1f6e-4d01-a932-5fc80b7312ae"
-	validNumber := "U00272026082915304508a9b4c7d21f6e4d01a9325fc80b7312ae"
+	validNumber := "U00r2026082915304508jgosku"
+	legacyNumber := "U00272026082915304508a9b4c7d21f6e4d01a9325fc80b7312ae"
 
 	tests := []struct {
 		name    string
@@ -82,6 +83,7 @@ func TestCustomerLocatorValidateRequiresExactlyOneLookupForm(t *testing.T) {
 	}{
 		{name: "customer id", locator: CustomerLocator{CustomerID: validID}},
 		{name: "customer number", locator: CustomerLocator{CustomerNo: validNumber}},
+		{name: "legacy customer number", locator: CustomerLocator{CustomerNo: legacyNumber}},
 		{name: "external user id", locator: CustomerLocator{ExternalUserID: " core-user-42 "}},
 		{name: "identity", locator: CustomerLocator{Identity: &CustomerIdentityLocator{Type: CustomerIdentityEmail, Value: " Alice@Example.COM "}}},
 		{name: "missing", locator: CustomerLocator{}, wantErr: "exactly one"},

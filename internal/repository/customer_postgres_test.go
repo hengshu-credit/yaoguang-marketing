@@ -258,7 +258,7 @@ func TestCustomerRepositoryUpsertCreatesExternalOnlyCustomerAndReplays(t *testin
 		WithArgs("customer.upsert", "idem-1", "hash-1").WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`WHERE c.external_user_id = \$1.*FOR UPDATE`).WithArgs("crm-42").
 		WillReturnRows(sqlmock.NewRows(customerAggregateColumns))
-	mock.ExpectQuery(`INSERT INTO customers.*RETURNING version`).
+	mock.ExpectQuery(`INSERT INTO customers.*ON CONFLICT \(customer_no\) DO NOTHING.*RETURNING version`).
 		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), "crm-42", now, now).
 		WillReturnRows(sqlmock.NewRows([]string{"version"}).AddRow(1))
 	mock.ExpectExec(`UPDATE customer_idempotency SET customer_id`).
@@ -278,7 +278,7 @@ func TestCustomerRepositoryUpsertCreatesExternalOnlyCustomerAndReplays(t *testin
 	assert.Equal(t, int64(1), result.Version)
 	assert.False(t, result.Replayed)
 	assert.Equal(t, "crm-42", *result.ExternalUserID)
-	assert.Regexp(t, `^U0042\d{14}08[0-9a-f]{32}$`, result.CustomerNo)
+	assert.Regexp(t, `^U016\d{14}08[0-9a-z]{6}$`, result.CustomerNo)
 	require.NoError(t, mock.ExpectationsWereMet())
 
 	expectWorkspaceTransaction(workspaceRepo, db, "workspace1")
@@ -299,6 +299,44 @@ func TestCustomerRepositoryUpsertCreatesExternalOnlyCustomerAndReplays(t *testin
 	require.NoError(t, err)
 	assert.True(t, replayed.Replayed)
 	assert.Equal(t, result.CustomerID, replayed.CustomerID)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCustomerRepositoryUpsertRetriesCustomerNumberCollisionWithoutAbortingTransaction(t *testing.T) {
+	now := time.Date(2026, 8, 30, 1, 2, 3, 0, time.UTC)
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	ctrl := gomock.NewController(t)
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	expectWorkspaceTransaction(workspaceRepo, db, "workspace1")
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`INSERT INTO customer_idempotency`).
+		WithArgs("customer.upsert", "idem-collision", "hash-collision").WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(`WHERE c.external_user_id = \$1.*FOR UPDATE`).WithArgs("crm-collision").
+		WillReturnRows(sqlmock.NewRows(customerAggregateColumns))
+	mock.ExpectQuery(`INSERT INTO customers.*ON CONFLICT \(customer_no\) DO NOTHING.*RETURNING version`).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), "crm-collision", now, now).
+		WillReturnRows(sqlmock.NewRows([]string{"version"}))
+	mock.ExpectQuery(`INSERT INTO customers.*ON CONFLICT \(customer_no\) DO NOTHING.*RETURNING version`).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), "crm-collision", now, now).
+		WillReturnRows(sqlmock.NewRows([]string{"version"}).AddRow(1))
+	mock.ExpectExec(`UPDATE customer_idempotency SET customer_id`).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), "customer.upsert", "idem-collision").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	repo, err := NewCustomerRepository(workspaceRepo, "secret")
+	require.NoError(t, err)
+	repo.now = func() time.Time { return now }
+	result, err := repo.Upsert(context.Background(), domain.CustomerUpsertCommand{
+		WorkspaceID: "workspace1", WorkspaceSequence: 42, IdempotencyKey: "idem-collision", PayloadHash: "hash-collision",
+		Input: domain.CustomerUpsertInput{ExternalUserID: pointerTo("crm-collision")},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "created", result.Action)
+	assert.Regexp(t, `^U016\d{14}08[0-9a-z]{6}$`, result.CustomerNo)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 

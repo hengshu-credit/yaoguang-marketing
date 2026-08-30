@@ -373,18 +373,30 @@ func (r *CustomerPostgresRepository) Upsert(ctx context.Context, command domain.
 		action := "updated"
 		if customer == nil {
 			action = "created"
-			customerID := uuid.New()
-			customerNo, err := domain.GenerateCustomerNumber(command.WorkspaceSequence, now, customerID)
-			if err != nil {
-				return err
+			const maxCustomerNumberAttempts = 10
+			for attempt := 0; attempt < maxCustomerNumberAttempts; attempt++ {
+				customerID := uuid.New()
+				customerNo, err := domain.GenerateCustomerNumber(command.WorkspaceSequence, now, customerID)
+				if err != nil {
+					return err
+				}
+				candidate := &domain.Customer{ID: customerID.String(), CustomerNo: customerNo, ExternalUserID: command.Input.ExternalUserID, CreatedAt: now, UpdatedAt: now}
+				err = tx.QueryRowContext(ctx, `INSERT INTO customers (
+					id, customer_no, external_user_id, created_at, updated_at
+				) VALUES ($1, $2, $3, $4, $5)
+				ON CONFLICT (customer_no) DO NOTHING RETURNING version`,
+					candidate.ID, candidate.CustomerNo, candidate.ExternalUserID, now, now,
+				).Scan(&candidate.Version)
+				if err == nil {
+					customer = candidate
+					break
+				}
+				if !errors.Is(err, sql.ErrNoRows) {
+					return mapCustomerMutationError(err, "")
+				}
 			}
-			customer = &domain.Customer{ID: customerID.String(), CustomerNo: customerNo, ExternalUserID: command.Input.ExternalUserID, CreatedAt: now, UpdatedAt: now}
-			if err := tx.QueryRowContext(ctx, `INSERT INTO customers (
-				id, customer_no, external_user_id, created_at, updated_at
-			) VALUES ($1, $2, $3, $4, $5) RETURNING version`,
-				customer.ID, customer.CustomerNo, customer.ExternalUserID, now, now,
-			).Scan(&customer.Version); err != nil {
-				return mapCustomerMutationError(err, "")
+			if customer == nil {
+				return &domain.ErrCustomerNumberConflict{}
 			}
 		} else {
 			if command.Input.ExternalUserID != nil {

@@ -28,11 +28,12 @@ CustomerLocator:
       description: Internal immutable UUID primary key.
     customer_no:
       type: string
-      pattern: '^U[0-9]{4}[0-9]{14}08[0-9a-f]{32}$'
-      example: U00012026083015304508f47ac10b58cc4372a5670e02b2c3d479
+      pattern: '^(U[0-9a-z]{3}[0-9]{14}08[0-9a-z]{6}|U[0-9]{4}[0-9]{14}08[0-9a-f]{32})$'
+      example: U00r2026083015304508k7m2x9
       description: >-
-        Yaoguang public customer number: U + four-digit workspace sequence +
-        Asia/Shanghai timestamp + 08 + UUID without hyphens.
+        Yaoguang public customer number. New numbers use U + three-character
+        Base36 workspace code + Asia/Shanghai timestamp + 08 + six-character
+        Base36 random suffix. Legacy 53-character numbers remain accepted.
     external_user_id:
       type: string
       minLength: 1
@@ -259,7 +260,7 @@ Customer:
       format: uuid
     customer_no:
       type: string
-      pattern: '^U[0-9]{4}[0-9]{14}08[0-9a-f]{32}$'
+      pattern: '^(U[0-9a-z]{3}[0-9]{14}08[0-9a-z]{6}|U[0-9]{4}[0-9]{14}08[0-9a-f]{32})$'
     external_user_id:
       type: string
     merged_into_id:
@@ -308,7 +309,7 @@ CustomerSummary:
       format: uuid
     customer_no:
       type: string
-      pattern: '^U[0-9]{4}[0-9]{14}08[0-9a-f]{32}$'
+      pattern: '^(U[0-9a-z]{3}[0-9]{14}08[0-9a-z]{6}|U[0-9]{4}[0-9]{14}08[0-9a-f]{32})$'
     external_user_id:
       type: string
     merged_into_id:
@@ -358,7 +359,7 @@ CustomerMutationResult:
       format: uuid
     customer_no:
       type: string
-      pattern: '^U[0-9]{4}[0-9]{14}08[0-9a-f]{32}$'
+      pattern: '^(U[0-9a-z]{3}[0-9]{14}08[0-9a-z]{6}|U[0-9]{4}[0-9]{14}08[0-9a-f]{32})$'
     external_user_id:
       type: string
     action:
@@ -524,7 +525,7 @@ CustomerMergeResult:
       format: uuid
     target_customer_no:
       type: string
-      pattern: '^U[0-9]{4}[0-9]{14}08[0-9a-f]{32}$'
+      pattern: '^(U[0-9a-z]{3}[0-9]{14}08[0-9a-z]{6}|U[0-9]{4}[0-9]{14}08[0-9a-f]{32})$'
     target_version:
       type: integer
       format: int64

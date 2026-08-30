@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -25,9 +26,11 @@ const (
 var yaoguangCustomerNumberLocation = time.FixedZone("Asia/Shanghai", 8*60*60)
 
 var (
-	customerNumberPattern = regexp.MustCompile(`^U[0-9]{4}[0-9]{14}08[0-9a-f]{32}$`)
+	customerNumberPattern = regexp.MustCompile(`^(?:U[0-9a-z]{3}[0-9]{14}08[0-9a-z]{6}|U[0-9]{4}[0-9]{14}08[0-9a-f]{32})$`)
 	customerE164Pattern   = regexp.MustCompile(`^\+[1-9][0-9]{6,14}$`)
 )
+
+const customerNumberRandomSpace uint64 = 36 * 36 * 36 * 36 * 36 * 36
 
 type CustomerIdentityType string
 
@@ -955,11 +958,21 @@ func GenerateCustomerNumber(workspaceSequence uint16, at time.Time, customerID u
 		return "", fmt.Errorf("customer ID must not be nil")
 	}
 
-	uuidSuffix := strings.ReplaceAll(strings.ToLower(customerID.String()), "-", "")
+	workspaceCode := strconv.FormatUint(uint64(workspaceSequence), 36)
+	workspaceCode = strings.Repeat("0", 3-len(workspaceCode)) + workspaceCode
+
+	// The UUID remains the internal authority and entropy source. Folding all
+	// 128 bits keeps the public identifier short without exposing the UUID.
+	var suffixValue uint64
+	for _, value := range customerID {
+		suffixValue = (suffixValue*256 + uint64(value)) % customerNumberRandomSpace
+	}
+	randomSuffix := strconv.FormatUint(suffixValue, 36)
+	randomSuffix = strings.Repeat("0", 6-len(randomSuffix)) + randomSuffix
 	return fmt.Sprintf(
-		"U%04d%s08%s",
-		workspaceSequence,
+		"U%s%s08%s",
+		workspaceCode,
 		at.In(yaoguangCustomerNumberLocation).Format("20060102150405"),
-		uuidSuffix,
+		randomSuffix,
 	), nil
 }
