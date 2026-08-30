@@ -94,3 +94,31 @@ func TestRedisSlidingWindowIsAtomicAndAlwaysExpires(t *testing.T) {
 	require.NoError(t, err)
 	assert.Greater(t, server.TTL(key), time.Duration(0))
 }
+
+func TestRedisMultiPolicyReservationIsAllOrNothingAndReplaySafe(t *testing.T) {
+	server := miniredis.RunT(t)
+	client := redis.NewClient(&redis.Options{Addr: server.Addr()})
+	store, err := NewRedisStore(client)
+	require.NoError(t, err)
+	defer store.Close()
+	now := time.Date(2026, 8, 30, 12, 0, 0, 0, time.UTC)
+	windows := []WindowReservation{{PolicyID: "campaign:v1", Window: time.Hour, MaxEvents: 2}, {PolicyID: "global:v3", Window: 24 * time.Hour, MaxEvents: 1}}
+
+	first, err := store.ReserveWindows(context.Background(), "workspace-1", "customer-1", "email", "effect-1", now, windows)
+	require.NoError(t, err)
+	assert.True(t, first.Allowed)
+	replay, err := store.ReserveWindows(context.Background(), "workspace-1", "customer-1", "email", "effect-1", now, windows)
+	require.NoError(t, err)
+	assert.True(t, replay.Allowed)
+	assert.True(t, replay.Replayed)
+
+	denied, err := store.ReserveWindows(context.Background(), "workspace-1", "customer-1", "email", "effect-2", now, windows)
+	require.NoError(t, err)
+	assert.False(t, denied.Allowed)
+	assert.Equal(t, "global:v3", denied.DeniedPolicyID)
+	campaignKey, err := FrequencyKey("workspace-1", "customer-1", "email", "campaign:v1")
+	require.NoError(t, err)
+	count, err := client.ZCard(context.Background(), campaignKey).Result()
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), count, "denied reservation must not consume the campaign allowance")
+}

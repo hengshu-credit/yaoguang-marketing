@@ -33,6 +33,32 @@ type FrequencyWindowStore interface {
 	) (WindowResult, error)
 }
 
+type WindowReservation struct {
+	PolicyID  string
+	Start     time.Time
+	Window    time.Duration
+	MaxEvents int
+}
+
+type MultiWindowResult struct {
+	Allowed        bool
+	DeniedPolicyID string
+	Count          int
+	RetryAfter     time.Duration
+	Replayed       bool
+}
+
+// MultiFrequencyWindowStore atomically reserves every applicable policy. A
+// denial must leave all windows without the requested reservation.
+type MultiFrequencyWindowStore interface {
+	ReserveWindows(
+		ctx context.Context,
+		workspaceID, subjectID, channel, reservationID string,
+		now time.Time,
+		windows []WindowReservation,
+	) (MultiWindowResult, error)
+}
+
 func TriggerKey(workspaceID, automationID string, automationVersion int) (string, error) {
 	if err := validateKeyParts(workspaceID, automationID); err != nil {
 		return "", err

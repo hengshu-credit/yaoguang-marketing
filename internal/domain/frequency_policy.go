@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"time"
@@ -83,4 +84,10 @@ type FrequencyDecision struct {
 	PolicyIDs     []string             `json:"policy_ids"`
 	Reason        string               `json:"reason,omitempty"`
 	DecidedAt     time.Time            `json:"decided_at"`
+}
+
+type FrequencyPolicyRepository interface {
+	SaveFrequencyPolicy(context.Context, string, FrequencyPolicy) error
+	ResolveFrequencyPolicies(context.Context, string, string, string, string) ([]FrequencyPolicy, error)
+	SaveFrequencyDecision(context.Context, string, FrequencyDecision) error
 }

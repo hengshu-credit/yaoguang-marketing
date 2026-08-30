@@ -20,9 +20,18 @@ const (
 
 type FrequencyPolicy struct {
 	ID            string
+	Version       int
+	Scope         string
 	MaxEvents     int
 	Window        time.Duration
 	ReservationID string
+}
+
+type MultiFrequencyResult struct {
+	Decision       FrequencyDecision
+	DeniedPolicyID string
+	RetryAfter     time.Duration
+	Replayed       bool
 }
 
 func (p FrequencyPolicy) enabled() bool {
@@ -69,4 +78,49 @@ func (l *FrequencyLimiter) Allow(
 		return FrequencyDecisionDeny, nil
 	}
 	return FrequencyDecisionAllow, nil
+}
+
+// AllowAll evaluates campaign, trigger and workspace-global policies in one
+// atomic reservation. It never falls back to sequential reservations because
+// that could consume only part of the applicable allowance.
+func (l *FrequencyLimiter) AllowAll(
+	ctx context.Context,
+	workspaceID, customerID, channel, reservationID string,
+	policies []FrequencyPolicy,
+	now time.Time,
+) (MultiFrequencyResult, error) {
+	if len(policies) == 0 {
+		return MultiFrequencyResult{Decision: FrequencyDecisionAllow}, nil
+	}
+	if strings.TrimSpace(workspaceID) == "" || strings.TrimSpace(customerID) == "" || strings.TrimSpace(channel) == "" || strings.TrimSpace(reservationID) == "" {
+		return MultiFrequencyResult{Decision: FrequencyDecisionDefer}, errors.New("workspace, customer, channel, and reservation are required for frequency control")
+	}
+	windows := make([]realtimecache.WindowReservation, 0, len(policies))
+	seen := map[string]struct{}{}
+	for _, policy := range policies {
+		if strings.TrimSpace(policy.ID) == "" || policy.MaxEvents <= 0 || policy.Window <= 0 {
+			return MultiFrequencyResult{Decision: FrequencyDecisionDefer}, errors.New("every frequency policy requires id, max events, and window")
+		}
+		policyKey := policy.ID
+		if policy.Version > 0 {
+			policyKey = fmt.Sprintf("%s:v%d", policy.ID, policy.Version)
+		}
+		if _, duplicate := seen[policyKey]; duplicate {
+			return MultiFrequencyResult{Decision: FrequencyDecisionDefer}, errors.New("frequency policy versions must be unique")
+		}
+		seen[policyKey] = struct{}{}
+		windows = append(windows, realtimecache.WindowReservation{PolicyID: policyKey, Window: policy.Window, MaxEvents: policy.MaxEvents})
+	}
+	multiStore, ok := l.store.(realtimecache.MultiFrequencyWindowStore)
+	if !ok {
+		return MultiFrequencyResult{Decision: FrequencyDecisionDefer}, errors.New("atomic multi-policy frequency control is unavailable")
+	}
+	result, err := multiStore.ReserveWindows(ctx, workspaceID, customerID, channel, reservationID, now.UTC(), windows)
+	if err != nil {
+		return MultiFrequencyResult{Decision: FrequencyDecisionDefer}, fmt.Errorf("frequency control unavailable: %w", err)
+	}
+	if !result.Allowed {
+		return MultiFrequencyResult{Decision: FrequencyDecisionDeny, DeniedPolicyID: result.DeniedPolicyID, RetryAfter: result.RetryAfter}, nil
+	}
+	return MultiFrequencyResult{Decision: FrequencyDecisionAllow, Replayed: result.Replayed}, nil
 }

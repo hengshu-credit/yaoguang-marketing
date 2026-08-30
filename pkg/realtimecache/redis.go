@@ -42,6 +42,48 @@ redis.call('PEXPIRE', key, ttl)
 return {1, count + 1, 0}
 `)
 
+var reserveFrequencyWindowsScript = redis.NewScript(`
+local now = tonumber(ARGV[1])
+local member = ARGV[2]
+local all_existing = 1
+
+for i, key in ipairs(KEYS) do
+  local offset = 2 + ((i - 1) * 3)
+  local cutoff = tonumber(ARGV[offset + 1])
+  redis.call('ZREMRANGEBYSCORE', key, '-inf', cutoff)
+  if not redis.call('ZSCORE', key, member) then
+    all_existing = 0
+  end
+end
+
+if all_existing == 1 then
+  return {1, 0, 0, 1}
+end
+
+for i, key in ipairs(KEYS) do
+  local offset = 2 + ((i - 1) * 3)
+  local limit = tonumber(ARGV[offset + 2])
+  local ttl = tonumber(ARGV[offset + 3])
+  local count = redis.call('ZCARD', key)
+  if count >= limit then
+    local earliest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
+    local retry_after = 0
+    if earliest[2] then
+      retry_after = math.max(0, tonumber(earliest[2]) + ttl - now)
+    end
+    return {0, i, count, retry_after}
+  end
+end
+
+for i, key in ipairs(KEYS) do
+  local offset = 2 + ((i - 1) * 3)
+  local ttl = tonumber(ARGV[offset + 3])
+  redis.call('ZADD', key, now, member)
+  redis.call('PEXPIRE', key, ttl)
+end
+return {1, 0, 0, 0}
+`)
+
 type RedisStore struct {
 	client redis.UniversalClient
 }
@@ -171,6 +213,65 @@ func (s *RedisStore) ReserveSlidingWindow(
 		Allowed: allowed == 1, Count: int(count),
 		RetryAfter: time.Duration(retryMillis) * time.Millisecond,
 	}, nil
+}
+
+func (s *RedisStore) ReserveWindows(
+	ctx context.Context,
+	workspaceID, subjectID, channel, reservationID string,
+	now time.Time,
+	windows []WindowReservation,
+) (MultiWindowResult, error) {
+	if reservationID == "" || len(windows) == 0 {
+		return MultiWindowResult{}, errors.New("frequency reservation id and windows are required")
+	}
+	keys := make([]string, 0, len(windows))
+	args := make([]interface{}, 0, 2+len(windows)*3)
+	args = append(args, now.UTC().UnixMilli(), reservationID)
+	for _, window := range windows {
+		if window.PolicyID == "" || window.Window <= 0 || window.MaxEvents <= 0 {
+			return MultiWindowResult{}, errors.New("frequency policy id, window and max events are required")
+		}
+		key, err := FrequencyKey(workspaceID, subjectID, channel, window.PolicyID)
+		if err != nil {
+			return MultiWindowResult{}, err
+		}
+		start := window.Start.UTC()
+		if start.IsZero() {
+			start = now.UTC().Add(-window.Window)
+		}
+		keys = append(keys, key)
+		args = append(args, start.UnixMilli(), window.MaxEvents, window.Window.Milliseconds())
+	}
+	values, err := reserveFrequencyWindowsScript.Run(ctx, s.client, keys, args...).Slice()
+	if err != nil {
+		return MultiWindowResult{}, fmt.Errorf("reserve frequency windows: %w", err)
+	}
+	if len(values) != 4 {
+		return MultiWindowResult{}, fmt.Errorf("reserve frequency windows returned %d values", len(values))
+	}
+	allowed, err := redisInteger(values[0])
+	if err != nil {
+		return MultiWindowResult{}, err
+	}
+	deniedIndex, err := redisInteger(values[1])
+	if err != nil {
+		return MultiWindowResult{}, err
+	}
+	count, err := redisInteger(values[2])
+	if err != nil {
+		return MultiWindowResult{}, err
+	}
+	retryMillis, err := redisInteger(values[3])
+	if err != nil {
+		return MultiWindowResult{}, err
+	}
+	result := MultiWindowResult{Allowed: allowed == 1, Count: int(count), RetryAfter: time.Duration(retryMillis) * time.Millisecond}
+	if result.Allowed {
+		result.Replayed = deniedIndex == 0 && count == 0 && retryMillis == 1
+	} else if deniedIndex > 0 && int(deniedIndex) <= len(windows) {
+		result.DeniedPolicyID = windows[deniedIndex-1].PolicyID
+	}
+	return result, nil
 }
 
 func redisInteger(value interface{}) (int64, error) {
