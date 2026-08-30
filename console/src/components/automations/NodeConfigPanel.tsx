@@ -13,7 +13,8 @@ import {
   RemoveFromListConfigForm,
   FilterConfigForm,
   WebhookConfigForm,
-  ListStatusBranchConfigForm
+  ListStatusBranchConfigForm,
+  type TriggerConfig
 } from './config'
 import { useAutomation } from './context'
 import type { AutomationNodeData, Structural } from './utils/flowConverter'
@@ -28,20 +29,8 @@ import type {
   WebhookNodeConfig,
   ListStatusBranchNodeConfig
 } from '../../services/api/automation'
-import type { TreeNode } from '../../services/api/segment'
 
 const { Title } = Typography
-
-// Mirrors TriggerConfigForm's own trigger config shape, which that module does not export.
-type TriggerFormConfig = {
-  event_kind?: string
-  list_id?: string
-  segment_id?: string
-  custom_event_name?: string
-  updated_fields?: string[]
-  conditions?: TreeNode
-  frequency?: 'once' | 'every_time'
-}
 
 // The per-type forms declare `onChange` against their own concrete config interface. An interface
 // carries no implicit index signature, so a `(config: Record<string, unknown>) => void` handler is
@@ -49,7 +38,7 @@ type TriggerFormConfig = {
 // with the same members: it accepts the interface on the way in (parameters are contravariant) and
 // satisfies `Record<string, unknown>` on the way back out into the node's config bag.
 type NodeConfigUpdate =
-  | TriggerFormConfig
+  | Structural<TriggerConfig>
   | Structural<DelayNodeConfig>
   | Structural<EmailNodeConfig>
   | Structural<ChannelNodeConfig>
@@ -114,7 +103,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
       case 'trigger':
         return (
           <TriggerConfigForm
-            config={config as TriggerFormConfig}
+            config={config as Structural<TriggerConfig>}
             onChange={handleConfigChange}
             workspaceId={workspaceId}
             workspace={workspace}

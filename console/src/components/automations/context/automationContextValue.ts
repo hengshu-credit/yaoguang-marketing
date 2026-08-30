@@ -49,6 +49,7 @@ export interface AutomationContextType {
 
   // Initial selection
   initialSelectedNodeId: string | undefined
+  focusNode: (nodeId: string) => void
 
   // Undo/Redo
   canUndo: boolean
@@ -59,7 +60,7 @@ export interface AutomationContextType {
   pushHistory: (coalesceKey?: string) => void
 
   // Operations
-  save: () => Promise<void>
+  save: (options?: { close?: boolean }) => Promise<Automation | null>
   validate: () => ValidationError[]
   reset: () => void
 }

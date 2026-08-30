@@ -9,6 +9,7 @@ import { listsApi } from '../../../services/api/list'
 import { listSegments } from '../../../services/api/segment'
 import { OptionSelector } from '../../ui/OptionSelector'
 import type { Workspace } from '../../../services/api/types'
+import type { JourneyEntryGuard } from '../../../services/api/automation'
 
 // Kinds that fire often enough that a condition is worth a word about cost: it runs for every
 // matching row written to contact_timeline.
@@ -37,7 +38,7 @@ const getFieldLabel = (
   return defaultLabel
 }
 
-interface TriggerConfig {
+export interface TriggerConfig {
   event_kind?: string
   list_id?: string
   segment_id?: string
@@ -48,6 +49,7 @@ interface TriggerConfig {
   // the runtime {...config} spreads, invisible to the type checker.
   conditions?: TreeNode
   frequency?: 'once' | 'every_time'
+  entry_guard?: JourneyEntryGuard
 }
 
 interface TriggerConfigFormProps {
@@ -55,9 +57,18 @@ interface TriggerConfigFormProps {
   onChange: (config: TriggerConfig) => void
   workspaceId: string
   workspace?: Workspace
+  showFrequency?: boolean
+  showEntryConditions?: boolean
 }
 
-export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, onChange, workspaceId, workspace }) => {
+export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
+  config,
+  onChange,
+  workspaceId,
+  workspace,
+  showFrequency = true,
+  showEntryConditions = true
+}) => {
   const { t } = useLingui()
 
   // Cascader options for event kinds
@@ -363,53 +374,57 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
         </Form.Item>
       )}
 
-      <Form.Item label={t`Frequency`} required>
-        <OptionSelector
-          value={config.frequency || 'once'}
-          onChange={handleFrequencyChange}
-          options={[
-            {
-              value: 'once',
-              label: t`Once per contact`,
-              description: t`Each contact enters the automation only once`
-            },
-            {
-              value: 'every_time',
-              label: t`Every time`,
-              description: t`Contact re-enters each time the event occurs`
-            }
-          ]}
-        />
-      </Form.Item>
+      {showFrequency && (
+        <Form.Item label={t`Frequency`} required>
+          <OptionSelector
+            value={config.frequency || 'once'}
+            onChange={handleFrequencyChange}
+            options={[
+              {
+                value: 'once',
+                label: t`Once per contact`,
+                description: t`Each contact enters the automation only once`
+              },
+              {
+                value: 'every_time',
+                label: t`Every time`,
+                description: t`Contact re-enters each time the event occurs`
+              }
+            ]}
+          />
+        </Form.Item>
+      )}
 
-      <ConditionsField
-        title={t`Entry conditions`}
-        description={t`Only enroll contacts matching these conditions.`}
-        addLabel={t`Add entry conditions`}
-        value={config.conditions}
-        onChange={handleConditionsChange}
-        onClear={handleRemoveConditions}
-        notice={
-          <>
-            {usesTimeline && (
-              <Alert
-                type="info"
-                showIcon
-                className="mb-3"
-                title={t`A count of past activity includes the event that fires the automation, so "at least 3 opens" enrolls on the third open.`}
-              />
-            )}
-            {isFrequentEvent && (
-              <Alert
-                type="info"
-                showIcon
-                className="mb-3"
-                title={t`This event fires often. These conditions are evaluated for every matching event.`}
-              />
-            )}
-          </>
-        }
-      />
+      {showEntryConditions && (
+        <ConditionsField
+          title={t`Entry conditions`}
+          description={t`Only enroll contacts matching these conditions.`}
+          addLabel={t`Add entry conditions`}
+          value={config.conditions}
+          onChange={handleConditionsChange}
+          onClear={handleRemoveConditions}
+          notice={
+            <>
+              {usesTimeline && (
+                <Alert
+                  type="info"
+                  showIcon
+                  className="mb-3"
+                  title={t`A count of past activity includes the event that fires the automation, so "at least 3 opens" enrolls on the third open.`}
+                />
+              )}
+              {isFrequentEvent && (
+                <Alert
+                  type="info"
+                  showIcon
+                  className="mb-3"
+                  title={t`This event fires often. These conditions are evaluated for every matching event.`}
+                />
+              )}
+            </>
+          }
+        />
+      )}
 
     </Form>
   )

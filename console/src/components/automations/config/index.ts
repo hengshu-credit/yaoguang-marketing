@@ -1,4 +1,4 @@
-export { TriggerConfigForm } from './TriggerConfigForm'
+export { TriggerConfigForm, type TriggerConfig } from './TriggerConfigForm'
 export { DelayConfigForm } from './DelayConfigForm'
 export { EmailConfigForm } from './EmailConfigForm'
 export { ChannelConfigForm } from './ChannelConfigForm'

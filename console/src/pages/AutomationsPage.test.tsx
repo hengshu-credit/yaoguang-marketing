@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App } from 'antd'
 import { i18n } from '@lingui/core'
@@ -30,17 +31,41 @@ vi.mock('../contexts/AuthContext', () => ({
 }))
 
 // Keep the page render shallow — these children are exercised by their own tests.
-vi.mock('../components/automations/AutomationCard', () => ({ AutomationCard: () => null }))
+vi.mock('../components/automations/AutomationCard', () => ({
+  AutomationCard: ({ automation, onActivate }: { automation: { id: string }; onActivate: (automation: { id: string }) => void }) => (
+    <button type="button" onClick={() => onActivate(automation)}>
+      Check and activate {automation.id}
+    </button>
+  )
+}))
 vi.mock('../components/automations/UpsertAutomationDrawer', () => ({
-  UpsertAutomationDrawer: () => null
+  UpsertAutomationDrawer: ({ open, initialNodeId }: { open?: boolean; initialNodeId?: string }) =>
+    open ? <section aria-label="Automation editor">{initialNodeId}</section> : null
+}))
+vi.mock('../components/automations/JourneyPreflightPanel', () => ({
+  JourneyPreflightPanel: ({
+    automationId,
+    onFixIssue
+  }: {
+    automationId: string
+    onFixIssue: (issue: { node_id: string }) => void
+  }) => (
+    <section aria-label="Journey activation preflight">
+      {automationId}
+      <button type="button" onClick={() => onFixIssue({ node_id: 'email-1' })}>
+        Fix message node
+      </button>
+    </section>
+  )
 }))
 
 const templatesList = vi.fn().mockResolvedValue({ templates: [] })
+const automationsList = vi.fn().mockResolvedValue({ automations: [], total: 0 })
 vi.mock('../services/api/template', () => ({
   templatesApi: { list: (...args: unknown[]) => templatesList(...args) }
 }))
 vi.mock('../services/api/automation', () => ({
-  automationApi: { list: vi.fn().mockResolvedValue({ automations: [], total: 0 }) },
+  automationApi: { list: (...args: unknown[]) => automationsList(...args) },
   Automation: class {}
 }))
 vi.mock('../services/api/list', () => ({
@@ -66,7 +91,10 @@ const renderPage = () => {
 }
 
 describe('AutomationsPage template reference query', () => {
-  beforeEach(() => templatesList.mockClear())
+  beforeEach(() => {
+    templatesList.mockClear()
+    automationsList.mockReset().mockResolvedValue({ automations: [], total: 0 })
+  })
 
   it('fetches all email templates (no category filter) so email nodes resolve any selected template', async () => {
     // The automation email-node picker (EmailConfigForm -> TemplateSelectorInput)
@@ -86,5 +114,38 @@ describe('AutomationsPage template reference query', () => {
     expect(params.workspace_id).toBe('ws1')
     expect(params.channel).toBe('email')
     expect(params.category).toBeUndefined()
+  })
+
+  it('opens activation preflight instead of activating a draft directly', async () => {
+    const user = userEvent.setup()
+    automationsList.mockResolvedValue({
+      automations: [
+        {
+          id: 'automation-1',
+          workspace_id: 'ws1',
+          name: 'Welcome journey',
+          status: 'draft',
+          list_id: '',
+          root_node_id: 'trigger-1',
+          nodes: [],
+          created_at: '2026-08-30T00:00:00Z',
+          updated_at: '2026-08-30T00:00:00Z'
+        }
+      ],
+      total: 1
+    })
+
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Check and activate automation-1' }))
+
+    expect(await screen.findByRole('region', { name: 'Journey activation preflight' })).toHaveTextContent(
+      'automation-1'
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Fix message node' }))
+    expect(await screen.findByRole('region', { name: 'Automation editor' })).toHaveTextContent(
+      'email-1'
+    )
   })
 })

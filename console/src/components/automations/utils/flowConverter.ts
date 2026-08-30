@@ -280,9 +280,11 @@ export function buildTriggerConfig(
     list_id?: string
     segment_id?: string
     custom_event_name?: string
+    tag?: string
     updated_fields?: string[]
     conditions?: TreeNode
     frequency?: 'once' | 'every_time'
+    entry_guard?: TimelineTriggerConfig['entry_guard']
   }
 
   // Every field of TimelineTriggerConfig must be listed here: the update endpoint
@@ -295,10 +297,12 @@ export function buildTriggerConfig(
     list_id: config.list_id,
     segment_id: config.segment_id,
     custom_event_name: config.custom_event_name,
+    tag: config.tag,
     updated_fields: config.updated_fields,
     // Omitted rather than sent empty: the server rejects a branch with zero leaves.
     conditions: HasLeaf(config.conditions) ? config.conditions : undefined,
-    frequency: config.frequency || 'once'
+    frequency: config.frequency || 'once',
+    entry_guard: config.entry_guard
   }
 }
 
@@ -324,6 +328,7 @@ export function hydrateTriggerNodeConfig(
           list_id: trigger.list_id,
           segment_id: trigger.segment_id,
           custom_event_name: trigger.custom_event_name,
+          tag: trigger.tag,
           // The one key the shipped console never sent: buildTriggerConfig omitted it, so
           // for every automation saved before this release the user's field selection
           // survives only in the node config. Overwriting it with the trigger's absent
@@ -335,7 +340,8 @@ export function hydrateTriggerNodeConfig(
             trigger.updated_fields ??
             (node.data.config as { updated_fields?: string[] }).updated_fields,
           conditions: trigger.conditions,
-          frequency: trigger.frequency
+          frequency: trigger.frequency,
+          entry_guard: trigger.entry_guard
         }
       }
     }

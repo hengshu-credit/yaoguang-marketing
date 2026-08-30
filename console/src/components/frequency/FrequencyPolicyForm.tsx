@@ -20,6 +20,8 @@ interface FormValues {
 interface FrequencyPolicyFormProps {
   scope: FrequencyPolicyScope
   policy?: FrequencyPolicy
+  defaultScopeRef?: string
+  fixedScopeRef?: string
   saving?: boolean
   onSave: (request: Omit<SaveFrequencyPolicyRequest, 'workspace_id'>) => Promise<void> | void
 }
@@ -30,7 +32,14 @@ const scopeCopy: Record<FrequencyPolicyScope, { title: string; description: stri
   workspace_global: { title: 'Workspace 全量限制', description: '跨活动和自动化统一保护每位客户，适合作为安全底线。' }
 }
 
-export function FrequencyPolicyForm({ scope, policy, saving, onSave }: FrequencyPolicyFormProps) {
+export function FrequencyPolicyForm({
+  scope,
+  policy,
+  defaultScopeRef,
+  fixedScopeRef,
+  saving,
+  onSave
+}: FrequencyPolicyFormProps) {
   const [form] = Form.useForm<FormValues>()
   const windowKind = Form.useWatch('window_kind', form)
   const enabled = Form.useWatch('enabled', form)
@@ -42,7 +51,7 @@ export function FrequencyPolicyForm({ scope, policy, saving, onSave }: Frequency
     form.setFieldsValue({
       enabled: policy?.enabled ?? false,
       name: policy?.name ?? copy.title,
-      scope_ref: policy?.scope_ref,
+      scope_ref: fixedScopeRef ?? policy?.scope_ref ?? defaultScopeRef,
       channel: policy?.channel ?? 'email',
       max_events: policy?.max_events ?? (scope === 'workspace_global' ? 3 : 1),
       window_kind: policy?.window_kind ?? (scope === 'workspace_global' ? 'calendar' : 'sliding'),
@@ -51,13 +60,13 @@ export function FrequencyPolicyForm({ scope, policy, saving, onSave }: Frequency
       timezone: policy?.timezone ?? 'Asia/Shanghai',
       deny_action: policy?.deny_action ?? 'suppress'
     })
-  }, [copy.title, form, policy, scope])
+  }, [copy.title, defaultScopeRef, fixedScopeRef, form, policy, scope])
 
   const submit = async () => {
     const values = await form.validateFields()
     const multiplier = values.window_unit === 'day' ? 86400 : 3600
     await onSave({
-      id: policy?.id ?? '', name: values.name, scope, scope_ref: scope === 'workspace_global' ? undefined : values.scope_ref,
+      id: policy?.id ?? '', name: values.name, scope, scope_ref: scope === 'workspace_global' ? undefined : fixedScopeRef ?? values.scope_ref,
       channel: values.channel, max_events: values.max_events, window_kind: values.window_kind,
       window_seconds: values.window_value * multiplier,
       timezone: values.window_kind === 'calendar' ? values.timezone : undefined,
@@ -73,7 +82,7 @@ export function FrequencyPolicyForm({ scope, policy, saving, onSave }: Frequency
         <Form form={form} layout="vertical" disabled={!enabled}>
           <Form.Item name="enabled" valuePropName="checked" hidden><Switch /></Form.Item>
           <Form.Item name="name" label="策略名称" rules={[{ required: true }]}><Input /></Form.Item>
-          {copy.refLabel && <Form.Item name="scope_ref" label={copy.refLabel} rules={[{ required: enabled, message: `请输入${copy.refLabel}` }]}><Input placeholder={scope === 'trigger' ? 'automation-id:event' : 'campaign-id'} /></Form.Item>}
+          {copy.refLabel && !fixedScopeRef && <Form.Item name="scope_ref" label={copy.refLabel} rules={[{ required: enabled, message: `请输入${copy.refLabel}` }]}><Input placeholder={scope === 'trigger' ? 'automation-id:event' : 'campaign-id'} /></Form.Item>}
           <Form.Item name="channel" label="触达渠道" rules={[{ required: true }]}>
             <Select options={['email', 'sms', 'push', 'whatsapp', 'telegram', 'in_app', 'webhook'].map((value) => ({ value, label: value }))} />
           </Form.Item>

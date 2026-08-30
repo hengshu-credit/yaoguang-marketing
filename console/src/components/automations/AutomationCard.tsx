@@ -205,18 +205,14 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
                   : t`Activate Automation`
               }
             >
-              <Popconfirm
-                title={t`Activate automation?`}
-                description={t`The automation will start processing contacts that match the trigger.`}
-                onConfirm={() => onActivate(automation)}
-                okText={t`Yes, activate`}
-                cancelText={t`Cancel`}
+              <Button
+                type="primary"
+                size="small"
                 disabled={!permissions?.automations?.write}
+                onClick={() => onActivate(automation)}
               >
-                <Button type="primary" size="small" disabled={!permissions?.automations?.write}>
-                  {t`Activate`}
-                </Button>
-              </Popconfirm>
+                {t`Activate`}
+              </Button>
             </Tooltip>
           )}
 

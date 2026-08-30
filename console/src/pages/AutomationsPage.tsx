@@ -1,10 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Row, Col, Typography, Space, App, Empty, Pagination } from 'antd'
+import { Row, Col, Typography, Space, App, Empty, Pagination, Drawer } from 'antd'
 import { useParams } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PlusOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
-import { ApiError } from '../services/api/errors'
 import { automationApi, Automation } from '../services/api/automation'
 import { listsApi } from '../services/api/list'
 import { listSegments } from '../services/api/segment'
@@ -12,6 +11,7 @@ import { templatesApi } from '../services/api/template'
 import { useWorkspacePermissions, useAuth } from '../contexts/AuthContext'
 import { AutomationCard } from '../components/automations/AutomationCard'
 import { UpsertAutomationDrawer } from '../components/automations/UpsertAutomationDrawer'
+import { JourneyPreflightPanel } from '../components/automations/JourneyPreflightPanel'
 
 const { Title } = Typography
 
@@ -28,6 +28,8 @@ export function AutomationsPage() {
 
   // State for editing automation
   const [editingAutomation, setEditingAutomation] = useState<Automation | undefined>(undefined)
+  const [editingNodeId, setEditingNodeId] = useState<string | undefined>()
+  const [preflightAutomation, setPreflightAutomation] = useState<Automation | undefined>()
 
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 10
@@ -80,22 +82,8 @@ export function AutomationsPage() {
   const templates = templatesData?.templates || []
 
   // Handle activate automation
-  const handleActivate = async (automation: Automation) => {
-    try {
-      await automationApi.activate({
-        workspace_id: workspaceId,
-        automation_id: automation.id
-      })
-      message.success(t`Automation activated successfully`)
-      queryClient.invalidateQueries({ queryKey: ['automations', workspaceId] })
-    } catch (error) {
-      console.error('Failed to activate automation:', error)
-      // A rejected trigger configuration comes back as a 400 carrying the database's own
-      // explanation. It is the only thing that tells the user which condition to change,
-      // so it is shown as sent rather than replaced by the generic message.
-      const reason = error instanceof ApiError && error.status === 400 ? error.message : ''
-      message.error(reason || t`Failed to activate automation`)
-    }
+  const handleActivate = (automation: Automation) => {
+    setPreflightAutomation(automation)
   }
 
   // Handle pause automation
@@ -130,11 +118,13 @@ export function AutomationsPage() {
 
   // Handle edit automation
   const handleEdit = (automation: Automation) => {
+    setEditingNodeId(undefined)
     setEditingAutomation(automation)
   }
 
   // Handle edit drawer close
   const handleEditClose = () => {
+    setEditingNodeId(undefined)
     setEditingAutomation(undefined)
   }
 
@@ -244,6 +234,7 @@ export function AutomationsPage() {
           lists={lists}
           segments={segments}
           templates={templates}
+          initialNodeId={editingNodeId}
           open={!!editingAutomation}
           onOpenChange={(open) => {
             if (!open) handleEditClose()
@@ -251,6 +242,31 @@ export function AutomationsPage() {
           onClose={handleEditClose}
         />
       )}
+
+      <Drawer
+        title={t`Activation preflight`}
+        size={640}
+        open={Boolean(preflightAutomation)}
+        onClose={() => setPreflightAutomation(undefined)}
+        destroyOnHidden
+      >
+        {preflightAutomation && (
+          <JourneyPreflightPanel
+            workspaceId={workspaceId}
+            automationId={preflightAutomation.id}
+            onFixIssue={(issue) => {
+              setEditingNodeId(issue.node_id)
+              setEditingAutomation(preflightAutomation)
+              setPreflightAutomation(undefined)
+            }}
+            onActivated={() => {
+              message.success(t`Automation activated successfully`)
+              setPreflightAutomation(undefined)
+              void queryClient.invalidateQueries({ queryKey: ['automations', workspaceId] })
+            }}
+          />
+        )}
+      </Drawer>
     </div>
   )
 }

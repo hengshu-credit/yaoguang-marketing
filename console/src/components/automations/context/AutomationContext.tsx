@@ -34,6 +34,8 @@ import {
 interface AutomationProviderProps {
   workspace: Workspace
   automation?: Automation
+  automationId?: string
+  initialNodeId?: string
   lists: List[]
   segments?: Segment[]
   templates?: Template[]
@@ -45,6 +47,8 @@ interface AutomationProviderProps {
 export function AutomationProvider({
   workspace,
   automation,
+  automationId,
+  initialNodeId,
   lists,
   segments = [],
   templates = [],
@@ -61,6 +65,7 @@ export function AutomationProvider({
   const [name, setName] = useState(automation?.name || '')
   const [listId, setListId] = useState<string | undefined>(automation?.list_id)
   const [exitOnReply, setExitOnReply] = useState<boolean>(automation?.exit_on_reply || false)
+  const [persistedAutomation, setPersistedAutomation] = useState<Automation | undefined>(automation)
 
   // Canvas state
   const [nodes, setNodes] = useState<Node<AutomationNodeData>[]>([])
@@ -72,7 +77,7 @@ export function AutomationProvider({
   const [lastError, setLastError] = useState<Error | null>(null)
 
   // Initial selection tracking
-  const [initialSelectedNodeId, setInitialSelectedNodeId] = useState<string | undefined>(undefined)
+  const [initialSelectedNodeId, setInitialSelectedNodeId] = useState<string | undefined>(initialNodeId)
   const initializedRef = useRef(false)
 
   // Undo/Redo hook
@@ -81,7 +86,7 @@ export function AutomationProvider({
   // Internal method for pushing the current state onto the future (redo) stack.
   const pushToFuture = undoRedoHook._pushToFuture
 
-  const isEditing = !!automation
+  const isEditing = !!persistedAutomation
 
   // Initialize flow on mount
   useEffect(() => {
@@ -110,6 +115,10 @@ export function AutomationProvider({
   // Mark as changed
   const markAsChanged = useCallback(() => {
     setHasUnsavedChanges(true)
+  }, [])
+
+  const focusNode = useCallback((nodeId: string) => {
+    setInitialSelectedNodeId(nodeId)
   }, [])
 
   // Wrapped setters that mark as changed
@@ -253,11 +262,6 @@ export function AutomationProvider({
   const createMutation = useMutation({
     mutationFn: (data: { workspace_id: string; automation: Automation }) =>
       automationApi.create(data),
-    onSuccess: () => {
-      message.success(t`Automation created successfully`)
-      queryClient.invalidateQueries({ queryKey: ['automations', workspace.id] })
-      onSaveSuccess?.()
-    },
     onError: (error: Error) => {
       message.error(t`Failed to create automation: ${error.message}`)
       setLastError(error)
@@ -268,11 +272,6 @@ export function AutomationProvider({
   const updateMutation = useMutation({
     mutationFn: (data: { workspace_id: string; automation: Automation }) =>
       automationApi.update(data),
-    onSuccess: () => {
-      message.success(t`Automation updated successfully`)
-      queryClient.invalidateQueries({ queryKey: ['automations', workspace.id] })
-      onSaveSuccess?.()
-    },
     onError: (error: Error) => {
       message.error(t`Failed to update automation: ${error.message}`)
       setLastError(error)
@@ -280,11 +279,12 @@ export function AutomationProvider({
   })
 
   // Save automation
-  const save = useCallback(async () => {
+  const save = useCallback(async (options: { close?: boolean } = {}) => {
+    const close = options.close ?? true
     // Validate name
     if (!name.trim()) {
       message.error(t`Please enter an automation name`)
-      return
+      return null
     }
 
     // Validate flow
@@ -293,17 +293,21 @@ export function AutomationProvider({
 
     if (errors.length > 0) {
       message.error(errors[0].message)
-      return
+      return null
     }
 
     setIsSaving(true)
     setLastError(null)
 
     try {
-      const automationId = automation?.id || uuidv4()
+      const resolvedAutomationId = persistedAutomation?.id || automationId || uuidv4()
 
       // Convert flow to automation nodes
-      const automationNodes: AutomationNode[] = flowToAutomationNodes(nodes, edges, automationId)
+      const automationNodes: AutomationNode[] = flowToAutomationNodes(
+        nodes,
+        edges,
+        resolvedAutomationId
+      )
 
       // Build trigger config from trigger node
       const triggerConfig = buildTriggerConfig(nodes)
@@ -312,36 +316,39 @@ export function AutomationProvider({
       const rootNodeId = findRootNodeId(nodes)
 
       const automationData: Automation = {
-        id: automationId,
+        id: resolvedAutomationId,
         workspace_id: workspace.id,
         name: name.trim(),
-        status: automation?.status || 'draft',
+        status: persistedAutomation?.status || 'draft',
         list_id: listId || '',
         exit_on_reply: exitOnReply,
         trigger: triggerConfig,
         root_node_id: rootNodeId,
         nodes: automationNodes,
-        created_at: automation?.created_at || new Date().toISOString(),
+        created_at: persistedAutomation?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
 
-      if (isEditing) {
-        await updateMutation.mutateAsync({
+      const response = isEditing
+        ? await updateMutation.mutateAsync({
           workspace_id: workspace.id,
           automation: automationData
         })
-      } else {
-        await createMutation.mutateAsync({
+        : await createMutation.mutateAsync({
           workspace_id: workspace.id,
           automation: automationData
         })
-      }
 
+      setPersistedAutomation(response.automation)
       setHasUnsavedChanges(false)
+      message.success(isEditing ? t`Automation updated successfully` : t`Automation created successfully`)
+      await queryClient.invalidateQueries({ queryKey: ['automations', workspace.id] })
+      if (close) onSaveSuccess?.()
+      return response.automation
     } finally {
       setIsSaving(false)
     }
-  }, [name, listId, exitOnReply, nodes, edges, automation, workspace.id, isEditing, validate, createMutation, updateMutation, message, t])
+  }, [name, listId, exitOnReply, nodes, edges, persistedAutomation, automationId, workspace.id, isEditing, validate, createMutation, updateMutation, message, t, queryClient, onSaveSuccess])
 
   // Reset state
   const reset = useCallback(() => {
@@ -350,6 +357,8 @@ export function AutomationProvider({
     setName('')
     setListId(undefined)
     setExitOnReply(false)
+    setPersistedAutomation(undefined)
+    setInitialSelectedNodeId(undefined)
     setHasUnsavedChanges(false)
     setLastError(null)
     clearHistory()
@@ -367,7 +376,7 @@ export function AutomationProvider({
   // Context value
   const value = useMemo<AutomationContextType>(() => ({
     workspace,
-    automation: automation || null,
+    automation: persistedAutomation || null,
     isEditing,
     lists,
     segments,
@@ -384,6 +393,7 @@ export function AutomationProvider({
     isSaving,
     lastError,
     initialSelectedNodeId,
+    focusNode,
     canUndo,
     canRedo,
     undo,
@@ -394,7 +404,7 @@ export function AutomationProvider({
     reset
   }), [
     workspace,
-    automation,
+    persistedAutomation,
     isEditing,
     lists,
     segments,
@@ -411,6 +421,7 @@ export function AutomationProvider({
     isSaving,
     lastError,
     initialSelectedNodeId,
+    focusNode,
     canUndo,
     canRedo,
     undo,

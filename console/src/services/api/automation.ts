@@ -54,6 +54,13 @@ export type AutomationStatus = 'draft' | 'live' | 'paused'
 // Trigger frequency types
 export type TriggerFrequency = 'once' | 'every_time'
 
+export interface JourneyEntryGuard {
+  enabled: boolean
+  /** Cooldown in nanoseconds, matching Go's time.Duration JSON representation. */
+  cooldown?: number
+  max_concurrent?: number
+}
+
 // Node types
 export type NodeType =
   | 'trigger'
@@ -119,6 +126,7 @@ export interface TimelineTriggerConfig {
   updated_fields?: string[] // For contact.updated: only trigger on these field changes
   conditions?: TreeNode
   frequency: TriggerFrequency
+  entry_guard?: JourneyEntryGuard
 }
 
 // Automation statistics
@@ -332,6 +340,28 @@ export interface DeleteAutomationRequest {
 export interface ActivateAutomationRequest {
   workspace_id: string
   automation_id: string
+  preflight_hash: string
+  confirm_warnings?: boolean
+}
+
+export interface JourneyPreflightIssue {
+  code: string
+  severity: 'blocking' | 'warning'
+  title: string
+  description: string
+  node_id?: string
+  fix_path?: string
+}
+
+export interface JourneyPreflightResult {
+  workspace_id: string
+  automation_id: string
+  issues: JourneyPreflightIssue[]
+  blocking_count: number
+  warning_count: number
+  summary_hash: string
+  generated_at: string
+  expires_at: string
 }
 
 export interface PauseAutomationRequest {
@@ -402,6 +432,13 @@ export const automationApi = {
 
   delete: async (params: DeleteAutomationRequest): Promise<{ success: boolean }> => {
     return api.post<{ success: boolean }>('/api/automations.delete', params)
+  },
+
+  preflight: async (params: {
+    workspace_id: string
+    automation_id: string
+  }): Promise<JourneyPreflightResult> => {
+    return api.post<JourneyPreflightResult>('/api/automations.preflight', params)
   },
 
   activate: async (params: ActivateAutomationRequest): Promise<GetAutomationResponse> => {

@@ -180,6 +180,16 @@ describe('TriggerConfigForm existing controls', () => {
     expect(screen.getByText('Frequency')).toBeInTheDocument()
   })
 
+  it('uses the two Automation entry semantics without mixing in message caps', () => {
+    renderForm({ event_kind: 'contact.created', frequency: 'once' })
+
+    expect(screen.getByText('Once per contact')).toBeInTheDocument()
+    expect(screen.getByText('Each contact enters the automation only once')).toBeInTheDocument()
+    expect(screen.getByText('Every time')).toBeInTheDocument()
+    expect(screen.getByText('Contact re-enters each time the event occurs')).toBeInTheDocument()
+    expect(screen.queryByText(/maximum messages/i)).not.toBeInTheDocument()
+  })
+
   // The field filter and the entry conditions are different things, and the panel shows both
   // for contact.updated. Their labels have to stay distinguishable.
   it('keeps the field filter distinct from the entry conditions', () => {

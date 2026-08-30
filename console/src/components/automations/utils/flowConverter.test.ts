@@ -99,6 +99,27 @@ describe('buildTriggerConfig', () => {
   it('returns undefined when there is no trigger node', () => {
     expect(buildTriggerConfig([emailNode()])).toBeUndefined()
   })
+
+  it('preserves tagged-event fields and entry protection when saving', () => {
+    const entryGuard = { enabled: true, cooldown: 3_600_000_000_000, max_concurrent: 2 }
+
+    const config = buildTriggerConfig([
+      triggerNode({
+        event_kind: 'contact.tagged',
+        tag: 'high_intent',
+        frequency: 'every_time',
+        entry_guard: entryGuard
+      })
+    ])
+
+    expect(config).toMatchObject({
+      event_kind: 'contact.tagged',
+      tag: 'high_intent',
+      frequency: 'every_time',
+      entry_guard: entryGuard
+    })
+    expect(config?.entry_guard).toBe(entryGuard)
+  })
 })
 
 describe('hydrateTriggerNodeConfig', () => {
@@ -125,6 +146,26 @@ describe('hydrateTriggerNodeConfig', () => {
   it('leaves nodes untouched when the automation has no trigger', () => {
     const nodes = [triggerNode({ event_kind: 'contact.created' })]
     expect(hydrateTriggerNodeConfig(nodes, undefined)).toBe(nodes)
+  })
+
+  it('hydrates tag and entry protection into the editable trigger node', () => {
+    const entryGuard = { enabled: true, cooldown: 86_400_000_000_000, max_concurrent: 1 }
+    const hydrated = hydrateTriggerNodeConfig(
+      [triggerNode({})],
+      {
+        event_kind: 'contact.tagged',
+        tag: 'renewal_due',
+        frequency: 'every_time',
+        entry_guard: entryGuard
+      }
+    )
+
+    expect(hydrated[0].data.config).toMatchObject({
+      event_kind: 'contact.tagged',
+      tag: 'renewal_due',
+      frequency: 'every_time',
+      entry_guard: entryGuard
+    })
   })
 })
 

@@ -21,6 +21,8 @@ import type { List } from '../../services/api/list'
 import type { Segment } from '../../services/api/segment'
 import { AutomationProvider, useAutomation } from './context'
 import { AutomationFlowEditor } from './AutomationFlowEditor'
+import { JourneyCreateWizard } from './JourneyCreateWizard'
+import { v4 as uuidv4 } from 'uuid'
 
 interface UpsertAutomationDrawerProps {
   workspace: Workspace
@@ -31,13 +33,20 @@ interface UpsertAutomationDrawerProps {
   lists?: List[]
   segments?: Segment[]
   templates?: Template[]
+  initialNodeId?: string
   // Controlled mode props
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }
 
 // Inner component that uses the context
-function DrawerContent({ onCloseDrawer }: { onCloseDrawer: () => void }) {
+function DrawerContent({
+  onCloseDrawer,
+  automationId
+}: {
+  onCloseDrawer: (resetDraft?: boolean) => void
+  automationId: string
+}) {
   const { t } = useLingui()
   const {
     isEditing,
@@ -94,16 +103,17 @@ function DrawerContent({ onCloseDrawer }: { onCloseDrawer: () => void }) {
   }, [handleKeyDown])
 
   const handleCloseWithConfirm = () => {
+    const close = () => onCloseDrawer(isEditing)
     if (hasUnsavedChanges) {
       modal.confirm({
         title: t`Unsaved Changes`,
         content: t`You have unsaved changes. Are you sure you want to close?`,
         okText: t`Close without saving`,
         cancelText: t`Cancel`,
-        onOk: onCloseDrawer
+        onOk: close
       })
     } else {
-      onCloseDrawer()
+      close()
     }
   }
 
@@ -165,13 +175,11 @@ function DrawerContent({ onCloseDrawer }: { onCloseDrawer: () => void }) {
             />
           </Tooltip>
           <Button onClick={handleCloseWithConfirm}>{t`Cancel`}</Button>
-          <Button
-            type="primary"
-            loading={isSaving}
-            onClick={handleSubmit}
-          >
-            {isEditing ? t`Save Changes` : t`Create`}
-          </Button>
+          {isEditing && (
+            <Button type="primary" loading={isSaving} onClick={handleSubmit}>
+              {t`Save Changes`}
+            </Button>
+          )}
         </Space>
       </div>
 
@@ -230,10 +238,17 @@ function DrawerContent({ onCloseDrawer }: { onCloseDrawer: () => void }) {
         </Form>
       </div>
 
-      {/* Flow Editor */}
-      <div className="flex-1" style={{ height: 'calc(100vh - 180px)' }}>
-        <AutomationFlowEditor />
-      </div>
+      {isEditing ? (
+        <div className="flex-1" style={{ height: 'calc(100vh - 180px)' }}>
+          <AutomationFlowEditor />
+        </div>
+      ) : (
+        <JourneyCreateWizard
+          workspaceId={workspace.id}
+          automationId={automationId}
+          onActivated={() => onCloseDrawer(true)}
+        />
+      )}
     </>
   )
 }
@@ -247,11 +262,21 @@ export function UpsertAutomationDrawer({
   lists = [],
   segments = [],
   templates = [],
+  initialNodeId,
   open: controlledOpen,
   onOpenChange
 }: UpsertAutomationDrawerProps) {
   const { t } = useLingui()
   const [internalOpen, setInternalOpen] = useState(false)
+  const draftStorageKey = `yaoguang:journey-active-draft:${workspace.id}`
+  const [draftAutomationId, setDraftAutomationId] = useState(() => {
+    if (automation) return automation.id
+    const stored = localStorage.getItem(draftStorageKey)
+    if (stored) return stored
+    const created = uuidv4()
+    localStorage.setItem(draftStorageKey, created)
+    return created
+  })
 
   // Support both controlled and uncontrolled modes
   const isControlled = controlledOpen !== undefined
@@ -271,13 +296,18 @@ export function UpsertAutomationDrawer({
     setIsOpen(true)
   }
 
-  const handleClose = () => {
+  const handleClose = (resetDraft = false) => {
     setIsOpen(false)
+    if (!automation && resetDraft) {
+      const nextDraftAutomationId = uuidv4()
+      localStorage.setItem(draftStorageKey, nextDraftAutomationId)
+      setDraftAutomationId(nextDraftAutomationId)
+    }
     onClose?.()
   }
 
   const handleSaveSuccess = () => {
-    handleClose()
+    handleClose(true)
   }
 
   return (
@@ -292,7 +322,7 @@ export function UpsertAutomationDrawer({
       <Drawer
         placement="right"
         size="100%"
-        onClose={handleClose}
+        onClose={() => handleClose(false)}
         open={isOpen}
         destroyOnHidden
         closable={false}
@@ -309,13 +339,18 @@ export function UpsertAutomationDrawer({
           <AutomationProvider
             workspace={workspace}
             automation={automation}
+            automationId={draftAutomationId}
+            initialNodeId={initialNodeId}
             lists={lists}
             segments={segments}
             templates={templates}
             onSaveSuccess={handleSaveSuccess}
-            onClose={handleClose}
+            onClose={() => handleClose(false)}
           >
-            <DrawerContent onCloseDrawer={handleClose} />
+            <DrawerContent
+              onCloseDrawer={(resetDraft) => handleClose(resetDraft)}
+              automationId={automation?.id ?? draftAutomationId}
+            />
           </AutomationProvider>
         )}
       </Drawer>
