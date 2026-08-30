@@ -18,11 +18,11 @@ type DeliveryPostgresRepository struct {
 	queueRepo     domain.EmailQueueRepository
 }
 
-func NewDeliveryRepository(workspaceRepo domain.WorkspaceRepository, queueRepo domain.EmailQueueRepository) domain.DeliveryRepository {
+func NewDeliveryRepository(workspaceRepo domain.WorkspaceRepository, queueRepo domain.EmailQueueRepository) *DeliveryPostgresRepository {
 	return &DeliveryPostgresRepository{workspaceRepo: workspaceRepo, queueRepo: queueRepo}
 }
 
-func NewDeliveryRepositoryWithDB(db *sql.DB) domain.DeliveryRepository {
+func NewDeliveryRepositoryWithDB(db *sql.DB) *DeliveryPostgresRepository {
 	return &DeliveryPostgresRepository{db: db, queueRepo: &EmailQueueRepository{db: db}}
 }
 

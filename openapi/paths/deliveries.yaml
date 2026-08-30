@@ -1,0 +1,71 @@
+/api/deliveries.list:
+  get:
+    summary: List logical deliveries
+    operationId: listDeliveries
+    security: [{ BearerAuth: [] }]
+    parameters:
+      - { name: workspace_id, in: query, required: true, schema: { type: string } }
+      - { name: status, in: query, schema: { $ref: '../components/schemas/delivery.yaml#/DeliveryStatus' } }
+      - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 50 } }
+      - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+    responses:
+      '200':
+        description: Delivery intents
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [deliveries, total]
+              properties:
+                deliveries: { type: array, items: { $ref: '../components/schemas/delivery.yaml#/DeliveryIntent' } }
+                total: { type: integer }
+      '400': { description: Invalid filter }
+      '403': { description: Message history read permission required }
+
+/api/deliveries.get:
+  get:
+    summary: Get a delivery with attempts and reconciliation history
+    operationId: getDelivery
+    security: [{ BearerAuth: [] }]
+    parameters:
+      - { name: workspace_id, in: query, required: true, schema: { type: string } }
+      - { name: intent_id, in: query, required: true, schema: { type: string, format: uuid } }
+    responses:
+      '200': { description: Delivery detail }
+      '404': { description: Delivery not found }
+
+/api/deliveries.reconcile:
+  post:
+    summary: Queue reconciliation for an unresolved delivery
+    operationId: reconcileDelivery
+    security: [{ BearerAuth: [] }]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [workspace_id, intent_id]
+            properties:
+              workspace_id: { type: string }
+              intent_id: { type: string, format: uuid }
+    responses:
+      '202': { description: Reconciliation queued }
+      '400': { description: Invalid request or resolved delivery }
+      '403': { description: Message history write permission required }
+
+/api/deliveries.resolveUnknown:
+  post:
+    summary: Resolve an unknown provider submission after verification
+    description: Retrying is allowed only after an operator verifies that the provider did not accept the request. Actor and reason are audited.
+    operationId: resolveUnknownDelivery
+    security: [{ BearerAuth: [] }]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../components/schemas/delivery.yaml#/ResolveUnknownDeliveryRequest' }
+    responses:
+      '200': { description: Unknown delivery resolved }
+      '400': { description: Invalid action or delivery state }
+      '404': { description: Delivery not found }

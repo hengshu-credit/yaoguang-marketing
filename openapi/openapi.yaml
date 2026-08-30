@@ -18,6 +18,14 @@ servers:
         description: Your Yaoguang Marketing deployment domain
         default: marketing.example.com
 paths:
+  /api/deliveries.list:
+    $ref: './paths/deliveries.yaml#/~1api~1deliveries.list'
+  /api/deliveries.get:
+    $ref: './paths/deliveries.yaml#/~1api~1deliveries.get'
+  /api/deliveries.reconcile:
+    $ref: './paths/deliveries.yaml#/~1api~1deliveries.reconcile'
+  /api/deliveries.resolveUnknown:
+    $ref: './paths/deliveries.yaml#/~1api~1deliveries.resolveUnknown'
   /track:
     $ref: './paths/web-analytics.yaml#/~1track'
   /api/workspaces.setWebAnalyticsSettings:

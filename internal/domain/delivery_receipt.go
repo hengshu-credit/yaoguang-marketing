@@ -16,18 +16,28 @@ const MaxDeliveryReceiptMetadataBytes = 16 * 1024
 type DeliveryProvider string
 
 const (
-	DeliveryProviderTwilio DeliveryProvider = "twilio"
-	DeliveryProviderFCM    DeliveryProvider = "fcm"
+	DeliveryProviderTwilio    DeliveryProvider = "twilio"
+	DeliveryProviderFCM       DeliveryProvider = "fcm"
+	DeliveryProviderSMTP      DeliveryProvider = "smtp"
+	DeliveryProviderSES       DeliveryProvider = "ses"
+	DeliveryProviderSparkPost DeliveryProvider = "sparkpost"
+	DeliveryProviderPostmark  DeliveryProvider = "postmark"
+	DeliveryProviderMailgun   DeliveryProvider = "mailgun"
+	DeliveryProviderMailjet   DeliveryProvider = "mailjet"
+	DeliveryProviderSendGrid  DeliveryProvider = "sendgrid"
 )
 
 type DeliveryReceiptEvent string
 
 const (
-	DeliveryReceiptAccepted  DeliveryReceiptEvent = "accepted"
-	DeliveryReceiptSent      DeliveryReceiptEvent = "sent"
-	DeliveryReceiptDelivered DeliveryReceiptEvent = "delivered"
-	DeliveryReceiptOpened    DeliveryReceiptEvent = "opened"
-	DeliveryReceiptFailed    DeliveryReceiptEvent = "failed"
+	DeliveryReceiptAccepted   DeliveryReceiptEvent = "accepted"
+	DeliveryReceiptSent       DeliveryReceiptEvent = "sent"
+	DeliveryReceiptDelivered  DeliveryReceiptEvent = "delivered"
+	DeliveryReceiptOpened     DeliveryReceiptEvent = "opened"
+	DeliveryReceiptClicked    DeliveryReceiptEvent = "clicked"
+	DeliveryReceiptBounced    DeliveryReceiptEvent = "bounced"
+	DeliveryReceiptComplained DeliveryReceiptEvent = "complained"
+	DeliveryReceiptFailed     DeliveryReceiptEvent = "failed"
 )
 
 type DeliveryReceipt struct {
@@ -49,9 +59,11 @@ func (r *DeliveryReceipt) Validate() error {
 		return errors.New("receipt is required")
 	}
 	switch r.Provider {
-	case DeliveryProviderTwilio, DeliveryProviderFCM:
+	case DeliveryProviderTwilio, DeliveryProviderFCM, DeliveryProviderSMTP, DeliveryProviderSES,
+		DeliveryProviderSparkPost, DeliveryProviderPostmark, DeliveryProviderMailgun,
+		DeliveryProviderMailjet, DeliveryProviderSendGrid:
 	default:
-		return fmt.Errorf("provider must be one of %q or %q", DeliveryProviderTwilio, DeliveryProviderFCM)
+		return errors.New("provider is not supported")
 	}
 	if strings.TrimSpace(r.ReceiptID) == "" || len(r.ReceiptID) > 255 {
 		return errors.New("receipt_id is required and must not exceed 255 characters")
@@ -59,11 +71,12 @@ func (r *DeliveryReceipt) Validate() error {
 	if len(r.ProviderMessageID) > 255 || len(r.MessageID) > 255 || len(r.EffectKey) > 255 {
 		return errors.New("provider_message_id, message_id and effect_key must not exceed 255 characters")
 	}
-	if strings.TrimSpace(r.ProviderMessageID) == "" && strings.TrimSpace(r.MessageID) == "" {
-		return errors.New("provider_message_id or message_id is required")
+	if strings.TrimSpace(r.ProviderMessageID) == "" && strings.TrimSpace(r.MessageID) == "" && strings.TrimSpace(r.EffectKey) == "" {
+		return errors.New("provider_message_id or message_id or effect_key is required")
 	}
 	switch r.Event {
-	case DeliveryReceiptAccepted, DeliveryReceiptSent, DeliveryReceiptDelivered, DeliveryReceiptOpened, DeliveryReceiptFailed:
+	case DeliveryReceiptAccepted, DeliveryReceiptSent, DeliveryReceiptDelivered, DeliveryReceiptOpened,
+		DeliveryReceiptClicked, DeliveryReceiptBounced, DeliveryReceiptComplained, DeliveryReceiptFailed:
 	default:
 		return errors.New("event is invalid")
 	}
@@ -136,6 +149,8 @@ type DeliveryReceiptRecordResult struct {
 	Provider  DeliveryProvider `json:"provider"`
 	ReceiptID string           `json:"receipt_id"`
 	MessageID string           `json:"message_id,omitempty"`
+	IntentID  string           `json:"intent_id,omitempty"`
+	AttemptID string           `json:"attempt_id,omitempty"`
 	Duplicate bool             `json:"duplicate"`
 	Matched   bool             `json:"matched"`
 	Applied   bool             `json:"applied"`

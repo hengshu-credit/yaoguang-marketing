@@ -1,0 +1,34 @@
+DeliveryStatus:
+  type: string
+  enum: [planned, reserved, queued, submitting, provider_accepted, confirmed, suppressed, deferred, transient_failed, terminal_failed, unknown, cancelled]
+
+DeliveryIntent:
+  type: object
+  required: [id, effect_key, source_type, source_id, source_version, channel, node_or_phase, occurrence, variant, status]
+  properties:
+    id: { type: string, format: uuid }
+    effect_key: { type: string, minLength: 64, maxLength: 64 }
+    source_type: { type: string }
+    source_id: { type: string }
+    source_version: { type: string }
+    customer_id: { type: string, format: uuid }
+    channel: { type: string }
+    template_id: { type: string }
+    node_or_phase: { type: string }
+    occurrence: { type: string }
+    variant: { type: string }
+    status: { $ref: '#/DeliveryStatus' }
+    created_at: { type: string, format: date-time }
+    updated_at: { type: string, format: date-time }
+
+ResolveUnknownDeliveryRequest:
+  type: object
+  additionalProperties: false
+  required: [workspace_id, intent_id, action, reason]
+  properties:
+    workspace_id: { type: string }
+    intent_id: { type: string, format: uuid }
+    action:
+      type: string
+      enum: [mark_confirmed, mark_terminal_failed, retry_after_verified_not_accepted]
+    reason: { type: string, minLength: 8, maxLength: 2000 }

@@ -27,6 +27,202 @@
     }
   ],
   "paths": {
+    "/api/deliveries.list": {
+      "get": {
+        "summary": "List logical deliveries",
+        "operationId": "listDeliveries",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/DeliveryStatus"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 50
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Delivery intents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "deliveries",
+                    "total"
+                  ],
+                  "properties": {
+                    "deliveries": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DeliveryIntent"
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid filter"
+          },
+          "403": {
+            "description": "Message history read permission required"
+          }
+        }
+      }
+    },
+    "/api/deliveries.get": {
+      "get": {
+        "summary": "Get a delivery with attempts and reconciliation history",
+        "operationId": "getDelivery",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "intent_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Delivery detail"
+          },
+          "404": {
+            "description": "Delivery not found"
+          }
+        }
+      }
+    },
+    "/api/deliveries.reconcile": {
+      "post": {
+        "summary": "Queue reconciliation for an unresolved delivery",
+        "operationId": "reconcileDelivery",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "intent_id"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "intent_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Reconciliation queued"
+          },
+          "400": {
+            "description": "Invalid request or resolved delivery"
+          },
+          "403": {
+            "description": "Message history write permission required"
+          }
+        }
+      }
+    },
+    "/api/deliveries.resolveUnknown": {
+      "post": {
+        "summary": "Resolve an unknown provider submission after verification",
+        "description": "Retrying is allowed only after an operator verifies that the provider did not accept the request. Actor and reason are audited.",
+        "operationId": "resolveUnknownDelivery",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveUnknownDeliveryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unknown delivery resolved"
+          },
+          "400": {
+            "description": "Invalid action or delivery state"
+          },
+          "404": {
+            "description": "Delivery not found"
+          }
+        }
+      }
+    },
     "/track": {
       "post": {
         "summary": "Ingest a web analytics beat",
@@ -1798,6 +1994,95 @@
           },
           "404": {
             "$ref": "#/components/responses/CustomerNotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/CustomerServerError"
+          }
+        }
+      }
+    },
+    "/api/customers.list": {
+      "get": {
+        "summary": "List and search Customers",
+        "description": "Returns a stable keyset-paginated Customer summary list. Exact email or phone searches use workspace-scoped identity fingerprints; responses expose masked hints only. Merged source Customers are excluded by default.",
+        "operationId": "listCustomers",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque cursor returned by the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "include_merged",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customer page",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/CustomerBadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/CustomerUnauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/CustomerForbidden"
           },
           "500": {
             "$ref": "#/components/responses/CustomerServerError"
@@ -6364,6 +6649,28 @@
           }
         }
       },
+      "CustomerListResponse": {
+        "type": "object",
+        "required": [
+          "request_id",
+          "customers"
+        ],
+        "properties": {
+          "request_id": {
+            "type": "string"
+          },
+          "customers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerSummary"
+            }
+          },
+          "next_cursor": {
+            "type": "string",
+            "description": "Opaque cursor for the next page. Omitted when no later page exists."
+          }
+        }
+      },
       "UpsertCustomerRequest": {
         "type": "object",
         "additionalProperties": false,
@@ -9035,6 +9342,120 @@
           "email"
         ]
       },
+      "DeliveryStatus": {
+        "type": "string",
+        "enum": [
+          "planned",
+          "reserved",
+          "queued",
+          "submitting",
+          "provider_accepted",
+          "confirmed",
+          "suppressed",
+          "deferred",
+          "transient_failed",
+          "terminal_failed",
+          "unknown",
+          "cancelled"
+        ]
+      },
+      "DeliveryIntent": {
+        "type": "object",
+        "required": [
+          "id",
+          "effect_key",
+          "source_type",
+          "source_id",
+          "source_version",
+          "channel",
+          "node_or_phase",
+          "occurrence",
+          "variant",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "effect_key": {
+            "type": "string",
+            "minLength": 64,
+            "maxLength": 64
+          },
+          "source_type": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "source_version": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "template_id": {
+            "type": "string"
+          },
+          "node_or_phase": {
+            "type": "string"
+          },
+          "occurrence": {
+            "type": "string"
+          },
+          "variant": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DeliveryStatus"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ResolveUnknownDeliveryRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workspace_id",
+          "intent_id",
+          "action",
+          "reason"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          },
+          "intent_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "mark_confirmed",
+              "mark_terminal_failed",
+              "retry_after_verified_not_accepted"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 2000
+          }
+        }
+      },
       "WebPageviewAction": {
         "type": "object",
         "description": "One pageview of the cumulative action list. Breaking any bound below drops this action alone; the rest of the beat is still accepted.",
@@ -9916,6 +10337,63 @@
                 "type": "string"
               }
             }
+          }
+        }
+      },
+      "CustomerSummary": {
+        "type": "object",
+        "required": [
+          "customer_id",
+          "customer_no",
+          "version",
+          "identities",
+          "tags",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "customer_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customer_no": {
+            "type": "string",
+            "pattern": "^U[0-9]{4}[0-9]{14}08[0-9a-f]{32}$"
+          },
+          "external_user_id": {
+            "type": "string"
+          },
+          "merged_into_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "profile": {
+            "$ref": "#/components/schemas/CustomerProfile"
+          },
+          "identities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerIdentity"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },

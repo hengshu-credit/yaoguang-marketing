@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/lib/pq"
 )
 
 type DeliveryReceiptRepository struct {
@@ -119,13 +120,25 @@ func recordDeliveryReceiptTx(
 			return result, err
 		}
 	}
-	if messageID == "" {
-		return result, nil
+	var attemptID, intentID, ledgerMessageID string
+	if messageID == "" || receipt.EffectKey != "" || isEmailDeliveryProvider(receipt.Provider) {
+		attemptID, intentID, ledgerMessageID, err = resolveReceiptDeliveryLedger(ctx, tx, receipt)
+		if err != nil {
+			return result, err
+		}
+	}
+	if intentID != "" {
+		result.IntentID, result.AttemptID, result.Matched = intentID, attemptID, true
+		if messageID == "" {
+			messageID = ledgerMessageID
+		}
 	}
 
-	result.MessageID = messageID
-	result.Matched = true
-	if !storedMessageID.Valid || storedMessageID.String != messageID {
+	if messageID != "" {
+		result.MessageID = messageID
+		result.Matched = true
+	}
+	if messageID != "" && (!storedMessageID.Valid || storedMessageID.String != messageID) {
 		if _, err := tx.ExecContext(ctx,
 			`UPDATE delivery_receipts SET message_id = $1 WHERE provider = $2 AND receipt_id = $3`,
 			messageID, receipt.Provider, receipt.ReceiptID,
@@ -134,8 +147,13 @@ func recordDeliveryReceiptTx(
 		}
 	}
 
+	ledgerApplied, err := applyReceiptToDeliveryLedger(ctx, tx, receipt, attemptID, intentID)
+	if err != nil {
+		return result, err
+	}
 	field := deliveryReceiptStatusField(receipt.Event)
-	if field == "" {
+	if field == "" || messageID == "" {
+		result.Applied = ledgerApplied
 		return result, nil
 	}
 	statusInfo := nullableString(receipt.ErrorCode)
@@ -154,8 +172,101 @@ func recordDeliveryReceiptTx(
 	if err != nil {
 		return result, fmt.Errorf("read applied delivery receipt row count: %w", err)
 	}
-	result.Applied = rows > 0
+	result.Applied = rows > 0 || ledgerApplied
 	return result, nil
+}
+
+func isEmailDeliveryProvider(provider domain.DeliveryProvider) bool {
+	switch provider {
+	case domain.DeliveryProviderSMTP, domain.DeliveryProviderSES, domain.DeliveryProviderSparkPost,
+		domain.DeliveryProviderPostmark, domain.DeliveryProviderMailgun, domain.DeliveryProviderMailjet,
+		domain.DeliveryProviderSendGrid:
+		return true
+	default:
+		return false
+	}
+}
+
+func resolveReceiptDeliveryLedger(ctx context.Context, tx *sql.Tx, receipt domain.DeliveryReceipt) (attemptID, intentID, messageID string, err error) {
+	if receipt.ProviderMessageID != "" {
+		err = tx.QueryRowContext(ctx, `SELECT attempt.id, attempt.intent_id, COALESCE(queue.message_id, '')
+			FROM delivery_attempts attempt
+			LEFT JOIN email_queue queue ON queue.delivery_intent_id = attempt.intent_id
+			WHERE LOWER(attempt.provider) = LOWER($1) AND attempt.provider_message_id = $2
+			ORDER BY attempt.attempt_no DESC LIMIT 1`, receipt.Provider, receipt.ProviderMessageID).
+			Scan(&attemptID, &intentID, &messageID)
+		if err == nil {
+			return attemptID, intentID, messageID, nil
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return "", "", "", fmt.Errorf("match delivery attempt by provider message id: %w", err)
+		}
+	}
+	if receipt.EffectKey == "" {
+		return "", "", "", nil
+	}
+	err = tx.QueryRowContext(ctx, `SELECT COALESCE(attempt.id::text, ''), intent.id::text, COALESCE(queue.message_id, '')
+		FROM delivery_intents intent
+		LEFT JOIN LATERAL (
+			SELECT candidate.id FROM delivery_attempts candidate
+			WHERE candidate.intent_id = intent.id ORDER BY candidate.attempt_no DESC LIMIT 1
+		) attempt ON TRUE
+		LEFT JOIN email_queue queue ON queue.delivery_intent_id = intent.id
+		WHERE intent.effect_key = $1`, receipt.EffectKey).Scan(&attemptID, &intentID, &messageID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", "", "", nil
+	}
+	if err != nil {
+		return "", "", "", fmt.Errorf("match delivery attempt by effect key: %w", err)
+	}
+	return attemptID, intentID, messageID, nil
+}
+
+func applyReceiptToDeliveryLedger(ctx context.Context, tx *sql.Tx, receipt domain.DeliveryReceipt, attemptID, intentID string) (bool, error) {
+	if intentID == "" {
+		return false, nil
+	}
+	var target domain.DeliveryStatus
+	var allowed []string
+	switch receipt.Event {
+	case domain.DeliveryReceiptAccepted, domain.DeliveryReceiptSent:
+		target = domain.DeliveryStatusProviderAccepted
+		allowed = []string{string(domain.DeliveryStatusSubmitting), string(domain.DeliveryStatusUnknown)}
+	case domain.DeliveryReceiptDelivered, domain.DeliveryReceiptOpened, domain.DeliveryReceiptClicked:
+		target = domain.DeliveryStatusConfirmed
+		allowed = []string{string(domain.DeliveryStatusSubmitting), string(domain.DeliveryStatusProviderAccepted), string(domain.DeliveryStatusUnknown)}
+	case domain.DeliveryReceiptFailed, domain.DeliveryReceiptBounced, domain.DeliveryReceiptComplained:
+		target = domain.DeliveryStatusTerminalFailed
+		allowed = []string{string(domain.DeliveryStatusSubmitting), string(domain.DeliveryStatusProviderAccepted), string(domain.DeliveryStatusUnknown)}
+	default:
+		return false, nil
+	}
+	result, err := tx.ExecContext(ctx, `UPDATE delivery_intents SET status = $2, updated_at = $3
+		WHERE id = $1 AND status = ANY($4)`, intentID, target, receipt.OccurredAt.UTC(), pq.Array(allowed))
+	if err != nil {
+		return false, fmt.Errorf("apply receipt to delivery intent: %w", err)
+	}
+	intentRows, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("inspect delivery receipt intent update: %w", err)
+	}
+	if attemptID != "" {
+		if _, err := tx.ExecContext(ctx, `UPDATE delivery_attempts SET status = $2,
+			accepted_at = CASE WHEN $2 = 'provider_accepted' THEN COALESCE(accepted_at, $3) ELSE accepted_at END,
+			completed_at = CASE WHEN $2 IN ('confirmed', 'terminal_failed') THEN COALESCE(completed_at, $3) ELSE completed_at END,
+			error_code = COALESCE(NULLIF($4, ''), error_code), updated_at = $3
+			WHERE id = $1 AND status = ANY($5)`, attemptID, target, receipt.OccurredAt.UTC(), receipt.ErrorCode, pq.Array(allowed)); err != nil {
+			return false, fmt.Errorf("apply receipt to delivery attempt: %w", err)
+		}
+	}
+	if intentRows > 0 && target == domain.DeliveryStatusConfirmed {
+		if _, err := tx.ExecContext(ctx, `UPDATE email_queue SET status = 'confirmed', completed_at = COALESCE(completed_at, $2),
+			processed_at = COALESCE(processed_at, $2), claim_token = NULL, lease_expires_at = NULL, updated_at = $2
+			WHERE delivery_intent_id = $1`, intentID, receipt.OccurredAt.UTC()); err != nil {
+			return false, fmt.Errorf("complete delivery queue from receipt: %w", err)
+		}
+	}
+	return intentRows > 0, nil
 }
 
 func resolveReceiptMessageID(ctx context.Context, tx *sql.Tx, receipt domain.DeliveryReceipt) (string, error) {
@@ -192,6 +303,12 @@ func deliveryReceiptStatusField(event domain.DeliveryReceiptEvent) string {
 		return "delivered_at"
 	case domain.DeliveryReceiptOpened:
 		return "opened_at"
+	case domain.DeliveryReceiptClicked:
+		return "clicked_at"
+	case domain.DeliveryReceiptBounced:
+		return "bounced_at"
+	case domain.DeliveryReceiptComplained:
+		return "complained_at"
 	case domain.DeliveryReceiptFailed:
 		return "failed_at"
 	default:

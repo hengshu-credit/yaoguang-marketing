@@ -161,6 +161,7 @@ type App struct {
 	webhookRegistrationService       *service.WebhookRegistrationService
 	messageHistoryService            *service.MessageHistoryService
 	deliveryReceiptService           *service.DeliveryReceiptService
+	deliveryManagementService        *service.DeliveryManagementService
 	channelMessageService            *service.ChannelMessageService
 	notificationCenterService        *service.NotificationCenterService
 	demoService                      *service.DemoService
@@ -960,6 +961,14 @@ func (a *App) InitServices() error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize delivery receipt service: %w", err)
 	}
+	deliveryManagementRepo, ok := a.deliveryRepo.(domain.DeliveryManagementRepository)
+	if !ok {
+		return errors.New("delivery repository does not support management operations")
+	}
+	a.deliveryManagementService, err = service.NewDeliveryManagementService(deliveryManagementRepo, a.authService)
+	if err != nil {
+		return fmt.Errorf("failed to initialize delivery management service: %w", err)
+	}
 	a.channelMessageService, err = service.NewChannelMessageService(service.ChannelMessageServiceConfig{
 		Auth: a.authService, WorkspaceRepo: a.workspaceRepo, ContactRepo: a.contactRepo,
 		EndpointRepo: a.contactEndpointRepo, TemplateService: a.templateService,
@@ -1482,6 +1491,7 @@ func (a *App) InitHandlers() error {
 		a.config.APIEndpoint,
 		a.rateLimiter,
 	)
+	deliveryHandler := httpHandler.NewDeliveryHandler(a.deliveryManagementService, getJWTSecret, a.logger)
 	channelMessageHandler := httpHandler.NewChannelMessageHandler(a.channelMessageService, getJWTSecret, a.logger)
 	notificationCenterHandler := httpHandler.NewNotificationCenterHandler(
 		a.notificationCenterService,
@@ -1584,6 +1594,7 @@ func (a *App) InitHandlers() error {
 	supabaseWebhookHandler.RegisterRoutes(a.mux)
 	messageHistoryHandler.RegisterRoutes(a.mux)
 	deliveryReceiptHandler.RegisterRoutes(a.mux)
+	deliveryHandler.RegisterRoutes(a.mux)
 	channelMessageHandler.RegisterRoutes(a.mux)
 	notificationCenterHandler.RegisterRoutes(a.mux)
 	analyticsHandler.RegisterRoutes(a.mux)
