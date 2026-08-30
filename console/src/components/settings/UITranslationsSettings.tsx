@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Alert, App, Badge, Button, Input, Popconfirm, Space, Table } from 'antd'
+import { Alert, App, Badge, Button, Input, Popconfirm, Space, Table, theme } from 'antd'
 import { SearchOutlined } from '@ant-design/icons'
 import type { Key } from 'react'
 import type { ColumnsType } from 'antd/es/table'
@@ -48,6 +48,11 @@ export function UITranslationsSettings({
 }: UITranslationsSettingsProps) {
   const { t } = useLingui()
   const { message } = App.useApp()
+  const { token } = theme.useToken()
+  // The shared Table theme intentionally makes normal table cells transparent.
+  // Fixed cells need the global container color inline so horizontally scrolled
+  // content cannot show through that component-level override.
+  const fixedColumnBackground = token.colorBgContainer
   const [inventory, setInventory] = useState<TranslationItem[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
@@ -191,8 +196,14 @@ export function UITranslationsSettings({
         key: 'item',
         fixed: 'left',
         width: ITEM_COLUMN_WIDTH,
-        onHeaderCell: () => ({ className: 'translations-fixed-col' }),
-        onCell: () => ({ className: 'translations-fixed-col' }),
+        onHeaderCell: () => ({
+          className: 'translations-fixed-col',
+          style: { backgroundColor: fixedColumnBackground }
+        }),
+        onCell: () => ({
+          className: 'translations-fixed-col',
+          style: { backgroundColor: fixedColumnBackground }
+        }),
         render: (_, record) => {
           const displayLabel = record.item
             ? record.label
@@ -238,10 +249,12 @@ export function UITranslationsSettings({
         width: TRANSLATION_COLUMN_WIDTH,
         fixed: index === 0 ? ('left' as const) : undefined,
         onHeaderCell: () => ({
-          className: index === 0 ? 'translations-fixed-col' : ''
+          className: index === 0 ? 'translations-fixed-col' : '',
+          style: index === 0 ? { backgroundColor: fixedColumnBackground } : undefined
         }),
         onCell: () => ({
-          className: index === 0 ? 'translations-fixed-col' : ''
+          className: index === 0 ? 'translations-fixed-col' : '',
+          style: index === 0 ? { backgroundColor: fixedColumnBackground } : undefined
         }),
         render: (_: unknown, record: TranslationTreeNode) => {
           if (!record.item) return null
@@ -292,7 +305,17 @@ export function UITranslationsSettings({
         }
       }))
     ],
-    [draftOverrides, hierarchyLabels, invalidCells, inventory, localeOrder, restoreScope, t, updateCell]
+    [
+      draftOverrides,
+      fixedColumnBackground,
+      hierarchyLabels,
+      invalidCells,
+      inventory,
+      localeOrder,
+      restoreScope,
+      t,
+      updateCell
+    ]
   )
 
   if (!isOwner) {

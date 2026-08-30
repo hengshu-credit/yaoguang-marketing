@@ -180,6 +180,19 @@ describe('UITranslationsSettings', () => {
     expect(firstDataRow?.querySelectorAll('td.translations-fixed-col')).toHaveLength(2)
   })
 
+  it('gives every frozen cell its own non-transparent background', async () => {
+    renderSettings()
+
+    const region = await screen.findByRole('region', { name: 'Workspace UI translations' })
+    const frozenCells = region.querySelectorAll<HTMLElement>('.translations-fixed-col')
+
+    expect(frozenCells.length).toBeGreaterThan(0)
+    for (const cell of frozenCells) {
+      expect(cell.style.backgroundColor).not.toBe('')
+      expect(cell.style.backgroundColor).not.toBe('transparent')
+    }
+  })
+
   it('keeps the declared frozen-column widths during horizontal scrolling', async () => {
     renderSettings()
 
