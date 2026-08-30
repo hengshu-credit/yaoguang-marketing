@@ -10,6 +10,7 @@ import { DashboardPage } from './pages/DashboardPage'
 import { WorkspaceSettingsPage } from './pages/WorkspaceSettingsPage'
 import { ContactsPage } from './pages/ContactsPage'
 import { CustomersPage } from './pages/CustomersPage'
+import { AudiencesPage } from './pages/AudiencesPage'
 import { ListsPage } from './pages/ListsPage'
 import { FileManagerPage } from './pages/FileManagerPage'
 import { TemplatesPage } from './pages/TemplatesPage'
@@ -220,6 +221,12 @@ export const workspaceContactsRoute = createRoute({
   })
 })
 
+const workspaceAudiencesRoute = createRoute({
+  getParentRoute: () => workspaceRoute,
+  path: '/audiences',
+  component: AudiencesPage
+})
+
 export const workspaceCustomersRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: '/customers',
@@ -384,6 +391,7 @@ const routeTree = rootRoute.addChildren([
     workspaceAutomationsRoute,
     workspaceCustomersRoute,
     workspaceContactsRoute,
+    workspaceAudiencesRoute,
     workspaceListsRoute,
     workspaceTransactionalNotificationsRoute,
     workspaceLogsRoute,

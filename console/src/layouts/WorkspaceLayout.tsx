@@ -206,7 +206,7 @@ export function WorkspaceLayout() {
     selectedKey = WEB_ANALYTICS_SECTIONS.includes(section)
       ? `web-analytics-${section}`
       : 'web-analytics-dashboard'
-  } else if (currentPath.includes('/lists')) {
+  } else if (currentPath.includes('/lists') || currentPath.includes('/audiences')) {
     selectedKey = 'lists'
   } else if (currentPath.includes('/templates')) {
     selectedKey = 'templates'
@@ -431,8 +431,8 @@ export function WorkspaceLayout() {
       // icon: <FontAwesomeIcon icon={faFolderOpen} size="sm" style={{ opacity: 0.7 }} />,
       icon: <FolderOpenOutlined />,
       label: (
-        <Link to="/console/workspace/$workspaceId/lists" params={{ workspaceId }}>
-          {t`Lists`}
+        <Link to="/console/workspace/$workspaceId/audiences" params={{ workspaceId }}>
+          {t`Audiences`}
         </Link>
       )
     },

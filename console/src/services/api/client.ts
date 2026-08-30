@@ -72,6 +72,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data)
     }),
+  postRaw: <T>(endpoint: string, data: BodyInit, contentType = 'application/octet-stream') =>
+    request<T>(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': contentType },
+      body: data
+    }),
   put: <T>(endpoint: string, data: unknown) =>
     request<T>(endpoint, {
       method: 'PUT',
