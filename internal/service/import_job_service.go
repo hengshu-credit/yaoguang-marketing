@@ -20,6 +20,7 @@ import (
 type ImportJobServiceDependencies struct {
 	Repository   domain.ImportJobRepository
 	Customers    domain.CustomerService
+	Auth         *AuthService
 	MaxRows      int
 	ChunkSize    int
 	MaxFileBytes int64
@@ -32,6 +33,7 @@ type ImportJobService struct {
 	chunkSize  int
 	maxBytes   int64
 	now        func() time.Time
+	auth       *AuthService
 }
 
 func NewImportJobService(dependencies ImportJobServiceDependencies) (*ImportJobService, error) {
@@ -39,7 +41,21 @@ func NewImportJobService(dependencies ImportJobServiceDependencies) (*ImportJobS
 		return nil, errors.New("import repository and positive limits are required")
 	}
 	return &ImportJobService{repository: dependencies.Repository, customers: dependencies.Customers,
-		maxRows: dependencies.MaxRows, chunkSize: dependencies.ChunkSize, maxBytes: dependencies.MaxFileBytes, now: time.Now}, nil
+		maxRows: dependencies.MaxRows, chunkSize: dependencies.ChunkSize, maxBytes: dependencies.MaxFileBytes, now: time.Now, auth: dependencies.Auth}, nil
+}
+
+func (s *ImportJobService) authorize(ctx context.Context, workspaceID string, permission domain.PermissionType) (context.Context, error) {
+	if s.auth == nil {
+		return ctx, nil
+	}
+	authorized, _, membership, err := s.auth.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return ctx, err
+	}
+	if membership == nil || !membership.HasPermission(domain.PermissionResourceCustomers, permission) {
+		return ctx, domain.NewPermissionError(domain.PermissionResourceCustomers, permission, "Insufficient permissions")
+	}
+	return authorized, nil
 }
 
 // StageCSV persists every physical data row before a worker may process it.
@@ -48,6 +64,11 @@ func (s *ImportJobService) StageCSV(ctx context.Context, workspaceID, filename s
 	if strings.TrimSpace(workspaceID) == "" || strings.TrimSpace(filename) == "" || source == nil {
 		return nil, errors.New("workspace, filename and source are required")
 	}
+	authorized, err := s.authorize(ctx, workspaceID, domain.PermissionTypeWrite)
+	if err != nil {
+		return nil, err
+	}
+	ctx = authorized
 	now := s.now().UTC()
 	job := domain.ImportJob{ID: uuid.New().String(), Status: domain.ImportJobUploading, Filename: filename,
 		Counters: domain.ImportCounters{}, CreatedAt: now, UpdatedAt: now}
@@ -160,6 +181,11 @@ func (s *ImportJobService) ProcessNextChunk(ctx context.Context, workspaceID, jo
 	if s.customers == nil {
 		return 0, errors.New("customer service is required for import processing")
 	}
+	authorized, err := s.authorize(ctx, workspaceID, domain.PermissionTypeWrite)
+	if err != nil {
+		return 0, err
+	}
+	ctx = authorized
 	rows, claimToken, err := s.repository.ClaimImportRows(ctx, workspaceID, jobID, s.chunkSize, 2*time.Minute)
 	if err != nil || len(rows) == 0 {
 		return len(rows), err
@@ -201,6 +227,14 @@ func (s *ImportJobService) ProcessNextChunk(ctx context.Context, workspaceID, jo
 		}
 	}
 	return len(rows), nil
+}
+
+func (s *ImportJobService) Get(ctx context.Context, workspaceID, jobID string) (*domain.ImportJob, error) {
+	authorized, err := s.authorize(ctx, workspaceID, domain.PermissionTypeRead)
+	if err != nil {
+		return nil, err
+	}
+	return s.repository.GetImportJob(authorized, workspaceID, jobID)
 }
 
 func importRowToCustomer(row domain.ImportJobRow) (domain.CustomerBatchUpsertItem, error) {

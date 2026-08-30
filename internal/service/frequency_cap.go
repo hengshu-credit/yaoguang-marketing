@@ -42,6 +42,22 @@ type FrequencyLimiter struct {
 	store realtimecache.FrequencyWindowStore
 }
 
+type unavailableFrequencyStore struct{ reason error }
+
+func (s unavailableFrequencyStore) ReserveSlidingWindow(context.Context, string, string, string, string, string, time.Time, time.Duration, int) (realtimecache.WindowResult, error) {
+	return realtimecache.WindowResult{}, s.reason
+}
+func (s unavailableFrequencyStore) ReserveWindows(context.Context, string, string, string, string, time.Time, []realtimecache.WindowReservation) (realtimecache.MultiWindowResult, error) {
+	return realtimecache.MultiWindowResult{}, s.reason
+}
+
+func NewUnavailableFrequencyLimiter(reason error) *FrequencyLimiter {
+	if reason == nil {
+		reason = errors.New("frequency store is not configured")
+	}
+	return &FrequencyLimiter{store: unavailableFrequencyStore{reason: reason}}
+}
+
 func NewFrequencyLimiter(store realtimecache.FrequencyWindowStore) (*FrequencyLimiter, error) {
 	if store == nil {
 		return nil, errors.New("frequency window store is required")

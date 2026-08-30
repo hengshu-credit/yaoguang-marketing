@@ -1,0 +1,22 @@
+AudienceExpression:
+  type: object
+  additionalProperties: false
+  properties:
+    leaf_type: { type: string, enum: [list, segment, audience] }
+    ref_id: { type: string }
+    operator: { type: string, enum: [union, intersection, exclusion] }
+    children:
+      type: array
+      items: { $ref: '#/AudienceExpression' }
+
+Audience:
+  type: object
+  required: [id, name, kind, active_version]
+  properties:
+    id: { type: string, format: uuid }
+    name: { type: string }
+    description: { type: string }
+    kind: { type: string, enum: [static, dynamic, composite] }
+    active_version: { type: integer, minimum: 1 }
+    active_build_id: { type: string, format: uuid }
+

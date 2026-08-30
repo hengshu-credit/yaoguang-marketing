@@ -29,11 +29,13 @@ import (
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/mailer"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/postgresdriver"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/ratelimiter"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/realtimecache"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/smtp_bridge"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/tracing"
 	webanalyticssdk "github.com/hengshu-credit/yaoguang-marketing/web_analytics_sdk"
 
 	"contrib.go.opencensus.io/integrations/ocsql"
+	"github.com/redis/go-redis/v9"
 )
 
 // AppInterface defines the interface for the App
@@ -139,6 +141,10 @@ type App struct {
 	emailQueueRepo                domain.EmailQueueRepository
 	webAnalyticsRepo              domain.WebAnalyticsRepository
 	annotationRepo                domain.AnnotationRepository
+	audienceRepo                  domain.AudienceRepository
+	campaignRepo                  domain.CampaignRepository
+	frequencyPolicyRepo           domain.FrequencyPolicyRepository
+	importJobRepo                 domain.ImportJobRepository
 
 	// Services
 	authService                      *service.AuthService
@@ -162,6 +168,10 @@ type App struct {
 	messageHistoryService            *service.MessageHistoryService
 	deliveryReceiptService           *service.DeliveryReceiptService
 	deliveryManagementService        *service.DeliveryManagementService
+	audienceService                  *service.AudienceService
+	campaignSnapshotService          *service.CampaignSnapshotService
+	importJobService                 *service.ImportJobService
+	frequencyPolicyService           *service.FrequencyPolicyService
 	channelMessageService            *service.ChannelMessageService
 	notificationCenterService        *service.NotificationCenterService
 	demoService                      *service.DemoService
@@ -193,6 +203,7 @@ type App struct {
 	usageService                     *service.UsageService
 	realtimeDependencies             *RealtimeDependencies
 	realtimeFactory                  RealtimeComponentFactory
+	frequencyStore                   *realtimecache.RedisStore
 	// providers
 	postmarkService     *service.PostmarkService
 	mailgunService      *service.MailgunService
@@ -503,6 +514,10 @@ func (a *App) InitRepositories() error {
 	// Initialize email queue repository
 	a.emailQueueRepo = repository.NewEmailQueueRepository(a.workspaceRepo)
 	a.deliveryRepo = repository.NewDeliveryRepository(a.workspaceRepo, a.emailQueueRepo)
+	a.audienceRepo = repository.NewAudienceRepository(a.workspaceRepo)
+	a.campaignRepo = repository.NewCampaignRepository(a.workspaceRepo)
+	a.frequencyPolicyRepo = repository.NewFrequencyPolicyRepository(a.workspaceRepo)
+	a.importJobRepo = repository.NewImportJobRepository(a.workspaceRepo)
 
 	// Initialize setting service
 	a.settingService = service.NewSettingService(a.settingRepo)
@@ -682,6 +697,50 @@ func (a *App) InitServices() error {
 	a.customerReconciliationService, err = service.NewCustomerReconciliationService(a.customerReconciliationRepo, a.authService)
 	if err != nil {
 		return fmt.Errorf("failed to initialize customer reconciliation service: %w", err)
+	}
+	a.audienceService, err = service.NewAuthorizedAudienceService(a.audienceRepo, a.authService)
+	if err != nil {
+		return fmt.Errorf("failed to initialize audience service: %w", err)
+	}
+	a.campaignSnapshotService, err = service.NewCampaignSnapshotService(a.campaignRepo, 5_000)
+	if err != nil {
+		return fmt.Errorf("failed to initialize campaign snapshot service: %w", err)
+	}
+	importMaxRows := a.config.Ingest.CustomerImportMaxRows
+	if importMaxRows <= 0 {
+		importMaxRows = 1_000_000
+	}
+	importChunkSize := a.config.Ingest.CustomerImportChunkSize
+	if importChunkSize <= 0 {
+		importChunkSize = 2_000
+	}
+	importMaxBytes := a.config.Ingest.CustomerImportMaxBytes
+	if importMaxBytes <= 0 {
+		importMaxBytes = 1 << 30
+	}
+	a.importJobService, err = service.NewImportJobService(service.ImportJobServiceDependencies{
+		Repository: a.importJobRepo, Customers: a.customerService, Auth: a.authService,
+		MaxRows: importMaxRows, ChunkSize: importChunkSize, MaxFileBytes: importMaxBytes,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to initialize import job service: %w", err)
+	}
+	frequencyLimiter := service.NewUnavailableFrequencyLimiter(errors.New("Redis frequency store is not configured"))
+	if a.config.Realtime.Redis.Addr != "" {
+		a.frequencyStore, err = realtimecache.NewRedisStoreFromOptions(&redis.Options{
+			Addr: a.config.Realtime.Redis.Addr, Password: a.config.Realtime.Redis.Password, DB: a.config.Realtime.Redis.DB,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to initialize frequency Redis store: %w", err)
+		}
+		frequencyLimiter, err = service.NewFrequencyLimiter(a.frequencyStore)
+		if err != nil {
+			return fmt.Errorf("failed to initialize frequency limiter: %w", err)
+		}
+	}
+	a.frequencyPolicyService, err = service.NewFrequencyPolicyService(a.frequencyPolicyRepo, frequencyLimiter)
+	if err != nil {
+		return fmt.Errorf("failed to initialize frequency policy service: %w", err)
 	}
 	legacyContactAdapter, err := service.NewLegacyContactAdapter(a.customerService, customerSyncMaxBatchSize)
 	if err != nil {
@@ -943,6 +1002,7 @@ func (a *App) InitServices() error {
 		true, // useQueueSender - use queue-based message sender for broadcasts
 	)
 	broadcastFactory.SetDeliveryRepository(a.deliveryRepo)
+	broadcastFactory.SetFrequencyEvaluator(a.frequencyPolicyService)
 
 	// Register the broadcast factory with the task service
 	broadcastFactory.RegisterWithTaskService(a.taskService)
@@ -1495,6 +1555,8 @@ func (a *App) InitHandlers() error {
 		a.rateLimiter,
 	)
 	deliveryHandler := httpHandler.NewDeliveryHandler(a.deliveryManagementService, getJWTSecret, a.logger)
+	audienceHandler := httpHandler.NewAudienceHandler(a.audienceService, getJWTSecret, a.logger)
+	importJobHandler := httpHandler.NewImportJobHandler(a.importJobService, getJWTSecret, a.logger)
 	channelMessageHandler := httpHandler.NewChannelMessageHandler(a.channelMessageService, getJWTSecret, a.logger)
 	notificationCenterHandler := httpHandler.NewNotificationCenterHandler(
 		a.notificationCenterService,
@@ -1598,6 +1660,8 @@ func (a *App) InitHandlers() error {
 	messageHistoryHandler.RegisterRoutes(a.mux)
 	deliveryReceiptHandler.RegisterRoutes(a.mux)
 	deliveryHandler.RegisterRoutes(a.mux)
+	audienceHandler.RegisterRoutes(a.mux)
+	importJobHandler.RegisterRoutes(a.mux)
 	channelMessageHandler.RegisterRoutes(a.mux)
 	notificationCenterHandler.RegisterRoutes(a.mux)
 	analyticsHandler.RegisterRoutes(a.mux)
@@ -2028,6 +2092,11 @@ func (a *App) Shutdown(ctx context.Context) error {
 // cleanupResources handles cleanup of database and other resources
 func (a *App) cleanupResources(_ context.Context) error {
 	a.logger.Info("Cleaning up resources...")
+	if a.frequencyStore != nil {
+		if err := a.frequencyStore.Close(); err != nil {
+			a.logger.WithField("error", err).Error("Error closing frequency Redis store")
+		}
+	}
 
 	// Close connection manager before closing database
 	if connManager, err := pkgDatabase.GetConnectionManager(); err == nil {

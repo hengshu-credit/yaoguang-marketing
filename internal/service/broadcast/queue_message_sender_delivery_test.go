@@ -21,12 +21,14 @@ type capturedDeliveryReservation struct {
 
 type captureBroadcastDeliveryRepository struct {
 	reservations []capturedDeliveryReservation
+	intents      []domain.DeliveryIntent
 	failAt       int
 	missingEmail string
 }
 
-func (r *captureBroadcastDeliveryRepository) ReserveIntent(context.Context, string, domain.DeliveryIntent) (domain.DeliveryIntent, bool, error) {
-	return domain.DeliveryIntent{}, false, nil
+func (r *captureBroadcastDeliveryRepository) ReserveIntent(_ context.Context, _ string, intent domain.DeliveryIntent) (domain.DeliveryIntent, bool, error) {
+	r.intents = append(r.intents, intent)
+	return intent, true, nil
 }
 
 func (r *captureBroadcastDeliveryRepository) ReserveAndEnqueue(_ context.Context, _ string, intent domain.DeliveryIntent, entry *domain.EmailQueueEntry) (domain.ReserveDeliveryResult, error) {
@@ -164,4 +166,44 @@ func TestQueueMessageSenderDeliveryFailureLeavesWholeCursorForSafeReplay(t *test
 	assert.Zero(t, sent)
 	assert.Zero(t, failed)
 	assert.Len(t, deliveryRepo.reservations, 2)
+}
+
+type broadcastFrequencyEvaluatorStub struct {
+	decision domain.FrequencyDecision
+	err      error
+	requests []domain.FrequencyEvaluationRequest
+}
+
+func (s *broadcastFrequencyEvaluatorStub) Evaluate(_ context.Context, request domain.FrequencyEvaluationRequest) (domain.FrequencyDecision, error) {
+	s.requests = append(s.requests, request)
+	return s.decision, s.err
+}
+
+func TestQueueMessageSenderFrequencyDenyCreatesSuppressedIntentWithoutQueue(t *testing.T) {
+	deliveryRepo := &captureBroadcastDeliveryRepository{}
+	sender, recipients, templates, provider := deliveryQueueSenderFixture(t, deliveryRepo)
+	evaluator := &broadcastFrequencyEvaluatorStub{decision: domain.FrequencyDecision{Allowed: false, MatchedScope: domain.FrequencyScopeCampaign, Reason: "campaign:v1"}}
+	sender.(*queueMessageSender).frequencyEvaluator = evaluator
+	sent, failed, err := sender.SendBatch(context.Background(), "workspace-1", "integration-1", "secret", "https://api.example.com", "", false, nil,
+		"broadcast-1", recipients, templates, provider, time.Now().Add(time.Minute), "")
+	require.NoError(t, err)
+	assert.Equal(t, 2, sent)
+	assert.Zero(t, failed)
+	assert.Empty(t, deliveryRepo.reservations)
+	require.Len(t, deliveryRepo.intents, 2)
+	assert.Equal(t, domain.DeliveryStatusSuppressed, deliveryRepo.intents[0].Status)
+	assert.Equal(t, "broadcast-1", evaluator.requests[0].CampaignRef)
+	assert.Empty(t, evaluator.requests[0].TriggerRef, "campaign frequency must not alter automation enrollment semantics")
+}
+
+func TestQueueMessageSenderFrequencyInfrastructureFailureCreatesDeferredIntent(t *testing.T) {
+	deliveryRepo := &captureBroadcastDeliveryRepository{}
+	sender, recipients, templates, provider := deliveryQueueSenderFixture(t, deliveryRepo)
+	evaluator := &broadcastFrequencyEvaluatorStub{decision: domain.FrequencyDecision{Deferred: true, Reason: "redis unavailable"}, err: errors.New("redis unavailable")}
+	sender.(*queueMessageSender).frequencyEvaluator = evaluator
+	_, _, err := sender.SendBatch(context.Background(), "workspace-1", "integration-1", "secret", "https://api.example.com", "", false, nil,
+		"broadcast-1", recipients[:1], templates, provider, time.Now().Add(time.Minute), "")
+	require.NoError(t, err)
+	require.Len(t, deliveryRepo.intents, 1)
+	assert.Equal(t, domain.DeliveryStatusDeferred, deliveryRepo.intents[0].Status)
 }

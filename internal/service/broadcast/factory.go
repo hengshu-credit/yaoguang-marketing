@@ -16,6 +16,7 @@ type Factory struct {
 	workspaceRepo      domain.WorkspaceRepository
 	emailQueueRepo     domain.EmailQueueRepository
 	deliveryRepo       domain.DeliveryRepository
+	frequencyEvaluator domain.MarketingFrequencyEvaluator
 	dataFeedFetcher    DataFeedFetcher
 	logger             logger.Logger
 	config             *Config
@@ -28,6 +29,10 @@ type Factory struct {
 // widening the long-standing factory constructor used by integrations.
 func (f *Factory) SetDeliveryRepository(repo domain.DeliveryRepository) {
 	f.deliveryRepo = repo
+}
+
+func (f *Factory) SetFrequencyEvaluator(evaluator domain.MarketingFrequencyEvaluator) {
+	f.frequencyEvaluator = evaluator
 }
 
 // NewFactory creates a new factory for broadcast components
@@ -75,7 +80,7 @@ func NewFactory(
 func (f *Factory) CreateMessageSender() MessageSender {
 	if f.useQueueSender && f.emailQueueRepo != nil {
 		if f.deliveryRepo != nil {
-			return NewQueueMessageSenderWithDelivery(
+			sender := NewQueueMessageSenderWithDelivery(
 				f.emailQueueRepo,
 				f.deliveryRepo,
 				f.broadcastRepo,
@@ -86,6 +91,10 @@ func (f *Factory) CreateMessageSender() MessageSender {
 				f.config,
 				f.apiEndpoint,
 			)
+			if queueSender, ok := sender.(*queueMessageSender); ok {
+				queueSender.frequencyEvaluator = f.frequencyEvaluator
+			}
+			return sender
 		}
 		return NewQueueMessageSender(
 			f.emailQueueRepo,

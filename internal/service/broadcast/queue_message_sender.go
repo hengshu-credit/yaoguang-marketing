@@ -26,6 +26,7 @@ import (
 type queueMessageSender struct {
 	queueRepo          domain.EmailQueueRepository
 	deliveryRepo       domain.DeliveryRepository
+	frequencyEvaluator domain.MarketingFrequencyEvaluator
 	broadcastRepo      domain.BroadcastRepository
 	messageHistoryRepo domain.MessageHistoryRepository
 	templateRepo       domain.TemplateRepository
@@ -687,6 +688,24 @@ func (s *queueMessageSender) reserveBroadcastEntry(ctx context.Context, workspac
 		Channel: "email", TemplateID: template.ID, TemplateVersion: template.Version,
 		NodeOrPhase: phase, Occurrence: occurrence, Variant: template.ID, Status: domain.DeliveryStatusReserved,
 		Metadata: domain.MapOfAny{"recipient_email": domain.NormalizeEmail(email)},
+	}
+	if s.frequencyEvaluator != nil {
+		decision, evaluationErr := s.frequencyEvaluator.Evaluate(ctx, domain.FrequencyEvaluationRequest{
+			WorkspaceID: workspaceID, CustomerID: customerID, Channel: "email", EffectKey: effectKey,
+			CampaignRef: broadcast.ID, OccurredAt: time.Now().UTC(),
+		})
+		if evaluationErr != nil || decision.Deferred {
+			intent.Status = domain.DeliveryStatusDeferred
+			intent.SuppressionReason = decision.Reason
+			reserved, created, reserveErr := s.deliveryRepo.ReserveIntent(ctx, workspaceID, intent)
+			return domain.ReserveDeliveryResult{Intent: reserved, Created: created}, reserveErr
+		}
+		if !decision.Allowed {
+			intent.Status = domain.DeliveryStatusSuppressed
+			intent.SuppressionReason = decision.Reason
+			reserved, created, reserveErr := s.deliveryRepo.ReserveIntent(ctx, workspaceID, intent)
+			return domain.ReserveDeliveryResult{Intent: reserved, Created: created}, reserveErr
+		}
 	}
 	return s.deliveryRepo.ReserveAndEnqueue(ctx, workspaceID, intent, entry)
 }

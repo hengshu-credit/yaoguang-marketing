@@ -1,0 +1,20 @@
+ImportCounters:
+  type: object
+  required: [total, pending, processing, succeeded, failed]
+  properties:
+    total: { type: integer, format: int64, minimum: 0 }
+    pending: { type: integer, format: int64, minimum: 0 }
+    processing: { type: integer, format: int64, minimum: 0 }
+    succeeded: { type: integer, format: int64, minimum: 0 }
+    failed: { type: integer, format: int64, minimum: 0 }
+
+ImportJob:
+  type: object
+  required: [id, status, filename, counters]
+  properties:
+    id: { type: string, format: uuid }
+    status: { type: string, enum: [uploading, staged, processing, completed, rejected, cancelled] }
+    filename: { type: string }
+    file_checksum: { type: string, minLength: 64, maxLength: 64 }
+    counters: { $ref: '#/ImportCounters' }
+

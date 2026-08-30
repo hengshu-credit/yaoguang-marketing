@@ -18,6 +18,22 @@ servers:
         description: Your Yaoguang Marketing deployment domain
         default: marketing.example.com
 paths:
+  /api/audiences.create:
+    $ref: './paths/audiences.yaml#/~1api~1audiences.create'
+  /api/audiences.get:
+    $ref: './paths/audiences.yaml#/~1api~1audiences.get'
+  /api/audiences.update:
+    $ref: './paths/audiences.yaml#/~1api~1audiences.update'
+  /api/audiences.preview:
+    $ref: './paths/audiences.yaml#/~1api~1audiences.preview'
+  /api/audiences.build:
+    $ref: './paths/audiences.yaml#/~1api~1audiences.build'
+  /api/imports.upload:
+    $ref: './paths/import_jobs.yaml#/~1api~1imports.upload'
+  /api/imports.get:
+    $ref: './paths/import_jobs.yaml#/~1api~1imports.get'
+  /api/imports.process:
+    $ref: './paths/import_jobs.yaml#/~1api~1imports.process'
   /api/deliveries.list:
     $ref: './paths/deliveries.yaml#/~1api~1deliveries.list'
   /api/deliveries.get:

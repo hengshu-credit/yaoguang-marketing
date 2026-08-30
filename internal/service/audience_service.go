@@ -10,13 +10,42 @@ import (
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
-type AudienceService struct{ repository domain.AudienceRepository }
+type AudienceService struct {
+	repository domain.AudienceRepository
+	auth       *AuthService
+}
 
 func NewAudienceService(repository domain.AudienceRepository) (*AudienceService, error) {
 	if repository == nil {
 		return nil, errors.New("audience repository is required")
 	}
 	return &AudienceService{repository: repository}, nil
+}
+
+func NewAuthorizedAudienceService(repository domain.AudienceRepository, auth *AuthService) (*AudienceService, error) {
+	result, err := NewAudienceService(repository)
+	if err != nil {
+		return nil, err
+	}
+	if auth == nil {
+		return nil, errors.New("audience auth service is required")
+	}
+	result.auth = auth
+	return result, nil
+}
+
+func (s *AudienceService) authorize(ctx context.Context, workspaceID string, permission domain.PermissionType) (context.Context, error) {
+	if s.auth == nil {
+		return ctx, nil
+	}
+	authorized, _, membership, err := s.auth.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return ctx, err
+	}
+	if membership == nil || !membership.HasPermission(domain.PermissionResourceSegments, permission) {
+		return ctx, domain.NewPermissionError(domain.PermissionResourceSegments, permission, "Insufficient permissions")
+	}
+	return authorized, nil
 }
 
 type CreateAudienceRequest struct {
@@ -34,6 +63,10 @@ func (s *AudienceService) Create(ctx context.Context, request CreateAudienceRequ
 	if err := request.Definition.Validate(); err != nil {
 		return nil, err
 	}
+	authorized, err := s.authorize(ctx, request.WorkspaceID, domain.PermissionTypeWrite)
+	if err != nil {
+		return nil, err
+	}
 	now := time.Now().UTC()
 	audience := domain.Audience{ID: uuid.New().String(), Name: strings.TrimSpace(request.Name), Description: strings.TrimSpace(request.Description),
 		Kind: request.Kind, ActiveVersion: 1, CreatedAt: now, UpdatedAt: now}
@@ -42,25 +75,45 @@ func (s *AudienceService) Create(ctx context.Context, request CreateAudienceRequ
 	}
 	hash, _ := request.Definition.VersionHash()
 	version := domain.AudienceVersion{AudienceID: audience.ID, Version: 1, Definition: request.Definition, DefinitionHash: hash, CreatedAt: now}
-	if err := s.repository.CreateAudience(ctx, request.WorkspaceID, audience, version); err != nil {
+	if err := s.repository.CreateAudience(authorized, request.WorkspaceID, audience, version); err != nil {
 		return nil, err
 	}
 	return &audience, nil
 }
 
 func (s *AudienceService) UpdateDefinition(ctx context.Context, workspaceID, audienceID string, expression domain.AudienceExpression) (*domain.AudienceVersion, error) {
+	authorized, err := s.authorize(ctx, workspaceID, domain.PermissionTypeWrite)
+	if err != nil {
+		return nil, err
+	}
 	if containsAudienceReference(expression, audienceID) {
 		return nil, errors.New("audience cannot reference itself")
 	}
-	return s.repository.SaveAudienceVersion(ctx, workspaceID, audienceID, expression)
+	return s.repository.SaveAudienceVersion(authorized, workspaceID, audienceID, expression)
 }
 
 func (s *AudienceService) Preview(ctx context.Context, workspaceID string, expression domain.AudienceExpression) ([]domain.CustomerSummary, int64, error) {
-	return s.repository.PreviewAudience(ctx, workspaceID, expression, 100)
+	authorized, err := s.authorize(ctx, workspaceID, domain.PermissionTypeRead)
+	if err != nil {
+		return nil, 0, err
+	}
+	return s.repository.PreviewAudience(authorized, workspaceID, expression, 100)
 }
 
 func (s *AudienceService) Build(ctx context.Context, workspaceID, audienceID string, version int) (string, int64, error) {
-	return s.repository.BuildAudience(ctx, workspaceID, audienceID, version)
+	authorized, err := s.authorize(ctx, workspaceID, domain.PermissionTypeWrite)
+	if err != nil {
+		return "", 0, err
+	}
+	return s.repository.BuildAudience(authorized, workspaceID, audienceID, version)
+}
+
+func (s *AudienceService) Get(ctx context.Context, workspaceID, audienceID string) (*domain.Audience, error) {
+	authorized, err := s.authorize(ctx, workspaceID, domain.PermissionTypeRead)
+	if err != nil {
+		return nil, err
+	}
+	return s.repository.GetAudience(authorized, workspaceID, audienceID)
 }
 
 func containsAudienceReference(expression domain.AudienceExpression, audienceID string) bool {

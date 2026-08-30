@@ -86,6 +86,20 @@ type FrequencyDecision struct {
 	DecidedAt     time.Time            `json:"decided_at"`
 }
 
+type FrequencyEvaluationRequest struct {
+	WorkspaceID string
+	CustomerID  string
+	Channel     string
+	EffectKey   string
+	CampaignRef string
+	TriggerRef  string
+	OccurredAt  time.Time
+}
+
+type MarketingFrequencyEvaluator interface {
+	Evaluate(context.Context, FrequencyEvaluationRequest) (FrequencyDecision, error)
+}
+
 type FrequencyPolicyRepository interface {
 	SaveFrequencyPolicy(context.Context, string, FrequencyPolicy) error
 	ResolveFrequencyPolicies(context.Context, string, string, string, string) ([]FrequencyPolicy, error)

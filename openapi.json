@@ -27,6 +27,257 @@
     }
   ],
   "paths": {
+    "/api/audiences.create": {
+      "post": {
+        "summary": "Create a versioned audience",
+        "operationId": "createAudience",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "name",
+                  "definition"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "static",
+                      "dynamic",
+                      "composite"
+                    ]
+                  },
+                  "definition": {
+                    "$ref": "#/components/schemas/AudienceExpression"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Audience created"
+          }
+        }
+      }
+    },
+    "/api/audiences.get": {
+      "get": {
+        "summary": "Get an audience",
+        "operationId": "getAudience",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "audience_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audience"
+          }
+        }
+      }
+    },
+    "/api/audiences.update": {
+      "post": {
+        "summary": "Save a new audience definition version",
+        "operationId": "updateAudience",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audience version created"
+          }
+        }
+      }
+    },
+    "/api/audiences.preview": {
+      "post": {
+        "summary": "Preview an audience with at most 100 masked customer summaries",
+        "operationId": "previewAudience",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audience preview"
+          }
+        }
+      }
+    },
+    "/api/audiences.build": {
+      "post": {
+        "summary": "Materialize an audience version",
+        "operationId": "buildAudience",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audience build completed"
+          }
+        }
+      }
+    },
+    "/api/imports.upload": {
+      "post": {
+        "summary": "Stream and stage every customer CSV row",
+        "operationId": "uploadCustomerImport",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "text/csv": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Upload completely staged or explicitly rejected"
+          }
+        }
+      }
+    },
+    "/api/imports.get": {
+      "get": {
+        "summary": "Get import counters and status",
+        "operationId": "getCustomerImport",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Import job"
+          }
+        }
+      }
+    },
+    "/api/imports.process": {
+      "post": {
+        "summary": "Process one configured import chunk",
+        "operationId": "processCustomerImport",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chunk result"
+          }
+        }
+      }
+    },
     "/api/deliveries.list": {
       "get": {
         "summary": "List logical deliveries",
@@ -9341,6 +9592,37 @@
           "id",
           "email"
         ]
+      },
+      "AudienceExpression": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "leaf_type": {
+            "type": "string",
+            "enum": [
+              "list",
+              "segment",
+              "audience"
+            ]
+          },
+          "ref_id": {
+            "type": "string"
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "union",
+              "intersection",
+              "exclusion"
+            ]
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AudienceExpression"
+            }
+          }
+        }
       },
       "DeliveryStatus": {
         "type": "string",

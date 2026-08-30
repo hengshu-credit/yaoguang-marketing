@@ -9,15 +9,7 @@ import (
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
-type FrequencyEvaluationRequest struct {
-	WorkspaceID string
-	CustomerID  string
-	Channel     string
-	EffectKey   string
-	CampaignRef string
-	TriggerRef  string
-	OccurredAt  time.Time
-}
+type FrequencyEvaluationRequest = domain.FrequencyEvaluationRequest
 
 type FrequencyPolicyService struct {
 	repository domain.FrequencyPolicyRepository
