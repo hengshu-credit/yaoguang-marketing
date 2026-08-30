@@ -747,6 +747,7 @@ type Customer struct {
 	Identities             []CustomerIdentity       `json:"identities"`
 	Tags                   []string                 `json:"tags"`
 	ListMemberships        []CustomerListMembership `json:"list_memberships"`
+	Consents               []CustomerConsent        `json:"consents"`
 	CreatedAt              time.Time                `json:"created_at"`
 	UpdatedAt              time.Time                `json:"updated_at"`
 }
@@ -768,6 +769,19 @@ type CustomerListMembership struct {
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type CustomerConsent struct {
+	ID        string                 `json:"id"`
+	Purpose   string                 `json:"purpose"`
+	Channel   string                 `json:"channel"`
+	Status    string                 `json:"status"`
+	Source    *string                `json:"source,omitempty"`
+	ValidFrom time.Time              `json:"valid_from"`
+	RevokedAt *time.Time             `json:"revoked_at,omitempty"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	CreatedAt time.Time              `json:"created_at"`
+	UpdatedAt time.Time              `json:"updated_at"`
 }
 
 type CustomerMutationResult struct {

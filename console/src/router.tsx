@@ -9,6 +9,7 @@ import { CreateWorkspacePage } from './pages/CreateWorkspacePage'
 import { DashboardPage } from './pages/DashboardPage'
 import { WorkspaceSettingsPage } from './pages/WorkspaceSettingsPage'
 import { ContactsPage } from './pages/ContactsPage'
+import { CustomersPage } from './pages/CustomersPage'
 import { ListsPage } from './pages/ListsPage'
 import { FileManagerPage } from './pages/FileManagerPage'
 import { TemplatesPage } from './pages/TemplatesPage'
@@ -219,6 +220,12 @@ export const workspaceContactsRoute = createRoute({
   })
 })
 
+export const workspaceCustomersRoute = createRoute({
+  getParentRoute: () => workspaceRoute,
+  path: '/customers',
+  component: CustomersPage
+})
+
 // eslint-disable-next-line react-refresh/only-export-components -- Internal redirect component
 const WorkspaceSettingsRedirect = () => {
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/settings' })
@@ -375,6 +382,7 @@ const routeTree = rootRoute.addChildren([
     workspaceIndexRoute,
     workspaceBroadcastsRoute,
     workspaceAutomationsRoute,
+    workspaceCustomersRoute,
     workspaceContactsRoute,
     workspaceListsRoute,
     workspaceTransactionalNotificationsRoute,

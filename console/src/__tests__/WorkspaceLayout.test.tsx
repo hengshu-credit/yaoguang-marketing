@@ -54,6 +54,7 @@ vi.mock('../components/LanguageSwitcher', () => ({
 const mockNavigate = vi.fn()
 
 const grantAll = (value: boolean) => ({
+  customers: { read: value, write: value },
   contacts: { read: value, write: value },
   lists: { read: value, write: value },
   templates: { read: value, write: value },
@@ -136,6 +137,14 @@ describe('WorkspaceLayout sidebar groups', () => {
     expect(screen.getByRole('img', { name: '恒数科技' })).toBeInTheDocument()
     expect(screen.getByText('瑶光营销平台')).toBeInTheDocument()
     expect(screen.getByText('观心知意，循光达客')).toBeInTheDocument()
+  })
+
+  it('shows and highlights the Customer authority entry', async () => {
+    currentPathname = '/console/workspace/ws1/customers'
+    render(<WorkspaceLayout />)
+
+    await screen.findByText('Customers')
+    expect(document.querySelector('.ant-menu-item-selected')?.textContent).toBe('Customers')
   })
 
   const openGroup = async (label: string) => {

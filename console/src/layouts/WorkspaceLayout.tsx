@@ -35,7 +35,8 @@ import {
   LineChartOutlined,
   SettingOutlined,
   WarningOutlined,
-  DownOutlined
+  DownOutlined,
+  TeamOutlined
 } from '@ant-design/icons'
 
 const { Content, Sider, Header } = Layout
@@ -195,6 +196,8 @@ export function WorkspaceLayout() {
     selectedKey = 'templates'
   } else if (currentPath.includes('/blog')) {
     selectedKey = 'blog'
+  } else if (currentPath.includes('/customers')) {
+    selectedKey = 'customers'
   } else if (currentPath.includes('/contacts')) {
     selectedKey = 'contacts'
   } else if (currentPath.includes('/file-manager')) {
@@ -370,6 +373,15 @@ export function WorkspaceLayout() {
           )
         }
       ]
+    },
+    hasAccess('customers') && {
+      key: 'customers',
+      icon: <TeamOutlined />,
+      label: (
+        <Link to="/console/workspace/$workspaceId/customers" params={{ workspaceId }}>
+          {t`Customers`}
+        </Link>
+      )
     },
     hasAccess('contacts') && {
       key: 'contacts',

@@ -1037,6 +1037,9 @@ func (r *CustomerPostgresRepository) loadCustomerChildren(ctx context.Context, d
 	if err := loadCustomerListMemberships(ctx, db, customer); err != nil {
 		return err
 	}
+	if err := loadCustomerConsents(ctx, db, customer); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1136,6 +1139,44 @@ func loadCustomerListMemberships(ctx context.Context, db customerQueryer, custom
 	}
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("iterate customer list memberships: %w", err)
+	}
+	return nil
+}
+
+func loadCustomerConsents(ctx context.Context, db customerQueryer, customer *domain.Customer) error {
+	rows, err := db.QueryContext(ctx, `SELECT id, purpose, channel, status, source, valid_from, revoked_at,
+		metadata, created_at, updated_at FROM customer_consents WHERE customer_id = $1 ORDER BY purpose, channel`, customer.ID)
+	if err != nil {
+		return fmt.Errorf("query customer consents: %w", err)
+	}
+	defer rows.Close()
+	customer.Consents = []domain.CustomerConsent{}
+	for rows.Next() {
+		consent := domain.CustomerConsent{}
+		var source sql.NullString
+		var revokedAt sql.NullTime
+		var metadata []byte
+		if err := rows.Scan(&consent.ID, &consent.Purpose, &consent.Channel, &consent.Status, &source,
+			&consent.ValidFrom, &revokedAt, &metadata, &consent.CreatedAt, &consent.UpdatedAt); err != nil {
+			return fmt.Errorf("scan customer consent: %w", err)
+		}
+		if source.Valid {
+			consent.Source = &source.String
+		}
+		if revokedAt.Valid {
+			value := revokedAt.Time
+			consent.RevokedAt = &value
+		}
+		consent.Metadata = map[string]interface{}{}
+		if len(metadata) > 0 {
+			if err := json.Unmarshal(metadata, &consent.Metadata); err != nil {
+				return fmt.Errorf("decode customer consent metadata: %w", err)
+			}
+		}
+		customer.Consents = append(customer.Consents, consent)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate customer consents: %w", err)
 	}
 	return nil
 }

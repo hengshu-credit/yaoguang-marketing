@@ -152,6 +152,14 @@ describe('ContactsPage row delete and bulk selection', () => {
     state.contacts = [state.makeContact('alice@example.com'), state.makeContact('bob@example.com')]
   })
 
+  it('explains that Contacts is the email compatibility view', async () => {
+    render(<ContactsPage />, { wrapper: createWrapper() })
+
+    expect(
+      await screen.findByText(/email compatibility view/i)
+    ).toBeInTheDocument()
+  })
+
   it('removes the deleted contact from the selection so the count stays accurate', async () => {
     render(<ContactsPage />, { wrapper: createWrapper() })
 

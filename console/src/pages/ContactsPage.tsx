@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient, useMutation, keepPreviousData } from '@tanstack/react-query'
-import { Table, Tag, Button, Space, Tooltip, message, Dropdown } from 'antd'
+import { Alert, Table, Tag, Button, Space, Tooltip, message, Dropdown } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { MenuProps } from 'antd'
 import { useParams, useSearch, useNavigate } from '@tanstack/react-router'
@@ -994,6 +994,26 @@ export function ContactsPage() {
 
   return (
     <div className="p-6">
+      <Alert
+        type="info"
+        showIcon
+        className="mb-4"
+        title={t`Email compatibility view`}
+        description={t`Contacts keeps the existing email-first workflows available. Use Customers for the unified customer profile, external user ID, phone and other identity aliases.`}
+        action={
+          <Button
+            size="small"
+            onClick={() =>
+              navigate({
+                to: '/console/workspace/$workspaceId/customers',
+                params: { workspaceId }
+              })
+            }
+          >
+            {t`Open Customers`}
+          </Button>
+        }
+      />
       {/* Header with title and actions */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">

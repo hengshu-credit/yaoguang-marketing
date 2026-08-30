@@ -125,6 +125,9 @@ func TestCustomerRepositoryGetPopulatesProfileCustomerID(t *testing.T) {
 	mock.ExpectQuery(`SELECT tag FROM customer_tags`).WillReturnRows(sqlmock.NewRows([]string{"tag"}))
 	mock.ExpectQuery(`SELECT list_id, status, created_at, updated_at FROM customer_list_memberships`).
 		WillReturnRows(sqlmock.NewRows([]string{"list_id", "status", "created_at", "updated_at"}))
+	mock.ExpectQuery(`SELECT id, purpose, channel, status, source, valid_from, revoked_at, metadata, created_at, updated_at FROM customer_consents`).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "purpose", "channel", "status", "source", "valid_from", "revoked_at", "metadata", "created_at", "updated_at"}).
+			AddRow("consent-1", "marketing", "email", "granted", "crm", now, nil, []byte(`{"policy":"v1"}`), now, now))
 
 	repo, err := NewCustomerRepository(workspaceRepo, "secret")
 	require.NoError(t, err)
@@ -132,6 +135,8 @@ func TestCustomerRepositoryGetPopulatesProfileCustomerID(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, customer.Profile)
 	assert.Equal(t, customerID, customer.Profile.CustomerID)
+	require.Len(t, customer.Consents, 1)
+	assert.Equal(t, "email", customer.Consents[0].Channel)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -937,4 +942,6 @@ func expectCustomerAggregateChildren(mock sqlmock.Sqlmock, now time.Time) {
 	mock.ExpectQuery(`SELECT tag FROM customer_tags`).WillReturnRows(sqlmock.NewRows([]string{"tag"}))
 	mock.ExpectQuery(`SELECT list_id, status, created_at, updated_at FROM customer_list_memberships`).
 		WillReturnRows(sqlmock.NewRows([]string{"list_id", "status", "created_at", "updated_at"}))
+	mock.ExpectQuery(`SELECT id, purpose, channel, status, source, valid_from, revoked_at, metadata, created_at, updated_at FROM customer_consents`).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "purpose", "channel", "status", "source", "valid_from", "revoked_at", "metadata", "created_at", "updated_at"}))
 }

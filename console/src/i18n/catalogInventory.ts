@@ -45,6 +45,7 @@ const hierarchyRules: HierarchyRule[] = [
   { menuKey: 'Transactional Notifications', pageKey: 'Transactional Notifications', matches: /^src\/(?:components\/transactional\/|pages\/Transactional[^/]*\.tsx:)/ },
   { menuKey: 'Templates', pageKey: 'Templates', matches: /^src\/(?:components\/templates\/|pages\/TemplatesPage\.tsx:)/ },
   { menuKey: 'Lists', pageKey: 'Lists', matches: /^src\/(?:components\/lists\/|pages\/ListsPage\.tsx:)/ },
+  { menuKey: 'Customers', pageKey: 'Customers', matches: /^src\/(?:components\/customers\/|pages\/CustomersPage\.tsx:)/ },
   { menuKey: 'Contacts', pageKey: 'Contacts', matches: /^src\/(?:components\/contacts\/|pages\/ContactsPage\.tsx:)/ },
   { menuKey: 'Segments', pageKey: 'Segments', matches: /^src\/(?:components\/(?:segment|segments)\/|pages\/(?:DebugSegment|Segments)Page\.tsx:)/ },
   { menuKey: 'Broadcasts', pageKey: 'Broadcasts', matches: /^src\/(?:components\/broadcasts\/|pages\/BroadcastsPage\.tsx:)/ },

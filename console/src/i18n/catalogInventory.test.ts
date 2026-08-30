@@ -143,6 +143,8 @@ describe('catalog inventory', () => {
     ['logs', 'src/pages/LogsPage.tsx:20', 'Logs'],
     ['integration', 'src/components/integrations/LLMIntegration.tsx:20', 'Integrations'],
     ['webhook', 'src/components/webhooks/OutgoingWebhooksTab.tsx:20', 'Webhooks'],
+    ['customer page', 'src/pages/CustomersPage.tsx:20', 'Customers'],
+    ['customer component', 'src/components/customers/CustomerDrawer.tsx:20', 'Customers'],
   ])('classifies %s sources outside the priority pages', (_name, reference, menuKey) => {
     const inventory = buildStaticCatalogInventory([
       { msgid: 'Example', msgstr: 'Example', references: [reference] },
