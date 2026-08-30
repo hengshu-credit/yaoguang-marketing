@@ -156,12 +156,14 @@ func (r *RealtimePostgresRepository) AppendEvent(
 
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO event_ledger (
-			id, event_type, subject_type, subject_id, contact_email, source,
+			id, event_type, subject_type, subject_id, customer_id, contact_email, source,
 			schema_version, occurred_at, received_at, properties, context
-		) VALUES ($1, $2, $3, $4, NULLIF($5, ''), $6, $7, $8, $9, $10, $11)
+		) VALUES ($1, $2, $3, $4,
+			COALESCE(NULLIF($5, '')::uuid, (SELECT customer_id FROM contacts WHERE LOWER(BTRIM(email)) = LOWER(BTRIM($6)))),
+			NULLIF($6, ''), $7, $8, $9, $10, $11, $12)
 	`,
 		envelope.EventID, envelope.Type, envelope.Subject.Type, envelope.Subject.ID,
-		envelope.Subject.ContactEmail, envelope.Source, envelope.SchemaVersion,
+		envelope.Subject.CustomerID, envelope.Subject.ContactEmail, envelope.Source, envelope.SchemaVersion,
 		envelope.OccurredAt, receivedAt, []byte(envelope.Data), contextJSON,
 	)
 	if err != nil {
@@ -697,35 +699,52 @@ func (r *RealtimePostgresRepository) ProcessRuleEvent(
 		if err != nil {
 			return domain.RuleProcessResult{}, fmt.Errorf("evaluate automation %s: %w", binding.AutomationID, err)
 		}
-		if matched && compiled.Frequency == domain.TriggerFrequencyOnce {
+		var customerID string
+		if matched && (request.Primary || compiled.Frequency == domain.TriggerFrequencyOnce) {
+			customerID, err = resolveRuleEventCustomerTx(ctx, tx, request.Envelope)
+			if err != nil {
+				return domain.RuleProcessResult{}, err
+			}
+		}
+		if matched && !request.Primary && compiled.Frequency == domain.TriggerFrequencyOnce {
 			if err := tx.QueryRowContext(ctx, `
 				SELECT NOT EXISTS (
-					SELECT 1 FROM automation_trigger_log
-					WHERE automation_id = $1 AND contact_email = $2
+					SELECT 1 FROM journey_enrollments
+					WHERE automation_id = $1 AND customer_id = $2::uuid AND frequency = 'once'
 				)
-			`, binding.AutomationID, request.Envelope.Subject.ContactEmail).Scan(&matched); err != nil {
+			`, binding.AutomationID, customerID).Scan(&matched); err != nil {
 				return domain.RuleProcessResult{}, fmt.Errorf("evaluate once frequency for automation %s: %w", binding.AutomationID, err)
 			}
 		}
 		var contactAutomationID *string
+		var entryOutcome domain.JourneyEntryOutcome
 		if matched {
 			result.Matched++
 			if request.Primary {
-				enrolledID, enrolled, err := enrollRealtimeAutomation(
-					ctx, tx, request, binding, compiled,
+				enrollment, err := enrollRealtimeAutomation(
+					ctx, tx, request, binding, compiled, customerID,
 				)
 				if err != nil {
 					return domain.RuleProcessResult{}, err
 				}
-				if enrolled {
+				entryOutcome = enrollment.Outcome
+				switch enrollment.Outcome {
+				case domain.JourneyEntryOutcomeEnrolled:
 					result.Enrolled++
-					contactAutomationID = &enrolledID
+					contactAutomationID = &enrollment.ContactAutomationID
+				case domain.JourneyEntryOutcomeGuardDeferred:
+					result.Deferred++
+				case domain.JourneyEntryOutcomeAlreadyOnce,
+					domain.JourneyEntryOutcomeReplayedEvent,
+					domain.JourneyEntryOutcomeGuardDenied:
+					result.Suppressed++
 				}
 			}
 		}
 		reason, _ := json.Marshal(map[string]any{
 			"condition_hash": binding.ConditionHash,
 			"decision":       map[bool]string{true: "matched", false: "not_matched"}[matched],
+			"entry_outcome":  entryOutcome,
 			"primary":        request.Primary,
 		})
 		audit := domain.MatchAudit{
@@ -741,6 +760,26 @@ func (r *RealtimePostgresRepository) ProcessRuleEvent(
 		if err := writeMatchAuditTx(ctx, tx, audit); err != nil {
 			return domain.RuleProcessResult{}, err
 		}
+	}
+
+	if result.Deferred > 0 {
+		deferred, deferErr := tx.ExecContext(ctx, `
+			UPDATE consumer_inbox
+			SET status = 'failed', processed_at = NULL, last_error = 'journey_entry_deferred'
+			WHERE consumer = $1 AND message_id = $2
+				AND claim_token = $3 AND status = 'processing'
+		`, request.Consumer, request.MessageID, claim.ClaimToken)
+		if deferErr != nil {
+			return domain.RuleProcessResult{}, fmt.Errorf("defer rule inbox for journey entry: %w", deferErr)
+		}
+		deferredRows, deferErr := deferred.RowsAffected()
+		if deferErr != nil || deferredRows != 1 {
+			return domain.RuleProcessResult{}, fmt.Errorf("rule inbox claim lost before journey entry defer")
+		}
+		if err := tx.Commit(); err != nil {
+			return domain.RuleProcessResult{}, fmt.Errorf("commit deferred rule event: %w", err)
+		}
+		return result, nil
 	}
 
 	completed, err := r.CompleteInbox(
@@ -790,58 +829,44 @@ func enrollRealtimeAutomation(
 	request domain.RuleProcessRequest,
 	binding domain.TriggerBinding,
 	compiled domain.CompiledTriggerCondition,
-) (string, bool, error) {
-	contactAutomationID := uuid.New().String()
-	triggerLogID := uuid.New().String()
-	var enrolledID string
-	err := tx.QueryRowContext(ctx, `
-		WITH live AS (
-			SELECT id FROM automations
-			WHERE id = $1 AND version = $2 AND status = 'live' AND deleted_at IS NULL
-		), once_gate AS (
-			INSERT INTO automation_trigger_log (id, automation_id, contact_email, triggered_at)
-			SELECT $3, id, $4, $5 FROM live WHERE $6 = 'once'
-			ON CONFLICT (automation_id, contact_email) DO NOTHING
-			RETURNING 1
-		), eligible AS (
-			SELECT id FROM live WHERE $6 <> 'once' OR EXISTS (SELECT 1 FROM once_gate)
-		), enrolled AS (
-			INSERT INTO contact_automations (
-				id, automation_id, contact_email, current_node_id, status,
-				entered_at, scheduled_at, origin_event_id, automation_version
-			)
-			SELECT $7, id, $4, $8, 'active', $5, $5, $9, $2 FROM eligible
-			ON CONFLICT (automation_id, origin_event_id) WHERE origin_event_id IS NOT NULL DO NOTHING
-			RETURNING id
-		)
-		SELECT id FROM enrolled
-	`, binding.AutomationID, binding.AutomationVersion, triggerLogID,
-		request.Envelope.Subject.ContactEmail, request.Now.UTC(), string(compiled.Frequency),
-		contactAutomationID, compiled.RootNodeID, request.Envelope.EventID).Scan(&enrolledID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return "", false, nil
+	customerID string,
+) (domain.JourneyEnrollmentResult, error) {
+	guard := domain.JourneyEntryGuard{}
+	if compiled.Trigger != nil && compiled.Trigger.EntryGuard != nil {
+		guard = *compiled.Trigger.EntryGuard
 	}
+	guardJSON, err := json.Marshal(guard)
 	if err != nil {
-		return "", false, fmt.Errorf("enroll realtime automation %s: %w", binding.AutomationID, err)
+		return domain.JourneyEnrollmentResult{}, fmt.Errorf("marshal journey entry guard: %w", err)
 	}
-
-	if _, err := tx.ExecContext(ctx, `
-		UPDATE automations
-		SET stats = jsonb_set(
-			COALESCE(stats, '{}'::jsonb), '{enrolled}',
-			to_jsonb(COALESCE((stats->>'enrolled')::int, 0) + 1)
-		), updated_at = $2
-		WHERE id = $1 AND version = $3
-	`, binding.AutomationID, request.Now.UTC(), binding.AutomationVersion); err != nil {
-		return "", false, fmt.Errorf("increment realtime enrollment stat: %w", err)
+	var enrollment domain.JourneyEnrollmentResult
+	var contactAutomationID sql.NullString
+	var retryAt sql.NullTime
+	err = tx.QueryRowContext(ctx, `
+		SELECT outcome, contact_automation_id, retry_at
+		FROM automation_enroll_customer(
+			$1, $2::uuid, $3, $4, $5, $6, $7::jsonb, $8, 'realtime'
+		)
+	`, binding.AutomationID, customerID, request.Envelope.Subject.ContactEmail,
+		compiled.RootNodeID, string(compiled.Frequency), request.Envelope.EventID,
+		string(guardJSON), binding.AutomationVersion).Scan(&enrollment.Outcome, &contactAutomationID, &retryAt)
+	if err != nil {
+		return domain.JourneyEnrollmentResult{}, fmt.Errorf("enroll realtime automation %s: %w", binding.AutomationID, err)
 	}
-	if _, err := tx.ExecContext(ctx, `
-		INSERT INTO automation_node_executions (
-			id, contact_automation_id, automation_id, node_id, node_type,
-			action, entered_at, output
-		) VALUES ($1, $2, $3, $4, 'trigger', 'entered', $5, '{}'::jsonb)
-	`, uuid.New().String(), enrolledID, binding.AutomationID, compiled.RootNodeID, request.Now.UTC()); err != nil {
-		return "", false, fmt.Errorf("write realtime trigger node execution: %w", err)
+	if !enrollment.Outcome.IsValid() {
+		return domain.JourneyEnrollmentResult{}, fmt.Errorf("enroll realtime automation %s returned invalid outcome %q", binding.AutomationID, enrollment.Outcome)
+	}
+	if contactAutomationID.Valid {
+		enrollment.ContactAutomationID = contactAutomationID.String
+	}
+	if retryAt.Valid {
+		enrollment.RetryAt = &retryAt.Time
+	}
+	if enrollment.Outcome != domain.JourneyEntryOutcomeEnrolled {
+		return enrollment, nil
+	}
+	if enrollment.ContactAutomationID == "" {
+		return domain.JourneyEnrollmentResult{}, fmt.Errorf("enrolled realtime automation %s returned no contact automation id", binding.AutomationID)
 	}
 
 	messageID := uuid.New()
@@ -852,7 +877,8 @@ func enrollRealtimeAutomation(
 		Type:          "journey.start",
 		SchemaVersion: 1,
 		Subject: domain.EventSubject{
-			Type: "contact_automation", ID: enrolledID,
+			Type: "contact_automation", ID: enrollment.ContactAutomationID,
+			CustomerID:   customerID,
 			ContactEmail: request.Envelope.Subject.ContactEmail,
 		},
 		Source:        "rule-worker",
@@ -861,13 +887,13 @@ func enrollRealtimeAutomation(
 		CorrelationID: request.Envelope.CorrelationID,
 		CausationID:   &causationID,
 		Data: mustJSON(map[string]any{
-			"contact_automation_id": enrolledID,
+			"contact_automation_id": enrollment.ContactAutomationID,
 			"automation_id":         binding.AutomationID,
 			"automation_version":    binding.AutomationVersion,
 		}),
 	})
 	if err != nil {
-		return "", false, fmt.Errorf("marshal journey start command: %w", err)
+		return domain.JourneyEnrollmentResult{}, fmt.Errorf("marshal journey start command: %w", err)
 	}
 	headers, _ := json.Marshal(map[string]any{
 		"schema_version": 1,
@@ -878,9 +904,39 @@ func enrollRealtimeAutomation(
 		INSERT INTO event_outbox (id, event_id, topic, routing_key, payload, headers)
 		VALUES ($1, $2, 'notifuse.jobs', $3, $4, $5)
 	`, messageID, request.Envelope.EventID, "journey.start."+binding.AutomationID, payload, headers); err != nil {
-		return "", false, fmt.Errorf("enqueue journey start command: %w", err)
+		return domain.JourneyEnrollmentResult{}, fmt.Errorf("enqueue journey start command: %w", err)
 	}
-	return enrolledID, true, nil
+	return enrollment, nil
+}
+
+func resolveRuleEventCustomerTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	envelope domain.EventEnvelope,
+) (string, error) {
+	var customerID string
+	var err error
+	if strings.TrimSpace(envelope.Subject.CustomerID) != "" {
+		if _, parseErr := uuid.Parse(envelope.Subject.CustomerID); parseErr != nil {
+			return "", fmt.Errorf("%w: invalid customer_id", domain.ErrJourneyIdentityUnresolved)
+		}
+		err = tx.QueryRowContext(ctx, `
+			SELECT COALESCE(merged_into_id, id)::text FROM customers WHERE id = $1::uuid
+		`, envelope.Subject.CustomerID).Scan(&customerID)
+	} else {
+		err = tx.QueryRowContext(ctx, `
+			SELECT COALESCE(customer.merged_into_id, customer.id)::text
+			FROM contacts contact JOIN customers customer ON customer.id = contact.customer_id
+			WHERE LOWER(BTRIM(contact.email)) = LOWER(BTRIM($1))
+		`, envelope.Subject.ContactEmail).Scan(&customerID)
+	}
+	if errors.Is(err, sql.ErrNoRows) || strings.TrimSpace(customerID) == "" {
+		return "", fmt.Errorf("%w: no Customer for event subject", domain.ErrJourneyIdentityUnresolved)
+	}
+	if err != nil {
+		return "", fmt.Errorf("resolve rule event Customer: %w", err)
+	}
+	return customerID, nil
 }
 
 func mustJSON(value any) json.RawMessage {
@@ -896,7 +952,10 @@ func writeMatchAuditTx(ctx context.Context, tx *sql.Tx, audit domain.MatchAudit)
 			contact_automation_id, reason, created_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (event_id, automation_id, engine) DO UPDATE
-		SET decision_hash = automation_match_audit.decision_hash
+		SET decision_hash = automation_match_audit.decision_hash,
+			contact_automation_id = COALESCE(EXCLUDED.contact_automation_id, automation_match_audit.contact_automation_id),
+			reason = EXCLUDED.reason,
+			created_at = EXCLUDED.created_at
 		WHERE automation_match_audit.decision_hash = EXCLUDED.decision_hash
 		  AND automation_match_audit.matched = EXCLUDED.matched
 		RETURNING decision_hash
@@ -938,7 +997,10 @@ func (r *RealtimePostgresRepository) WriteMatchAudit(
 			contact_automation_id, reason, created_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (event_id, automation_id, engine) DO UPDATE
-		SET decision_hash = automation_match_audit.decision_hash
+		SET decision_hash = automation_match_audit.decision_hash,
+			contact_automation_id = COALESCE(EXCLUDED.contact_automation_id, automation_match_audit.contact_automation_id),
+			reason = EXCLUDED.reason,
+			created_at = EXCLUDED.created_at
 		WHERE automation_match_audit.decision_hash = EXCLUDED.decision_hash
 		  AND automation_match_audit.matched = EXCLUDED.matched
 		RETURNING decision_hash

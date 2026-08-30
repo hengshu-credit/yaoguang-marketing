@@ -962,20 +962,34 @@ func TestAutomationTriggerGenerator_FunctionBodyWithoutConditions(t *testing.T) 
 	const want = `CREATE OR REPLACE FUNCTION automation_trigger_golden1()
 RETURNS TRIGGER AS $$
 BEGIN
-    PERFORM automation_enroll_contact(
-        'golden1',
-        NEW.email,
-        'rootnode1',
-        'once',
-        NEW.origin_event_id
-    );
+    IF NEW.customer_id IS NULL THEN
+        PERFORM automation_enroll_contact(
+            'golden1',
+            NEW.email,
+            'rootnode1',
+            'once',
+            NEW.origin_event_id
+        );
+    ELSE
+        PERFORM outcome FROM automation_enroll_customer(
+            'golden1',
+            NEW.customer_id,
+            NEW.email,
+            'rootnode1',
+            'once',
+            NEW.origin_event_id,
+            '{"enabled":false}'::jsonb,
+            NULL,
+            'legacy'
+        );
+    END IF;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql`
 
 	assert.Equal(t, want, result.FunctionBody)
 	// No conditions means no guard at all, not an always-true one.
-	assert.NotContains(t, result.FunctionBody, "IF ")
+	assert.NotContains(t, result.FunctionBody, "IF (")
 	assert.Empty(t, result.ConditionGuard)
 	assert.Empty(t, result.ValidationQuery)
 }
@@ -992,6 +1006,8 @@ func TestAutomationTriggerGeneratorCarriesOriginEventID(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Contains(t, result.FunctionBody, "NEW.origin_event_id")
+	assert.Contains(t, result.FunctionBody, "NEW.customer_id")
+	assert.Contains(t, result.FunctionBody, "automation_enroll_customer")
 }
 
 func TestAutomationTriggerGenerator_GuardWrapsEnrollment(t *testing.T) {

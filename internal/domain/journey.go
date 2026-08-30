@@ -8,6 +8,29 @@ import (
 	"time"
 )
 
+var ErrJourneyIdentityUnresolved = errors.New("journey customer identity is unresolved")
+
+type JourneyEntryOutcome string
+
+const (
+	JourneyEntryOutcomeEnrolled      JourneyEntryOutcome = "enrolled"
+	JourneyEntryOutcomeAlreadyOnce   JourneyEntryOutcome = "already_once"
+	JourneyEntryOutcomeReplayedEvent JourneyEntryOutcome = "replayed_event"
+	JourneyEntryOutcomeGuardDeferred JourneyEntryOutcome = "guard_deferred"
+	JourneyEntryOutcomeGuardDenied   JourneyEntryOutcome = "guard_denied"
+)
+
+func (o JourneyEntryOutcome) IsValid() bool {
+	switch o {
+	case JourneyEntryOutcomeEnrolled, JourneyEntryOutcomeAlreadyOnce,
+		JourneyEntryOutcomeReplayedEvent, JourneyEntryOutcomeGuardDeferred,
+		JourneyEntryOutcomeGuardDenied:
+		return true
+	default:
+		return false
+	}
+}
+
 type JourneyEntryGuard struct {
 	Enabled       bool          `json:"enabled"`
 	Cooldown      time.Duration `json:"cooldown,omitempty"`
@@ -80,4 +103,10 @@ type JourneyEntryDecision struct {
 	Reason        string     `json:"reason,omitempty"`
 	RetryAt       *time.Time `json:"retry_at,omitempty"`
 	DecidedAt     time.Time  `json:"decided_at"`
+}
+
+type JourneyEnrollmentResult struct {
+	Outcome             JourneyEntryOutcome `json:"outcome"`
+	ContactAutomationID string              `json:"contact_automation_id,omitempty"`
+	RetryAt             *time.Time          `json:"retry_at,omitempty"`
 }

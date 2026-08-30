@@ -25,6 +25,7 @@ func TestTimelineEventBridgeIsFixedCostAndWritesLedgerAndOutbox(t *testing.T) {
 	assert.Contains(t, ddl, "INSERT INTO event_idempotency")
 	assert.Contains(t, ddl, "INSERT INTO event_ledger")
 	assert.Contains(t, ddl, "INSERT INTO event_outbox")
+	assert.Contains(t, ddl, "'customer_id', NEW.customer_id")
 	assert.NotContains(t, strings.ToLower(ddl), "from automations")
 	assert.NotContains(t, strings.ToLower(ddl), "automation_trigger_bindings")
 }

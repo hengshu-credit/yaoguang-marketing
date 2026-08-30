@@ -322,10 +322,10 @@ func TestV36Migration_UpdateWorkspace_RegeneratesEmailTrigger(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
-	// No conditions means no guard at all, not an always-true one: the body enrolls
-	// unconditionally, exactly as it did before conditions moved into the function body.
+	// No conditions means no condition guard. The Customer/Email compatibility
+	// branch is allowed, but there must not be an always-true predicate wrapper.
 	require.NotEmpty(t, functionBody)
-	assert.NotContains(t, functionBody, "IF ")
+	assert.NotContains(t, functionBody, "IF (")
 	assert.NotContains(t, functionBody, "EXISTS")
 }
 

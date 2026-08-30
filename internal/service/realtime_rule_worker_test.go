@@ -68,6 +68,17 @@ func TestRuleWorkerAcknowledgesCompletedDuplicate(t *testing.T) {
 	assert.Equal(t, broker.Ack, decision.Action)
 }
 
+func TestRuleWorkerRetriesDeferredJourneyEntry(t *testing.T) {
+	processor := &recordingRuleProcessor{result: domain.RuleProcessResult{Deferred: 1}}
+	worker, err := NewRuleWorker(processor, config.RealtimeModePrimary, time.Minute)
+	require.NoError(t, err)
+
+	decision := worker.HandleDelivery(context.Background(), ruleEventMessage(t))
+	assert.Equal(t, broker.Retry, decision.Action)
+	assert.Equal(t, broker.Retry5Minutes, decision.RetryTier)
+	assert.ErrorIs(t, decision.Err, ErrJourneyEntryDeferred)
+}
+
 func ruleEventMessage(t *testing.T) broker.Message {
 	t.Helper()
 	messageID := uuid.New()

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"sort"
@@ -259,28 +260,11 @@ func (g *AutomationTriggerGenerator) buildFunctionBody(functionName string, auto
 	if frequency == "" {
 		frequency = "every_time"
 	}
-
-	var body string
-	if guard == "" {
-		body = fmt.Sprintf(`BEGIN
-    PERFORM automation_enroll_contact(
-        %s,
-        NEW.email,
-        %s,
-        %s,
-        NEW.origin_event_id
-    );
-    RETURN NEW;
-END;`,
-			sqlLiteral(automation.ID),
-			sqlLiteral(automation.RootNodeID),
-			sqlLiteral(frequency),
-		)
-	} else {
-		// An AFTER INSERT body can already see the row that fired it, so a
-		// contact_timeline count condition counts the triggering event itself.
-		body = fmt.Sprintf(`BEGIN
-    IF (%s) THEN
+	entryGuard, err := json.Marshal(automation.Trigger.EntryGuard)
+	if err != nil || automation.Trigger.EntryGuard == nil {
+		entryGuard = []byte(`{"enabled":false}`)
+	}
+	enrollment := fmt.Sprintf(`IF NEW.customer_id IS NULL THEN
         PERFORM automation_enroll_contact(
             %s,
             NEW.email,
@@ -288,13 +272,43 @@ END;`,
             %s,
             NEW.origin_event_id
         );
+    ELSE
+        PERFORM outcome FROM automation_enroll_customer(
+            %s,
+            NEW.customer_id,
+            NEW.email,
+            %s,
+            %s,
+            NEW.origin_event_id,
+            %s::jsonb,
+            NULL,
+            'legacy'
+        );
+    END IF;`,
+		sqlLiteral(automation.ID), sqlLiteral(automation.RootNodeID), sqlLiteral(frequency),
+		sqlLiteral(automation.ID), sqlLiteral(automation.RootNodeID), sqlLiteral(frequency),
+		sqlLiteral(string(entryGuard)),
+	)
+
+	var body string
+	if guard == "" {
+		body = fmt.Sprintf(`BEGIN
+    %s
+    RETURN NEW;
+END;`,
+			enrollment,
+		)
+	} else {
+		// An AFTER INSERT body can already see the row that fired it, so a
+		// contact_timeline count condition counts the triggering event itself.
+		body = fmt.Sprintf(`BEGIN
+    IF (%s) THEN
+		%s
     END IF;
     RETURN NEW;
 END;`,
 			guard,
-			sqlLiteral(automation.ID),
-			sqlLiteral(automation.RootNodeID),
-			sqlLiteral(frequency),
+			enrollment,
 		)
 	}
 

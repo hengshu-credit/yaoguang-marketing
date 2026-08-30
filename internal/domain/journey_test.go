@@ -33,3 +33,16 @@ func TestJourneyEntryGuardIsOptionalAndSeparateFromMessageFrequency(t *testing.T
 	require.NoError(t, guard.Validate())
 	assert.Equal(t, time.Hour, guard.Cooldown)
 }
+
+func TestJourneyEntryOutcomesAreTyped(t *testing.T) {
+	for _, outcome := range []JourneyEntryOutcome{
+		JourneyEntryOutcomeEnrolled,
+		JourneyEntryOutcomeAlreadyOnce,
+		JourneyEntryOutcomeReplayedEvent,
+		JourneyEntryOutcomeGuardDeferred,
+		JourneyEntryOutcomeGuardDenied,
+	} {
+		assert.True(t, outcome.IsValid(), string(outcome))
+	}
+	assert.False(t, JourneyEntryOutcome("unknown").IsValid())
+}

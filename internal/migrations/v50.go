@@ -68,6 +68,9 @@ func (m *V50Migration) UpdateWorkspace(ctx context.Context, _ *config.Config, wo
 			return fmt.Errorf("v50: backfill journey authority for workspace %s: %w", workspaceID, err)
 		}
 	}
+	if _, err := db.ExecContext(ctx, schema.TimelineEventBridgeFunction()); err != nil {
+		return fmt.Errorf("v50: install Customer-aware timeline event bridge for workspace %s: %w", workspaceID, err)
+	}
 	if _, err := db.ExecContext(ctx, schema.JourneyAutomationEnrollContactFunction()); err != nil {
 		return fmt.Errorf("v50: install customer journey enrollment for workspace %s: %w", workspaceID, err)
 	}

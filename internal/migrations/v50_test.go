@@ -23,6 +23,7 @@ func TestV50MigrationCreatesJourneyAuthorityAndBackfillsCustomers(t *testing.T) 
 	for _, statement := range v50JourneyBackfillStatements {
 		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
 	}
+	mock.ExpectExec(regexp.QuoteMeta(schema.TimelineEventBridgeFunction())).WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectExec(regexp.QuoteMeta(schema.JourneyAutomationEnrollContactFunction())).WillReturnResult(sqlmock.NewResult(0, 0))
 	err = (&V50Migration{}).UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "workspace-1"}, db)
 	require.NoError(t, err)

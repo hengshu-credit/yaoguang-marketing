@@ -211,13 +211,14 @@ func TimelineEventBridgeFunction() string {
 		END IF;
 
 		INSERT INTO event_ledger (
-			id, event_type, subject_type, subject_id, contact_email, source,
+			id, event_type, subject_type, subject_id, customer_id, contact_email, source,
 			schema_version, occurred_at, received_at, properties, context, timeline_id
 		) VALUES (
 			NEW.origin_event_id,
 			NEW.kind,
 			NEW.entity_type,
 			COALESCE(NEW.entity_id, NEW.email),
+			NEW.customer_id,
 			NEW.email,
 			'contact_timeline',
 			1,
@@ -244,6 +245,7 @@ func TimelineEventBridgeFunction() string {
 				'subject', jsonb_build_object(
 					'type', NEW.entity_type,
 					'id', COALESCE(NEW.entity_id, NEW.email),
+					'customer_id', NEW.customer_id,
 					'contact_email', NEW.email
 				),
 				'source', 'contact_timeline',

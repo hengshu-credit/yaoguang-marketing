@@ -16,8 +16,9 @@ import (
 )
 
 var (
-	ErrInvalidRuleMessage = errors.New("invalid rule event message")
-	ErrRuleInboxBusy      = errors.New("rule event is already being processed")
+	ErrInvalidRuleMessage   = errors.New("invalid rule event message")
+	ErrRuleInboxBusy        = errors.New("rule event is already being processed")
+	ErrJourneyEntryDeferred = errors.New("journey entry guard deferred the event")
 )
 
 type RuleWorker struct {
@@ -84,6 +85,9 @@ func (w *RuleWorker) Handle(ctx context.Context, message broker.Message) error {
 	if result.Busy {
 		return ErrRuleInboxBusy
 	}
+	if result.Deferred > 0 {
+		return ErrJourneyEntryDeferred
+	}
 	return nil
 }
 
@@ -96,6 +100,8 @@ func (w *RuleWorker) HandleDelivery(ctx context.Context, message broker.Message)
 		return broker.DeliveryDecision{Action: broker.DeadLetter, Err: err}
 	case errors.Is(err, ErrRuleInboxBusy):
 		return broker.DeliveryDecision{Action: broker.Retry, RetryTier: broker.Retry5Seconds, Err: err}
+	case errors.Is(err, ErrJourneyEntryDeferred):
+		return broker.DeliveryDecision{Action: broker.Retry, RetryTier: broker.Retry5Minutes, Err: err}
 	default:
 		return broker.DeliveryDecision{Action: broker.Retry, RetryTier: broker.Retry30Seconds, Err: err}
 	}

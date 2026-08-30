@@ -22,6 +22,7 @@ var ErrRealtimeCutoverBlocked = errors.New("realtime primary cutover is blocked"
 type EventSubject struct {
 	Type         string `json:"type"`
 	ID           string `json:"id"`
+	CustomerID   string `json:"customer_id,omitempty"`
 	ContactEmail string `json:"contact_email,omitempty"`
 }
 
@@ -59,6 +60,11 @@ func (e EventEnvelope) Validate() error {
 	}
 	if e.Subject.Type == "" || e.Subject.ID == "" {
 		return fmt.Errorf("subject type and id are required")
+	}
+	if e.Subject.CustomerID != "" {
+		if _, err := uuid.Parse(e.Subject.CustomerID); err != nil {
+			return fmt.Errorf("subject customer_id must be a UUID")
+		}
 	}
 	if e.Source == "" {
 		return fmt.Errorf("source is required")
@@ -178,6 +184,8 @@ type RuleProcessResult struct {
 	Candidates int
 	Matched    int
 	Enrolled   int
+	Deferred   int
+	Suppressed int
 }
 
 type RuleEventProcessor interface {
