@@ -12,13 +12,13 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/golang/mock/gomock"
 	"github.com/hengshu-credit/yaoguang-marketing/config"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
 	pkgDatabase "github.com/hengshu-credit/yaoguang-marketing/pkg/database"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/ratelimiter"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -848,8 +848,17 @@ func TestNotificationCenterHandler_handleHealthz(t *testing.T) {
 
 		handler.handleHealthz(w, req)
 
-		// May return OK or ServiceUnavailable depending on DB ping
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("readyz checks system database", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
+		w := httptest.NewRecorder()
+
+		handler.handleReadyz(w, req)
+
 		assert.True(t, w.Code == http.StatusOK || w.Code == http.StatusServiceUnavailable)
+		assert.Contains(t, w.Body.String(), "system_database")
 	})
 
 	t.Run("method not allowed", func(t *testing.T) {

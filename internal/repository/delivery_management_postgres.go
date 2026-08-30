@@ -201,3 +201,36 @@ func (r *DeliveryPostgresRepository) ResolveUnknownDelivery(ctx context.Context,
 	}
 	return nil
 }
+
+func (r *DeliveryPostgresRepository) GetDeliveryProgress(ctx context.Context, workspaceID string, sourceType domain.DeliverySource, sourceID, sourceVersion string) (domain.DeliveryProgress, error) {
+	var progress domain.DeliveryProgress
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return progress, fmt.Errorf("get workspace database: %w", err)
+	}
+	err = db.QueryRowContext(ctx, `SELECT
+		COUNT(*),
+		COUNT(*) FILTER (WHERE status = 'planned'),
+		COUNT(*) FILTER (WHERE status = 'reserved'),
+		COUNT(*) FILTER (WHERE status = 'queued'),
+		COUNT(*) FILTER (WHERE status = 'submitting'),
+		COUNT(*) FILTER (WHERE status = 'provider_accepted'),
+		COUNT(*) FILTER (WHERE status = 'confirmed'),
+		COUNT(*) FILTER (WHERE status = 'suppressed'),
+		COUNT(*) FILTER (WHERE status = 'deferred'),
+		COUNT(*) FILTER (WHERE status IN ('transient_failed', 'terminal_failed')),
+		COUNT(*) FILTER (WHERE status = 'unknown'),
+		COUNT(*) FILTER (WHERE status = 'cancelled')
+		FROM delivery_intents
+		WHERE source_type = $1 AND source_id = $2 AND ($3 = '' OR source_version = $3)`,
+		sourceType, sourceID, sourceVersion).Scan(
+		&progress.AudienceTotal, &progress.Planned, &progress.Reserved, &progress.Queued,
+		&progress.Submitting, &progress.Accepted, &progress.Confirmed, &progress.Suppressed,
+		&progress.Deferred, &progress.Failed, &progress.Unknown, &progress.Cancelled,
+	)
+	if err != nil {
+		return progress, fmt.Errorf("aggregate delivery progress: %w", err)
+	}
+	progress.Processed = progress.Confirmed + progress.Suppressed + progress.Failed + progress.Cancelled
+	return progress, nil
+}

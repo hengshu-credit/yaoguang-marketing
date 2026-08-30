@@ -30,6 +30,9 @@ func (r *deliveryManagementRepositoryStub) ResolveUnknownDelivery(_ context.Cont
 	r.action, r.actor, r.reason = action, actor, reason
 	return nil
 }
+func (r *deliveryManagementRepositoryStub) GetDeliveryProgress(context.Context, string, domain.DeliverySource, string, string) (domain.DeliveryProgress, error) {
+	return domain.DeliveryProgress{}, nil
+}
 
 func deliveryMembership(read, write bool) *domain.UserWorkspace {
 	return &domain.UserWorkspace{Role: "member", Permissions: domain.UserPermissions{

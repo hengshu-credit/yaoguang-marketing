@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	pkgDatabase "github.com/hengshu-credit/yaoguang-marketing/pkg/database"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/ratelimiter"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/safehttpclient"
-	"github.com/PuerkitoBio/goquery"
 )
 
 type NotificationCenterHandler struct {
@@ -60,6 +60,8 @@ func (h *NotificationCenterHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/health", h.handleHealth)
 	// lightweight health check for container orchestration
 	mux.HandleFunc("/healthz", h.handleHealthz)
+	// dependency readiness is separate from process liveness
+	mux.HandleFunc("/readyz", h.handleReadyz)
 	// favicon detection endpoint
 	mux.HandleFunc("/api/detect-favicon", h.HandleDetectFavicon)
 }
@@ -350,13 +352,20 @@ func (h *NotificationCenterHandler) handleHealthz(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Get connection manager
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (h *NotificationCenterHandler) handleReadyz(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	checks := map[string]string{"system_database": "unavailable"}
 	connManager, err := pkgDatabase.GetConnectionManager()
 	if err != nil {
 		h.logger.Error("Failed to get connection manager")
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
-			"status": "unavailable",
-		})
+		writeJSON(w, http.StatusServiceUnavailable, map[string]interface{}{"status": "unavailable", "checks": checks})
 		return
 	}
 
@@ -364,9 +373,7 @@ func (h *NotificationCenterHandler) handleHealthz(w http.ResponseWriter, r *http
 	systemDB := connManager.GetSystemConnection()
 	if systemDB == nil {
 		h.logger.Error("System database connection is nil")
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
-			"status": "unavailable",
-		})
+		writeJSON(w, http.StatusServiceUnavailable, map[string]interface{}{"status": "unavailable", "checks": checks})
 		return
 	}
 
@@ -376,16 +383,13 @@ func (h *NotificationCenterHandler) handleHealthz(w http.ResponseWriter, r *http
 
 	if err := systemDB.PingContext(ctx); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Database ping failed")
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
-			"status": "unavailable",
-		})
+		checks["system_database"] = "unavailable: " + err.Error()
+		writeJSON(w, http.StatusServiceUnavailable, map[string]interface{}{"status": "unavailable", "checks": checks})
 		return
 	}
 
-	// Database is healthy
-	writeJSON(w, http.StatusOK, map[string]string{
-		"status": "ok",
-	})
+	checks["system_database"] = "ok"
+	writeJSON(w, http.StatusOK, map[string]interface{}{"status": "ok", "checks": checks})
 }
 
 func (h *NotificationCenterHandler) HandleDetectFavicon(w http.ResponseWriter, r *http.Request) {

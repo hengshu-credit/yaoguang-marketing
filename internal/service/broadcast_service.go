@@ -5,32 +5,34 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/service/broadcast"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
-	"github.com/google/uuid"
 )
 
 // BroadcastService handles all broadcast-related operations
 type BroadcastService struct {
-	logger             logger.Logger
-	repo               domain.BroadcastRepository
-	workspaceRepo      domain.WorkspaceRepository
-	contactRepo        domain.ContactRepository
-	emailSvc           domain.EmailServiceInterface
-	templateSvc        domain.TemplateService
-	taskService        domain.TaskService
-	taskRepo           domain.TaskRepository
-	authService        domain.AuthService
-	eventBus           domain.EventBus
-	messageHistoryRepo domain.MessageHistoryRepository
-	emailQueueRepo     domain.EmailQueueRepository
-	listService        domain.ListService
-	dataFeedFetcher    broadcast.DataFeedFetcher
-	apiEndpoint        string
+	logger               logger.Logger
+	repo                 domain.BroadcastRepository
+	workspaceRepo        domain.WorkspaceRepository
+	contactRepo          domain.ContactRepository
+	emailSvc             domain.EmailServiceInterface
+	templateSvc          domain.TemplateService
+	taskService          domain.TaskService
+	taskRepo             domain.TaskRepository
+	authService          domain.AuthService
+	eventBus             domain.EventBus
+	messageHistoryRepo   domain.MessageHistoryRepository
+	emailQueueRepo       domain.EmailQueueRepository
+	listService          domain.ListService
+	dataFeedFetcher      broadcast.DataFeedFetcher
+	apiEndpoint          string
+	deliveryProgressRepo domain.DeliveryManagementRepository
 }
 
 // NewBroadcastService creates a new broadcast service
@@ -73,6 +75,34 @@ func NewBroadcastService(
 // SetTaskService sets the task service (used to avoid circular dependencies)
 func (s *BroadcastService) SetTaskService(taskService domain.TaskService) {
 	s.taskService = taskService
+}
+
+func (s *BroadcastService) SetDeliveryProgressRepository(repository domain.DeliveryManagementRepository) {
+	s.deliveryProgressRepo = repository
+}
+
+func broadcastProgressSourceVersion(item *domain.Broadcast) string {
+	if item != nil && item.Metadata != nil {
+		if version, ok := item.Metadata["source_version"].(string); ok && strings.TrimSpace(version) != "" {
+			return strings.TrimSpace(version)
+		}
+	}
+	if item != nil && !item.CreatedAt.IsZero() {
+		return item.CreatedAt.UTC().Format(time.RFC3339Nano)
+	}
+	return ""
+}
+
+func (s *BroadcastService) attachDeliveryProgress(ctx context.Context, workspaceID string, item *domain.Broadcast) {
+	if s.deliveryProgressRepo == nil || item == nil {
+		return
+	}
+	progress, err := s.deliveryProgressRepo.GetDeliveryProgress(ctx, workspaceID, domain.DeliverySourceBroadcast, item.ID, broadcastProgressSourceVersion(item))
+	if err != nil {
+		s.logger.WithFields(map[string]interface{}{"broadcast_id": item.ID, "error": err.Error()}).Warn("Failed to load delivery progress")
+		return
+	}
+	item.DeliveryProgress = &progress
 }
 
 // CreateBroadcast creates a new broadcast
@@ -156,7 +186,12 @@ func (s *BroadcastService) GetBroadcast(ctx context.Context, workspaceID, broadc
 	}
 
 	// Fetch the broadcast from the repository
-	return s.repo.GetBroadcast(ctx, workspaceID, broadcastID)
+	item, err := s.repo.GetBroadcast(ctx, workspaceID, broadcastID)
+	if err != nil {
+		return nil, err
+	}
+	s.attachDeliveryProgress(ctx, workspaceID, item)
+	return item, nil
 }
 
 // UpdateBroadcast updates an existing broadcast
@@ -241,6 +276,9 @@ func (s *BroadcastService) ListBroadcasts(ctx context.Context, params domain.Lis
 	if err != nil {
 		s.logger.Error("Failed to list broadcasts from repository")
 		return nil, err
+	}
+	for _, item := range response.Broadcasts {
+		s.attachDeliveryProgress(ctx, params.WorkspaceID, item)
 	}
 
 	// If WithTemplates is true, fetch template details for each variation

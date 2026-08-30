@@ -97,6 +97,23 @@ export interface BroadcastChannels {
   email: boolean
 }
 
+export interface DeliveryProgress {
+  audience_total: number
+  planned: number
+  reserved: number
+  queued: number
+  submitting: number
+  accepted: number
+  confirmed: number
+  suppressed: number
+  deferred: number
+  failed: number
+  unknown: number
+  cancelled: number
+  /** @deprecated Use the explicit delivery funnel fields. */
+  processed: number
+}
+
 // Data feed types
 export interface DataFeedHeader {
   name: string
@@ -147,6 +164,7 @@ export interface Broadcast {
   cancelled_at?: string
   paused_at?: string
   pause_reason?: string
+  delivery_progress?: DeliveryProgress
   // Data feed settings (consolidated)
   data_feed?: DataFeedSettings
 }

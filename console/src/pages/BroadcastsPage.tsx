@@ -179,6 +179,47 @@ const StatusBadge = ({ broadcast, remainingTime, progressStats }: StatusBadgePro
         </Tooltip>
       )
     case 'processed': {
+      const delivery = broadcast.delivery_progress
+      if (delivery?.unknown) {
+        return (
+          <Tooltip title={t`${delivery.unknown.toLocaleString()} deliveries have an uncertain provider result and require reconciliation. They will not be retried automatically.`}>
+            <span>
+              <Badge status="error" text={t`${delivery.unknown.toLocaleString()} need reconciliation`} />
+            </span>
+          </Tooltip>
+        )
+      }
+      const awaitingConfirmation = delivery
+        ? delivery.planned +
+          delivery.reserved +
+          delivery.queued +
+          delivery.submitting +
+          delivery.accepted +
+          delivery.deferred
+        : 0
+      if (delivery && awaitingConfirmation > 0) {
+        return (
+          <Tooltip
+            title={t`${delivery.queued.toLocaleString()} queued, ${delivery.submitting.toLocaleString()} submitting, ${delivery.accepted.toLocaleString()} accepted by provider, and ${delivery.confirmed.toLocaleString()} confirmed.`}
+          >
+            <span>
+              <Badge
+                status="processing"
+                text={t`${awaitingConfirmation.toLocaleString()} awaiting confirmation`}
+              />
+            </span>
+          </Tooltip>
+        )
+      }
+      if (delivery && delivery.failed > 0) {
+        return (
+          <Tooltip title={t`${delivery.confirmed.toLocaleString()} confirmed and ${delivery.failed.toLocaleString()} failed.`}>
+            <span>
+              <Badge status="warning" text={t`Completed with failures`} />
+            </span>
+          </Tooltip>
+        )
+      }
       if (progressStats && progressStats.remaining > 0) {
         const tooltipText = t`Emails are being delivered. ${progressStats.processed.toLocaleString()} sent, ${progressStats.remaining.toLocaleString()} remaining.`
         return (

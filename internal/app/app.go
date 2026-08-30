@@ -916,6 +916,9 @@ func (a *App) InitServices() error {
 		a.dataFeedFetcher,    // Data feed fetcher for global/recipient data
 		a.config.APIEndpoint, // API endpoint for tracking URLs
 	)
+	if progressRepository, ok := a.deliveryRepo.(domain.DeliveryManagementRepository); ok {
+		a.broadcastService.SetDeliveryProgressRepository(progressRepository)
+	}
 
 	// Create broadcast factory with refactored components
 	broadcastConfig := broadcast.DefaultConfig()

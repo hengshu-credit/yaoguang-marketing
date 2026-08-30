@@ -44,6 +44,22 @@ type DeliveryDetail struct {
 	Reconciliations []DeliveryReconciliation `json:"reconciliations"`
 }
 
+type DeliveryProgress struct {
+	AudienceTotal int64 `json:"audience_total"`
+	Planned       int64 `json:"planned"`
+	Reserved      int64 `json:"reserved"`
+	Queued        int64 `json:"queued"`
+	Submitting    int64 `json:"submitting"`
+	Accepted      int64 `json:"accepted"`
+	Confirmed     int64 `json:"confirmed"`
+	Suppressed    int64 `json:"suppressed"`
+	Deferred      int64 `json:"deferred"`
+	Failed        int64 `json:"failed"`
+	Unknown       int64 `json:"unknown"`
+	Cancelled     int64 `json:"cancelled"`
+	Processed     int64 `json:"processed"` // Deprecated aggregate for compatibility.
+}
+
 type DeliveryResolutionAction string
 
 const (
@@ -93,6 +109,7 @@ type DeliveryManagementRepository interface {
 	GetDelivery(context.Context, string, string) (*DeliveryDetail, error)
 	RequestDeliveryReconciliation(context.Context, string, string, string) error
 	ResolveUnknownDelivery(context.Context, string, string, DeliveryResolutionAction, string, string) error
+	GetDeliveryProgress(context.Context, string, DeliverySource, string, string) (DeliveryProgress, error)
 }
 
 type DeliveryManagementService interface {

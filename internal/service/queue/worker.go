@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/observability"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/emailerror"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 )
@@ -531,6 +532,11 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 			}).Error("Provider accepted email but final confirmation failed; leaving provider_accepted for reconciliation")
 			return
 		}
+		latency := time.Duration(0)
+		if deliveryAttempt.SubmittedAt != nil {
+			latency = time.Since(*deliveryAttempt.SubmittedAt)
+		}
+		observability.RecordDeliveryOutcome(w.ctx, "email", string(integration.EmailProvider.Kind), string(domain.DeliveryStatusConfirmed), latency)
 		w.logDeliverySuccess(workspace, entry)
 		return
 	}
@@ -682,6 +688,11 @@ func (w *EmailQueueWorker) recordDeliveryFailure(workspace *domain.Workspace, en
 		}).Error("Failed to persist delivery attempt outcome; unresolved attempt blocks retry")
 		return
 	}
+	latency := time.Duration(0)
+	if attempt.SubmittedAt != nil {
+		latency = time.Since(*attempt.SubmittedAt)
+	}
+	observability.RecordDeliveryOutcome(w.ctx, "email", attempt.Provider, string(status), latency)
 	_ = w.upsertMessageHistory(w.ctx, workspace.ID, workspace.Settings.SecretKey, entry, "", sendErr)
 	if w.onEmailFailed != nil {
 		w.onEmailFailed(workspace.ID, entry.SourceType, entry.SourceID, entry.MessageID, sendErr, status != domain.DeliveryStatusTransientFailed)

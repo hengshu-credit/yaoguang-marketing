@@ -290,6 +290,7 @@ type Broadcast struct {
 	TestPhaseRecipientCount   int                   `json:"test_phase_recipient_count"`
 	WinnerPhaseRecipientCount int                   `json:"winner_phase_recipient_count"`
 	EnqueuedCount             int                   `json:"enqueued_count"` // Emails added to queue
+	DeliveryProgress          *DeliveryProgress     `json:"delivery_progress,omitempty"`
 	CreatedAt                 time.Time             `json:"created_at"`
 	UpdatedAt                 time.Time             `json:"updated_at"`
 	StartedAt                 *time.Time            `json:"started_at,omitempty"`
