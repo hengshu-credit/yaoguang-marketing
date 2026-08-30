@@ -170,7 +170,7 @@ func (r *EmailQueueRepository) EnqueueIntentTx(ctx context.Context, tx *sql.Tx, 
 		integration_id, provider_kind, contact_email, message_id, template_id,
 		payload, attempts, max_attempts, created_at, updated_at
 	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-	ON CONFLICT (delivery_intent_id) DO NOTHING`,
+	ON CONFLICT (delivery_intent_id) WHERE delivery_intent_id IS NOT NULL DO NOTHING`,
 		entry.ID, entry.DeliveryIntentID, entry.Status, entry.Priority, entry.SourceType, entry.SourceID,
 		entry.IntegrationID, entry.ProviderKind, entry.ContactEmail, entry.MessageID, entry.TemplateID,
 		payload, entry.Attempts, entry.MaxAttempts, entry.CreatedAt, entry.UpdatedAt,
@@ -203,7 +203,7 @@ const claimPendingEmailQueueSQL = `
 		)
 		ORDER BY queue.priority ASC, queue.created_at ASC
 		LIMIT $1
-		FOR UPDATE SKIP LOCKED
+		FOR UPDATE OF queue SKIP LOCKED
 	)
 	UPDATE email_queue queue
 	SET status = 'processing', claim_token = $2, lease_expires_at = $3,

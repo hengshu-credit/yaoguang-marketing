@@ -77,7 +77,7 @@ func TestDeliveryReserveAndEnqueueCreatesIntentQueueAndStatusAtomically(t *testi
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT INTO delivery_intents.*ON CONFLICT.*RETURNING").
 		WillReturnRows(deliveryIntentRow(intent))
-	mock.ExpectExec(`INSERT INTO email_queue.*delivery_intent_id.*ON CONFLICT \(delivery_intent_id\) DO NOTHING`).
+	mock.ExpectExec(`INSERT INTO email_queue.*delivery_intent_id.*ON CONFLICT \(delivery_intent_id\) WHERE delivery_intent_id IS NOT NULL DO NOTHING`).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`UPDATE delivery_intents.*SET status = 'queued'.*WHERE id = \$1 AND status IN \('reserved', 'transient_failed'\)`).
 		WithArgs(intent.ID).WillReturnResult(sqlmock.NewResult(0, 1))
@@ -127,7 +127,7 @@ func TestDeliveryReserveAndEnqueueRepairsReservedIntentWithoutQueue(t *testing.T
 		WillReturnRows(sqlmock.NewRows(deliveryIntentColumns))
 	mock.ExpectQuery(`SELECT .* FROM delivery_intents WHERE effect_key = \$1 FOR UPDATE`).
 		WithArgs(intent.EffectKey).WillReturnRows(deliveryIntentRow(intent))
-	mock.ExpectExec(`INSERT INTO email_queue.*ON CONFLICT \(delivery_intent_id\) DO NOTHING`).
+	mock.ExpectExec(`INSERT INTO email_queue.*ON CONFLICT \(delivery_intent_id\) WHERE delivery_intent_id IS NOT NULL DO NOTHING`).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`UPDATE delivery_intents.*status = 'queued'`).
 		WithArgs(intent.ID).WillReturnResult(sqlmock.NewResult(0, 1))

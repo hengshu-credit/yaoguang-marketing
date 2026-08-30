@@ -393,9 +393,9 @@ func (r *DeliveryPostgresRepository) RecordAttemptOutcome(ctx context.Context, w
 	}
 
 	if _, err := tx.ExecContext(ctx, `UPDATE delivery_attempts SET
-		status = $3, provider_message_id = NULLIF($4, ''),
-		accepted_at = CASE WHEN $3 = 'provider_accepted' THEN $5 ELSE accepted_at END,
-		completed_at = CASE WHEN $3 = 'confirmed' THEN $5 ELSE completed_at END,
+		status = $3::text, provider_message_id = NULLIF($4, ''),
+		accepted_at = CASE WHEN $3::text = 'provider_accepted' THEN $5 ELSE accepted_at END,
+		completed_at = CASE WHEN $3::text = 'confirmed' THEN $5 ELSE completed_at END,
 		error_category = NULLIF($6, ''), error_code = NULLIF($7, ''), error_detail = NULLIF($8, ''),
 		updated_at = $5
 		WHERE id = $1 AND claim_token = NULLIF($2, '')::uuid`,

@@ -33,7 +33,7 @@ func TestEmailQueueClaimPendingUsesOneAtomicLeaseStatement(t *testing.T) {
 		"11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", now.Add(time.Minute), nil,
 	)
 
-	mock.ExpectQuery(`(?s)WITH candidates AS .*FOR UPDATE SKIP LOCKED.*UPDATE email_queue.*SET status = 'processing'.*claim_token = \$2.*lease_expires_at = \$3.*RETURNING`).
+	mock.ExpectQuery(`(?s)WITH candidates AS .*FOR UPDATE OF queue SKIP LOCKED.*UPDATE email_queue.*SET status = 'processing'.*claim_token = \$2.*lease_expires_at = \$3.*RETURNING`).
 		WithArgs(2, sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnRows(rows)
 
@@ -51,6 +51,7 @@ func TestEmailQueueClaimPendingExcludesUncertainProviderAttempts(t *testing.T) {
 	assert.Contains(t, claimPendingEmailQueueSQL, "'reserved', 'queued', 'transient_failed'")
 	assert.Contains(t, claimPendingEmailQueueSQL, "delivery_attempts")
 	assert.Contains(t, claimPendingEmailQueueSQL, "'submitting', 'provider_accepted', 'unknown'")
+	assert.Contains(t, claimPendingEmailQueueSQL, "FOR UPDATE OF queue SKIP LOCKED")
 	assert.NotContains(t, claimPendingEmailQueueSQL, "updated_at < NOW() - INTERVAL")
 }
 
