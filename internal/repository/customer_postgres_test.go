@@ -278,7 +278,7 @@ func TestCustomerRepositoryUpsertCreatesExternalOnlyCustomerAndReplays(t *testin
 	assert.Equal(t, int64(1), result.Version)
 	assert.False(t, result.Replayed)
 	assert.Equal(t, "crm-42", *result.ExternalUserID)
-	assert.Regexp(t, `^U016\d{14}08[0-9a-z]{6}$`, result.CustomerNo)
+	assert.Regexp(t, `^U042\d{14}08[0-9a-z]{6}$`, result.CustomerNo)
 	require.NoError(t, mock.ExpectationsWereMet())
 
 	expectWorkspaceTransaction(workspaceRepo, db, "workspace1")
@@ -336,7 +336,7 @@ func TestCustomerRepositoryUpsertRetriesCustomerNumberCollisionWithoutAbortingTr
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "created", result.Action)
-	assert.Regexp(t, `^U016\d{14}08[0-9a-z]{6}$`, result.CustomerNo)
+	assert.Regexp(t, `^U042\d{14}08[0-9a-z]{6}$`, result.CustomerNo)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 

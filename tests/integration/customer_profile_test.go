@@ -28,8 +28,12 @@ var (
 )
 
 func integrationWorkspaceCode(sequence uint16) string {
-	encoded := strconv.FormatUint(uint64(sequence), 36)
-	return strings.Repeat("0", 3-len(encoded)) + encoded
+	if sequence <= 999 {
+		return fmt.Sprintf("%03d", sequence)
+	}
+	offset := uint64(sequence - 1000)
+	suffix := strconv.FormatUint(offset%(36*36), 36)
+	return string(rune('a')+rune(offset/(36*36))) + strings.Repeat("0", 2-len(suffix)) + suffix
 }
 
 func TestCustomerProfileAPIIntegration(t *testing.T) {
@@ -351,13 +355,14 @@ func TestCustomerProfileAPIIntegration(t *testing.T) {
 			knownOne.Customer.CustomerID, anonymous.Customer.CustomerID)
 		require.NoError(t, err)
 
-		mergeResponse := postCustomer(t, suite.APIClient, "/api/customers.merge", map[string]interface{}{
+		mergeRequest := map[string]interface{}{
 			"workspace_id":    workspaceOne.ID,
 			"idempotency_key": "merge-anonymous-known",
 			"source":          map[string]interface{}{"customer_id": anonymous.Customer.CustomerID},
 			"target":          map[string]interface{}{"customer_id": knownOne.Customer.CustomerID},
 			"reason":          "login identified the browser session",
-		}, http.StatusOK)
+		}
+		mergeResponse := postCustomer(t, suite.APIClient, "/api/customers.merge", mergeRequest, http.StatusOK)
 		var merged customerMergeEnvelope
 		decodeCustomerResponse(t, mergeResponse, &merged)
 		assert.Equal(t, anonymous.Customer.CustomerID, merged.Merge.SourceCustomerID)
@@ -385,6 +390,36 @@ func TestCustomerProfileAPIIntegration(t *testing.T) {
 		assert.Zero(t, sourceConsentCount)
 		assert.Equal(t, "granted", marketingStatus)
 		assert.Equal(t, "granted", analyticsStatus)
+
+		previousCustomerNo := fmt.Sprintf("U%04d2026083015304508%s", workspaceOne.Sequence,
+			strings.ReplaceAll(knownOne.Customer.CustomerID, "-", ""))
+		_, err = workspaceDB.Exec(`UPDATE customers SET customer_no = $1 WHERE id = $2`, previousCustomerNo, knownOne.Customer.CustomerID)
+		require.NoError(t, err)
+		_, err = workspaceDB.Exec(`UPDATE customer_idempotency SET response = CASE
+			WHEN operation = 'customer.upsert' THEN jsonb_set(response, '{customer_no}', to_jsonb($1::text), false)
+			WHEN operation = 'customer.merge' THEN jsonb_set(response, '{target_customer_no}', to_jsonb($1::text), false)
+			ELSE response END
+			WHERE (operation = 'customer.upsert' AND idempotency_key = 'known-one')
+				OR (operation = 'customer.merge' AND idempotency_key = 'merge-anonymous-known')`, previousCustomerNo)
+		require.NoError(t, err)
+
+		migrationTx, txErr := workspaceDB.BeginTx(context.Background(), nil)
+		require.NoError(t, txErr)
+		require.NoError(t, (&migrations.V51Migration{}).UpdateWorkspace(context.Background(), suite.Config, workspaceOne, migrationTx))
+		require.NoError(t, migrationTx.Commit())
+		var authoritativeCustomerNo string
+		require.NoError(t, workspaceDB.QueryRow(`SELECT customer_no FROM customers WHERE id = $1`, knownOne.Customer.CustomerID).
+			Scan(&authoritativeCustomerNo))
+		assert.NotEqual(t, previousCustomerNo, authoritativeCustomerNo)
+
+		replayedUpsert := createKnown(workspaceOne.ID, "known-one")
+		assert.True(t, replayedUpsert.Customer.Replayed)
+		assert.Equal(t, authoritativeCustomerNo, replayedUpsert.Customer.CustomerNo)
+		replayedMergeResponse := postCustomer(t, suite.APIClient, "/api/customers.merge", mergeRequest, http.StatusOK)
+		var replayedMerge customerMergeEnvelope
+		decodeCustomerResponse(t, replayedMergeResponse, &replayedMerge)
+		assert.True(t, replayedMerge.Merge.Replayed)
+		assert.Equal(t, authoritativeCustomerNo, replayedMerge.Merge.TargetCustomerNo)
 	})
 
 	t.Run("legacy Contact backfill", func(t *testing.T) {
@@ -416,6 +451,18 @@ func TestCustomerProfileAPIIntegration(t *testing.T) {
 		var profileCount int
 		require.NoError(t, workspaceDB.QueryRow(`SELECT COUNT(*) FROM customer_profiles WHERE customer_id = $1`, customerID).Scan(&profileCount))
 		assert.Equal(t, 1, profileCount)
+
+		migrationTx, txErr := workspaceDB.BeginTx(context.Background(), nil)
+		require.NoError(t, txErr)
+		require.NoError(t, (&migrations.V51Migration{}).UpdateWorkspace(context.Background(), suite.Config, legacyWorkspace, migrationTx))
+		require.NoError(t, migrationTx.Commit())
+		var regeneratedCustomerID, regeneratedCustomerNo string
+		require.NoError(t, workspaceDB.QueryRow(`SELECT id, customer_no FROM customers WHERE id = $1`, customerID).
+			Scan(&regeneratedCustomerID, &regeneratedCustomerNo))
+		assert.Equal(t, customerID, regeneratedCustomerID)
+		assert.NotEqual(t, customerNo, regeneratedCustomerNo)
+		assert.True(t, integrationCustomerNumberPattern.MatchString(regeneratedCustomerNo))
+		assert.True(t, strings.HasPrefix(regeneratedCustomerNo, "U"+integrationWorkspaceCode(legacyWorkspace.Sequence)))
 	})
 
 	t.Run("legacy backfill rejects whitespace-normalized external ID collision", func(t *testing.T) {
@@ -460,6 +507,8 @@ type customerMergeEnvelope struct {
 	Merge struct {
 		SourceCustomerID string `json:"source_customer_id"`
 		TargetCustomerID string `json:"target_customer_id"`
+		TargetCustomerNo string `json:"target_customer_no"`
+		Replayed         bool   `json:"replayed"`
 	} `json:"merge"`
 }
 

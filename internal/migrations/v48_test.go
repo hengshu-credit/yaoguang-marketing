@@ -20,7 +20,7 @@ func TestV48MigrationMetadataAndRegistration(t *testing.T) {
 	assert.False(t, migration.HasSystemUpdate())
 	assert.True(t, migration.HasWorkspaceUpdate())
 	assert.False(t, migration.ShouldRestartServer())
-	assert.Equal(t, "50.0", config.VERSION)
+	assert.Equal(t, "51.0", config.VERSION)
 	registered, ok := GetRegisteredMigration(48.0)
 	require.True(t, ok)
 	assert.IsType(t, &V48Migration{}, registered)

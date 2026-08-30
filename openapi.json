@@ -8445,8 +8445,8 @@
           "customer_no": {
             "type": "string",
             "pattern": "^(U[0-9a-z]{3}[0-9]{14}08[0-9a-z]{6}|U[0-9]{4}[0-9]{14}08[0-9a-f]{32})$",
-            "example": "U00r2026083015304508k7m2x9",
-            "description": "Yaoguang public customer number. New numbers use U + three-character Base36 workspace code + Asia/Shanghai timestamp + 08 + six-character Base36 random suffix. Legacy 53-character numbers remain accepted."
+            "example": "U0272026083015304508k7m2x9",
+            "description": "Yaoguang public customer number. New numbers use U + three-character workspace code (001-999 are numeric; extended codes start at a00) + Asia/Shanghai timestamp + 08 + six-character Base36 random suffix. Previously generated and legacy 53-character numbers remain accepted."
           },
           "external_user_id": {
             "type": "string",

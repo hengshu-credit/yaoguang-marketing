@@ -951,6 +951,12 @@ func unsetCustomerAttributePath(attributes map[string]interface{}, path []string
 // GenerateCustomerNumber creates the immutable business-facing Customer number.
 // The internal UUID remains the relational and runtime authority.
 func GenerateCustomerNumber(workspaceSequence uint16, at time.Time, customerID uuid.UUID) (string, error) {
+	return GenerateCustomerNumberWithSuffixOffset(workspaceSequence, at, customerID, 0)
+}
+
+// GenerateCustomerNumberWithSuffixOffset creates a deterministic alternative
+// for the rare case where two existing customers map to the same short suffix.
+func GenerateCustomerNumberWithSuffixOffset(workspaceSequence uint16, at time.Time, customerID uuid.UUID, suffixOffset uint64) (string, error) {
 	if workspaceSequence < MinWorkspaceSequence || workspaceSequence > MaxWorkspaceSequence {
 		return "", fmt.Errorf("workspace sequence must be between %04d and %04d", MinWorkspaceSequence, MaxWorkspaceSequence)
 	}
@@ -958,8 +964,14 @@ func GenerateCustomerNumber(workspaceSequence uint16, at time.Time, customerID u
 		return "", fmt.Errorf("customer ID must not be nil")
 	}
 
-	workspaceCode := strconv.FormatUint(uint64(workspaceSequence), 36)
-	workspaceCode = strings.Repeat("0", 3-len(workspaceCode)) + workspaceCode
+	var workspaceCode string
+	if workspaceSequence <= 999 {
+		workspaceCode = fmt.Sprintf("%03d", workspaceSequence)
+	} else {
+		extension := uint64(workspaceSequence - 1000)
+		extensionSuffix := strconv.FormatUint(extension%(36*36), 36)
+		workspaceCode = string(rune('a')+rune(extension/(36*36))) + strings.Repeat("0", 2-len(extensionSuffix)) + extensionSuffix
+	}
 
 	// The UUID remains the internal authority and entropy source. Folding all
 	// 128 bits keeps the public identifier short without exposing the UUID.
@@ -967,6 +979,7 @@ func GenerateCustomerNumber(workspaceSequence uint16, at time.Time, customerID u
 	for _, value := range customerID {
 		suffixValue = (suffixValue*256 + uint64(value)) % customerNumberRandomSpace
 	}
+	suffixValue = (suffixValue + suffixOffset%customerNumberRandomSpace) % customerNumberRandomSpace
 	randomSuffix := strconv.FormatUint(suffixValue, 36)
 	randomSuffix = strings.Repeat("0", 6-len(randomSuffix)) + randomSuffix
 	return fmt.Sprintf(

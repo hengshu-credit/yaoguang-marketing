@@ -28,7 +28,7 @@ func TestV50MigrationCreatesJourneyAuthorityAndBackfillsCustomers(t *testing.T) 
 	err = (&V50Migration{}).UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "workspace-1"}, db)
 	require.NoError(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
-	assert.Equal(t, "50.0", config.VERSION)
+	assert.Equal(t, "51.0", config.VERSION)
 }
 
 func TestV50MigrationIsRegistered(t *testing.T) {
