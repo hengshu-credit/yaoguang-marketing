@@ -938,6 +938,7 @@ func (a *App) InitServices() error {
 		a.eventBus,
 		true, // useQueueSender - use queue-based message sender for broadcasts
 	)
+	broadcastFactory.SetDeliveryRepository(a.deliveryRepo)
 
 	// Register the broadcast factory with the task service
 	broadcastFactory.RegisterWithTaskService(a.taskService)

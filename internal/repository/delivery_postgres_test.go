@@ -181,3 +181,20 @@ func TestDeliveryReserveAndEnqueueRollsBackWhenQueueInsertFails(t *testing.T) {
 	assert.ErrorIs(t, err, queueErr)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestDeliveryRepositoryResolvesAuthorityCustomerID(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+	repo := NewDeliveryRepositoryWithDB(db)
+
+	mock.ExpectQuery("SELECT customer_id::text FROM contacts").
+		WithArgs("recipient@example.com").
+		WillReturnRows(sqlmock.NewRows([]string{"customer_id"}).
+			AddRow("22222222-2222-4222-8222-222222222222"))
+
+	customerID, err := repo.ResolveCustomerID(context.Background(), "workspace-1", "recipient@example.com")
+	require.NoError(t, err)
+	assert.Equal(t, "22222222-2222-4222-8222-222222222222", customerID)
+	require.NoError(t, mock.ExpectationsWereMet())
+}

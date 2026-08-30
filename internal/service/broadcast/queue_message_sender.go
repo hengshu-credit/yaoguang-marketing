@@ -3,14 +3,21 @@ package broadcast
 import (
 	"context"
 	crand "crypto/rand"
+	"crypto/sha256"
+	"encoding/binary"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
+	"sort"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
-	"github.com/google/uuid"
 )
 
 // queueMessageSender implements the MessageSender interface by enqueueing to the email queue
@@ -18,6 +25,7 @@ import (
 // and provides a unified queue for both broadcasts and automations.
 type queueMessageSender struct {
 	queueRepo          domain.EmailQueueRepository
+	deliveryRepo       domain.DeliveryRepository
 	broadcastRepo      domain.BroadcastRepository
 	messageHistoryRepo domain.MessageHistoryRepository
 	templateRepo       domain.TemplateRepository
@@ -38,17 +46,49 @@ func NewQueueMessageSender(
 	config *Config,
 	apiEndpoint string,
 ) MessageSender {
+	return newQueueMessageSender(queueRepo, nil, broadcastRepo, messageHistoryRepo, templateRepo, dataFeedFetcher, logger, config, apiEndpoint)
+}
+
+// NewQueueMessageSenderWithDelivery enables the crash-safe Delivery Intent
+// path while the legacy constructor remains available to compatibility tests
+// and direct integrations during the staged rollout.
+func NewQueueMessageSenderWithDelivery(
+	queueRepo domain.EmailQueueRepository,
+	deliveryRepo domain.DeliveryRepository,
+	broadcastRepo domain.BroadcastRepository,
+	messageHistoryRepo domain.MessageHistoryRepository,
+	templateRepo domain.TemplateRepository,
+	dataFeedFetcher DataFeedFetcher,
+	logger logger.Logger,
+	config *Config,
+	apiEndpoint string,
+) MessageSender {
+	return newQueueMessageSender(queueRepo, deliveryRepo, broadcastRepo, messageHistoryRepo, templateRepo, dataFeedFetcher, logger, config, apiEndpoint)
+}
+
+func newQueueMessageSender(
+	queueRepo domain.EmailQueueRepository,
+	deliveryRepo domain.DeliveryRepository,
+	broadcastRepo domain.BroadcastRepository,
+	messageHistoryRepo domain.MessageHistoryRepository,
+	templateRepo domain.TemplateRepository,
+	dataFeedFetcher DataFeedFetcher,
+	log logger.Logger,
+	config *Config,
+	apiEndpoint string,
+) MessageSender {
 	if config == nil {
 		config = DefaultConfig()
 	}
 
 	return &queueMessageSender{
 		queueRepo:          queueRepo,
+		deliveryRepo:       deliveryRepo,
 		broadcastRepo:      broadcastRepo,
 		messageHistoryRepo: messageHistoryRepo,
 		templateRepo:       templateRepo,
 		dataFeedFetcher:    dataFeedFetcher,
-		logger:             logger,
+		logger:             log,
 		config:             config,
 		apiEndpoint:        apiEndpoint,
 	}
@@ -79,7 +119,22 @@ func (s *queueMessageSender) SendToRecipient(
 		return err
 	}
 
-	// Enqueue the email
+	// Delivery-enabled deployments reserve the logical send and queue row in one
+	// transaction. Legacy callers keep the original enqueue path during rollout.
+	if s.deliveryRepo != nil {
+		customerID, resolveErr := s.deliveryRepo.ResolveCustomerID(ctx, workspaceID, email)
+		if resolveErr != nil {
+			return NewBroadcastError(ErrCodeSendFailed, "failed to resolve delivery customer", true, resolveErr)
+		}
+		if strings.TrimSpace(customerID) == "" {
+			return NewBroadcastError(ErrCodeSendFailed, "delivery customer authority is missing", false, nil)
+		}
+		phase := broadcastDeliveryPhase(broadcast)
+		if _, reserveErr := s.reserveBroadcastEntry(ctx, workspaceID, broadcast, customerID, email, phase, "individual", template, entry); reserveErr != nil {
+			return NewBroadcastError(ErrCodeSendFailed, "failed to reserve delivery", true, reserveErr)
+		}
+		return nil
+	}
 	if err := s.queueRepo.Enqueue(ctx, workspaceID, []*domain.EmailQueueEntry{entry}); err != nil {
 		s.logger.WithFields(map[string]interface{}{
 			"broadcast_id": broadcast.ID,
@@ -123,8 +178,9 @@ func (s *queueMessageSender) SendBatch(
 	// Build queue entries
 	var entries []*domain.EmailQueueEntry
 	var buildErrors int
+	var deliveryProcessed int
 
-	for _, recipient := range recipients {
+	for recipientIndex, recipient := range recipients {
 		// Check timeout
 		if time.Now().After(timeoutAt) {
 			s.logger.WithFields(map[string]interface{}{
@@ -134,15 +190,58 @@ func (s *queueMessageSender) SendBatch(
 			break
 		}
 
-		// Select template (for A/B testing, use first template or random selection)
-		template := s.selectTemplate(templates, broadcast)
-		if template == nil {
+		if recipient == nil || recipient.Contact == nil || strings.TrimSpace(recipient.Contact.Email) == "" {
 			buildErrors++
 			continue
 		}
 
+		customerID := recipient.CustomerID
+		phase := recipient.DeliveryPhase
+		occurrence := ""
+		if s.deliveryRepo != nil {
+			if customerID == "" {
+				customerID, err = s.deliveryRepo.ResolveCustomerID(ctx, workspaceID, recipient.Contact.Email)
+				if err != nil {
+					return 0, 0, NewBroadcastError(ErrCodeSendFailed, "failed to resolve delivery customer", true, err)
+				}
+				if strings.TrimSpace(customerID) == "" {
+					return 0, 0, NewBroadcastError(ErrCodeSendFailed, "delivery customer authority is missing", false, nil)
+				}
+				recipient.CustomerID = customerID
+			}
+			if phase == "" {
+				phase = broadcastDeliveryPhase(broadcast)
+				recipient.DeliveryPhase = phase
+			}
+			ordinal := recipient.SnapshotOrdinal
+			if ordinal <= 0 {
+				ordinal = int64(recipientIndex + 1)
+				recipient.SnapshotOrdinal = ordinal
+			}
+			occurrence = strconv.FormatInt(ordinal, 10)
+		}
+
+		// Delivery-enabled sends freeze the A/B variant deterministically. The
+		// legacy path keeps its existing selector until all producers are cut over.
+		template := s.selectTemplate(templates, broadcast)
+		if s.deliveryRepo != nil {
+			template = selectStableBroadcastTemplate(templates, broadcast, customerID, recipient.Contact.Email, occurrence)
+		}
+		if template == nil {
+			buildErrors++
+			continue
+		}
+		recipient.DeliveryVariant = template.ID
+
 		// Generate message ID
 		messageID := fmt.Sprintf("%s_%s", workspaceID, uuid.New().String())
+		if s.deliveryRepo != nil {
+			effectKey, keyErr := broadcastDeliveryEffectKey(workspaceID, broadcast, customerID, recipient.Contact.Email, phase, occurrence, template.ID)
+			if keyErr != nil {
+				return 0, 0, keyErr
+			}
+			messageID = deterministicBroadcastMessageID(workspaceID, effectKey)
+		}
 
 		// Default utm_content on a per-recipient copy: the broadcast is shared
 		// across recipients and A/B variants differ per recipient, so the shared
@@ -243,7 +342,19 @@ func (s *queueMessageSender) SendBatch(
 			continue
 		}
 
+		if s.deliveryRepo != nil {
+			if _, reserveErr := s.reserveBroadcastEntry(ctx, workspaceID, broadcast, customerID, recipient.Contact.Email, phase, occurrence, template, entry); reserveErr != nil {
+				return 0, 0, NewBroadcastError(ErrCodeSendFailed, "failed to reserve recipient delivery", true, reserveErr)
+			}
+			deliveryProcessed++
+			continue
+		}
+
 		entries = append(entries, entry)
+	}
+
+	if s.deliveryRepo != nil {
+		return deliveryProcessed, buildErrors, nil
 	}
 
 	if len(entries) == 0 {
@@ -456,4 +567,126 @@ func (s *queueMessageSender) selectTemplate(templates map[string]*domain.Templat
 	}
 
 	return templates[templateIDs[n.Int64()]]
+}
+
+func broadcastDeliverySourceVersion(broadcast *domain.Broadcast) string {
+	if broadcast != nil && broadcast.Metadata != nil {
+		if version, ok := broadcast.Metadata["source_version"].(string); ok && strings.TrimSpace(version) != "" {
+			return strings.TrimSpace(version)
+		}
+	}
+	if broadcast != nil && !broadcast.CreatedAt.IsZero() {
+		return broadcast.CreatedAt.UTC().Format(time.RFC3339Nano)
+	}
+	return "1"
+}
+
+func broadcastDeliveryPhase(broadcast *domain.Broadcast) string {
+	if broadcast != nil && broadcast.WinningTemplate != nil {
+		return "winner"
+	}
+	if broadcast != nil && broadcast.TestSettings.Enabled {
+		return "test"
+	}
+	return "single"
+}
+
+func selectStableBroadcastTemplate(templates map[string]*domain.Template, broadcast *domain.Broadcast, customerID, email, occurrence string) *domain.Template {
+	if len(templates) == 0 {
+		return nil
+	}
+	if broadcast != nil && broadcast.WinningTemplate != nil {
+		if template := templates[*broadcast.WinningTemplate]; template != nil {
+			return template
+		}
+	}
+	if broadcast != nil && !broadcast.TestSettings.Enabled && len(broadcast.TestSettings.Variations) > 0 {
+		if template := templates[broadcast.TestSettings.Variations[0].TemplateID]; template != nil {
+			return template
+		}
+	}
+	ids := make([]string, 0, len(templates))
+	for id := range templates {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	identity := customerID
+	if identity == "" {
+		identity = domain.NormalizeEmail(email)
+	}
+	sum := sha256.Sum256([]byte(strings.Join([]string{
+		broadcast.ID, broadcastDeliverySourceVersion(broadcast), identity, occurrence,
+	}, "\x00")))
+	index := binary.BigEndian.Uint64(sum[:8]) % uint64(len(ids))
+	return templates[ids[index]]
+}
+
+func broadcastDeliveryEffectKey(workspaceID string, broadcast *domain.Broadcast, customerID, email, phase, occurrence, variant string) (string, error) {
+	if broadcast == nil {
+		return "", fmt.Errorf("broadcast is required")
+	}
+	identity := strings.TrimSpace(customerID)
+	if identity == "" {
+		return "", fmt.Errorf("customer authority id is required for broadcast delivery")
+	}
+	return (domain.DeliveryEffectKeyInput{
+		WorkspaceID: workspaceID, SourceType: string(domain.DeliverySourceBroadcast),
+		SourceID: broadcast.ID, SourceVersion: broadcastDeliverySourceVersion(broadcast),
+		CustomerID: identity, NodeOrPhase: phase, Occurrence: occurrence, Variant: variant,
+	}).EffectKey()
+}
+
+func deterministicBroadcastMessageID(workspaceID, effectKey string) string {
+	return fmt.Sprintf("%s_%s", workspaceID, uuid.NewSHA1(uuid.NameSpaceOID, []byte(effectKey)).String())
+}
+
+func broadcastDeliveryRequestHash(broadcast *domain.Broadcast, customerID, email, phase, occurrence string, template *domain.Template, entry *domain.EmailQueueEntry) (string, error) {
+	fingerprint := struct {
+		BroadcastID     string                   `json:"broadcast_id"`
+		SourceVersion   string                   `json:"source_version"`
+		CustomerID      string                   `json:"customer_id,omitempty"`
+		Email           string                   `json:"email"`
+		Phase           string                   `json:"phase"`
+		Occurrence      string                   `json:"occurrence"`
+		TemplateID      string                   `json:"template_id"`
+		TemplateVersion int64                    `json:"template_version"`
+		IntegrationID   string                   `json:"integration_id"`
+		ProviderKind    domain.EmailProviderKind `json:"provider_kind"`
+		FromAddress     string                   `json:"from_address"`
+		FromName        string                   `json:"from_name"`
+		Subject         string                   `json:"subject"`
+		ReplyTo         string                   `json:"reply_to"`
+	}{
+		BroadcastID: broadcast.ID, SourceVersion: broadcastDeliverySourceVersion(broadcast),
+		CustomerID: customerID, Email: domain.NormalizeEmail(email), Phase: phase, Occurrence: occurrence,
+		TemplateID: template.ID, TemplateVersion: template.Version, IntegrationID: entry.IntegrationID,
+		ProviderKind: entry.ProviderKind, FromAddress: entry.Payload.FromAddress, FromName: entry.Payload.FromName,
+		Subject: entry.Payload.Subject, ReplyTo: entry.Payload.EmailOptions.ReplyTo,
+	}
+	encoded, err := json.Marshal(fingerprint)
+	if err != nil {
+		return "", fmt.Errorf("encode broadcast delivery request: %w", err)
+	}
+	sum := sha256.Sum256(encoded)
+	return hex.EncodeToString(sum[:]), nil
+}
+
+func (s *queueMessageSender) reserveBroadcastEntry(ctx context.Context, workspaceID string, broadcast *domain.Broadcast, customerID, email, phase, occurrence string, template *domain.Template, entry *domain.EmailQueueEntry) (domain.ReserveDeliveryResult, error) {
+	effectKey, err := broadcastDeliveryEffectKey(workspaceID, broadcast, customerID, email, phase, occurrence, template.ID)
+	if err != nil {
+		return domain.ReserveDeliveryResult{}, err
+	}
+	requestHash, err := broadcastDeliveryRequestHash(broadcast, customerID, email, phase, occurrence, template, entry)
+	if err != nil {
+		return domain.ReserveDeliveryResult{}, err
+	}
+	entry.ID = uuid.NewSHA1(uuid.NameSpaceOID, []byte("email-queue:"+effectKey)).String()
+	intent := domain.DeliveryIntent{
+		EffectKey: effectKey, RequestHash: requestHash, SourceType: domain.DeliverySourceBroadcast,
+		SourceID: broadcast.ID, SourceVersion: broadcastDeliverySourceVersion(broadcast), CustomerID: customerID,
+		Channel: "email", TemplateID: template.ID, TemplateVersion: template.Version,
+		NodeOrPhase: phase, Occurrence: occurrence, Variant: template.ID, Status: domain.DeliveryStatusReserved,
+		Metadata: domain.MapOfAny{"recipient_email": domain.NormalizeEmail(email)},
+	}
+	return s.deliveryRepo.ReserveAndEnqueue(ctx, workspaceID, intent, entry)
 }

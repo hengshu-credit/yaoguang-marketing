@@ -15,12 +15,19 @@ type Factory struct {
 	taskRepo           domain.TaskRepository
 	workspaceRepo      domain.WorkspaceRepository
 	emailQueueRepo     domain.EmailQueueRepository
+	deliveryRepo       domain.DeliveryRepository
 	dataFeedFetcher    DataFeedFetcher
 	logger             logger.Logger
 	config             *Config
 	apiEndpoint        string
 	eventBus           domain.EventBus
 	useQueueSender     bool
+}
+
+// SetDeliveryRepository enables the unified Delivery Intent path without
+// widening the long-standing factory constructor used by integrations.
+func (f *Factory) SetDeliveryRepository(repo domain.DeliveryRepository) {
+	f.deliveryRepo = repo
 }
 
 // NewFactory creates a new factory for broadcast components
@@ -67,6 +74,19 @@ func NewFactory(
 // for processing by the queue worker. Otherwise, it creates a direct sender.
 func (f *Factory) CreateMessageSender() MessageSender {
 	if f.useQueueSender && f.emailQueueRepo != nil {
+		if f.deliveryRepo != nil {
+			return NewQueueMessageSenderWithDelivery(
+				f.emailQueueRepo,
+				f.deliveryRepo,
+				f.broadcastRepo,
+				f.messageHistoryRepo,
+				f.templateRepo,
+				f.dataFeedFetcher,
+				f.logger,
+				f.config,
+				f.apiEndpoint,
+			)
+		}
 		return NewQueueMessageSender(
 			f.emailQueueRepo,
 			f.broadcastRepo,

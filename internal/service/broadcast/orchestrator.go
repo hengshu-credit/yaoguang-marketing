@@ -1142,6 +1142,16 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 
 		// Resolve the tracking/base endpoint: custom endpoint if set, else the API endpoint.
 		endpoint := workspace.Settings.ResolveEndpoint(o.apiEndpoint)
+		for index, recipient := range recipients {
+			if recipient == nil {
+				continue
+			}
+			recipient.SnapshotOrdinal = int64(currentOffset + index + 1)
+			recipient.DeliveryPhase = broadcastState.Phase
+			if recipient.DeliveryPhase == "" {
+				recipient.DeliveryPhase = "single"
+			}
+		}
 
 		// Process this batch of recipients
 		sent, failed, sendErr := o.messageSender.SendBatch(
@@ -1382,7 +1392,12 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				"error":        saveErr.Error(),
 			}).Error("Failed to save progress state")
 			// codecov:ignore:end
-			// Continue processing despite save error
+			// The ledger makes replay safe, but advancing another batch without a
+			// durable checkpoint creates unbounded recovery work and can observe a
+			// changed audience. Stop immediately; the next run replays this cursor
+			// and the effect-key uniqueness boundary absorbs duplicates.
+			err = saveErr
+			return false, err
 		}
 
 		// Update local counters for state

@@ -12,8 +12,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/hengshu-credit/yaoguang-marketing/pkg/crypto"
 	"github.com/asaskevich/govalidator"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/crypto"
 	"github.com/tidwall/gjson"
 )
 
@@ -1114,7 +1114,11 @@ func (c *Contact) ToMapOfAny() (MapOfAny, error) {
 
 // ContactWithList represents a contact with information about which list it belongs to
 type ContactWithList struct {
-	Contact  *Contact `json:"contact"`   // The contact
-	ListID   string   `json:"list_id"`   // ID of the list that the contact belongs to
-	ListName string   `json:"list_name"` // Name of the list that the contact belongs to
+	Contact         *Contact `json:"contact"`   // The contact
+	ListID          string   `json:"list_id"`   // ID of the list that the contact belongs to
+	ListName        string   `json:"list_name"` // Name of the list that the contact belongs to
+	CustomerID      string   `json:"customer_id,omitempty"`
+	SnapshotOrdinal int64    `json:"snapshot_ordinal,omitempty"`
+	DeliveryPhase   string   `json:"delivery_phase,omitempty"`
+	DeliveryVariant string   `json:"delivery_variant,omitempty"`
 }

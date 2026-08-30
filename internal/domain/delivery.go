@@ -224,6 +224,7 @@ type ReserveDeliveryResult struct {
 type DeliveryRepository interface {
 	ReserveIntent(context.Context, string, DeliveryIntent) (DeliveryIntent, bool, error)
 	ReserveAndEnqueue(context.Context, string, DeliveryIntent, *EmailQueueEntry) (ReserveDeliveryResult, error)
+	ResolveCustomerID(context.Context, string, string) (string, error)
 	GetIntentByEffectKey(context.Context, string, string) (*DeliveryIntent, error)
 	TransitionIntent(context.Context, string, string, DeliveryStatus, DeliveryStatus, time.Time) (bool, error)
 }

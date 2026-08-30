@@ -224,6 +224,26 @@ func (r *DeliveryPostgresRepository) GetIntentByEffectKey(ctx context.Context, w
 	return &intent, nil
 }
 
+func (r *DeliveryPostgresRepository) ResolveCustomerID(ctx context.Context, workspaceID, email string) (string, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return "", fmt.Errorf("get workspace database: %w", err)
+	}
+	var customerID sql.NullString
+	err = db.QueryRowContext(ctx, `SELECT customer_id::text FROM contacts
+		WHERE LOWER(BTRIM(email)) = LOWER(BTRIM($1::text))`, email).Scan(&customerID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("resolve delivery customer by email: %w", err)
+	}
+	if customerID.Valid {
+		return customerID.String, nil
+	}
+	return "", nil
+}
+
 func (r *DeliveryPostgresRepository) TransitionIntent(ctx context.Context, workspaceID, intentID string, from, to domain.DeliveryStatus, at time.Time) (bool, error) {
 	if !from.CanTransitionTo(to) {
 		return false, fmt.Errorf("delivery status transition %s to %s is not allowed", from, to)
