@@ -1,9 +1,13 @@
 package domain
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -109,4 +113,204 @@ type JourneyEnrollmentResult struct {
 	Outcome             JourneyEntryOutcome `json:"outcome"`
 	ContactAutomationID string              `json:"contact_automation_id,omitempty"`
 	RetryAt             *time.Time          `json:"retry_at,omitempty"`
+}
+
+type JourneyPreflightSeverity string
+
+const (
+	JourneyPreflightBlocking JourneyPreflightSeverity = "blocking"
+	JourneyPreflightWarning  JourneyPreflightSeverity = "warning"
+)
+
+type JourneyPreflightIssue struct {
+	Code        string                   `json:"code"`
+	Severity    JourneyPreflightSeverity `json:"severity"`
+	Title       string                   `json:"title"`
+	Description string                   `json:"description"`
+	NodeID      string                   `json:"node_id,omitempty"`
+	FixPath     string                   `json:"fix_path,omitempty"`
+}
+
+type JourneyTemplateCheck struct {
+	NodeID          string `json:"node_id"`
+	Channel         string `json:"channel"`
+	TemplateID      string `json:"template_id"`
+	TemplateVersion int64  `json:"template_version,omitempty"`
+	Exists          bool   `json:"exists"`
+	ChannelMatches  bool   `json:"channel_matches"`
+	ProviderReady   bool   `json:"provider_ready"`
+}
+
+// JourneyPreflightSnapshot is bounded configuration metadata. It never
+// contains Customer rows or audience members.
+type JourneyPreflightSnapshot struct {
+	Automation               *Automation            `json:"automation"`
+	TemplateChecks           []JourneyTemplateCheck `json:"template_checks,omitempty"`
+	VariableErrors           map[string][]string    `json:"variable_errors,omitempty"`
+	HasFrequencyPolicy       bool                   `json:"has_frequency_policy"`
+	MissingFrequencyChannels []string               `json:"missing_frequency_channels,omitempty"`
+}
+
+type JourneyPreflightRequest struct {
+	WorkspaceID  string `json:"workspace_id"`
+	AutomationID string `json:"automation_id"`
+}
+
+func (r JourneyPreflightRequest) Validate() error {
+	if strings.TrimSpace(r.WorkspaceID) == "" || strings.TrimSpace(r.AutomationID) == "" {
+		return errors.New("workspace_id and automation_id are required")
+	}
+	return nil
+}
+
+type JourneyPreflightResult struct {
+	WorkspaceID   string                  `json:"workspace_id"`
+	AutomationID  string                  `json:"automation_id"`
+	Issues        []JourneyPreflightIssue `json:"issues"`
+	BlockingCount int                     `json:"blocking_count"`
+	WarningCount  int                     `json:"warning_count"`
+	SummaryHash   string                  `json:"summary_hash"`
+	GeneratedAt   time.Time               `json:"generated_at"`
+	ExpiresAt     time.Time               `json:"expires_at"`
+}
+
+func (r *JourneyPreflightResult) Seal(automationUpdatedAt time.Time) error {
+	payload, err := json.Marshal(struct {
+		WorkspaceID  string                  `json:"workspace_id"`
+		AutomationID string                  `json:"automation_id"`
+		UpdatedAt    time.Time               `json:"updated_at"`
+		Issues       []JourneyPreflightIssue `json:"issues"`
+		ExpiresAt    time.Time               `json:"expires_at"`
+	}{r.WorkspaceID, r.AutomationID, automationUpdatedAt.UTC(), r.Issues, r.ExpiresAt.UTC()})
+	if err != nil {
+		return err
+	}
+	digest := sha256.Sum256(payload)
+	r.SummaryHash = hex.EncodeToString(digest[:]) + "." + strconv.FormatInt(r.ExpiresAt.Unix(), 10)
+	return nil
+}
+
+type JourneyPreflightSource interface {
+	LoadJourneyPreflightSnapshot(context.Context, string, string) (*JourneyPreflightSnapshot, error)
+}
+
+type JourneyPreflightEvaluator interface {
+	PreflightAutomation(context.Context, JourneyPreflightRequest) (*JourneyPreflightResult, error)
+	ValidateAutomationPreflight(context.Context, JourneyPreflightRequest, string, bool) error
+}
+
+var (
+	ErrJourneyPreflightRequired            = errors.New("journey activation preflight is required")
+	ErrJourneyPreflightChanged             = errors.New("journey activation preflight changed; run preflight again")
+	ErrJourneyPreflightBlocked             = errors.New("journey activation preflight contains blocking issues")
+	ErrJourneyPreflightWarningConfirmation = errors.New("journey activation warnings must be confirmed")
+	ErrJourneyTraceNotFound                = errors.New("journey trace not found")
+)
+
+type JourneyCustomerLocator struct {
+	CustomerID     string `json:"customer_id,omitempty"`
+	CustomerNo     string `json:"customer_no,omitempty"`
+	ExternalUserID string `json:"external_user_id,omitempty"`
+	Email          string `json:"email,omitempty"`
+}
+
+func (l JourneyCustomerLocator) Validate() error {
+	values := []string{l.CustomerID, l.CustomerNo, l.ExternalUserID, l.Email}
+	count := 0
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			count++
+		}
+	}
+	if count != 1 {
+		return errors.New("exactly one of customer_id, customer_no, external_user_id, or email is required")
+	}
+	return nil
+}
+
+type JourneyInstanceListRequest struct {
+	WorkspaceID  string                 `json:"workspace_id"`
+	AutomationID string                 `json:"automation_id,omitempty"`
+	Locator      JourneyCustomerLocator `json:"locator"`
+	Status       string                 `json:"status,omitempty"`
+	Limit        int                    `json:"limit,omitempty"`
+	Offset       int                    `json:"offset,omitempty"`
+}
+
+func (r *JourneyInstanceListRequest) Validate() error {
+	if strings.TrimSpace(r.WorkspaceID) == "" {
+		return errors.New("workspace_id is required")
+	}
+	if err := r.Locator.Validate(); err != nil {
+		return err
+	}
+	if r.Limit == 0 {
+		r.Limit = 50
+	}
+	if r.Limit < 1 || r.Limit > 200 || r.Offset < 0 {
+		return errors.New("limit must be between 1 and 200 and offset cannot be negative")
+	}
+	if r.Status != "" && !ContactAutomationStatus(r.Status).IsValid() {
+		return fmt.Errorf("invalid journey status: %s", r.Status)
+	}
+	return nil
+}
+
+type JourneyInstanceSummary struct {
+	JourneyInstance
+	AutomationID   string           `json:"automation_id"`
+	AutomationName string           `json:"automation_name"`
+	CustomerID     string           `json:"customer_id"`
+	CustomerNo     string           `json:"customer_no"`
+	ExternalUserID string           `json:"external_user_id,omitempty"`
+	ContactEmail   string           `json:"contact_email,omitempty"`
+	Frequency      TriggerFrequency `json:"frequency"`
+	OriginEventID  string           `json:"origin_event_id,omitempty"`
+	EntryDecision  string           `json:"entry_decision"`
+	EntryReason    string           `json:"entry_reason,omitempty"`
+}
+
+type JourneyTraceRequest struct {
+	WorkspaceID       string `json:"workspace_id"`
+	JourneyInstanceID string `json:"journey_instance_id"`
+}
+
+func (r JourneyTraceRequest) Validate() error {
+	if strings.TrimSpace(r.WorkspaceID) == "" || strings.TrimSpace(r.JourneyInstanceID) == "" {
+		return errors.New("workspace_id and journey_instance_id are required")
+	}
+	return nil
+}
+
+type JourneyTraceEvent struct {
+	ID         string                 `json:"id"`
+	NodeID     string                 `json:"node_id,omitempty"`
+	EventType  string                 `json:"event_type"`
+	Status     string                 `json:"status"`
+	Reason     string                 `json:"reason,omitempty"`
+	Payload    map[string]interface{} `json:"payload,omitempty"`
+	OccurredAt time.Time              `json:"occurred_at"`
+}
+
+type JourneyDeliveryLink struct {
+	Intent   DeliveryIntent        `json:"intent"`
+	Attempts []DeliveryAttempt     `json:"attempts,omitempty"`
+	Receipts []DeliveryReceiptLink `json:"receipts,omitempty"`
+}
+
+type JourneyTrace struct {
+	Instance   JourneyInstanceSummary `json:"instance"`
+	Decisions  []JourneyEntryDecision `json:"entry_decisions"`
+	Events     []JourneyTraceEvent    `json:"events"`
+	Deliveries []JourneyDeliveryLink  `json:"deliveries"`
+}
+
+type JourneyTraceSource interface {
+	ListJourneyInstances(context.Context, JourneyInstanceListRequest) ([]JourneyInstanceSummary, int, error)
+	GetJourneyTrace(context.Context, JourneyTraceRequest) (*JourneyTrace, error)
+}
+
+type JourneyTraceReader interface {
+	ListInstances(context.Context, JourneyInstanceListRequest) ([]JourneyInstanceSummary, int, error)
+	GetTrace(context.Context, JourneyTraceRequest) (*JourneyTrace, error)
 }

@@ -173,6 +173,8 @@ type App struct {
 	importJobService                 *service.ImportJobService
 	frequencyPolicyService           *service.FrequencyPolicyService
 	marketingPreflightService        *service.MarketingPreflightService
+	journeyPreflightService          *service.JourneyPreflightService
+	journeyTraceService              *service.JourneyTraceService
 	channelMessageService            *service.ChannelMessageService
 	notificationCenterService        *service.NotificationCenterService
 	demoService                      *service.DemoService
@@ -1198,6 +1200,22 @@ func (a *App) InitServices() error {
 		service.WithAutomationRealtimeMode(a.config.Realtime.Mode),
 		service.WithAutomationRealtimeOperations(reconciliationService, cutoverService),
 	)
+	journeyPreflightSource, err := service.NewAutomationJourneyPreflightSource(a.automationRepo, a.workspaceRepo, a.templateService)
+	if err != nil {
+		return fmt.Errorf("failed to initialize journey preflight source: %w", err)
+	}
+	a.journeyPreflightService, err = service.NewJourneyPreflightService(journeyPreflightSource, a.authService, time.Now)
+	if err != nil {
+		return fmt.Errorf("failed to initialize journey preflight service: %w", err)
+	}
+	journeyTraceSource, err := service.NewPostgresJourneyTraceSource(a.workspaceRepo)
+	if err != nil {
+		return fmt.Errorf("failed to initialize journey trace source: %w", err)
+	}
+	a.journeyTraceService, err = service.NewJourneyTraceService(journeyTraceSource, a.authService)
+	if err != nil {
+		return fmt.Errorf("failed to initialize journey trace service: %w", err)
+	}
 
 	// Initialize demo service
 	a.demoService = service.NewDemoService(
@@ -1636,6 +1654,7 @@ func (a *App) InitHandlers() error {
 		getJWTSecret,
 		a.logger,
 	)
+	automationHandler.SetJourneyServices(a.journeyPreflightService, a.journeyTraceService)
 	llmHandler := httpHandler.NewLLMHandler(
 		a.llmService,
 		getJWTSecret,

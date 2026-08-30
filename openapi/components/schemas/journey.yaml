@@ -1,0 +1,103 @@
+JourneyPreflightRequest:
+  type: object
+  additionalProperties: false
+  required: [workspace_id, automation_id]
+  properties:
+    workspace_id: { type: string }
+    automation_id: { type: string }
+
+JourneyPreflightIssue:
+  type: object
+  required: [code, severity, title, description]
+  properties:
+    code: { type: string }
+    severity: { type: string, enum: [blocking, warning] }
+    title: { type: string }
+    description: { type: string }
+    node_id: { type: string }
+    fix_path: { type: string }
+
+JourneyPreflightResult:
+  type: object
+  required: [workspace_id, automation_id, issues, blocking_count, warning_count, summary_hash, generated_at, expires_at]
+  properties:
+    workspace_id: { type: string }
+    automation_id: { type: string }
+    issues: { type: array, items: { $ref: '#/JourneyPreflightIssue' } }
+    blocking_count: { type: integer, minimum: 0 }
+    warning_count: { type: integer, minimum: 0 }
+    summary_hash: { type: string }
+    generated_at: { type: string, format: date-time }
+    expires_at: { type: string, format: date-time }
+
+ActivateAutomationRequest:
+  type: object
+  additionalProperties: false
+  required: [workspace_id, automation_id, preflight_hash]
+  properties:
+    workspace_id: { type: string }
+    automation_id: { type: string }
+    preflight_hash: { type: string }
+    confirm_warnings: { type: boolean, default: false }
+
+JourneyInstance:
+  type: object
+  required: [id, enrollment_id, status, automation_id, customer_id, customer_no, frequency, entry_decision, started_at]
+  properties:
+    id: { type: string, format: uuid }
+    enrollment_id: { type: string, format: uuid }
+    contact_automation_id: { type: string }
+    status: { type: string, enum: [active, completed, exited, failed] }
+    current_node_id: { type: string }
+    waiting_reason: { type: string }
+    next_scheduled_at: { type: string, format: date-time }
+    started_at: { type: string, format: date-time }
+    completed_at: { type: string, format: date-time }
+    automation_id: { type: string }
+    automation_name: { type: string }
+    customer_id: { type: string, format: uuid }
+    customer_no: { type: string }
+    external_user_id: { type: string }
+    contact_email: { type: string }
+    frequency: { type: string, enum: [once, every_time] }
+    origin_event_id: { type: string, format: uuid }
+    entry_decision: { type: string }
+    entry_reason: { type: string }
+
+JourneyInstanceListResponse:
+  type: object
+  required: [instances, total, limit, offset]
+  properties:
+    instances: { type: array, items: { $ref: '#/JourneyInstance' } }
+    total: { type: integer, minimum: 0 }
+    limit: { type: integer }
+    offset: { type: integer }
+
+JourneyTraceEvent:
+  type: object
+  required: [id, event_type, status, occurred_at]
+  properties:
+    id: { type: string, format: uuid }
+    node_id: { type: string }
+    event_type: { type: string }
+    status: { type: string }
+    reason: { type: string }
+    payload: { type: object, additionalProperties: true }
+    occurred_at: { type: string, format: date-time }
+
+JourneyTrace:
+  type: object
+  required: [instance, entry_decisions, events, deliveries]
+  properties:
+    instance: { $ref: '#/JourneyInstance' }
+    entry_decisions: { type: array, items: { type: object, additionalProperties: true } }
+    events: { type: array, items: { $ref: '#/JourneyTraceEvent' } }
+    deliveries:
+      type: array
+      items:
+        type: object
+        required: [intent]
+        properties:
+          intent: { $ref: './delivery.yaml#/DeliveryIntent' }
+          attempts: { type: array, items: { type: object, additionalProperties: true } }
+          receipts: { type: array, items: { type: object, additionalProperties: true } }

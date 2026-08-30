@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,10 +11,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
 	pkgmocks "github.com/hengshu-credit/yaoguang-marketing/pkg/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -165,6 +166,93 @@ func TestAutomationHandlerRealtimeCutoverEndpoints(t *testing.T) {
 
 		assert.Equal(t, http.StatusConflict, response.Code)
 	})
+}
+
+type journeyPreflightHTTPStub struct {
+	result      *domain.JourneyPreflightResult
+	validateErr error
+	validated   bool
+}
+
+func (s *journeyPreflightHTTPStub) PreflightAutomation(context.Context, domain.JourneyPreflightRequest) (*domain.JourneyPreflightResult, error) {
+	return s.result, nil
+}
+
+func (s *journeyPreflightHTTPStub) ValidateAutomationPreflight(_ context.Context, _ domain.JourneyPreflightRequest, _ string, _ bool) error {
+	s.validated = true
+	return s.validateErr
+}
+
+type journeyTraceHTTPStub struct {
+	instances []domain.JourneyInstanceSummary
+	trace     *domain.JourneyTrace
+	err       error
+}
+
+func (s journeyTraceHTTPStub) ListInstances(context.Context, domain.JourneyInstanceListRequest) ([]domain.JourneyInstanceSummary, int, error) {
+	return s.instances, len(s.instances), s.err
+}
+
+func (s journeyTraceHTTPStub) GetTrace(context.Context, domain.JourneyTraceRequest) (*domain.JourneyTrace, error) {
+	return s.trace, s.err
+}
+
+func TestAutomationHandlerJourneyPreflightAndTrace(t *testing.T) {
+	handler, automationSvc, mux, secretKey := setupAutomationTest(t)
+	preflight := &journeyPreflightHTTPStub{result: &domain.JourneyPreflightResult{WorkspaceID: "workspace-123", AutomationID: "auto-123", SummaryHash: "hash.1"}}
+	trace := journeyTraceHTTPStub{
+		instances: []domain.JourneyInstanceSummary{{JourneyInstance: domain.JourneyInstance{ID: "instance-1"}, CustomerID: "customer-1"}},
+		trace:     &domain.JourneyTrace{Instance: domain.JourneyInstanceSummary{JourneyInstance: domain.JourneyInstance{ID: "instance-1"}, CustomerID: "customer-1"}},
+	}
+	handler.SetJourneyServices(preflight, trace)
+	token := "Bearer " + createTestToken(t, secretKey, "test-user")
+
+	preflightBody, err := json.Marshal(domain.JourneyPreflightRequest{WorkspaceID: "workspace-123", AutomationID: "auto-123"})
+	require.NoError(t, err)
+	req := httptest.NewRequest(http.MethodPost, "/api/automations.preflight", bytes.NewReader(preflightBody))
+	req.Header.Set("Authorization", token)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Contains(t, w.Body.String(), "summary_hash")
+
+	automationSvc.EXPECT().Activate(gomock.Any(), "workspace-123", "auto-123").Return(nil)
+	activateBody, err := json.Marshal(domain.ActivateAutomationRequest{WorkspaceID: "workspace-123", AutomationID: "auto-123", PreflightHash: "hash.1", ConfirmWarnings: true})
+	require.NoError(t, err)
+	req = httptest.NewRequest(http.MethodPost, "/api/automations.activate", bytes.NewReader(activateBody))
+	req.Header.Set("Authorization", token)
+	w = httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+	require.True(t, preflight.validated)
+
+	req = httptest.NewRequest(http.MethodGet, "/api/journeys.instances?workspace_id=workspace-123&external_user_id=crm-1", nil)
+	req.Header.Set("Authorization", token)
+	w = httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Contains(t, w.Body.String(), "instance-1")
+
+	req = httptest.NewRequest(http.MethodGet, "/api/journeys.trace?workspace_id=workspace-123&journey_instance_id=instance-1", nil)
+	req.Header.Set("Authorization", token)
+	w = httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Contains(t, w.Body.String(), "customer-1")
+}
+
+func TestAutomationHandlerJourneyPreflightBlocksActivation(t *testing.T) {
+	handler, _, mux, secretKey := setupAutomationTest(t)
+	preflight := &journeyPreflightHTTPStub{validateErr: domain.ErrJourneyPreflightWarningConfirmation}
+	handler.SetJourneyServices(preflight, journeyTraceHTTPStub{})
+	body, err := json.Marshal(domain.ActivateAutomationRequest{WorkspaceID: "workspace-123", AutomationID: "auto-123", PreflightHash: "hash.1"})
+	require.NoError(t, err)
+	req := httptest.NewRequest(http.MethodPost, "/api/automations.activate", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	require.Equal(t, http.StatusBadRequest, w.Code)
+	require.Contains(t, w.Body.String(), "warnings must be confirmed")
 }
 
 func TestAutomationHandler_Get(t *testing.T) {

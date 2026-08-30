@@ -18,6 +18,14 @@ servers:
         description: Your Yaoguang Marketing deployment domain
         default: marketing.example.com
 paths:
+  /api/automations.preflight:
+    $ref: './paths/journeys.yaml#/~1api~1automations.preflight'
+  /api/automations.activate:
+    $ref: './paths/journeys.yaml#/~1api~1automations.activate'
+  /api/journeys.instances:
+    $ref: './paths/journeys.yaml#/~1api~1journeys.instances'
+  /api/journeys.trace:
+    $ref: './paths/journeys.yaml#/~1api~1journeys.trace'
   /api/audiences.create:
     $ref: './paths/audiences.yaml#/~1api~1audiences.create'
   /api/audiences.get:
@@ -171,6 +179,16 @@ components:
   schemas:
     ErrorResponse:
       $ref: './components/schemas/common.yaml#/ErrorResponse'
+    JourneyPreflightRequest:
+      $ref: './components/schemas/journey.yaml#/JourneyPreflightRequest'
+    JourneyPreflightResult:
+      $ref: './components/schemas/journey.yaml#/JourneyPreflightResult'
+    ActivateAutomationRequest:
+      $ref: './components/schemas/journey.yaml#/ActivateAutomationRequest'
+    JourneyInstance:
+      $ref: './components/schemas/journey.yaml#/JourneyInstance'
+    JourneyTrace:
+      $ref: './components/schemas/journey.yaml#/JourneyTrace'
     SendTransactionalRequest:
       $ref: './components/schemas/transactional.yaml#/SendTransactionalRequest'
     TransactionalNotificationSendParams:

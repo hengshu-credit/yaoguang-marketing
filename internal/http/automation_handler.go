@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/http/middleware"
@@ -13,8 +15,15 @@ import (
 // AutomationHandler handles HTTP requests for automation management
 type AutomationHandler struct {
 	service      domain.AutomationService
+	preflight    domain.JourneyPreflightEvaluator
+	trace        domain.JourneyTraceReader
 	logger       logger.Logger
 	getJWTSecret func() ([]byte, error)
+}
+
+func (h *AutomationHandler) SetJourneyServices(preflight domain.JourneyPreflightEvaluator, trace domain.JourneyTraceReader) {
+	h.preflight = preflight
+	h.trace = trace
 }
 
 // NewAutomationHandler creates a new AutomationHandler
@@ -40,6 +49,7 @@ func (h *AutomationHandler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Automation status management
 	mux.Handle("/api/automations.activate", requireAuth(http.HandlerFunc(h.handleActivate)))
+	mux.Handle("/api/automations.preflight", requireAuth(http.HandlerFunc(h.handlePreflight)))
 	mux.Handle("/api/automations.pause", requireAuth(http.HandlerFunc(h.handlePause)))
 	mux.Handle("/api/automations.realtimeAssess", requireAuth(http.HandlerFunc(h.handleRealtimeAssess)))
 	mux.Handle("/api/automations.realtimeActivatePrimary", requireAuth(http.HandlerFunc(h.handleRealtimeActivatePrimary)))
@@ -47,6 +57,42 @@ func (h *AutomationHandler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Node executions/debugging
 	mux.Handle("/api/automations.nodeExecutions", requireAuth(http.HandlerFunc(h.handleGetContactNodeExecutions)))
+	mux.Handle("/api/journeys.instances", requireAuth(http.HandlerFunc(h.handleJourneyInstances)))
+	mux.Handle("/api/journeys.trace", requireAuth(http.HandlerFunc(h.handleJourneyTrace)))
+}
+
+func (h *AutomationHandler) handlePreflight(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if h.preflight == nil {
+		WriteJSONError(w, "Journey preflight is not configured", http.StatusServiceUnavailable)
+		return
+	}
+	var req domain.JourneyPreflightRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if err := req.Validate(); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	result, err := h.preflight.PreflightAutomation(r.Context(), req)
+	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
+		if errors.Is(err, domain.ErrJourneyTraceNotFound) {
+			WriteJSONError(w, "Automation not found", http.StatusNotFound)
+			return
+		}
+		h.logger.WithField("error", err.Error()).Error("Failed to preflight automation")
+		WriteJSONError(w, "Failed to preflight automation", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"preflight": result})
 }
 
 func (h *AutomationHandler) handleRealtimeAssess(w http.ResponseWriter, r *http.Request) {
@@ -72,6 +118,79 @@ func (h *AutomationHandler) handleRealtimeAssess(w http.ResponseWriter, r *http.
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]interface{}{"assessment": assessment})
+}
+
+func (h *AutomationHandler) handleJourneyInstances(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if h.trace == nil {
+		WriteJSONError(w, "Journey trace is not configured", http.StatusServiceUnavailable)
+		return
+	}
+	query := r.URL.Query()
+	limit, err := parseOptionalInt(query.Get("limit"), 50)
+	if err != nil {
+		WriteJSONError(w, "limit must be an integer", http.StatusBadRequest)
+		return
+	}
+	offset, err := parseOptionalInt(query.Get("offset"), 0)
+	if err != nil {
+		WriteJSONError(w, "offset must be an integer", http.StatusBadRequest)
+		return
+	}
+	request := domain.JourneyInstanceListRequest{
+		WorkspaceID: query.Get("workspace_id"), AutomationID: query.Get("automation_id"), Status: query.Get("status"), Limit: limit, Offset: offset,
+		Locator: domain.JourneyCustomerLocator{CustomerID: query.Get("customer_id"), CustomerNo: query.Get("customer_no"), ExternalUserID: query.Get("external_user_id"), Email: query.Get("email")},
+	}
+	instances, total, err := h.trace.ListInstances(r.Context(), request)
+	if err != nil {
+		handleJourneyTraceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"instances": instances, "total": total, "limit": request.Limit, "offset": request.Offset})
+}
+
+func (h *AutomationHandler) handleJourneyTrace(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if h.trace == nil {
+		WriteJSONError(w, "Journey trace is not configured", http.StatusServiceUnavailable)
+		return
+	}
+	query := r.URL.Query()
+	trace, err := h.trace.GetTrace(r.Context(), domain.JourneyTraceRequest{WorkspaceID: query.Get("workspace_id"), JourneyInstanceID: query.Get("journey_instance_id")})
+	if err != nil {
+		handleJourneyTraceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"trace": trace})
+}
+
+func handleJourneyTraceError(w http.ResponseWriter, err error) {
+	if writePermissionError(w, err) {
+		return
+	}
+	if errors.Is(err, domain.ErrJourneyTraceNotFound) {
+		WriteJSONError(w, "Journey trace not found", http.StatusNotFound)
+		return
+	}
+	message := err.Error()
+	if strings.Contains(message, "required") || strings.Contains(message, "exactly one") || strings.Contains(message, "invalid") || strings.Contains(message, "limit") {
+		WriteJSONError(w, message, http.StatusBadRequest)
+		return
+	}
+	WriteJSONError(w, "Failed to load journey trace", http.StatusInternalServerError)
+}
+
+func parseOptionalInt(value string, fallback int) (int, error) {
+	if strings.TrimSpace(value) == "" {
+		return fallback, nil
+	}
+	return strconv.Atoi(value)
 }
 
 func (h *AutomationHandler) handleRealtimeActivatePrimary(w http.ResponseWriter, r *http.Request) {
@@ -310,6 +429,25 @@ func (h *AutomationHandler) handleActivate(w http.ResponseWriter, r *http.Reques
 	if err := req.Validate(); err != nil {
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
+	}
+	if h.preflight != nil {
+		if err := h.preflight.ValidateAutomationPreflight(r.Context(), domain.JourneyPreflightRequest{
+			WorkspaceID: req.WorkspaceID, AutomationID: req.AutomationID,
+		}, req.PreflightHash, req.ConfirmWarnings); err != nil {
+			if writePermissionError(w, err) {
+				return
+			}
+			if errors.Is(err, domain.ErrJourneyPreflightRequired) ||
+				errors.Is(err, domain.ErrJourneyPreflightChanged) ||
+				errors.Is(err, domain.ErrJourneyPreflightBlocked) ||
+				errors.Is(err, domain.ErrJourneyPreflightWarningConfirmation) {
+				WriteJSONError(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			h.logger.WithField("error", err.Error()).Error("Failed to validate automation preflight")
+			WriteJSONError(w, "Failed to validate automation preflight", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	if err := h.service.Activate(r.Context(), req.WorkspaceID, req.AutomationID); err != nil {

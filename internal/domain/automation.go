@@ -1116,8 +1116,10 @@ func (r *DeleteAutomationRequest) Validate() error {
 
 // ActivateAutomationRequest represents the request to activate an automation
 type ActivateAutomationRequest struct {
-	WorkspaceID  string `json:"workspace_id"`
-	AutomationID string `json:"automation_id"`
+	WorkspaceID     string `json:"workspace_id"`
+	AutomationID    string `json:"automation_id"`
+	PreflightHash   string `json:"preflight_hash"`
+	ConfirmWarnings bool   `json:"confirm_warnings,omitempty"`
 }
 
 // Validate validates the activate automation request
