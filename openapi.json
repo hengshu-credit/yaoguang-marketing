@@ -27,6 +27,347 @@
     }
   ],
   "paths": {
+    "/api/timeline.list": {
+      "get": {
+        "summary": "List a Customer activity timeline",
+        "description": "Supply exactly one of customer_id or email. Customer 360 should use customer_id; email remains available for legacy Contact workflows.",
+        "operationId": "listCustomerTimeline",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customer_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customer activity timeline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "timeline"
+                  ],
+                  "properties": {
+                    "timeline": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CustomerTimelineEntry"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or ambiguous Customer locator"
+          },
+          "403": {
+            "description": "Customer or Contact read permission required"
+          }
+        }
+      }
+    },
+    "/api/automations.preflight": {
+      "post": {
+        "summary": "Validate a Journey before activation",
+        "description": "Recomputes trigger, graph, content, provider, variable, frequency-policy, and webhook checks. This does not add an approval step.",
+        "operationId": "preflightAutomation",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JourneyPreflightRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Short-lived activation preflight",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "preflight"
+                  ],
+                  "properties": {
+                    "preflight": {
+                      "$ref": "#/components/schemas/JourneyPreflightResult"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "403": {
+            "description": "Automations read permission required"
+          },
+          "404": {
+            "description": "Automation not found"
+          }
+        }
+      }
+    },
+    "/api/automations.activate": {
+      "post": {
+        "summary": "Activate a Journey after a valid preflight",
+        "description": "The backend recomputes all blocking checks. Warnings require confirm_warnings; no approval workflow is added.",
+        "operationId": "activateAutomation",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateAutomationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Journey activated"
+          },
+          "400": {
+            "description": "Preflight missing, expired, changed, blocked, or warnings not confirmed"
+          },
+          "403": {
+            "description": "Automations write permission required"
+          },
+          "409": {
+            "description": "Automation status changed concurrently"
+          }
+        }
+      }
+    },
+    "/api/journeys.instances": {
+      "get": {
+        "summary": "List Journey instances for one Customer",
+        "operationId": "listJourneyInstances",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "automation_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customer_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "customer_no",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "external_user_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "completed",
+                "exited",
+                "failed"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customer Journey instances",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JourneyInstanceListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Exactly one Customer locator is required"
+          },
+          "403": {
+            "description": "Automations read permission required"
+          },
+          "404": {
+            "description": "Customer not found in this Workspace"
+          }
+        }
+      }
+    },
+    "/api/journeys.trace": {
+      "get": {
+        "summary": "Get the explainable trace for one Journey instance",
+        "operationId": "getJourneyTrace",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "journey_instance_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Entry decisions, node events, waits, and delivery links",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "trace"
+                  ],
+                  "properties": {
+                    "trace": {
+                      "$ref": "#/components/schemas/JourneyTrace"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Automations read permission required"
+          },
+          "404": {
+            "description": "Journey instance not found in this Workspace"
+          }
+        }
+      }
+    },
     "/api/audiences.create": {
       "post": {
         "summary": "Create a versioned audience",
@@ -301,6 +642,67 @@
             "in": "query",
             "schema": {
               "$ref": "#/components/schemas/DeliveryStatus"
+            }
+          },
+          {
+            "name": "channel",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by delivery channel."
+          },
+          {
+            "name": "source_type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "broadcast",
+                "campaign",
+                "automation",
+                "api",
+                "legacy"
+              ]
+            }
+          },
+          {
+            "name": "source_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "provider",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Match any provider attempt for the delivery."
+          },
+          {
+            "name": "customer_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Customer UUID, Yaoguang customer number, or external user ID."
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
             }
           },
           {
@@ -3082,8 +3484,187 @@
               }
             }
           },
+          "412": {
+            "description": "Preflight is missing, blocked, expired, or changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/broadcasts.preflight": {
+      "post": {
+        "summary": "Preflight a broadcast before sending",
+        "description": "Computes aggregate reachability, consent, suppression, template, provider, audience, and frequency checks on the server. No approval workflow is added.",
+        "operationId": "preflightBroadcast",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketingPreflightRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current preflight result and short-lived summary hash",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketingPreflightResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Preflight failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/frequencyPolicies.list": {
+      "get": {
+        "summary": "List current frequency policy versions",
+        "operationId": "listFrequencyPolicies",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest version of every policy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "policies"
+                  ],
+                  "properties": {
+                    "policies": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/FrequencyPolicy"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/frequencyPolicies.save": {
+      "post": {
+        "summary": "Save an immutable frequency policy version",
+        "operationId": "saveFrequencyPolicy",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveFrequencyPolicyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved policy version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "policy"
+                  ],
+                  "properties": {
+                    "policy": {
+                      "$ref": "#/components/schemas/FrequencyPolicy"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid policy",
             "content": {
               "application/json": {
                 "schema": {
@@ -5610,6 +6191,237 @@
           "error"
         ]
       },
+      "JourneyPreflightRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workspace_id",
+          "automation_id"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          },
+          "automation_id": {
+            "type": "string"
+          }
+        }
+      },
+      "JourneyPreflightResult": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "automation_id",
+          "issues",
+          "blocking_count",
+          "warning_count",
+          "summary_hash",
+          "generated_at",
+          "expires_at"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          },
+          "automation_id": {
+            "type": "string"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JourneyPreflightIssue"
+            }
+          },
+          "blocking_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "warning_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "summary_hash": {
+            "type": "string"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ActivateAutomationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workspace_id",
+          "automation_id",
+          "preflight_hash"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          },
+          "automation_id": {
+            "type": "string"
+          },
+          "preflight_hash": {
+            "type": "string"
+          },
+          "confirm_warnings": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "JourneyInstance": {
+        "type": "object",
+        "required": [
+          "id",
+          "enrollment_id",
+          "status",
+          "automation_id",
+          "customer_id",
+          "customer_no",
+          "frequency",
+          "entry_decision",
+          "started_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "enrollment_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contact_automation_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "completed",
+              "exited",
+              "failed"
+            ]
+          },
+          "current_node_id": {
+            "type": "string"
+          },
+          "waiting_reason": {
+            "type": "string"
+          },
+          "next_scheduled_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "automation_id": {
+            "type": "string"
+          },
+          "automation_name": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customer_no": {
+            "type": "string"
+          },
+          "external_user_id": {
+            "type": "string"
+          },
+          "contact_email": {
+            "type": "string"
+          },
+          "frequency": {
+            "type": "string",
+            "enum": [
+              "once",
+              "every_time"
+            ]
+          },
+          "origin_event_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entry_decision": {
+            "type": "string"
+          },
+          "entry_reason": {
+            "type": "string"
+          }
+        }
+      },
+      "JourneyTrace": {
+        "type": "object",
+        "required": [
+          "instance",
+          "entry_decisions",
+          "events",
+          "deliveries"
+        ],
+        "properties": {
+          "instance": {
+            "$ref": "#/components/schemas/JourneyInstance"
+          },
+          "entry_decisions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JourneyTraceEvent"
+            }
+          },
+          "deliveries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "intent"
+              ],
+              "properties": {
+                "intent": {
+                  "$ref": "#/components/schemas/DeliveryIntent"
+                },
+                "attempts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                },
+                "receipts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "SendTransactionalRequest": {
         "type": "object",
         "required": [
@@ -6778,6 +7590,7 @@
           "identities",
           "tags",
           "list_memberships",
+          "audience_memberships",
           "created_at",
           "updated_at"
         ],
@@ -6826,6 +7639,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CustomerListMembership"
+            }
+          },
+          "audience_memberships": {
+            "type": "array",
+            "description": "Memberships in each active audience's current completed build.",
+            "items": {
+              "$ref": "#/components/schemas/CustomerAudienceMembership"
             }
           },
           "created_at": {
@@ -7572,7 +8392,9 @@
         "type": "object",
         "required": [
           "workspace_id",
-          "id"
+          "id",
+          "send_now",
+          "preflight_hash"
         ],
         "properties": {
           "workspace_id": {
@@ -7589,6 +8411,10 @@
             "type": "boolean",
             "description": "Send immediately instead of scheduling",
             "example": false
+          },
+          "preflight_hash": {
+            "type": "string",
+            "description": "Opaque, short-lived summary hash returned by broadcasts.preflight. The server recalculates it before scheduling."
           },
           "scheduled_date": {
             "type": "string",
@@ -7611,6 +8437,294 @@
             "type": "boolean",
             "description": "Send at scheduled time in each recipient's timezone",
             "example": false
+          }
+        }
+      },
+      "MarketingPreflightRequest": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "broadcast_id"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          },
+          "broadcast_id": {
+            "type": "string"
+          }
+        }
+      },
+      "MarketingPreflightCounts": {
+        "type": "object",
+        "required": [
+          "target_total",
+          "reachable",
+          "missing_identity",
+          "missing_consent",
+          "suppressed",
+          "frequency_deny",
+          "variable_failures"
+        ],
+        "properties": {
+          "target_total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reachable": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "missing_identity": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "missing_consent": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "suppressed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "frequency_deny": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "variable_failures": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "MarketingPreflightIssue": {
+        "type": "object",
+        "required": [
+          "code",
+          "severity",
+          "title",
+          "description"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "blocking",
+              "warning"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "fix_path": {
+            "type": "string"
+          }
+        }
+      },
+      "MarketingPreflightResult": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "broadcast_id",
+          "counts",
+          "issues",
+          "blocking_count",
+          "warning_count",
+          "summary_hash",
+          "generated_at",
+          "expires_at"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          },
+          "broadcast_id": {
+            "type": "string"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/MarketingPreflightCounts"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MarketingPreflightIssue"
+            }
+          },
+          "blocking_count": {
+            "type": "integer"
+          },
+          "warning_count": {
+            "type": "integer"
+          },
+          "summary_hash": {
+            "type": "string"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "FrequencyPolicy": {
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "name",
+          "scope",
+          "channel",
+          "max_events",
+          "window_kind",
+          "window_seconds",
+          "deny_action",
+          "priority",
+          "enabled",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "name": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "campaign",
+              "trigger",
+              "workspace_global"
+            ]
+          },
+          "scope_ref": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "max_events": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "window_kind": {
+            "type": "string",
+            "enum": [
+              "sliding",
+              "calendar"
+            ]
+          },
+          "window_seconds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "deny_action": {
+            "type": "string",
+            "enum": [
+              "suppress",
+              "defer"
+            ]
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SaveFrequencyPolicyRequest": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "name",
+          "scope",
+          "channel",
+          "max_events",
+          "window_kind",
+          "window_seconds",
+          "deny_action",
+          "enabled"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "campaign",
+              "trigger",
+              "workspace_global"
+            ]
+          },
+          "scope_ref": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "max_events": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "window_kind": {
+            "type": "string",
+            "enum": [
+              "sliding",
+              "calendar"
+            ]
+          },
+          "window_seconds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "deny_action": {
+            "type": "string",
+            "enum": [
+              "suppress",
+              "defer"
+            ]
+          },
+          "priority": {
+            "type": "integer",
+            "default": 0
+          },
+          "enabled": {
+            "type": "boolean"
           }
         }
       },
@@ -9593,34 +10707,157 @@
           "email"
         ]
       },
-      "AudienceExpression": {
+      "CustomerTimelineEntry": {
         "type": "object",
-        "additionalProperties": false,
+        "required": [
+          "id",
+          "operation",
+          "entity_type",
+          "kind",
+          "changes",
+          "created_at",
+          "db_created_at"
+        ],
         "properties": {
-          "leaf_type": {
-            "type": "string",
-            "enum": [
-              "list",
-              "segment",
-              "audience"
-            ]
-          },
-          "ref_id": {
+          "id": {
             "type": "string"
           },
-          "operator": {
+          "customer_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Legacy compatibility identity."
+          },
+          "operation": {
             "type": "string",
             "enum": [
-              "union",
-              "intersection",
-              "exclusion"
+              "insert",
+              "update",
+              "delete"
             ]
           },
-          "children": {
+          "entity_type": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "changes": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "entity_id": {
+            "type": "string"
+          },
+          "entity_data": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "db_created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "JourneyPreflightIssue": {
+        "type": "object",
+        "required": [
+          "code",
+          "severity",
+          "title",
+          "description"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "blocking",
+              "warning"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "fix_path": {
+            "type": "string"
+          }
+        }
+      },
+      "JourneyInstanceListResponse": {
+        "type": "object",
+        "required": [
+          "instances",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "properties": {
+          "instances": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/AudienceExpression"
+              "$ref": "#/components/schemas/JourneyInstance"
             }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
+      "JourneyTraceEvent": {
+        "type": "object",
+        "required": [
+          "id",
+          "event_type",
+          "status",
+          "occurred_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "event_type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -9703,6 +10940,37 @@
           "updated_at": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "AudienceExpression": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "leaf_type": {
+            "type": "string",
+            "enum": [
+              "list",
+              "segment",
+              "audience"
+            ]
+          },
+          "ref_id": {
+            "type": "string"
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "union",
+              "intersection",
+              "exclusion"
+            ]
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AudienceExpression"
+            }
           }
         }
       },
@@ -10574,6 +11842,46 @@
             "format": "date-time"
           },
           "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CustomerAudienceMembership": {
+        "type": "object",
+        "required": [
+          "audience_id",
+          "name",
+          "kind",
+          "audience_version",
+          "build_id",
+          "created_at"
+        ],
+        "properties": {
+          "audience_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "static",
+              "dynamic",
+              "composite"
+            ]
+          },
+          "audience_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "build_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
             "type": "string",
             "format": "date-time"
           }

@@ -737,19 +737,20 @@ type CustomerService interface {
 //go:generate mockgen -destination mocks/mock_customer_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain CustomerService
 
 type Customer struct {
-	ID                     string                   `json:"customer_id"`
-	CustomerNo             string                   `json:"customer_no"`
-	ExternalUserID         *string                  `json:"external_user_id,omitempty"`
-	MergedIntoID           *string                  `json:"merged_into_id,omitempty"`
-	ResolvedFromCustomerID *string                  `json:"resolved_from_customer_id,omitempty"`
-	Version                int64                    `json:"version"`
-	Profile                *CustomerProfile         `json:"profile,omitempty"`
-	Identities             []CustomerIdentity       `json:"identities"`
-	Tags                   []string                 `json:"tags"`
-	ListMemberships        []CustomerListMembership `json:"list_memberships"`
-	Consents               []CustomerConsent        `json:"consents"`
-	CreatedAt              time.Time                `json:"created_at"`
-	UpdatedAt              time.Time                `json:"updated_at"`
+	ID                     string                       `json:"customer_id"`
+	CustomerNo             string                       `json:"customer_no"`
+	ExternalUserID         *string                      `json:"external_user_id,omitempty"`
+	MergedIntoID           *string                      `json:"merged_into_id,omitempty"`
+	ResolvedFromCustomerID *string                      `json:"resolved_from_customer_id,omitempty"`
+	Version                int64                        `json:"version"`
+	Profile                *CustomerProfile             `json:"profile,omitempty"`
+	Identities             []CustomerIdentity           `json:"identities"`
+	Tags                   []string                     `json:"tags"`
+	ListMemberships        []CustomerListMembership     `json:"list_memberships"`
+	AudienceMemberships    []CustomerAudienceMembership `json:"audience_memberships"`
+	Consents               []CustomerConsent            `json:"consents"`
+	CreatedAt              time.Time                    `json:"created_at"`
+	UpdatedAt              time.Time                    `json:"updated_at"`
 }
 
 type CustomerIdentity struct {
@@ -769,6 +770,18 @@ type CustomerListMembership struct {
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// CustomerAudienceMembership describes membership in the audience's current,
+// completed build. Historical or stale builds are deliberately excluded from
+// Customer 360 so business users do not act on obsolete membership data.
+type CustomerAudienceMembership struct {
+	AudienceID      string    `json:"audience_id"`
+	Name            string    `json:"name"`
+	Kind            string    `json:"kind"`
+	AudienceVersion int       `json:"audience_version"`
+	BuildID         string    `json:"build_id"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 type CustomerConsent struct {

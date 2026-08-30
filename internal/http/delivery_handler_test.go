@@ -15,10 +15,30 @@ import (
 
 type deliveryManagementHTTPStub struct {
 	resolved *domain.DeliveryResolveUnknownRequest
+	listed   *domain.DeliveryListRequest
 }
 
-func (s *deliveryManagementHTTPStub) List(context.Context, *domain.DeliveryListRequest) ([]domain.DeliveryIntent, int, error) {
+func (s *deliveryManagementHTTPStub) List(_ context.Context, request *domain.DeliveryListRequest) ([]domain.DeliveryIntent, int, error) {
+	s.listed = request
 	return []domain.DeliveryIntent{{ID: "intent-1"}}, 1, nil
+}
+
+func TestDeliveryHandlerListPassesOperationalFilters(t *testing.T) {
+	stub := &deliveryManagementHTTPStub{}
+	handler := NewDeliveryHandler(stub, nil, logger.NewLogger())
+	request := httptest.NewRequest(http.MethodGet, "/api/deliveries.list?workspace_id=workspace-1&status=unknown&channel=sms&source_type=automation&source_id=journey-1&provider=aliyun&customer_id=U0001&from=2026-08-30T00:00:00Z&to=2026-08-31T00:00:00Z", nil)
+	response := httptest.NewRecorder()
+
+	handler.handleList(response, request)
+
+	require.Equal(t, http.StatusOK, response.Code)
+	require.NotNil(t, stub.listed)
+	assert.Equal(t, "sms", stub.listed.Channel)
+	assert.Equal(t, "automation", stub.listed.SourceType)
+	assert.Equal(t, "aliyun", stub.listed.Provider)
+	assert.Equal(t, "U0001", stub.listed.CustomerID)
+	assert.NotNil(t, stub.listed.From)
+	assert.NotNil(t, stub.listed.To)
 }
 func (s *deliveryManagementHTTPStub) Get(context.Context, *domain.DeliveryGetRequest) (*domain.DeliveryDetail, error) {
 	return &domain.DeliveryDetail{Intent: domain.DeliveryIntent{ID: "intent-1"}}, nil

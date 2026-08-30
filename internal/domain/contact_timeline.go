@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 //go:generate mockgen -destination mocks/mock_contact_timeline_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain ContactTimelineService
@@ -30,6 +33,7 @@ type ContactTimelineEntry struct {
 type TimelineListRequest struct {
 	WorkspaceID string
 	Email       string
+	CustomerID  string
 	Limit       int
 	Cursor      *string
 }
@@ -45,8 +49,18 @@ func (r *TimelineListRequest) Validate() error {
 	if r.WorkspaceID == "" {
 		return fmt.Errorf("workspace_id is required")
 	}
-	if r.Email == "" {
-		return fmt.Errorf("email is required")
+	if strings.TrimSpace(r.Email) == "" && strings.TrimSpace(r.CustomerID) == "" {
+		return fmt.Errorf("email is required when customer_id is absent")
+	}
+	if strings.TrimSpace(r.Email) != "" && strings.TrimSpace(r.CustomerID) != "" {
+		return fmt.Errorf("exactly one of email or customer_id is required")
+	}
+	if r.CustomerID != "" {
+		parsed, err := uuid.Parse(strings.TrimSpace(r.CustomerID))
+		if err != nil || parsed == uuid.Nil {
+			return fmt.Errorf("customer_id must be a non-nil UUID")
+		}
+		r.CustomerID = parsed.String()
 	}
 	if r.Limit < 0 {
 		return fmt.Errorf("limit must be non-negative")
@@ -61,6 +75,7 @@ func (r *TimelineListRequest) Validate() error {
 func (r *TimelineListRequest) FromQuery(query url.Values) error {
 	r.WorkspaceID = query.Get("workspace_id")
 	r.Email = query.Get("email")
+	r.CustomerID = query.Get("customer_id")
 
 	// Parse limit with default value
 	r.Limit = 50 // Default
@@ -86,6 +101,8 @@ type ContactTimelineRepository interface {
 	Create(ctx context.Context, workspaceID string, entry *ContactTimelineEntry) error
 	// List retrieves timeline entries for a contact
 	List(ctx context.Context, workspaceID string, email string, limit int, cursor *string) ([]*ContactTimelineEntry, *string, error)
+	// ListByCustomer retrieves timeline entries using the authoritative Customer ID.
+	ListByCustomer(ctx context.Context, workspaceID string, customerID string, limit int, cursor *string) ([]*ContactTimelineEntry, *string, error)
 	// DeleteForEmail deletes all timeline entries for a contact
 	DeleteForEmail(ctx context.Context, workspaceID string, email string) error
 }
@@ -94,4 +111,5 @@ type ContactTimelineRepository interface {
 type ContactTimelineService interface {
 	// List retrieves timeline entries for a contact with pagination
 	List(ctx context.Context, workspaceID string, email string, limit int, cursor *string) ([]*ContactTimelineEntry, *string, error)
+	ListByCustomer(ctx context.Context, workspaceID string, customerID string, limit int, cursor *string) ([]*ContactTimelineEntry, *string, error)
 }

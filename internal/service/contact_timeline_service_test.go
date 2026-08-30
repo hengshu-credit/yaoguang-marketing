@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -201,6 +201,22 @@ func TestContactTimelineService_List(t *testing.T) {
 		assert.Len(t, entries, 1)
 		assert.Equal(t, "delete", entries[0].Operation)
 	})
+}
+
+func TestContactTimelineService_ListByCustomerUsesCustomerPermission(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockContactTimelineRepository(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	service := NewContactTimelineService(mockRepo, mockAuthService)
+	ctx := context.Background()
+	customerID := "11111111-1111-4111-8111-111111111111"
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, "ws123").Return(ctx, &domain.User{ID: "user1"}, &domain.UserWorkspace{
+		Role: "member", Permissions: domain.UserPermissions{domain.PermissionResourceCustomers: {Read: true}},
+	}, nil)
+	mockRepo.EXPECT().ListByCustomer(ctx, "ws123", customerID, 50, (*string)(nil)).Return([]*domain.ContactTimelineEntry{}, nil, nil)
+
+	_, _, err := service.ListByCustomer(ctx, "ws123", customerID, 50, nil)
+	require.NoError(t, err)
 }
 
 func TestNewContactTimelineService(t *testing.T) {

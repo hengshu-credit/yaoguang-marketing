@@ -2,6 +2,7 @@ import { api } from './client'
 import { analyticsService } from './analytics'
 import { TreeNode } from './segment'
 import type { EmailProviderKind } from './workspace'
+import type { DeliveryIntent } from './delivery'
 
 // Email provider kinds that can ingest inbound replies (used to gate the automation
 // "Exit on reply" feature). Keep in sync with the backend: a provider belongs here once
@@ -364,6 +365,74 @@ export interface JourneyPreflightResult {
   expires_at: string
 }
 
+export interface JourneyInstanceSummary {
+  id: string
+  enrollment_id?: string
+  contact_automation_id?: string
+  automation_id: string
+  automation_name: string
+  customer_id: string
+  customer_no: string
+  external_user_id?: string
+  contact_email?: string
+  frequency: TriggerFrequency
+  origin_event_id?: string
+  entry_decision: string
+  entry_reason?: string
+  status: ContactAutomationStatus
+  current_node_id?: string
+  waiting_reason?: string
+  next_scheduled_at?: string
+  started_at: string
+  completed_at?: string
+}
+
+export interface JourneyEntryDecision {
+  id: string
+  automation_id: string
+  customer_id: string
+  origin_event_id?: string
+  decision: string
+  reason?: string
+  retry_at?: string
+  decided_at: string
+}
+
+export interface JourneyTraceEvent {
+  id: string
+  node_id?: string
+  event_type: string
+  status: string
+  reason?: string
+  payload?: Record<string, unknown>
+  occurred_at: string
+}
+
+export interface JourneyDeliveryLink {
+  intent: DeliveryIntent
+  attempts?: Array<Record<string, unknown>>
+  receipts?: Array<Record<string, unknown>>
+}
+
+export interface JourneyTrace {
+  instance: JourneyInstanceSummary
+  entry_decisions: JourneyEntryDecision[]
+  events: JourneyTraceEvent[]
+  deliveries: JourneyDeliveryLink[]
+}
+
+export interface ListJourneyInstancesRequest {
+  workspace_id: string
+  customer_id?: string
+  customer_no?: string
+  external_user_id?: string
+  email?: string
+  automation_id?: string
+  status?: ContactAutomationStatus
+  limit?: number
+  offset?: number
+}
+
 export interface PauseAutomationRequest {
   workspace_id: string
   automation_id: string
@@ -438,7 +507,35 @@ export const automationApi = {
     workspace_id: string
     automation_id: string
   }): Promise<JourneyPreflightResult> => {
-    return api.post<JourneyPreflightResult>('/api/automations.preflight', params)
+    const response = await api.post<JourneyPreflightResult | { preflight: JourneyPreflightResult }>(
+      '/api/automations.preflight',
+      params
+    )
+    return 'preflight' in response ? response.preflight : response
+  },
+
+  listJourneyInstances: async (
+    params: ListJourneyInstancesRequest
+  ): Promise<{ instances: JourneyInstanceSummary[]; total: number; limit: number; offset: number }> => {
+    const searchParams = new URLSearchParams({ workspace_id: params.workspace_id })
+    for (const key of ['customer_id', 'customer_no', 'external_user_id', 'email', 'automation_id', 'status'] as const) {
+      const value = params[key]
+      if (value) searchParams.set(key, String(value))
+    }
+    if (params.limit !== undefined) searchParams.set('limit', String(params.limit))
+    if (params.offset !== undefined) searchParams.set('offset', String(params.offset))
+    return api.get(`/api/journeys.instances?${searchParams.toString()}`)
+  },
+
+  getJourneyTrace: async (workspaceId: string, journeyInstanceId: string): Promise<JourneyTrace> => {
+    const searchParams = new URLSearchParams({
+      workspace_id: workspaceId,
+      journey_instance_id: journeyInstanceId
+    })
+    const response = await api.get<{ trace: JourneyTrace }>(
+      `/api/journeys.trace?${searchParams.toString()}`
+    )
+    return response.trace
   },
 
   activate: async (params: ActivateAutomationRequest): Promise<GetAutomationResponse> => {

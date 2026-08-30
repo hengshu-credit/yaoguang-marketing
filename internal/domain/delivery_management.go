@@ -4,11 +4,19 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 )
 
 type DeliveryListRequest struct {
 	WorkspaceID string         `json:"workspace_id"`
 	Status      DeliveryStatus `json:"status,omitempty"`
+	Channel     string         `json:"channel,omitempty"`
+	SourceType  string         `json:"source_type,omitempty"`
+	SourceID    string         `json:"source_id,omitempty"`
+	Provider    string         `json:"provider,omitempty"`
+	CustomerID  string         `json:"customer_id,omitempty"`
+	From        *time.Time     `json:"from,omitempty"`
+	To          *time.Time     `json:"to,omitempty"`
 	Limit       int            `json:"limit,omitempty"`
 	Offset      int            `json:"offset,omitempty"`
 }
@@ -19,6 +27,14 @@ func (r *DeliveryListRequest) Validate() error {
 	}
 	if r.Status != "" && !r.Status.Valid() {
 		return errors.New("status is invalid")
+	}
+	for name, value := range map[string]string{"channel": r.Channel, "source_type": r.SourceType, "source_id": r.SourceID, "provider": r.Provider, "customer_id": r.CustomerID} {
+		if len(strings.TrimSpace(value)) > 255 {
+			return errors.New(name + " cannot exceed 255 characters")
+		}
+	}
+	if r.From != nil && r.To != nil && r.From.After(*r.To) {
+		return errors.New("from cannot be after to")
 	}
 	if r.Limit < 0 || r.Limit > 500 || r.Offset < 0 {
 		return errors.New("limit must be between 0 and 500 and offset must be non-negative")
@@ -105,7 +121,7 @@ func (r *DeliveryResolveUnknownRequest) Validate() error {
 var ErrDeliveryNotFound = errors.New("delivery intent not found")
 
 type DeliveryManagementRepository interface {
-	ListDeliveries(context.Context, string, DeliveryStatus, int, int) ([]DeliveryIntent, int, error)
+	ListDeliveries(context.Context, DeliveryListRequest) ([]DeliveryIntent, int, error)
 	GetDelivery(context.Context, string, string) (*DeliveryDetail, error)
 	RequestDeliveryReconciliation(context.Context, string, string, string) error
 	ResolveUnknownDelivery(context.Context, string, string, DeliveryResolutionAction, string, string) error

@@ -11,21 +11,28 @@ import (
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
-func (r *DeliveryPostgresRepository) ListDeliveries(ctx context.Context, workspaceID string, status domain.DeliveryStatus, limit, offset int) ([]domain.DeliveryIntent, int, error) {
-	if limit <= 0 {
-		limit = 50
+func (r *DeliveryPostgresRepository) ListDeliveries(ctx context.Context, request domain.DeliveryListRequest) ([]domain.DeliveryIntent, int, error) {
+	if request.Limit <= 0 {
+		request.Limit = 50
 	}
-	db, err := r.getDB(ctx, workspaceID)
+	db, err := r.getDB(ctx, request.WorkspaceID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("get workspace database: %w", err)
 	}
+	filterSQL := ` FROM delivery_intents intent WHERE
+		($1 = '' OR intent.status = $1) AND ($2 = '' OR intent.channel = $2) AND
+		($3 = '' OR intent.source_type = $3) AND ($4 = '' OR intent.source_id = $4) AND
+		($5 = '' OR EXISTS (SELECT 1 FROM delivery_attempts attempt WHERE attempt.intent_id = intent.id AND LOWER(attempt.provider) = LOWER($5))) AND
+		($6 = '' OR EXISTS (SELECT 1 FROM customers customer WHERE customer.id = intent.customer_id AND
+			(customer.id::text = $6 OR customer.customer_no = $6 OR customer.external_user_id = $6))) AND
+		($7::timestamptz IS NULL OR intent.created_at >= $7) AND ($8::timestamptz IS NULL OR intent.created_at <= $8)`
+	args := []interface{}{request.Status, request.Channel, request.SourceType, request.SourceID, request.Provider, request.CustomerID, request.From, request.To}
 	var total int
-	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM delivery_intents WHERE ($1 = '' OR status = $1)`, status).Scan(&total); err != nil {
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*)`+filterSQL, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count deliveries: %w", err)
 	}
-	rows, err := db.QueryContext(ctx, `SELECT `+deliveryIntentColumnsSQL+`
-		FROM delivery_intents WHERE ($1 = '' OR status = $1)
-		ORDER BY created_at DESC, id DESC LIMIT $2 OFFSET $3`, status, limit, offset)
+	rows, err := db.QueryContext(ctx, `SELECT `+deliveryIntentColumnsSQL+filterSQL+`
+		ORDER BY intent.created_at DESC, intent.id DESC LIMIT $9 OFFSET $10`, append(args, request.Limit, request.Offset)...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list deliveries: %w", err)
 	}

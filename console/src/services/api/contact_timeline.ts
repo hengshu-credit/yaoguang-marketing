@@ -97,7 +97,8 @@ export interface ContactTimelineEntry {
 
 export interface TimelineListRequest {
   workspace_id: string
-  email: string
+  email?: string
+  customer_id?: string
   limit?: number // Default 50, max 100
   cursor?: string
 }
@@ -116,7 +117,8 @@ export const contactTimelineApi = {
 
     // Add required params
     searchParams.append('workspace_id', params.workspace_id)
-    searchParams.append('email', params.email)
+    if (params.email) searchParams.append('email', params.email)
+    if (params.customer_id) searchParams.append('customer_id', params.customer_id)
 
     // Add optional params if they exist
     if (params.limit !== undefined) {

@@ -40,3 +40,16 @@ func (s *ContactTimelineService) List(ctx context.Context, workspaceID string, e
 
 	return s.repo.List(ctx, workspaceID, email, limit, cursor)
 }
+
+// ListByCustomer reads the same timeline through the authoritative Customer ID,
+// so masked identity values never need to be sent back to the browser.
+func (s *ContactTimelineService) ListByCustomer(ctx context.Context, workspaceID string, customerID string, limit int, cursor *string) ([]*domain.ContactTimelineEntry, *string, error) {
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+	if !userWorkspace.HasPermission(domain.PermissionResourceCustomers, domain.PermissionTypeRead) {
+		return nil, nil, domain.NewPermissionError(domain.PermissionResourceCustomers, domain.PermissionTypeRead, "Insufficient permissions: read access to customers required")
+	}
+	return s.repo.ListByCustomer(ctx, workspaceID, customerID, limit, cursor)
+}

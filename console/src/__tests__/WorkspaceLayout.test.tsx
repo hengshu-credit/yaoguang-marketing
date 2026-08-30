@@ -187,6 +187,7 @@ describe('WorkspaceLayout product navigation', () => {
     ['/file-manager', 'Content Center'],
     ['/analytics', 'Data Analytics'],
     ['/web-analytics/annotations', 'Data Analytics'],
+    ['/deliveries', 'Delivery Center'],
     ['/logs', 'Delivery Center'],
     ['/transactional-notifications', 'Delivery Center'],
     ['/settings/team', 'Settings']

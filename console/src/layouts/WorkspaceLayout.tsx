@@ -163,6 +163,7 @@ export function WorkspaceLayout() {
   } else if (currentPath.includes('/web-analytics') || currentPath.includes('/analytics')) {
     selectedKey = 'data'
   } else if (
+    currentPath.includes('/deliveries') ||
     currentPath.includes('/logs') ||
     currentPath.includes('/transactional-notifications')
   ) {
@@ -300,7 +301,7 @@ export function WorkspaceLayout() {
         <Link
           to={
             hasAccess('message_history')
-              ? '/console/workspace/$workspaceId/logs'
+              ? '/console/workspace/$workspaceId/deliveries'
               : '/console/workspace/$workspaceId/transactional-notifications'
           }
           params={{ workspaceId }}

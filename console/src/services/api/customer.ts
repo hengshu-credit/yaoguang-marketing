@@ -30,6 +30,15 @@ export interface CustomerListMembership {
   updated_at: string
 }
 
+export interface CustomerAudienceMembership {
+  audience_id: string
+  name: string
+  kind: string
+  audience_version: number
+  build_id: string
+  created_at: string
+}
+
 export interface CustomerConsent {
   id: string
   purpose: string
@@ -54,6 +63,7 @@ export interface CustomerSummary {
   identities: CustomerIdentity[]
   tags: string[]
   list_memberships?: CustomerListMembership[]
+  audience_memberships?: CustomerAudienceMembership[]
   consents?: CustomerConsent[]
   created_at: string
   updated_at: string

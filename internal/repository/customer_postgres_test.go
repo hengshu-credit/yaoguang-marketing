@@ -125,6 +125,10 @@ func TestCustomerRepositoryGetPopulatesProfileCustomerID(t *testing.T) {
 	mock.ExpectQuery(`SELECT tag FROM customer_tags`).WillReturnRows(sqlmock.NewRows([]string{"tag"}))
 	mock.ExpectQuery(`SELECT list_id, status, created_at, updated_at FROM customer_list_memberships`).
 		WillReturnRows(sqlmock.NewRows([]string{"list_id", "status", "created_at", "updated_at"}))
+	mock.ExpectQuery(`SELECT audience.id, audience.name, audience.kind, build.audience_version, membership.build_id, membership.created_at`).
+		WithArgs(customerID).
+		WillReturnRows(sqlmock.NewRows([]string{"audience_id", "name", "kind", "audience_version", "build_id", "created_at"}).
+			AddRow("33333333-3333-4333-8333-333333333333", "High value customers", "dynamic", 4, "44444444-4444-4444-8444-444444444444", now))
 	mock.ExpectQuery(`SELECT id, purpose, channel, status, source, valid_from, revoked_at, metadata, created_at, updated_at FROM customer_consents`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "purpose", "channel", "status", "source", "valid_from", "revoked_at", "metadata", "created_at", "updated_at"}).
 			AddRow("consent-1", "marketing", "email", "granted", "crm", now, nil, []byte(`{"policy":"v1"}`), now, now))
@@ -137,6 +141,9 @@ func TestCustomerRepositoryGetPopulatesProfileCustomerID(t *testing.T) {
 	assert.Equal(t, customerID, customer.Profile.CustomerID)
 	require.Len(t, customer.Consents, 1)
 	assert.Equal(t, "email", customer.Consents[0].Channel)
+	require.Len(t, customer.AudienceMemberships, 1)
+	assert.Equal(t, "High value customers", customer.AudienceMemberships[0].Name)
+	assert.Equal(t, 4, customer.AudienceMemberships[0].AudienceVersion)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -942,6 +949,8 @@ func expectCustomerAggregateChildren(mock sqlmock.Sqlmock, now time.Time) {
 	mock.ExpectQuery(`SELECT tag FROM customer_tags`).WillReturnRows(sqlmock.NewRows([]string{"tag"}))
 	mock.ExpectQuery(`SELECT list_id, status, created_at, updated_at FROM customer_list_memberships`).
 		WillReturnRows(sqlmock.NewRows([]string{"list_id", "status", "created_at", "updated_at"}))
+	mock.ExpectQuery(`SELECT audience.id, audience.name, audience.kind, build.audience_version, membership.build_id, membership.created_at`).
+		WillReturnRows(sqlmock.NewRows([]string{"audience_id", "name", "kind", "audience_version", "build_id", "created_at"}))
 	mock.ExpectQuery(`SELECT id, purpose, channel, status, source, valid_from, revoked_at, metadata, created_at, updated_at FROM customer_consents`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "purpose", "channel", "status", "source", "valid_from", "revoked_at", "metadata", "created_at", "updated_at"}))
 }

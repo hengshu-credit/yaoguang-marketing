@@ -6,6 +6,13 @@
     parameters:
       - { name: workspace_id, in: query, required: true, schema: { type: string } }
       - { name: status, in: query, schema: { $ref: '../components/schemas/delivery.yaml#/DeliveryStatus' } }
+      - { name: channel, in: query, schema: { type: string }, description: Filter by delivery channel. }
+      - { name: source_type, in: query, schema: { type: string, enum: [broadcast, campaign, automation, api, legacy] } }
+      - { name: source_id, in: query, schema: { type: string } }
+      - { name: provider, in: query, schema: { type: string }, description: Match any provider attempt for the delivery. }
+      - { name: customer_id, in: query, schema: { type: string }, description: 'Customer UUID, Yaoguang customer number, or external user ID.' }
+      - { name: from, in: query, schema: { type: string, format: date-time } }
+      - { name: to, in: query, schema: { type: string, format: date-time } }
       - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 50 } }
       - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
     responses:

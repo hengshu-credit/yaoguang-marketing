@@ -764,8 +764,8 @@ func isCustomerNotFound(err error) bool {
 }
 
 type customerProfileProjection struct {
-	Language *string
-	Timezone *string
+	Language   *string
+	Timezone   *string
 	Attributes []byte
 }
 
@@ -1092,6 +1092,9 @@ func (r *CustomerPostgresRepository) loadCustomerChildren(ctx context.Context, d
 	if err := loadCustomerListMemberships(ctx, db, customer); err != nil {
 		return err
 	}
+	if err := loadCustomerAudienceMemberships(ctx, db, customer); err != nil {
+		return err
+	}
 	if err := loadCustomerConsents(ctx, db, customer); err != nil {
 		return err
 	}
@@ -1194,6 +1197,32 @@ func loadCustomerListMemberships(ctx context.Context, db customerQueryer, custom
 	}
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("iterate customer list memberships: %w", err)
+	}
+	return nil
+}
+
+func loadCustomerAudienceMemberships(ctx context.Context, db customerQueryer, customer *domain.Customer) error {
+	rows, err := db.QueryContext(ctx, `SELECT audience.id, audience.name, audience.kind, build.audience_version,
+		membership.build_id, membership.created_at
+		FROM audience_memberships membership
+		JOIN audience_builds build ON build.id = membership.build_id AND build.status = 'completed'
+		JOIN audiences audience ON audience.id = build.audience_id AND audience.active_build_id = build.id
+		WHERE membership.customer_id = $1 AND audience.status = 'active'
+		ORDER BY audience.name, audience.id`, customer.ID)
+	if err != nil {
+		return fmt.Errorf("query customer audience memberships: %w", err)
+	}
+	defer rows.Close()
+	customer.AudienceMemberships = []domain.CustomerAudienceMembership{}
+	for rows.Next() {
+		var membership domain.CustomerAudienceMembership
+		if err := rows.Scan(&membership.AudienceID, &membership.Name, &membership.Kind, &membership.AudienceVersion, &membership.BuildID, &membership.CreatedAt); err != nil {
+			return fmt.Errorf("scan customer audience membership: %w", err)
+		}
+		customer.AudienceMemberships = append(customer.AudienceMemberships, membership)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate customer audience memberships: %w", err)
 	}
 	return nil
 }

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"testing"
@@ -56,6 +57,33 @@ func testDeliveryIntent() domain.DeliveryIntent {
 		Occurrence: "recipient-42", Variant: "control", Status: domain.DeliveryStatusReserved,
 		Metadata: domain.MapOfAny{"snapshot_ordinal": 42}, CreatedAt: now, UpdatedAt: now,
 	}
+}
+
+func TestDeliveryManagementListAppliesCustomerProviderAndTimeFilters(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	repo := NewDeliveryRepositoryWithDB(db)
+	intent := testDeliveryIntent()
+	from := intent.CreatedAt.Add(-time.Hour)
+	to := intent.CreatedAt.Add(time.Hour)
+	request := domain.DeliveryListRequest{
+		WorkspaceID: "workspace-1", Status: domain.DeliveryStatusReserved, Channel: "email",
+		SourceType: "broadcast", SourceID: "broadcast-1", Provider: "smtp", CustomerID: intent.CustomerID,
+		From: &from, To: &to, Limit: 25, Offset: 50,
+	}
+	args := []driver.Value{request.Status, request.Channel, request.SourceType, request.SourceID, request.Provider, request.CustomerID, from, to}
+	mock.ExpectQuery(`SELECT COUNT\(\*\).*delivery_attempts.*customers.*created_at`).WithArgs(args...).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	listArgs := append(args, int64(25), int64(50))
+	mock.ExpectQuery(`SELECT id, effect_key.*delivery_attempts.*customers.*ORDER BY`).WithArgs(listArgs...).WillReturnRows(deliveryIntentRow(intent))
+
+	items, total, err := repo.ListDeliveries(context.Background(), request)
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, total)
+	require.Len(t, items, 1)
+	assert.Equal(t, intent.ID, items[0].ID)
+	require.NoError(t, mock.ExpectationsWereMet())
 }
 
 func testDeliveryQueueEntry(intentID string) *domain.EmailQueueEntry {

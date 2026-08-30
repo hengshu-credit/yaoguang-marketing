@@ -107,6 +107,20 @@ func TestContactTimelineHandler_handleList(t *testing.T) {
 		assert.Equal(t, "insert", response.Timeline[0].Operation)
 	})
 
+	t.Run("Success - List timeline by authoritative customer ID", func(t *testing.T) {
+		customerID := "11111111-1111-4111-8111-111111111111"
+		req := httptest.NewRequest(http.MethodGet, "/api/timeline.list?workspace_id=ws1&customer_id="+customerID+"&limit=10", nil)
+		w := httptest.NewRecorder()
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws1").
+			Return(context.Background(), &domain.User{ID: "user1"}, &domain.UserWorkspace{WorkspaceID: "ws1"}, nil)
+		mockService.EXPECT().ListByCustomer(gomock.Any(), "ws1", customerID, 10, (*string)(nil)).
+			Return([]*domain.ContactTimelineEntry{{ID: "entry1", CustomerID: customerID}}, nil, nil)
+
+		handler.handleList(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
 	t.Run("Success - With cursor pagination", func(t *testing.T) {
 		cursor := "existing_cursor"
 		req := httptest.NewRequest(http.MethodGet, "/api/timeline.list?workspace_id=ws1&email=user@example.com&cursor="+cursor, nil)

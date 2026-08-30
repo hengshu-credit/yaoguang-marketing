@@ -22,8 +22,16 @@ export interface DeliveryIntent {
   source_id: string
   source_version: string
   customer_id?: string
+  legacy_identity?: string
   channel: string
+  template_id?: string
+  template_version?: number
+  node_or_phase?: string
+  occurrence?: string
+  variant?: string
   status: DeliveryStatus
+  suppression_reason?: string
+  metadata?: Record<string, unknown>
   created_at: string
   updated_at: string
 }
@@ -34,10 +42,37 @@ export interface DeliveryDetail {
   reconciliations: Array<Record<string, unknown>>
 }
 
+export interface DeliveryListRequest {
+  workspace_id: string
+  status?: DeliveryStatus
+  channel?: string
+  source_type?: string
+  source_id?: string
+  provider?: string
+  customer_id?: string
+  from?: string
+  to?: string
+  limit?: number
+  offset?: number
+}
+
 export const deliveryApi = {
-  list: async (workspaceId: string, status?: DeliveryStatus, limit = 50, offset = 0) => {
-    const params = new URLSearchParams({ workspace_id: workspaceId, limit: String(limit), offset: String(offset) })
-    if (status) params.set('status', status)
+  list: async (
+    requestOrWorkspaceId: DeliveryListRequest | string,
+    legacyStatus?: DeliveryStatus,
+    legacyLimit = 50,
+    legacyOffset = 0
+  ): Promise<{ deliveries: DeliveryIntent[]; total: number }> => {
+    const request: DeliveryListRequest = typeof requestOrWorkspaceId === 'string'
+      ? { workspace_id: requestOrWorkspaceId, status: legacyStatus, limit: legacyLimit, offset: legacyOffset }
+      : requestOrWorkspaceId
+    const params = new URLSearchParams({ workspace_id: request.workspace_id })
+    for (const key of ['status', 'channel', 'source_type', 'source_id', 'provider', 'customer_id', 'from', 'to'] as const) {
+      const value = request[key]
+      if (value) params.set(key, String(value))
+    }
+    params.set('limit', String(request.limit ?? 50))
+    params.set('offset', String(request.offset ?? 0))
     return api.get<{ deliveries: DeliveryIntent[]; total: number }>(`/api/deliveries.list?${params}`)
   },
   get: async (workspaceId: string, intentId: string) => {

@@ -21,8 +21,10 @@ vi.stubGlobal('matchMedia', () => ({
   removeEventListener() {}
 }))
 
+const { automationSearch } = vi.hoisted(() => ({ automationSearch: { current: {} as { automation_id?: string; node_id?: string } } }))
 vi.mock('@tanstack/react-router', () => ({
-  useParams: () => ({ workspaceId: 'ws1' })
+  useParams: () => ({ workspaceId: 'ws1' }),
+  useSearch: () => automationSearch.current
 }))
 
 vi.mock('../contexts/AuthContext', () => ({
@@ -94,6 +96,7 @@ describe('AutomationsPage template reference query', () => {
   beforeEach(() => {
     templatesList.mockClear()
     automationsList.mockReset().mockResolvedValue({ automations: [], total: 0 })
+    automationSearch.current = {}
   })
 
   it('fetches all email templates (no category filter) so email nodes resolve any selected template', async () => {
@@ -147,5 +150,17 @@ describe('AutomationsPage template reference query', () => {
     expect(await screen.findByRole('region', { name: 'Automation editor' })).toHaveTextContent(
       'email-1'
     )
+  })
+
+  it('opens the exact journey node requested by a trace fix link', async () => {
+    automationSearch.current = { automation_id: 'automation-1', node_id: 'sms-2' }
+    automationsList.mockResolvedValue({
+      automations: [{ id: 'automation-1', workspace_id: 'ws1', name: 'Trace target', status: 'live', list_id: '', root_node_id: 'trigger-1', nodes: [], created_at: '2026-08-30T00:00:00Z', updated_at: '2026-08-30T00:00:00Z' }],
+      total: 1
+    })
+
+    renderPage()
+
+    expect(await screen.findByRole('region', { name: 'Automation editor' })).toHaveTextContent('sms-2')
   })
 })

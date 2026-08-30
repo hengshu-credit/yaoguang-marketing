@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/http/middleware"
@@ -36,9 +37,29 @@ func (h *DeliveryHandler) handleList(w http.ResponseWriter, r *http.Request) {
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
-	items, total, err := h.service.List(r.Context(), &domain.DeliveryListRequest{
-		WorkspaceID: r.URL.Query().Get("workspace_id"), Status: domain.DeliveryStatus(r.URL.Query().Get("status")), Limit: limit, Offset: offset,
-	})
+	query := r.URL.Query()
+	request := &domain.DeliveryListRequest{
+		WorkspaceID: query.Get("workspace_id"), Status: domain.DeliveryStatus(query.Get("status")),
+		Channel: query.Get("channel"), SourceType: query.Get("source_type"), SourceID: query.Get("source_id"),
+		Provider: query.Get("provider"), CustomerID: query.Get("customer_id"), Limit: limit, Offset: offset,
+	}
+	if value := query.Get("from"); value != "" {
+		parsed, parseErr := time.Parse(time.RFC3339, value)
+		if parseErr != nil {
+			writeAPIError(w, requestIDFor(r), "validation_error", "from must be RFC3339", http.StatusBadRequest)
+			return
+		}
+		request.From = &parsed
+	}
+	if value := query.Get("to"); value != "" {
+		parsed, parseErr := time.Parse(time.RFC3339, value)
+		if parseErr != nil {
+			writeAPIError(w, requestIDFor(r), "validation_error", "to must be RFC3339", http.StatusBadRequest)
+			return
+		}
+		request.To = &parsed
+	}
+	items, total, err := h.service.List(r.Context(), request)
 	if err != nil {
 		h.writeError(w, r, err)
 		return

@@ -1,0 +1,15 @@
+CustomerTimelineEntry:
+  type: object
+  required: [id, operation, entity_type, kind, changes, created_at, db_created_at]
+  properties:
+    id: { type: string }
+    customer_id: { type: string, format: uuid }
+    email: { type: string, format: email, description: Legacy compatibility identity. }
+    operation: { type: string, enum: [insert, update, delete] }
+    entity_type: { type: string }
+    kind: { type: string }
+    changes: { type: object, additionalProperties: true }
+    entity_id: { type: string }
+    entity_data: { type: object, additionalProperties: true }
+    created_at: { type: string, format: date-time }
+    db_created_at: { type: string, format: date-time }

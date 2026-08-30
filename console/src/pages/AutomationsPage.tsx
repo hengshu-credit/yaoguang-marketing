@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Row, Col, Typography, Space, App, Empty, Pagination, Drawer } from 'antd'
-import { useParams } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useParams, useSearch } from '@tanstack/react-router'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { PlusOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 import { automationApi, Automation } from '../services/api/automation'
@@ -18,6 +18,7 @@ const { Title } = Typography
 export function AutomationsPage() {
   const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
+  const search = useSearch({ from: '/console/workspace/$workspaceId/automations' })
   const { permissions } = useWorkspacePermissions(workspaceId)
   const { workspaces } = useAuth()
   const queryClient = useQueryClient()
@@ -30,6 +31,7 @@ export function AutomationsPage() {
   const [editingAutomation, setEditingAutomation] = useState<Automation | undefined>(undefined)
   const [editingNodeId, setEditingNodeId] = useState<string | undefined>()
   const [preflightAutomation, setPreflightAutomation] = useState<Automation | undefined>()
+  const handledTraceFix = useRef('')
 
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 10
@@ -75,11 +77,22 @@ export function AutomationsPage() {
     enabled: !!workspaceId
   })
 
-  const automations = automationsData?.automations || []
+  const automations = useMemo(() => automationsData?.automations || [], [automationsData?.automations])
   const totalAutomations = automationsData?.total || 0
   const lists = listsData?.lists || []
   const segments = segmentsData?.segments || []
   const templates = templatesData?.templates || []
+
+  useEffect(() => {
+    if (!search.automation_id) return
+    const requestKey = `${search.automation_id}:${search.node_id ?? ''}`
+    if (handledTraceFix.current === requestKey) return
+    const automation = automations.find((item) => item.id === search.automation_id)
+    if (!automation) return
+    handledTraceFix.current = requestKey
+    setEditingNodeId(search.node_id)
+    setEditingAutomation(automation)
+  }, [automations, search.automation_id, search.node_id])
 
   // Handle activate automation
   const handleActivate = (automation: Automation) => {

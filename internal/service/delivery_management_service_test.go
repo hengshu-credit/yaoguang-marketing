@@ -17,7 +17,7 @@ type deliveryManagementRepositoryStub struct {
 	reason string
 }
 
-func (r *deliveryManagementRepositoryStub) ListDeliveries(context.Context, string, domain.DeliveryStatus, int, int) ([]domain.DeliveryIntent, int, error) {
+func (r *deliveryManagementRepositoryStub) ListDeliveries(context.Context, domain.DeliveryListRequest) ([]domain.DeliveryIntent, int, error) {
 	return []domain.DeliveryIntent{{ID: "intent-1"}}, 1, nil
 }
 func (r *deliveryManagementRepositoryStub) GetDelivery(context.Context, string, string) (*domain.DeliveryDetail, error) {

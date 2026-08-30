@@ -196,6 +196,28 @@ CustomerListMembership:
       type: string
       format: date-time
 
+CustomerAudienceMembership:
+  type: object
+  required: [audience_id, name, kind, audience_version, build_id, created_at]
+  properties:
+    audience_id:
+      type: string
+      format: uuid
+    name:
+      type: string
+    kind:
+      type: string
+      enum: [static, dynamic, composite]
+    audience_version:
+      type: integer
+      minimum: 1
+    build_id:
+      type: string
+      format: uuid
+    created_at:
+      type: string
+      format: date-time
+
 CustomerUpsertInput:
   type: object
   additionalProperties: false
@@ -230,7 +252,7 @@ CustomerUpsertInput:
 
 Customer:
   type: object
-  required: [customer_id, customer_no, version, identities, tags, list_memberships, created_at, updated_at]
+  required: [customer_id, customer_no, version, identities, tags, list_memberships, audience_memberships, created_at, updated_at]
   properties:
     customer_id:
       type: string
@@ -265,6 +287,11 @@ Customer:
       type: array
       items:
         $ref: '#/CustomerListMembership'
+    audience_memberships:
+      type: array
+      description: Memberships in each active audience's current completed build.
+      items:
+        $ref: '#/CustomerAudienceMembership'
     created_at:
       type: string
       format: date-time

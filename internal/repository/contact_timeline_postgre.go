@@ -52,6 +52,15 @@ func (r *ContactTimelineRepository) Create(ctx context.Context, workspaceID stri
 
 // List retrieves timeline entries for a contact with cursor-based pagination
 func (r *ContactTimelineRepository) List(ctx context.Context, workspaceID string, email string, limit int, cursor *string) ([]*domain.ContactTimelineEntry, *string, error) {
+	return r.list(ctx, workspaceID, email, false, limit, cursor)
+}
+
+// ListByCustomer reads all identities that have been reconciled to one Customer.
+func (r *ContactTimelineRepository) ListByCustomer(ctx context.Context, workspaceID string, customerID string, limit int, cursor *string) ([]*domain.ContactTimelineEntry, *string, error) {
+	return r.list(ctx, workspaceID, customerID, true, limit, cursor)
+}
+
+func (r *ContactTimelineRepository) list(ctx context.Context, workspaceID string, locator string, byCustomer bool, limit int, cursor *string) ([]*domain.ContactTimelineEntry, *string, error) {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
@@ -137,11 +146,15 @@ func (r *ContactTimelineRepository) List(ctx context.Context, workspaceID string
 		LEFT JOIN inbound_webhook_events we ON ct.entity_type = 'inbound_webhook_event' AND (ct.entity_id = we.message_id OR ct.entity_id = we.id::text)
 		LEFT JOIN message_history mh_we ON ct.entity_type = 'inbound_webhook_event' AND we.message_id = mh_we.id
 		LEFT JOIN templates t_we ON ct.entity_type = 'inbound_webhook_event' AND mh_we.template_id = t_we.id AND mh_we.template_version = t_we.version
-		WHERE (ct.customer_id = (SELECT customer_id FROM contacts WHERE email = $1)
-			OR (ct.customer_id IS NULL AND ct.email = $1))
 	`
+	if byCustomer {
+		query += ` WHERE ct.customer_id::text = $1`
+	} else {
+		query += ` WHERE (ct.customer_id = (SELECT customer_id FROM contacts WHERE email = $1)
+			OR (ct.customer_id IS NULL AND ct.email = $1))`
+	}
 
-	args := []interface{}{email}
+	args := []interface{}{locator}
 	argIndex := 2
 
 	// Handle cursor-based pagination

@@ -18,6 +18,7 @@ import { BroadcastsPage } from './pages/BroadcastsPage'
 import { AutomationsPage } from './pages/AutomationsPage'
 import { TransactionalNotificationsPage } from './pages/TransactionalNotificationsPage'
 import { LogsPage } from './pages/LogsPage'
+import { DeliveryCenterPage } from './pages/DeliveryCenterPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
 import { WebAnalyticsPage } from './pages/WebAnalyticsPage'
 import { WebAnalyticsLivePage } from './pages/WebAnalyticsLivePage'
@@ -70,6 +71,11 @@ export interface FileManagerSearch {
 export interface BroadcastsSearch {
   status?: string
   q?: string
+}
+
+export interface AutomationsSearch {
+  automation_id?: string
+  node_id?: string
 }
 
 export interface TemplatesSearch {
@@ -167,7 +173,11 @@ const workspaceBroadcastsRoute = createRoute({
 const workspaceAutomationsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: '/automations',
-  component: AutomationsPage
+  component: AutomationsPage,
+  validateSearch: (search: Record<string, unknown>): AutomationsSearch => ({
+    automation_id: typeof search.automation_id === 'string' ? search.automation_id : undefined,
+    node_id: typeof search.node_id === 'string' ? search.node_id : undefined
+  })
 })
 
 const workspaceListsRoute = createRoute({
@@ -219,6 +229,12 @@ export const workspaceContactsRoute = createRoute({
         : undefined,
     limit: search.limit ? Number(search.limit) : 10
   })
+})
+
+export const workspaceDeliveriesRoute = createRoute({
+  getParentRoute: () => workspaceRoute,
+  path: '/deliveries',
+  component: DeliveryCenterPage
 })
 
 const workspaceAudiencesRoute = createRoute({
@@ -394,6 +410,7 @@ const routeTree = rootRoute.addChildren([
     workspaceAudiencesRoute,
     workspaceListsRoute,
     workspaceTransactionalNotificationsRoute,
+    workspaceDeliveriesRoute,
     workspaceLogsRoute,
     workspaceFileManagerRoute,
     workspaceSettingsRedirectRoute,

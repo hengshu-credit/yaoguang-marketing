@@ -18,6 +18,8 @@ servers:
         description: Your Yaoguang Marketing deployment domain
         default: marketing.example.com
 paths:
+  /api/timeline.list:
+    $ref: './paths/customer_timeline.yaml#/~1api~1timeline.list'
   /api/automations.preflight:
     $ref: './paths/journeys.yaml#/~1api~1automations.preflight'
   /api/automations.activate:

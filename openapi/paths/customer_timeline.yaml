@@ -1,0 +1,27 @@
+/api/timeline.list:
+  get:
+    summary: List a Customer activity timeline
+    description: Supply exactly one of customer_id or email. Customer 360 should use customer_id; email remains available for legacy Contact workflows.
+    operationId: listCustomerTimeline
+    security: [{ BearerAuth: [] }]
+    parameters:
+      - { name: workspace_id, in: query, required: true, schema: { type: string } }
+      - { name: customer_id, in: query, schema: { type: string, format: uuid } }
+      - { name: email, in: query, schema: { type: string, format: email } }
+      - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+      - { name: cursor, in: query, schema: { type: string } }
+    responses:
+      '200':
+        description: Customer activity timeline
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [timeline]
+              properties:
+                timeline:
+                  type: array
+                  items: { $ref: '../components/schemas/customer_timeline.yaml#/CustomerTimelineEntry' }
+                next_cursor: { type: string }
+      '400': { description: Invalid or ambiguous Customer locator }
+      '403': { description: Customer or Contact read permission required }

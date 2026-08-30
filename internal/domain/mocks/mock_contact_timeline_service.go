@@ -8,8 +8,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	domain "github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	gomock "github.com/golang/mock/gomock"
+	domain "github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
 // MockContactTimelineService is a mock of ContactTimelineService interface.
@@ -49,4 +49,20 @@ func (m *MockContactTimelineService) List(arg0 context.Context, arg1, arg2 strin
 func (mr *MockContactTimelineServiceMockRecorder) List(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockContactTimelineService)(nil).List), arg0, arg1, arg2, arg3, arg4)
+}
+
+// ListByCustomer mocks base method.
+func (m *MockContactTimelineService) ListByCustomer(arg0 context.Context, arg1, arg2 string, arg3 int, arg4 *string) ([]*domain.ContactTimelineEntry, *string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListByCustomer", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].([]*domain.ContactTimelineEntry)
+	ret1, _ := ret[1].(*string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListByCustomer indicates an expected call of ListByCustomer.
+func (mr *MockContactTimelineServiceMockRecorder) ListByCustomer(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListByCustomer", reflect.TypeOf((*MockContactTimelineService)(nil).ListByCustomer), arg0, arg1, arg2, arg3, arg4)
 }

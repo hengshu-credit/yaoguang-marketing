@@ -39,7 +39,7 @@ func (s *DeliveryManagementService) List(ctx context.Context, request *domain.De
 	if err != nil {
 		return nil, 0, err
 	}
-	return s.repository.ListDeliveries(authorized, request.WorkspaceID, request.Status, request.Limit, request.Offset)
+	return s.repository.ListDeliveries(authorized, *request)
 }
 
 func (s *DeliveryManagementService) Get(ctx context.Context, request *domain.DeliveryGetRequest) (*domain.DeliveryDetail, error) {
