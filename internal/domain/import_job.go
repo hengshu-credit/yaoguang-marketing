@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -90,4 +91,14 @@ type ImportJobRow struct {
 	Status     ImportRowStatus `json:"status"`
 	CustomerID string          `json:"customer_id,omitempty"`
 	ErrorCode  string          `json:"error_code,omitempty"`
+}
+
+type ImportJobRepository interface {
+	CreateImportJob(context.Context, string, ImportJob) error
+	StageImportRows(context.Context, string, string, []ImportJobRow) (int64, error)
+	CommitImportJob(context.Context, string, string, string) error
+	RejectImportJob(context.Context, string, string, string) error
+	ClaimImportRows(context.Context, string, string, int, time.Duration) ([]ImportJobRow, string, error)
+	CompleteImportRow(context.Context, string, string, int64, string, ImportRowStatus, string, string, string) error
+	GetImportJob(context.Context, string, string) (*ImportJob, error)
 }
