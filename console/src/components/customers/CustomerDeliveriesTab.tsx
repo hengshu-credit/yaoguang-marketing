@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { Alert, Button, Empty, Skeleton, Space, Tag, Typography } from 'antd'
+import { Empty, Skeleton, Space, Tag, Typography } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { deliveryApi } from '../../services/api/delivery'
 import { deliveryExplanation, deliveryStatusLabels } from '../delivery/deliveryPresentation'
+import { ActionableError } from '../errors/ActionableError'
 
 interface CustomerDeliveriesTabProps {
   workspaceId: string
@@ -17,7 +18,7 @@ export function CustomerDeliveriesTab({ workspaceId, customerId, active }: Custo
     queryFn: () => deliveryApi.list({ workspace_id: workspaceId, customer_id: customerId, limit: 50 }),
     enabled: active
   })
-  if (query.isError) return <Alert type="error" showIcon title={t`Unable to load deliveries`} action={<Button onClick={() => query.refetch()}>{t`Retry`}</Button>} />
+  if (query.isError) return <ActionableError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} />
   const deliveries = query.data?.deliveries ?? []
   if (query.isLoading) return <Skeleton active paragraph={{ rows: 3 }} />
   if (deliveries.length === 0) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t`No deliveries for this customer`} />

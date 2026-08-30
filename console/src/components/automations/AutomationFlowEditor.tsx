@@ -25,6 +25,7 @@ import { AddNodeEdge, type AddNodeEdgeData } from './edges/AddNodeEdge'
 import { AutomationEdge, type AutomationEdgeData } from './edges/AutomationEdge'
 import { AddNodeButton } from './AddNodeButton'
 import { NodePalette } from './NodePalette'
+import { AutomationNodeList } from './AutomationNodeList'
 import { useAutomation } from './context'
 import { useAutomationCanvas } from './hooks'
 import type { AutomationFlowNode, AutomationNodeData } from './utils/flowConverter'
@@ -425,6 +426,8 @@ const AutomationFlowEditorInner: React.FC = () => {
           <div className="bg-white border border-gray-200 rounded shadow-sm">
             <Tooltip title={t`Reorganize layout`} placement="right">
               <button
+                type="button"
+                aria-label={t`Reorganize layout`}
                 className="flex items-center justify-center w-7 h-7 hover:bg-gray-100 cursor-pointer"
                 onClick={handleReorganize}
               >
@@ -440,6 +443,13 @@ const AutomationFlowEditorInner: React.FC = () => {
           </div>
         </Panel>
       </ReactFlow>
+
+      <AutomationNodeList
+        nodes={nodes}
+        selectedNodeId={selectedNode?.id}
+        orphanNodeIds={orphanNodeIds}
+        onSelect={selectNode}
+      />
 
       {/* Floating Add Buttons - OUTSIDE ReactFlow */}
       {unconnectedOutputs.map((output) => {

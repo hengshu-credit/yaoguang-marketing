@@ -196,6 +196,8 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
         </Title>
         {onClose && (
           <button
+            type="button"
+            aria-label={t`Close node configuration`}
             onClick={onClose}
             className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700 cursor-pointer"
           >

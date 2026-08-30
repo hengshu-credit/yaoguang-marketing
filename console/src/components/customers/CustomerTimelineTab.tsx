@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
-import { Alert, Button, Empty, Space, Spin, Timeline, Typography } from 'antd'
+import { Empty, Space, Spin, Timeline, Typography } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { contactTimelineApi } from '../../services/api/contact_timeline'
+import { ActionableError } from '../errors/ActionableError'
 
 interface CustomerTimelineTabProps {
   workspaceId: string
@@ -18,7 +19,7 @@ export function CustomerTimelineTab({ workspaceId, customerId, active }: Custome
   })
   if (query.isLoading) return <Spin />
   if (query.isError) {
-    return <Alert type="error" showIcon title={t`Unable to load activity timeline`} action={<Button onClick={() => query.refetch()}>{t`Retry`}</Button>} />
+    return <ActionableError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} />
   }
   const entries = query.data?.timeline ?? []
   if (entries.length === 0) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t`No customer activity yet`} />

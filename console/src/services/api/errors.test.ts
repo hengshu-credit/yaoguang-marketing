@@ -5,6 +5,8 @@ import {
   permissionDenial,
   permissionDenialFromBody,
   permissionDeniedMessage,
+  apiErrorDetails,
+  describeApiError,
   shouldRetryQuery
 } from './errors'
 import { ALL_PERMISSION_RESOURCES } from './permissions'
@@ -100,5 +102,56 @@ describe('shouldRetryQuery', () => {
 
   it('still retries an error that never reached the API client', () => {
     expect(shouldRetryQuery(0, new TypeError('Failed to fetch'))).toBe(true)
+  })
+})
+
+describe('apiErrorDetails', () => {
+  it('normalizes the structured API envelope without leaking an object as the Error message', () => {
+    const body = {
+      request_id: 'req-123',
+      error: {
+        code: 'validation_error',
+        message: 'Customer number is invalid',
+        field_errors: [{ field: 'customer_no', message: 'Use a Yaoguang customer number' }]
+      }
+    }
+
+    expect(apiErrorDetails(body)).toEqual({
+      code: 'validation_error',
+      message: 'Customer number is invalid',
+      requestId: 'req-123',
+      fieldErrors: [{ field: 'customer_no', message: 'Use a Yaoguang customer number' }]
+    })
+  })
+
+  it('keeps compatibility with legacy string error bodies', () => {
+    expect(apiErrorDetails({ error: 'Too many requests' })).toEqual({
+      message: 'Too many requests',
+      fieldErrors: []
+    })
+  })
+})
+
+describe('describeApiError', () => {
+  it('explains frequency limits as a suppression, not a send failure', () => {
+    const error = new ApiError('frequency limited', 429, {
+      request_id: 'req-frequency',
+      error: { code: 'frequency_limited', message: 'frequency limited' }
+    })
+
+    expect(describeApiError(error)).toMatchObject({
+      title: 'Delivery blocked by frequency control',
+      impact: 'The customer will not receive this delivery.',
+      requestId: 'req-frequency',
+      retryable: false
+    })
+  })
+
+  it('marks temporary unavailability as retryable and data-safe', () => {
+    expect(describeApiError(new ApiError('unavailable', 503))).toMatchObject({
+      title: 'Service temporarily unavailable',
+      impact: 'This operation is delayed; no data was discarded.',
+      retryable: true
+    })
   })
 })

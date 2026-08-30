@@ -3,6 +3,20 @@ import zhCatalogSource from './locales/zh-CN.po?raw'
 import { parsePOCatalog } from './po'
 
 const priorityTranslations: Record<string, string> = {
+  Customer: '客户',
+  Customers: '客户',
+  Audience: '客群',
+  Audiences: '客群',
+  Campaign: '营销活动',
+  Campaigns: '营销活动',
+  Journey: '自动化旅程',
+  Journeys: '自动化旅程',
+  Delivery: '投递',
+  Deliveries: '投递',
+  Identity: '身份标识',
+  Consent: '授权同意',
+  Suppression: '触达抑制',
+  'Frequency Cap': '频控',
   'System Settings': '系统设置',
   Dashboard: '工作台',
   Templates: '模板',

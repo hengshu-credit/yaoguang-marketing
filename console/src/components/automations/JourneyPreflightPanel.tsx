@@ -12,6 +12,7 @@ import {
   type JourneyPreflightIssue,
   type JourneyPreflightResult
 } from '../../services/api/automation'
+import { ActionableError } from '../errors/ActionableError'
 
 const { Paragraph, Text, Title } = Typography
 
@@ -33,8 +34,7 @@ export function JourneyPreflightPanel({
   const [loading, setLoading] = useState(true)
   const [activating, setActivating] = useState(false)
   const [confirmWarnings, setConfirmWarnings] = useState(false)
-  const [error, setError] = useState<string>()
-  const activationCheckFailed = t`Activation check failed`
+  const [error, setError] = useState<unknown>()
 
   const runPreflight = useCallback(async () => {
     setLoading(true)
@@ -49,11 +49,11 @@ export function JourneyPreflightPanel({
       )
     } catch (cause) {
       setResult(undefined)
-      setError(cause instanceof Error ? cause.message : activationCheckFailed)
+      setError(cause)
     } finally {
       setLoading(false)
     }
-  }, [activationCheckFailed, automationId, workspaceId])
+  }, [automationId, workspaceId])
 
   useEffect(() => {
     void runPreflight()
@@ -74,7 +74,7 @@ export function JourneyPreflightPanel({
       })
       onActivated?.()
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t`Failed to activate journey`)
+      setError(cause)
     } finally {
       setActivating(false)
     }
@@ -102,7 +102,7 @@ export function JourneyPreflightPanel({
           </Button>
         </div>
 
-        {error && <Alert type="error" showIcon title={t`Activation check failed`} description={error} />}
+        {Boolean(error) && <ActionableError error={error} onRetry={() => void runPreflight()} retrying={loading} />}
 
         {loading ? (
           <div className="flex min-h-40 items-center justify-center">

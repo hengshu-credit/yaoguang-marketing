@@ -104,6 +104,8 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({
         const button = (
           <button
             key={item.key}
+            type="button"
+            disabled={isDisabled}
             className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 ${
               isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100 cursor-pointer'
             }`}
@@ -142,6 +144,8 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({
           styles={{ container: { padding: 0 } }}
         >
           <button
+            type="button"
+            aria-label={t`Add node`}
             className={`add-node-button flex items-center justify-center ${buttonSize} rounded-full ${shadowSize} border-2 border-white cursor-pointer transition-transform hover:scale-110`}
           >
             <Plus size={iconSize} color="white" />

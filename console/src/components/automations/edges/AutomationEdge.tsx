@@ -74,6 +74,8 @@ export const AutomationEdge: React.FC<EdgeProps<AutomationFlowEdge>> = ({
               {data?.onDelete && (
                 <Tooltip title={t`Delete edge`} placement="right">
                   <button
+                    type="button"
+                    aria-label={t`Delete edge`}
                     className="flex items-center justify-center w-6 h-6 rounded-full bg-white hover:bg-red-50 shadow-md border border-gray-200 cursor-pointer transition-transform hover:scale-110"
                     onClick={() => data.onDelete?.()}
                   >

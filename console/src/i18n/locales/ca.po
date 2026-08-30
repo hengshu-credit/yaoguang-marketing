@@ -82,6 +82,11 @@ msgstr "{0, plural, one {# fila exportada} other {# files exportades}}"
 msgid "{0} awaiting confirmation"
 msgstr ""
 
+#. placeholder {0}: result.blocking_count
+#: src/components/automations/JourneyPreflightPanel.tsx:167
+msgid "{0} blocking issue(s) must be fixed."
+msgstr ""
+
 #. placeholder {0}: delivery.confirmed.toLocaleString()
 #. placeholder {1}: delivery.failed.toLocaleString()
 #: src/pages/BroadcastsPage.tsx:216
@@ -265,9 +270,14 @@ msgstr "{0} baixes totals - Feu clic per veure detalls"
 msgid "{0} total unsubscribes (hidden from chart)"
 msgstr "{0} baixes totals (ocults del gràfic)"
 
+#. placeholder {0}: result.warning_count
+#: src/components/automations/JourneyPreflightPanel.tsx:169
+msgid "{0} warning(s) require confirmation."
+msgstr ""
+
 #. placeholder {0}: range[0]
 #. placeholder {1}: range[1]
-#: src/pages/AutomationsPage.tsx:232
+#: src/pages/AutomationsPage.tsx:244
 msgid "{0}-{1} of {total} automations"
 msgstr "{0}-{1} de {total} automatitzacions"
 
@@ -544,7 +554,7 @@ msgstr "Una breu descripció del propòsit d'aquesta notificació"
 msgid "A bulk action is already running"
 msgstr "Ja hi ha una acció massiva en curs"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:399
+#: src/components/automations/config/TriggerConfigForm.tsx:413
 msgid "A count of past activity includes the event that fires the automation, so \"at least 3 opens\" enrolls on the third open."
 msgstr "Un recompte d'activitat passada inclou l'esdeveniment que dispara l'automatització, de manera que \"almenys 3 obertures\" inscriu el contacte a la tercera obertura."
 
@@ -584,7 +594,7 @@ msgid "A winner has been selected. Emails are being sent to the remaining recipi
 msgstr "S'ha seleccionat un guanyador. S'estan enviant els correus a la resta de destinataris."
 
 #: src/components/automations/AddNodeButton.tsx:83
-#: src/components/automations/NodeConfigPanel.tsx:91
+#: src/components/automations/NodeConfigPanel.tsx:80
 #: src/components/automations/nodes/ABTestNode.tsx:47
 #: src/components/automations/nodes/StatNode.tsx:93
 #: src/components/automations/nodes/StatNode.tsx:346
@@ -614,6 +624,7 @@ msgstr "Clau d'accés"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:589
 #: src/components/web_analytics/filters/TestFilterModal.tsx:183
+#: src/pages/DeliveryCenterPage.tsx:84
 msgid "Action"
 msgstr "Acció"
 
@@ -623,7 +634,7 @@ msgstr "Acció"
 msgid "Actions"
 msgstr "Accions"
 
-#: src/components/automations/AutomationCard.tsx:217
+#: src/components/automations/AutomationCard.tsx:214
 msgid "Activate"
 msgstr "Activar"
 
@@ -632,8 +643,23 @@ msgid "Activate Automation"
 msgstr "Activar automatització"
 
 #: src/components/automations/AutomationCard.tsx:209
-msgid "Activate automation?"
-msgstr "Activar automatització?"
+#~ msgid "Activate automation?"
+#~ msgstr "Activar automatització?"
+
+#: src/components/automations/JourneyPreflightPanel.tsx:174
+#: src/components/automations/JourneyPreflightPanel.tsx:180
+msgid "Activate journey"
+msgstr ""
+
+#: src/components/automations/JourneyCreateWizard.tsx:471
+msgid "Activation check"
+msgstr ""
+
+#: src/components/automations/JourneyPreflightPanel.tsx:89
+#: src/components/automations/JourneyPreflightPanel.tsx:94
+#: src/pages/AutomationsPage.tsx:269
+msgid "Activation preflight"
+msgstr ""
 
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:48
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:60
@@ -660,6 +686,10 @@ msgstr "Subscriptor actiu"
 #: src/components/segment/table_tag.tsx:30
 msgid "Activity"
 msgstr "Activitat"
+
+#: src/components/customers/CustomerDrawer.tsx:109
+msgid "Activity timeline"
+msgstr ""
 
 #: src/components/blog/AuthorsTable.tsx:138
 #: src/components/broadcasts/HeadersEditor.tsx:54
@@ -779,7 +809,7 @@ msgstr "Afegir capçalera personalitzada"
 msgid "Add dimension"
 msgstr "Afegir dimensió"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:388
+#: src/components/automations/config/TriggerConfigForm.tsx:402
 msgid "Add entry conditions"
 msgstr "Afegir condicions d'entrada"
 
@@ -804,7 +834,8 @@ msgstr "Afegir paraules clau..."
 msgid "Add Label"
 msgstr "Afegir etiqueta"
 
-#: src/components/automations/AddNodeButton.tsx:134
+#: src/components/automations/AddNodeButton.tsx:136
+#: src/components/automations/AddNodeButton.tsx:148
 msgid "Add node"
 msgstr "Afegir node"
 
@@ -849,7 +880,7 @@ msgid "Add to list"
 msgstr "Afegir a la llista"
 
 #: src/components/automations/AddNodeButton.tsx:85
-#: src/components/automations/NodeConfigPanel.tsx:92
+#: src/components/automations/NodeConfigPanel.tsx:81
 #: src/components/automations/nodes/AddToListNode.tsx:41
 #: src/components/automations/nodes/StatNode.tsx:91
 msgid "Add to List"
@@ -871,19 +902,19 @@ msgstr "Afegir webhook"
 msgid "Additional context about this event"
 msgstr "Context addicional sobre aquest esdeveniment"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:129
+#: src/components/automations/config/TriggerConfigForm.tsx:140
 #: src/pages/ContactsPage.tsx:433
 #: src/pages/ContactsPage.tsx:718
 msgid "Address"
 msgstr "Adreça"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:131
+#: src/components/automations/config/TriggerConfigForm.tsx:142
 #: src/components/contacts/ContactDetailsDrawer.tsx:445
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:97
 msgid "Address Line 1"
 msgstr "Línia d'adreça 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:132
+#: src/components/automations/config/TriggerConfigForm.tsx:143
 #: src/components/contacts/ContactDetailsDrawer.tsx:446
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:98
 msgid "Address Line 2"
@@ -1100,6 +1131,10 @@ msgstr "S'ha produït un error durant l'exportació"
 msgid "An error occurred with the file manager"
 msgstr "S'ha produït un error amb el gestor de fitxers"
 
+#: src/pages/DeliveryCenterPage.tsx:106
+msgid "An uncertain provider result is never retried automatically. Verify it first to avoid duplicate customer contact."
+msgstr ""
+
 #: src/components/settings/UITranslationsSettings.tsx:107
 msgid "Analytics"
 msgstr "Analítiques"
@@ -1166,7 +1201,7 @@ msgstr "Qualsevol difusió"
 msgid "Any event"
 msgstr "Qualsevol esdeveniment"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:356
+#: src/components/automations/config/TriggerConfigForm.tsx:367
 msgid "Any field change triggers automation"
 msgstr "Qualsevol canvi de camp activa l'automatització"
 
@@ -1278,6 +1313,10 @@ msgstr "Aplicar i recompilar"
 msgid "Apply filter"
 msgstr "Aplicar filtre"
 
+#: src/pages/DeliveryCenterPage.tsx:117
+msgid "Apply filters"
+msgstr ""
+
 #: src/components/contacts/BulkUpdateDrawer.tsx:434
 msgid "Are you sure you want to cancel the operation? Progress will be saved and you can resume later."
 msgstr "Esteu segur que voleu cancel·lar l'operació? El progrés es desarà i podreu reprendre més tard."
@@ -1388,6 +1427,10 @@ msgstr "Esteu segur que voleu utilitzar aquest fitxer?"
 msgid "Array index: {segment}"
 msgstr "Índex de matriu: {segment}"
 
+#: src/services/api/errors.ts:173
+msgid "Ask a workspace owner to check your access, then try again."
+msgstr ""
+
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:202
 msgid "Ask about your traffic..."
 msgstr "Pregunteu sobre el vostre trànsit..."
@@ -1438,11 +1481,21 @@ msgstr "Intents"
 msgid "Attribution rules"
 msgstr "Regles d'atribució"
 
+#: src/i18n/catalogInventory.ts:9
 #: src/pages/BroadcastsPage.tsx:1061
 msgid "Audience"
 msgstr "Audiència"
 
-#: src/layouts/WorkspaceLayout.tsx:246
+#: src/components/automations/JourneyCreateWizard.tsx:145
+msgid "Audience notification"
+msgstr ""
+
+#: src/components/automations/JourneyCreateWizard.tsx:148
+msgid "Audience notification journey"
+msgstr ""
+
+#: src/components/customers/CustomerDrawer.tsx:108
+#: src/layouts/WorkspaceLayout.tsx:247
 msgid "Audiences"
 msgstr ""
 
@@ -1533,15 +1586,15 @@ msgstr "Enviar guanyador automàticament"
 msgid "Automation"
 msgstr "Automatització"
 
-#: src/pages/AutomationsPage.tsx:89
+#: src/pages/AutomationsPage.tsx:285
 msgid "Automation activated successfully"
 msgstr "Automatització activada correctament"
 
-#: src/components/automations/context/AutomationContext.tsx:257
+#: src/components/automations/context/AutomationContext.tsx:344
 msgid "Automation created successfully"
 msgstr "Automatització creada correctament"
 
-#: src/pages/AutomationsPage.tsx:123
+#: src/pages/AutomationsPage.tsx:129
 msgid "Automation deleted successfully"
 msgstr "Automatització eliminada correctament"
 
@@ -1549,15 +1602,15 @@ msgstr "Automatització eliminada correctament"
 msgid "Automation flows — their triggers, nodes and per-contact execution history."
 msgstr "Fluxos d'automatització — els seus disparadors, nodes i historial d'execució per contacte."
 
-#: src/layouts/WorkspaceLayout.tsx:264
+#: src/layouts/WorkspaceLayout.tsx:265
 msgid "Automation Journeys"
 msgstr ""
 
-#: src/pages/AutomationsPage.tsx:108
+#: src/pages/AutomationsPage.tsx:114
 msgid "Automation paused successfully"
 msgstr "Automatització pausada correctament"
 
-#: src/components/automations/context/AutomationContext.tsx:272
+#: src/components/automations/context/AutomationContext.tsx:344
 msgid "Automation updated successfully"
 msgstr "Automatització actualitzada correctament"
 
@@ -1567,8 +1620,8 @@ msgstr "Automatització:"
 
 #: src/components/settings/PermissionsMatrix.tsx:127
 #: src/components/settings/UITranslationsSettings.tsx:110
-#: src/pages/AutomationsPage.tsx:162
-#: src/services/api/errors.ts:62
+#: src/pages/AutomationsPage.tsx:172
+#: src/services/api/errors.ts:222
 msgid "Automations"
 msgstr "Automatitzacions"
 
@@ -1580,7 +1633,7 @@ msgstr "L'escriptura d'Automatitzacions és una lectura indirecta de contactes q
 msgid "Available Blocks"
 msgstr "Blocs disponibles"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:215
+#: src/components/automations/UpsertAutomationDrawer.tsx:223
 msgid "Available once you connect an email provider that supports inbound replies (currently Mailgun and Amazon SES — more providers coming soon). It stops this automation for a contact as soon as they reply to one of its emails."
 msgstr "Disponible un cop connecteu un proveïdor de correu que admeti respostes entrants (actualment Mailgun i Amazon SES — aviat hi haurà més proveïdors). Atura aquesta automatització per a un contacte tan bon punt respon a un dels seus correus."
 
@@ -1609,6 +1662,7 @@ msgstr "Regió AWS"
 msgid "AWS Secret Key"
 msgstr "Clau secreta AWS"
 
+#: src/components/automations/JourneyCreateWizard.tsx:485
 #: src/components/web_analytics/FilterBuilder.tsx:236
 #: src/components/web_analytics/FilterBuilder.tsx:295
 #: src/components/web_analytics/filters/TestFilterModal.tsx:205
@@ -1750,6 +1804,18 @@ msgstr "Millor TimeScore"
 msgid "between"
 msgstr "Entre"
 
+#: src/components/automations/JourneyCreateWizard.tsx:133
+msgid "Birthday care"
+msgstr ""
+
+#: src/components/automations/JourneyCreateWizard.tsx:136
+msgid "Birthday care journey"
+msgstr ""
+
+#: src/components/automations/JourneyCreateWizard.tsx:153
+msgid "Blank journey"
+msgstr ""
+
 #. placeholder {0}: selectedBlock?.name
 #: src/components/email_builder/ui/BlockToolbar.tsx:117
 msgid "Block \"{0}\" updated"
@@ -1772,6 +1838,10 @@ msgstr "Panell de configuració del bloc"
 msgid "Block type:"
 msgstr "Tipus de bloc:"
 
+#: src/components/automations/JourneyPreflightPanel.tsx:133
+msgid "Blocking"
+msgstr ""
+
 #: src/pages/TemplatesPage.tsx:131
 msgid "Blocklist"
 msgstr "Llista de bloqueig"
@@ -1786,7 +1856,7 @@ msgstr "Blocs"
 #: src/components/settings/PermissionsMatrix.tsx:126
 #: src/components/settings/SettingsSidebar.tsx:115
 #: src/components/settings/UITranslationsSettings.tsx:117
-#: src/services/api/errors.ts:61
+#: src/services/api/errors.ts:221
 msgid "Blog"
 msgstr "Blog"
 
@@ -1946,8 +2016,8 @@ msgstr "Tipus de rebot"
 
 #: src/components/analytics/EmailMetricsChart.tsx:270
 #: src/components/analytics/EmailMetricsChart.tsx:429
-#: src/components/automations/config/TriggerConfigForm.tsx:86
-#: src/components/automations/config/TriggerConfigForm.tsx:106
+#: src/components/automations/config/TriggerConfigForm.tsx:97
+#: src/components/automations/config/TriggerConfigForm.tsx:117
 #: src/components/broadcasts/BroadcastStats.tsx:283
 #: src/components/contacts/ContactDetailsDrawer.tsx:585
 #: src/components/lists/ListStats.tsx:134
@@ -2085,7 +2155,7 @@ msgstr "Difusió actualitzada correctament"
 #: src/components/settings/PermissionsMatrix.tsx:122
 #: src/components/settings/UITranslationsSettings.tsx:116
 #: src/pages/BroadcastsPage.tsx:1549
-#: src/services/api/errors.ts:57
+#: src/services/api/errors.ts:217
 msgid "Broadcasts"
 msgstr "Difusions"
 
@@ -2177,6 +2247,7 @@ msgstr "Mida del botó"
 msgid "Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored."
 msgstr "Crideu identify() un cop sapigueu qui és el visitant. La signatura s'ha de calcular al vostre servidor amb la clau secreta del vostre espai de treball — l'endpoint de seguiment és públic, de manera que una adreça sense signar s'ignora."
 
+#: src/i18n/catalogInventory.ts:10
 #: src/pages/WebAnalyticsLivePage.tsx:202
 msgid "Campaign"
 msgstr "Campanya"
@@ -2189,13 +2260,12 @@ msgid "Campaigns"
 msgstr "Campanyes"
 
 #: src/components/automations/AutomationCard.tsx:157
-#: src/components/automations/AutomationCard.tsx:213
-#: src/components/automations/AutomationCard.tsx:237
+#: src/components/automations/AutomationCard.tsx:233
 #: src/components/automations/config/ConditionsField.tsx:120
 #: src/components/automations/nodes/BaseNode.tsx:52
-#: src/components/automations/UpsertAutomationDrawer.tsx:102
-#: src/components/automations/UpsertAutomationDrawer.tsx:129
-#: src/components/automations/UpsertAutomationDrawer.tsx:167
+#: src/components/automations/UpsertAutomationDrawer.tsx:112
+#: src/components/automations/UpsertAutomationDrawer.tsx:139
+#: src/components/automations/UpsertAutomationDrawer.tsx:177
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:115
 #: src/components/blog/PostDrawer.tsx:682
 #: src/components/blog/PublishModal.tsx:205
@@ -2310,7 +2380,7 @@ msgstr "Cancel·lar pujada?"
 msgid "Cancelled"
 msgstr "Cancel·lat"
 
-#: src/components/automations/context/AutomationContext.tsx:131
+#: src/components/automations/context/AutomationContext.tsx:140
 msgid "Cannot remove list while email nodes exist. Delete email nodes first."
 msgstr "No es pot treure la llista mentre existeixin nodes de correu. Elimineu primer els nodes de correu."
 
@@ -2432,6 +2502,7 @@ msgstr "Canviar estat"
 msgid "Change Status for {0}"
 msgstr "Canviar estat per a {0}"
 
+#: src/components/errors/ActionableError.tsx:35
 #: src/components/messages/MessageHistoryTab.tsx:217
 #: src/components/templates/MessageTemplateDrawer.tsx:378
 #: src/components/web_analytics/explore/BreakdownModal.tsx:63
@@ -2439,6 +2510,8 @@ msgstr "Canviar estat per a {0}"
 #: src/components/web_analytics/FilterBuilder.tsx:55
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:179
 #: src/components/web_analytics/tabs/DashboardTab.tsx:170
+#: src/pages/DeliveryCenterPage.tsx:80
+#: src/pages/DeliveryCenterPage.tsx:110
 msgid "Channel"
 msgstr "Canal"
 
@@ -2474,6 +2547,26 @@ msgstr "Comprovar"
 msgid "Check for Updates"
 msgstr "Comprovar actualitzacions"
 
+#: src/pages/DeliveryCenterPage.tsx:148
+msgid "Check provider again"
+msgstr ""
+
+#: src/components/automations/JourneyPreflightPanel.tsx:97
+msgid "Check the trigger, flow, templates, providers, variables, and message frequency policies before activation."
+msgstr ""
+
+#: src/services/api/errors.ts:100
+msgid "Check your connection and try again."
+msgstr ""
+
+#: src/components/automations/JourneyPreflightPanel.tsx:109
+msgid "Checking journey..."
+msgstr ""
+
+#: src/components/automations/JourneyCreateWizard.tsx:275
+msgid "Choose a goal and starting template"
+msgstr ""
+
 #: src/components/email_builder/ui/BlockToolbar.tsx:249
 msgid "Choose a saved block to update"
 msgstr "Trieu un bloc desat per actualitzar"
@@ -2486,6 +2579,14 @@ msgstr "Trieu un punt de partida per al vostre nou tema. Podeu personalitzar-ho 
 #: src/components/blog/PublishModal.tsx:110
 msgid "Choose when to publish \"{0}\""
 msgstr "Trieu quan publicar \"{0}\""
+
+#: src/components/automations/JourneyCreateWizard.tsx:121
+msgid "Churn win-back"
+msgstr ""
+
+#: src/components/automations/JourneyCreateWizard.tsx:124
+msgid "Churn win-back journey"
+msgstr ""
 
 #: src/pages/WebAnalyticsLivePage.tsx:164
 msgid "Cities"
@@ -2569,7 +2670,7 @@ msgstr "Feu clic per tornar-ho a provar"
 msgid "clicked"
 msgstr "Clicat"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:105
+#: src/components/automations/config/TriggerConfigForm.tsx:116
 #: src/components/messages/MessageHistoryTab.tsx:153
 #: src/components/messages/MessageHistoryTab.tsx:155
 #: src/components/messages/MessageHistoryTable.tsx:290
@@ -2648,7 +2749,11 @@ msgstr "Clonar plantilla"
 msgid "Close"
 msgstr "Tancar"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:101
+#: src/components/automations/NodeConfigPanel.tsx:200
+msgid "Close node configuration"
+msgstr ""
+
+#: src/components/automations/UpsertAutomationDrawer.tsx:111
 msgid "Close without saving"
 msgstr "Tancar sense desar"
 
@@ -2670,8 +2775,8 @@ msgid "Code Editor"
 msgstr "Editor de codi"
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
-#: src/layouts/WorkspaceLayout.tsx:332
-#: src/layouts/WorkspaceLayout.tsx:407
+#: src/layouts/WorkspaceLayout.tsx:333
+#: src/layouts/WorkspaceLayout.tsx:408
 msgid "Collapse"
 msgstr "Contraure"
 
@@ -2755,8 +2860,8 @@ msgstr "Compilant..."
 msgid "Complain email"
 msgstr "Correu de queixa"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:87
-#: src/components/automations/config/TriggerConfigForm.tsx:107
+#: src/components/automations/config/TriggerConfigForm.tsx:98
+#: src/components/automations/config/TriggerConfigForm.tsx:118
 #: src/components/contacts/ContactDetailsDrawer.tsx:586
 #: src/components/messages/MessageHistoryTab.tsx:182
 #: src/components/messages/MessageHistoryTab.tsx:184
@@ -2805,7 +2910,7 @@ msgstr "Complete the required fields before previewing."
 msgid "completed"
 msgstr "Completat"
 
-#: src/components/automations/AutomationCard.tsx:267
+#: src/components/automations/AutomationCard.tsx:263
 #: src/components/automations/nodes/StatNode.tsx:138
 #: src/components/automations/nodes/StatNode.tsx:201
 #: src/components/automations/nodes/StatNode.tsx:270
@@ -2838,7 +2943,7 @@ msgstr "Condicions"
 msgid "Conditions"
 msgstr "Condicions"
 
-#: src/components/automations/NodeConfigPanel.tsx:195
+#: src/components/automations/NodeConfigPanel.tsx:184
 msgid "Configuration for {nodeType} is not available in Phase 2"
 msgstr "La configuració per a {nodeType} no està disponible a la Fase 2"
 
@@ -2860,7 +2965,7 @@ msgstr "Conjunt de configuració"
 msgid "Configure"
 msgstr "Configurar"
 
-#: src/components/automations/NodeConfigPanel.tsx:206
+#: src/components/automations/NodeConfigPanel.tsx:195
 msgid "Configure {nodeLabel}"
 msgstr "Configura {nodeLabel}"
 
@@ -2897,6 +3002,10 @@ msgstr "Configurar proveïdor"
 msgid "Configure styling and SEO settings for your blog. These settings will be applied to all blog pages."
 msgstr "Configureu l'estil i els paràmetres SEO per al vostre blog. Aquests paràmetres s'aplicaran a totes les pàgines del blog."
 
+#: src/components/automations/JourneyCreateWizard.tsx:311
+msgid "Configure the trigger"
+msgstr ""
+
 #: src/components/settings/Integrations.tsx:1470
 #: src/components/settings/Integrations.tsx:1507
 #: src/components/settings/Integrations.tsx:1643
@@ -2926,7 +3035,11 @@ msgstr "Confirmar"
 msgid "Confirm a contact exists and list everything it is subscribed to (also needs Lists read)"
 msgstr "Confirmar que un contacte existeix i llistar tot allò a què està subscrit (també necessita lectura de Llistes)"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:84
+#: src/pages/DeliveryCenterPage.tsx:154
+msgid "Confirm resolution"
+msgstr ""
+
+#: src/components/automations/config/TriggerConfigForm.tsx:95
 msgid "Confirmed"
 msgstr "Confirmat"
 
@@ -2943,6 +3056,7 @@ msgstr "Connecteu i gestioneu serveis externs"
 msgid "Connect Zapier"
 msgstr "Connectar Zapier"
 
+#: src/components/automations/AutomationNodeList.tsx:32
 #: src/components/settings/Integrations.tsx:1764
 msgid "Connected"
 msgstr "Connectat el"
@@ -2959,7 +3073,8 @@ msgstr "Detalls de connexió"
 msgid "Consecutive delivery failures: {consecutiveFailures}"
 msgstr "Errors de lliurament consecutius: {consecutiveFailures}"
 
-#: src/components/customers/CustomerDrawer.tsx:130
+#: src/components/customers/CustomerDrawer.tsx:57
+#: src/i18n/catalogInventory.ts:14
 msgid "Consent"
 msgstr "Consentiment"
 
@@ -2975,7 +3090,7 @@ msgstr "Considereu connectar un proveïdor de correu transaccional per poder uti
 msgid "Consider using the same text as your subject line"
 msgstr "Considereu utilitzar el mateix text que la línia d'assumpte"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:67
+#: src/components/automations/config/TriggerConfigForm.tsx:78
 #: src/components/timeline/ContactTimeline.tsx:460
 #: src/components/timeline/ContactTimeline.tsx:529
 msgid "Contact"
@@ -3033,7 +3148,8 @@ msgstr "El contacte no està subscrit a aquesta llista"
 msgid "Contact property"
 msgstr "Propietat del contacte"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:379
+#: src/components/automations/config/TriggerConfigForm.tsx:391
+#: src/components/automations/JourneyCreateWizard.tsx:340
 msgid "Contact re-enters each time the event occurs"
 msgstr "El contacte torna a entrar cada vegada que es produeix l'esdeveniment"
 
@@ -3048,7 +3164,7 @@ msgstr "Contacte actualitzat correctament"
 #: src/components/settings/PermissionsMatrix.tsx:118
 #: src/components/settings/UITranslationsSettings.tsx:114
 #: src/pages/ContactsPage.tsx:1020
-#: src/services/api/errors.ts:53
+#: src/services/api/errors.ts:213
 msgid "Contacts"
 msgstr "Contactes"
 
@@ -3096,7 +3212,7 @@ msgstr "conté"
 msgid "Content"
 msgstr "Contingut"
 
-#: src/layouts/WorkspaceLayout.tsx:280
+#: src/layouts/WorkspaceLayout.tsx:281
 msgid "Content Center"
 msgstr ""
 
@@ -3128,6 +3244,10 @@ msgstr "Taxa de conv."
 #: src/components/web_analytics/CountryMapView.tsx:69
 msgid "Conversions"
 msgstr "Conversions"
+
+#: src/components/automations/JourneyCreateWizard.tsx:372
+msgid "Cooldown (hours)"
+msgstr ""
 
 #: src/components/settings/WebAnalyticsSettings.tsx:394
 #: src/components/settings/WebAnalyticsSettings.tsx:398
@@ -3166,9 +3286,13 @@ msgstr "Copiar URL"
 msgid "Copy Webhook endpoint"
 msgstr "Copiar punt final del webhook"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:118
+#: src/components/automations/config/TriggerConfigForm.tsx:129
 msgid "Core Fields"
 msgstr "Camps principals"
+
+#: src/services/api/errors.ts:164
+msgid "Correct the fields listed below and submit again."
+msgstr ""
 
 #: src/components/ai-assistant/AIAssistantChat.tsx:387
 msgid "Cost"
@@ -3228,7 +3352,7 @@ msgid "Countries"
 msgstr "Països"
 
 #: src/components/analytics/NewContactsTable.tsx:178
-#: src/components/automations/config/TriggerConfigForm.tsx:133
+#: src/components/automations/config/TriggerConfigForm.tsx:144
 #: src/components/contacts/ContactDetailsDrawer.tsx:447
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:94
 #: src/components/contacts/ExportContactsModal.tsx:65
@@ -3258,7 +3382,6 @@ msgstr "Coberta"
 msgid "Covers more than templates: reusable blocks answer to the same switch, and editing a block edits every template that embeds it. Blocks are kept with the workspace's own settings, so their content also comes back from /api/workspaces.get and from /api/workspaces.list, which needs no permission at all — Templates read is not the only way to see block content. And /api/templates.compile only checks this grant for calls arriving over the API; when the workspace compiles a template for itself, nothing is checked."
 msgstr "Abasta més que les plantilles: els blocs reutilitzables responen al mateix interruptor, i editar un bloc edita totes les plantilles que l'incrusten. Els blocs es desen amb la configuració pròpia de l'espai de treball, de manera que el seu contingut també torna des de /api/workspaces.get i des de /api/workspaces.list, que no necessita cap permís — la lectura de Plantilles no és l'única manera de veure el contingut dels blocs. I /api/templates.compile només comprova aquesta concessió per a les crides que arriben per l'API; quan l'espai de treball compila una plantilla per a si mateix, no es comprova res."
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:173
 #: src/components/blog/CategoryDrawer.tsx:114
 #: src/components/blog/PostDrawer.tsx:691
 #: src/components/file_manager/fileManager.tsx:1029
@@ -3346,9 +3469,9 @@ msgstr "Creeu i gestioneu el contingut del vostre blog"
 msgid "Create API Key"
 msgstr "Crear clau API"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:144
-#: src/components/automations/UpsertAutomationDrawer.tsx:288
-#: src/pages/AutomationsPage.tsx:178
+#: src/components/automations/UpsertAutomationDrawer.tsx:154
+#: src/components/automations/UpsertAutomationDrawer.tsx:318
+#: src/pages/AutomationsPage.tsx:188
 msgid "Create Automation"
 msgstr "Crear automatització"
 
@@ -3454,7 +3577,7 @@ msgstr "Crear webhook"
 msgid "Create Workspace"
 msgstr "Crear espai de treball"
 
-#: src/pages/AutomationsPage.tsx:203
+#: src/pages/AutomationsPage.tsx:215
 msgid "Create your first automation"
 msgstr "Creeu la vostra primera automatització"
 
@@ -3490,8 +3613,9 @@ msgstr "Creeu la vostra primera plantilla per començar"
 msgid "created"
 msgstr "Creat"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:69
+#: src/components/automations/config/TriggerConfigForm.tsx:80
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:418
+#: src/pages/DeliveryCenterPage.tsx:83
 #: src/pages/TemplatesPage.tsx:296
 msgid "Created"
 msgstr "Creat"
@@ -3586,27 +3710,27 @@ msgstr "Classe CSS personalitzada per a estils"
 msgid "Custom data (JSON)"
 msgstr "Custom data (JSON)"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:161
+#: src/components/automations/config/TriggerConfigForm.tsx:172
 msgid "Custom Date 1"
 msgstr "Data personalitzada 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:162
+#: src/components/automations/config/TriggerConfigForm.tsx:173
 msgid "Custom Date 2"
 msgstr "Data personalitzada 2"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:163
+#: src/components/automations/config/TriggerConfigForm.tsx:174
 msgid "Custom Date 3"
 msgstr "Data personalitzada 3"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:164
+#: src/components/automations/config/TriggerConfigForm.tsx:175
 msgid "Custom Date 4"
 msgstr "Data personalitzada 4"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:165
+#: src/components/automations/config/TriggerConfigForm.tsx:176
 msgid "Custom Date 5"
 msgstr "Data personalitzada 5"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:159
+#: src/components/automations/config/TriggerConfigForm.tsx:170
 msgid "Custom Date Fields"
 msgstr "Camps de data personalitzats"
 
@@ -3633,7 +3757,7 @@ msgstr "Domini personalitzat per a enllaços de correu (baixa, seguiment, centre
 msgid "Custom Endpoint URL"
 msgstr "URL de punt final personalitzat"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:111
+#: src/components/automations/config/TriggerConfigForm.tsx:122
 #: src/components/automations/nodes/TriggerNode.tsx:26
 msgid "Custom Event"
 msgstr "Esdeveniment personalitzat"
@@ -3677,27 +3801,27 @@ msgstr "URL d'icona personalitzada"
 msgid "Custom JSON {num}"
 msgstr "JSON personalitzat {num}"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:171
+#: src/components/automations/config/TriggerConfigForm.tsx:182
 msgid "Custom JSON 1"
 msgstr "JSON personalitzat 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:172
+#: src/components/automations/config/TriggerConfigForm.tsx:183
 msgid "Custom JSON 2"
 msgstr "JSON personalitzat 2"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:173
+#: src/components/automations/config/TriggerConfigForm.tsx:184
 msgid "Custom JSON 3"
 msgstr "JSON personalitzat 3"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:174
+#: src/components/automations/config/TriggerConfigForm.tsx:185
 msgid "Custom JSON 4"
 msgstr "JSON personalitzat 4"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:175
+#: src/components/automations/config/TriggerConfigForm.tsx:186
 msgid "Custom JSON 5"
 msgstr "JSON personalitzat 5"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:169
+#: src/components/automations/config/TriggerConfigForm.tsx:180
 #: src/components/contacts/ContactDetailsDrawer.tsx:911
 msgid "Custom JSON Fields"
 msgstr "Camps JSON personalitzats"
@@ -3706,27 +3830,27 @@ msgstr "Camps JSON personalitzats"
 msgid "Custom Label"
 msgstr "Etiqueta personalitzada"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:151
+#: src/components/automations/config/TriggerConfigForm.tsx:162
 msgid "Custom Number 1"
 msgstr "Número personalitzat 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:152
+#: src/components/automations/config/TriggerConfigForm.tsx:163
 msgid "Custom Number 2"
 msgstr "Número personalitzat 2"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:153
+#: src/components/automations/config/TriggerConfigForm.tsx:164
 msgid "Custom Number 3"
 msgstr "Número personalitzat 3"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:154
+#: src/components/automations/config/TriggerConfigForm.tsx:165
 msgid "Custom Number 4"
 msgstr "Número personalitzat 4"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:155
+#: src/components/automations/config/TriggerConfigForm.tsx:166
 msgid "Custom Number 5"
 msgstr "Número personalitzat 5"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:149
+#: src/components/automations/config/TriggerConfigForm.tsx:160
 #: src/components/contacts/ContactDetailsDrawer.tsx:867
 msgid "Custom Number Fields"
 msgstr "Camps de número personalitzats"
@@ -3751,36 +3875,52 @@ msgstr "Remitent personalitzat (proveïdor de correu transaccional)"
 msgid "Custom sender name (optional)"
 msgstr "Nom de remitent personalitzat (opcional)"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:141
+#: src/components/automations/config/TriggerConfigForm.tsx:152
 msgid "Custom String 1"
 msgstr "Cadena personalitzada 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:142
+#: src/components/automations/config/TriggerConfigForm.tsx:153
 msgid "Custom String 2"
 msgstr "Cadena personalitzada 2"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:143
+#: src/components/automations/config/TriggerConfigForm.tsx:154
 msgid "Custom String 3"
 msgstr "Cadena personalitzada 3"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:144
+#: src/components/automations/config/TriggerConfigForm.tsx:155
 msgid "Custom String 4"
 msgstr "Cadena personalitzada 4"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:145
+#: src/components/automations/config/TriggerConfigForm.tsx:156
 msgid "Custom String 5"
 msgstr "Cadena personalitzada 5"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:139
+#: src/components/automations/config/TriggerConfigForm.tsx:150
 #: src/components/contacts/ContactDetailsDrawer.tsx:845
 msgid "Custom String Fields"
 msgstr "Camps de cadena personalitzats"
 
-#: src/components/customers/CustomerDrawer.tsx:24
+#: src/components/automations/JourneyTraceDrawer.tsx:89
+#: src/i18n/catalogInventory.ts:8
+#: src/pages/DeliveryCenterPage.tsx:113
+#: src/pages/DeliveryCenterPage.tsx:143
+msgid "Customer"
+msgstr ""
+
+#: src/components/customers/CustomerDrawer.tsx:96
 msgid "Customer 360"
 msgstr "Vista 360 del client"
 
-#: src/components/customers/CustomerDrawer.tsx:57
+#: src/components/automations/JourneyTraceDrawer.tsx:49
+msgid "Customer entered the journey"
+msgstr ""
+
+#: src/pages/DeliveryCenterPage.tsx:113
+msgid "Customer ID or number"
+msgstr ""
+
+#: src/components/customers/CustomerDrawer.tsx:24
+#: src/components/errors/ActionableError.tsx:32
 #: src/pages/CustomersPage.tsx:87
 msgid "Customer number"
 msgstr "Número de client"
@@ -3790,9 +3930,9 @@ msgid "Customer write can replace tags and list memberships and can explicitly m
 msgstr "Els clients d' escriptura poden substituir etiquetes i adhesions de llista i poden fusionar explícitament un personalitzat anònim en un a mida conegut. Fusiona intencionadament està limitada a aquesta direcció; no es permet la fusió automàtica coneguda. Els valors d' identitat RAW estan encriptats i les respostes exposen només els suggeriments de màscara."
 
 #: src/components/settings/PermissionsMatrix.tsx:119
-#: src/layouts/WorkspaceLayout.tsx:237
+#: src/layouts/WorkspaceLayout.tsx:238
 #: src/pages/CustomersPage.tsx:134
-#: src/services/api/errors.ts:54
+#: src/services/api/errors.ts:214
 msgid "Customers"
 msgstr "Personalitzadors"
 
@@ -3812,7 +3952,7 @@ msgid "Danger Zone"
 msgstr "Zona de perill"
 
 #: src/components/settings/UITranslationsSettings.tsx:106
-#: src/layouts/WorkspaceLayout.tsx:221
+#: src/layouts/WorkspaceLayout.tsx:222
 #: src/pages/AnalyticsPage.tsx:77
 #: src/pages/WebAnalyticsLivePage.tsx:127
 msgid "Dashboard"
@@ -3823,7 +3963,7 @@ msgstr "Tauler"
 msgid "Dashed"
 msgstr "Discontinu"
 
-#: src/layouts/WorkspaceLayout.tsx:292
+#: src/layouts/WorkspaceLayout.tsx:293
 msgid "Data Analytics"
 msgstr ""
 
@@ -3931,7 +4071,7 @@ msgid "Define UTM parameters for links in your email for better campaign trackin
 msgstr "Definiu paràmetres UTM per als enllaços del vostre correu per a un millor seguiment de campanyes."
 
 #: src/components/automations/AddNodeButton.tsx:78
-#: src/components/automations/NodeConfigPanel.tsx:87
+#: src/components/automations/NodeConfigPanel.tsx:76
 #: src/components/automations/nodes/DelayNode.tsx:45
 #: src/components/automations/nodes/StatNode.tsx:85
 msgid "Delay"
@@ -4085,6 +4225,7 @@ msgid "Delete contacts"
 msgstr "Eliminar contactes"
 
 #: src/components/automations/edges/AutomationEdge.tsx:75
+#: src/components/automations/edges/AutomationEdge.tsx:78
 msgid "Delete edge"
 msgstr "Eliminar aresta"
 
@@ -4117,6 +4258,7 @@ msgstr "Eliminar llista"
 
 #: src/components/automations/nodes/BaseNode.tsx:48
 #: src/components/automations/nodes/BaseNode.tsx:55
+#: src/components/automations/nodes/BaseNode.tsx:56
 msgid "Delete node"
 msgstr "Eliminar node"
 
@@ -4184,7 +4326,7 @@ msgstr "Eliminar espai de treball"
 msgid "deleted"
 msgstr "Eliminat"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:71
+#: src/components/automations/config/TriggerConfigForm.tsx:82
 #: src/components/contacts/SegmentsFilter.tsx:87
 msgid "Deleted"
 msgstr "Eliminat"
@@ -4225,24 +4367,53 @@ msgstr "Lliurat"
 msgid "Delivered"
 msgstr "Lliurat"
 
+#: src/components/customers/CustomerDrawer.tsx:111
+msgid "Deliveries"
+msgstr ""
+
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:88
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:251
 msgid "Delivering"
 msgstr "Lliurant"
 
-#: src/layouts/WorkspaceLayout.tsx:308
+#: src/i18n/catalogInventory.ts:12
+msgid "Delivery"
+msgstr ""
+
+#: src/services/api/errors.ts:124
+msgid "Delivery blocked by frequency control"
+msgstr ""
+
+#: src/layouts/WorkspaceLayout.tsx:309
+#: src/pages/DeliveryCenterPage.tsx:103
 msgid "Delivery Center"
+msgstr ""
+
+#: src/pages/DeliveryCenterPage.tsx:133
+msgid "Delivery details"
+msgstr ""
+
+#: src/pages/DeliveryCenterPage.tsx:142
+msgid "Delivery ID"
 msgstr ""
 
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:488
 msgid "Delivery ID:"
 msgstr "ID de lliurament:"
 
+#: src/services/api/errors.ts:115
+msgid "Delivery outcome is uncertain"
+msgstr ""
+
+#: src/pages/DeliveryCenterPage.tsx:164
+msgid "Describe the verification evidence and reason"
+msgstr ""
+
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:320
 msgid "Describe this image..."
 msgstr "Descriviu aquesta imatge..."
 
-#: src/components/automations/NodeConfigPanel.tsx:225
+#: src/components/automations/NodeConfigPanel.tsx:216
 #: src/components/blog/CategoryDrawer.tsx:155
 #: src/components/lists/ListDrawer.tsx:206
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:308
@@ -4293,6 +4464,10 @@ msgstr "Dispositius"
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:73
 msgid "Devices and tech"
 msgstr "Dispositius i tecnologia"
+
+#: src/components/automations/JourneyTraceDrawer.tsx:129
+msgid "Diagnostic data"
+msgstr ""
 
 #: src/components/timeline/ContactTimeline.tsx:709
 msgid "Diagnostic:"
@@ -4414,7 +4589,7 @@ msgstr "Voleu eliminar permanentment aquest fitxer del vostre emmagatzematge?"
 msgid "Do you want to send \"{0}\" immediately or schedule it for later?"
 msgstr "Voleu enviar \"{0}\" immediatament o programar-ho per més tard?"
 
-#: src/layouts/WorkspaceLayout.tsx:499
+#: src/layouts/WorkspaceLayout.tsx:500
 msgid "Documentation"
 msgstr "Documentació"
 
@@ -4498,6 +4673,10 @@ msgstr "Arrossegueu per moure aquest bloc a l'arbre"
 msgid "Drop files here to upload"
 msgstr "Deixeu anar fitxers aquí per pujar"
 
+#: src/components/customers/CustomerDrawer.tsx:75
+msgid "Dynamic audience memberships"
+msgstr ""
+
 #: src/services/api/permissions.ts:286
 msgid "Dynamic segment definitions, their compiled queries, and the background tasks that build them."
 msgstr "Definicions de segments dinàmics, les seves consultes compilades i les tasques en segon pla que els construeixen."
@@ -4579,7 +4758,7 @@ msgstr "p. ex., La meva integració OpenAI"
 msgid "e.g., My Supabase Integration"
 msgstr "p. ex., La meva integració Supabase"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:344
+#: src/components/automations/config/TriggerConfigForm.tsx:355
 msgid "e.g., paid"
 msgstr "e.g., paid"
 
@@ -4587,7 +4766,7 @@ msgstr "e.g., paid"
 msgid "e.g., Product Updates"
 msgstr "p. ex., Actualitzacions de producte"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:331
+#: src/components/automations/config/TriggerConfigForm.tsx:342
 msgid "e.g., purchase"
 msgstr "p. ex., compra"
 
@@ -4595,11 +4774,12 @@ msgstr "p. ex., compra"
 msgid "e.g., Raleway, Open Sans"
 msgstr "p. ex., Raleway, Open Sans"
 
-#: src/components/automations/NodeConfigPanel.tsx:239
+#: src/components/automations/NodeConfigPanel.tsx:230
 msgid "e.g., Welcome — day 1"
 msgstr "p. ex., Benvinguda — dia 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:374
+#: src/components/automations/config/TriggerConfigForm.tsx:386
+#: src/components/automations/JourneyCreateWizard.tsx:335
 msgid "Each contact enters the automation only once"
 msgstr "Cada contacte entra a l'automatització només una vegada"
 
@@ -4608,7 +4788,7 @@ msgid "edit"
 msgstr "Editar"
 
 #: src/components/automations/config/ConditionsField.tsx:108
-#: src/components/automations/UpsertAutomationDrawer.tsx:288
+#: src/components/automations/UpsertAutomationDrawer.tsx:318
 #: src/components/blog/PostsTable.tsx:349
 #: src/components/email_builder/EmailBuilder.tsx:839
 #: src/components/email_builder/ui/ImportFontInput.tsx:209
@@ -4672,7 +4852,7 @@ msgid "Edit Author"
 msgstr "Editar autor"
 
 #: src/components/automations/AutomationCard.tsx:176
-#: src/components/automations/UpsertAutomationDrawer.tsx:144
+#: src/components/automations/UpsertAutomationDrawer.tsx:154
 msgid "Edit Automation"
 msgstr "Editar automatització"
 
@@ -4826,8 +5006,8 @@ msgstr "Correu electrònic"
 
 #: src/components/analytics/NewContactsTable.tsx:67
 #: src/components/automations/AddNodeButton.tsx:79
-#: src/components/automations/config/TriggerConfigForm.tsx:102
-#: src/components/automations/NodeConfigPanel.tsx:88
+#: src/components/automations/config/TriggerConfigForm.tsx:113
+#: src/components/automations/NodeConfigPanel.tsx:77
 #: src/components/automations/nodes/EmailNode.tsx:39
 #: src/components/automations/nodes/StatNode.tsx:86
 #: src/components/contacts/BulkUpdateDrawer.tsx:665
@@ -5097,7 +5277,7 @@ msgstr "Endpoints protegits per {label}"
 msgid "Engagement by country and region"
 msgstr "Interacció per país i regió"
 
-#: src/components/automations/AutomationCard.tsx:260
+#: src/components/automations/AutomationCard.tsx:256
 msgid "Enrolled"
 msgstr "Inscrit"
 
@@ -5138,7 +5318,7 @@ msgstr "Introduïu una adreça de correu per rebre un correu de prova:"
 msgid "Enter author name"
 msgstr "Introduïu el nom de l'autor"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:187
+#: src/components/automations/UpsertAutomationDrawer.tsx:195
 msgid "Enter automation name"
 msgstr "Introduïu el nom de l'automatització"
 
@@ -5266,7 +5446,7 @@ msgstr "Introduïu espaiat"
 msgid "Enter the 6-digit code sent to {email}"
 msgstr "Introdueix el codi de 6 dígits enviat a {email}"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:328
+#: src/components/automations/config/TriggerConfigForm.tsx:339
 msgid "Enter the name of the custom event (e.g., 'purchase', 'signup')"
 msgstr "Introduïu el nom de l'esdeveniment personalitzat (p. ex., 'compra', 'registre')"
 
@@ -5286,17 +5466,49 @@ msgstr "Introduïu ID de l'espai de treball"
 msgid "Enter workspace name"
 msgstr "Introduïu el nom de l'espai de treball"
 
+#: src/components/customers/CustomerJourneysTab.tsx:30
+msgid "Entered the journey"
+msgstr ""
+
 #: src/components/timeline/ContactTimeline.tsx:985
 msgid "Entity ID:"
 msgstr "ID de l'entitat:"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:386
+#: src/components/automations/JourneyCreateWizard.tsx:468
+msgid "Entry"
+msgstr ""
+
+#: src/components/automations/config/TriggerConfigForm.tsx:400
 msgid "Entry conditions"
 msgstr "Condicions d'entrada"
+
+#: src/components/automations/JourneyCreateWizard.tsx:324
+msgid "Entry frequency and protection"
+msgstr ""
+
+#: src/components/automations/JourneyCreateWizard.tsx:326
+msgid "Entry frequency decides when a customer creates a Journey instance."
+msgstr ""
 
 #: src/components/timeline/ContactTimeline.tsx:933
 msgid "entry page"
 msgstr "pàgina d'entrada"
+
+#: src/components/automations/JourneyCreateWizard.tsx:354
+msgid "Entry protection"
+msgstr ""
+
+#: src/components/automations/JourneyCreateWizard.tsx:409
+msgid "Entry protection only limits Journey entry and is not message frequency control."
+msgstr ""
+
+#: src/components/automations/JourneyCreateWizard.tsx:351
+msgid "Entry protection: Off"
+msgstr ""
+
+#: src/components/automations/JourneyCreateWizard.tsx:350
+msgid "Entry protection: On"
+msgstr ""
 
 #: src/components/timeline/ContactTimeline.tsx:863
 msgid "Entry:"
@@ -5326,9 +5538,9 @@ msgstr "igual a"
 msgid "Error"
 msgstr "Error"
 
-#: src/pages/AutomationsPage.tsx:151
-msgid "Error loading automations"
-msgstr "Error en carregar les automatitzacions"
+#: src/pages/AutomationsPage.tsx:154
+#~ msgid "Error loading automations"
+#~ msgstr "Error en carregar les automatitzacions"
 
 #: src/components/messages/MessageHistoryTab.tsx:603
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:492
@@ -5391,7 +5603,7 @@ msgstr "Esdeveniment"
 msgid "event name"
 msgstr "nom de l'esdeveniment"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:326
+#: src/components/automations/config/TriggerConfigForm.tsx:337
 msgid "Event Name"
 msgstr "Nom de l'esdeveniment"
 
@@ -5406,6 +5618,10 @@ msgstr "Tipus d'esdeveniment"
 #: src/components/settings/WebhooksSettings.tsx:293
 msgid "Event Types"
 msgstr "Tipus d'esdeveniments"
+
+#: src/components/automations/JourneyCreateWizard.tsx:101
+msgid "Event welcome"
+msgstr ""
 
 #: src/components/messages/MessageHistoryTable.tsx:133
 #: src/components/messages/MessageHistoryTable.tsx:249
@@ -5425,8 +5641,9 @@ msgstr "Tots els dominis"
 msgid "Every sub-item has fewer than {0} sessions. Lower the threshold to see them."
 msgstr "Tots els subelements tenen menys de {0} sessions. Baixeu el llindar per veure'ls."
 
-#: src/components/automations/AutomationCard.tsx:308
-#: src/components/automations/config/TriggerConfigForm.tsx:378
+#: src/components/automations/AutomationCard.tsx:304
+#: src/components/automations/config/TriggerConfigForm.tsx:390
+#: src/components/automations/JourneyCreateWizard.tsx:339
 #: src/components/automations/nodes/TriggerNode.tsx:22
 msgid "Every time"
 msgstr "Cada vegada"
@@ -5452,7 +5669,7 @@ msgstr "Excloure donats de baixa"
 msgid "Exclude unsubscribed, bounced & complained recipients"
 msgstr "Excloure els destinataris que s'han donat de baixa, han rebotat i s'han queixat"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:210
+#: src/components/automations/UpsertAutomationDrawer.tsx:218
 msgid "Exit on reply"
 msgstr "Sortir en respondre"
 
@@ -5472,7 +5689,7 @@ msgstr "Sortida:"
 msgid "exited"
 msgstr "sortit"
 
-#: src/components/automations/AutomationCard.tsx:274
+#: src/components/automations/AutomationCard.tsx:270
 msgid "Exited"
 msgstr "Sortit"
 
@@ -5482,13 +5699,17 @@ msgstr "Sortides"
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
 #: src/components/web_analytics/DimensionTableWidget.tsx:127
-#: src/layouts/WorkspaceLayout.tsx:435
+#: src/layouts/WorkspaceLayout.tsx:436
 msgid "Expand"
 msgstr "Expandir"
 
 #: src/pages/AcceptInvitationPage.tsx:154
 msgid "Expires:"
 msgstr "Caduca:"
+
+#: src/pages/DeliveryCenterPage.tsx:141
+msgid "Explanation"
+msgstr ""
 
 #: src/services/api/permissions.ts:266
 msgid "Explicitly merge an anonymous Customer into a known Customer and retain an audit redirect"
@@ -5527,7 +5748,7 @@ msgstr "Exportar a CSV"
 msgid "Exporting all contacts"
 msgstr "Exportant tots els contactes"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:123
+#: src/components/automations/config/TriggerConfigForm.tsx:134
 #: src/components/contacts/ContactDetailsDrawer.tsx:453
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:90
 #: src/components/contacts/ExportContactsModal.tsx:53
@@ -5538,7 +5759,8 @@ msgstr "Exportant tots els contactes"
 msgid "External ID"
 msgstr "ID extern"
 
-#: src/components/customers/CustomerDrawer.tsx:60
+#: src/components/customers/CustomerDrawer.tsx:26
+#: src/components/errors/ActionableError.tsx:33
 #: src/pages/CustomersPage.tsx:93
 msgid "External user ID"
 msgstr "ID d'usuari extern"
@@ -5553,7 +5775,7 @@ msgstr "Fallat"
 
 #: src/components/analytics/EmailMetricsChart.tsx:273
 #: src/components/analytics/EmailMetricsChart.tsx:510
-#: src/components/automations/AutomationCard.tsx:281
+#: src/components/automations/AutomationCard.tsx:277
 #: src/components/automations/nodes/StatNode.tsx:144
 #: src/components/automations/nodes/StatNode.tsx:206
 #: src/components/automations/nodes/StatNode.tsx:365
@@ -5581,8 +5803,8 @@ msgid "Failed to accept invitation"
 msgstr "No s'ha pogut acceptar la invitació"
 
 #: src/pages/AutomationsPage.tsx:97
-msgid "Failed to activate automation"
-msgstr "No s'ha pogut activar l'automatització"
+#~ msgid "Failed to activate automation"
+#~ msgstr "No s'ha pogut activar l'automatització"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:317
 msgid "Failed to add to list: {error}"
@@ -5618,7 +5840,7 @@ msgid "Failed to create API key"
 msgstr "No s'ha pogut crear la clau API"
 
 #. placeholder {0}: error.message
-#: src/components/automations/context/AutomationContext.tsx:262
+#: src/components/automations/context/AutomationContext.tsx:266
 msgid "Failed to create automation: {0}"
 msgstr "No s'ha pogut crear l'automatització: {0}"
 
@@ -5664,9 +5886,9 @@ msgstr "No s'ha pogut crear la plantilla: {0}"
 msgid "Failed to create workspace"
 msgstr "No s'ha pogut crear l'espai de treball"
 
-#: src/pages/AutomationsPage.tsx:127
-msgid "Failed to delete automation"
-msgstr "No s'ha pogut eliminar l'automatització"
+#: src/pages/AutomationsPage.tsx:128
+#~ msgid "Failed to delete automation"
+#~ msgstr "No s'ha pogut eliminar l'automatització"
 
 #: src/pages/BroadcastsPage.tsx:1451
 msgid "Failed to delete broadcast"
@@ -5807,9 +6029,9 @@ msgstr "No s'ha pogut carregar la configuració"
 msgid "Failed to load webhook subscriptions"
 msgstr "No s'han pogut carregar les subscripcions de webhook"
 
-#: src/pages/AutomationsPage.tsx:112
-msgid "Failed to pause automation"
-msgstr "No s'ha pogut pausar l'automatització"
+#: src/pages/AutomationsPage.tsx:113
+#~ msgid "Failed to pause automation"
+#~ msgstr "No s'ha pogut pausar l'automatització"
 
 #: src/pages/BroadcastsPage.tsx:1469
 msgid "Failed to pause broadcast"
@@ -5996,7 +6218,7 @@ msgid "Failed to unpublish post"
 msgstr "No s'ha pogut despublicar la publicació"
 
 #. placeholder {0}: error.message
-#: src/components/automations/context/AutomationContext.tsx:277
+#: src/components/automations/context/AutomationContext.tsx:276
 msgid "Failed to update automation: {0}"
 msgstr "No s'ha pogut actualitzar l'automatització: {0}"
 
@@ -6065,7 +6287,7 @@ msgstr "No s'ha pogut actualitzar la configuració d'analítica web"
 msgid "Failed to update workspace settings"
 msgstr "No s'han pogut actualitzar els paràmetres de l'espai de treball"
 
-#: src/layouts/WorkspaceLayout.tsx:211
+#: src/layouts/WorkspaceLayout.tsx:212
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "No s'han pogut actualitzar els paràmetres de l'espai de treball: {errorMessage}"
 
@@ -6173,7 +6395,7 @@ msgid "Fill in the fields of a hypothetical visit; empty fields count as empty v
 msgstr "Empleneu els camps d'una visita hipotètica; els camps buits compten com a valors buits."
 
 #: src/components/automations/AddNodeButton.tsx:82
-#: src/components/automations/NodeConfigPanel.tsx:94
+#: src/components/automations/NodeConfigPanel.tsx:83
 #: src/components/automations/nodes/FilterNode.tsx:48
 #: src/components/automations/nodes/StatNode.tsx:90
 #: src/components/automations/nodes/StatNode.tsx:188
@@ -6203,6 +6425,7 @@ msgstr "Filtrar per una propietat de l'esdeveniment"
 
 #: src/components/messages/MessageHistoryTab.tsx:586
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:352
+#: src/pages/DeliveryCenterPage.tsx:107
 #: src/pages/WebAnalyticsPage.tsx:97
 msgid "Filters"
 msgstr "Filtres"
@@ -6249,7 +6472,7 @@ msgstr "Llançar un lliurament de prova a l'URL de la subscripció — escriptur
 msgid "Firecrawl integration saved successfully"
 msgstr "Integració de Firecrawl desada correctament"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:120
+#: src/components/automations/config/TriggerConfigForm.tsx:131
 #: src/components/contacts/ContactDetailsDrawer.tsx:441
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:91
 #: src/components/contacts/ExportContactsModal.tsx:56
@@ -6259,6 +6482,15 @@ msgstr "Integració de Firecrawl desada correctament"
 msgid "First Name"
 msgstr "Nom"
 
+#: src/components/automations/JourneyPreflightPanel.tsx:147
+msgid "Fix"
+msgstr ""
+
+#. placeholder {0}: issue.title
+#: src/components/automations/JourneyPreflightPanel.tsx:144
+msgid "Fix {0}"
+msgstr ""
+
 #: src/components/settings/WebhookCard.tsx:310
 msgid "Fix the endpoint, then switch this webhook back on to resume deliveries."
 msgstr "Corregiu el punt final i torneu a activar aquest webhook per reprendre els lliuraments."
@@ -6267,8 +6499,17 @@ msgstr "Corregiu el punt final i torneu a activar aquest webhook per reprendre e
 msgid "Fix the Zap in Zapier, then switch this webhook back on to resume deliveries."
 msgstr "Corregiu el Zap a Zapier i torneu a activar aquest webhook per reprendre els lliuraments."
 
+#: src/components/automations/JourneyTraceDrawer.tsx:110
+#: src/components/automations/JourneyTraceDrawer.tsx:116
+msgid "Fix this node"
+msgstr ""
+
+#: src/components/automations/JourneyCreateWizard.tsx:469
+msgid "Flow content"
+msgstr ""
+
 #. placeholder {0}: automation.name
-#: src/components/automations/AutomationCard.tsx:316
+#: src/components/automations/AutomationCard.tsx:312
 msgid "Flow Stats: {0}"
 msgstr "Estadístiques de flux: {0}"
 
@@ -6373,12 +6614,17 @@ msgstr "Trobades {0} adreces de correu"
 msgid "Found unsaved changes from {0}"
 msgstr "Trobats canvis sense desar de {0}"
 
-#: src/components/automations/AutomationCard.tsx:307
-#: src/components/automations/config/TriggerConfigForm.tsx:366
+#: src/components/automations/AutomationCard.tsx:303
+#: src/components/automations/config/TriggerConfigForm.tsx:378
 msgid "Frequency"
 msgstr "Freqüència"
 
+#: src/i18n/catalogInventory.ts:16
+msgid "Frequency Cap"
+msgstr ""
+
 #: src/components/templates/TemplatePreviewDrawer.tsx:298
+#: src/pages/DeliveryCenterPage.tsx:115
 msgid "From"
 msgstr "Des de"
 
@@ -6517,6 +6763,10 @@ msgstr "Anar a iniciar sessió"
 msgid "Goal"
 msgstr "Objectiu"
 
+#: src/components/automations/JourneyCreateWizard.tsx:466
+msgid "Goal and template"
+msgstr ""
+
 #: src/components/web_analytics/tabs/DashboardTab.tsx:247
 msgid "Goal conversions and their total value"
 msgstr "Conversions d'objectius i el seu valor total"
@@ -6645,7 +6895,7 @@ msgstr "Alçada"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:718
 #: src/components/templates/CreateTemplateDrawer.tsx:154
-#: src/layouts/WorkspaceLayout.tsx:525
+#: src/layouts/WorkspaceLayout.tsx:526
 msgid "Help"
 msgstr "Ajuda"
 
@@ -6768,6 +7018,10 @@ msgstr "https://fonts.googleapis.com/css?family=... o {{ font_url }}"
 msgid "I ran {maxRounds} rounds of tool calls without reaching an answer and stopped there. Ask a narrower question and I will try again."
 msgstr "He executat {maxRounds} rondes de crides a eines sense arribar a una resposta i m'he aturat aquí. Feu una pregunta més acotada i ho tornaré a provar."
 
+#: src/components/automations/JourneyPreflightPanel.tsx:160
+msgid "I understand these warnings and want to activate this journey."
+msgstr ""
+
 #: src/components/segment/button_upsert.tsx:461
 msgid "i.e: Big spenders..."
 msgstr "p. ex.: Grans compradors..."
@@ -6800,7 +7054,7 @@ msgstr "Estil d'icona"
 msgid "Icon/Favicon URL"
 msgstr "URL d'icona/favicon"
 
-#: src/components/automations/AutomationCard.tsx:293
+#: src/components/automations/AutomationCard.tsx:289
 #: src/components/messages/MessageHistoryTable.tsx:211
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:355
 #: src/pages/ListsPage.tsx:267
@@ -6889,7 +7143,15 @@ msgstr "Identificar un visitant"
 msgid "Identify recipients who click a tracked email link"
 msgstr "Identificar els destinataris que fan clic en un enllaç de correu amb seguiment"
 
-#: src/components/customers/CustomerDrawer.tsx:80
+#: src/components/customers/CustomerDrawer.tsx:107
+msgid "Identities & Consent"
+msgstr ""
+
+#: src/i18n/catalogInventory.ts:13
+msgid "Identity"
+msgstr ""
+
+#: src/components/customers/CustomerDrawer.tsx:51
 #: src/pages/CustomersPage.tsx:99
 msgid "Identity aliases"
 msgstr "Àlies d'identitat"
@@ -7137,6 +7399,10 @@ msgstr "Instal·lar"
 msgid "Install the tracking snippet"
 msgstr "Instal·lar el fragment de seguiment"
 
+#: src/components/automations/JourneyTraceDrawer.tsx:88
+msgid "Instance trace ID"
+msgstr ""
+
 #: src/components/automations/config/ChannelConfigForm.tsx:42
 msgid "Integration"
 msgstr "Integration"
@@ -7174,6 +7440,10 @@ msgstr "Integració actualitzada correctament"
 #: src/components/settings/UITranslationsSettings.tsx:103
 msgid "Integrations"
 msgstr "Integracions"
+
+#: src/components/customers/CustomerDrawer.tsx:25
+msgid "Internal ID"
+msgstr ""
 
 #: src/components/settings/SystemSettingsDrawer.tsx:403
 msgid "Invalid email"
@@ -7324,6 +7594,15 @@ msgstr "URL de l'emissor"
 msgid "Issuer URL is required"
 msgstr "L'URL de l'emissor és obligatori"
 
+#: src/components/automations/JourneyCreateWizard.tsx:428
+msgid "It only decides whether each message created by this Journey may be delivered."
+msgstr ""
+
+#. placeholder {0}: new Date(trace.instance.next_scheduled_at).toLocaleString()
+#: src/components/automations/JourneyTraceDrawer.tsx:97
+msgid "It will continue at {0}."
+msgstr ""
+
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:311
 #: src/components/email_builder/ui/FontStyleInput.tsx:124
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:537
@@ -7349,9 +7628,26 @@ msgstr "Càrrec"
 msgid "joined"
 msgstr "s'ha unit"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:96
+#: src/components/automations/config/TriggerConfigForm.tsx:107
 msgid "Joined"
 msgstr "Unit"
+
+#: src/components/automations/JourneyTraceDrawer.tsx:87
+#: src/i18n/catalogInventory.ts:11
+msgid "Journey"
+msgstr ""
+
+#: src/components/automations/JourneyTraceDrawer.tsx:49
+msgid "Journey entry was not allowed"
+msgstr ""
+
+#: src/components/automations/JourneyTraceDrawer.tsx:75
+msgid "Journey trace"
+msgstr ""
+
+#: src/components/customers/CustomerDrawer.tsx:110
+msgid "Journeys"
+msgstr ""
 
 #: src/components/templates/ImportExportButton.tsx:393
 #: src/components/templates/ImportExportButton.tsx:442
@@ -7391,6 +7687,10 @@ msgstr "Manteniu-ho concís i descriptiu"
 msgid "key or index"
 msgstr "clau o índex"
 
+#: src/components/automations/AutomationNodeList.tsx:24
+msgid "Keyboard node list"
+msgstr ""
+
 #: src/components/seo/SEOSettingsForm.tsx:65
 #: src/components/seo/SEOSettingsForm.tsx:179
 msgid "Keywords"
@@ -7413,12 +7713,12 @@ msgstr "Pàgines d'aterratge"
 
 #: src/components/analytics/NewContactsTable.tsx:166
 #: src/components/automations/config/ChannelConfigForm.tsx:60
-#: src/components/automations/config/TriggerConfigForm.tsx:125
+#: src/components/automations/config/TriggerConfigForm.tsx:136
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:221
 #: src/components/contacts/ContactDetailsDrawer.tsx:452
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:96
 #: src/components/contacts/ExportContactsModal.tsx:68
-#: src/components/customers/CustomerDrawer.tsx:70
+#: src/components/customers/CustomerDrawer.tsx:28
 #: src/components/templates/SendTemplateModal.tsx:326
 #: src/components/templates/TemplatePreviewDrawer.tsx:400
 #: src/pages/ContactsPage.tsx:375
@@ -7465,7 +7765,7 @@ msgstr "Darrera recuperació:"
 msgid "Last modified"
 msgstr "Última modificació"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:121
+#: src/components/automations/config/TriggerConfigForm.tsx:132
 #: src/components/contacts/ContactDetailsDrawer.tsx:442
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:92
 #: src/components/contacts/ExportContactsModal.tsx:59
@@ -7504,7 +7804,7 @@ msgstr "Deixeu buit per amplada completa del contenidor"
 msgid "Leave empty to derive it from the API endpoint. Set it when the callback is reached through a proxy or a vanity domain."
 msgstr "Deixeu-ho buit per derivar-la del punt final API. Indiqueu-la quan la crida de retorn passi per un proxy o un domini personalitzat."
 
-#: src/components/automations/config/TriggerConfigForm.tsx:352
+#: src/components/automations/config/TriggerConfigForm.tsx:363
 msgid "Leave empty to trigger on any field change"
 msgstr "Deixeu buit per activar amb qualsevol canvi de camp"
 
@@ -7520,7 +7820,7 @@ msgstr "Leave empty to use the one Yaoguang Marketing manages for this integrati
 msgid "left"
 msgstr "Esquerra"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:97
+#: src/components/automations/config/TriggerConfigForm.tsx:108
 #: src/components/email_builder/ui/BorderInput.tsx:380
 #: src/components/email_builder/ui/FontStyleInput.tsx:145
 #: src/components/email_builder/ui/PaddingInput.tsx:199
@@ -7610,12 +7910,12 @@ msgstr "Bloc Liquid - Feu clic per afegir contingut MJML + Liquid"
 msgid "Liquid variables are supported"
 msgstr ""
 
-#: src/components/automations/AutomationCard.tsx:306
+#: src/components/automations/AutomationCard.tsx:302
 #: src/components/automations/config/AddToListConfigForm.tsx:32
 #: src/components/automations/config/RemoveFromListConfigForm.tsx:26
-#: src/components/automations/config/TriggerConfigForm.tsx:80
-#: src/components/automations/config/TriggerConfigForm.tsx:284
-#: src/components/automations/UpsertAutomationDrawer.tsx:193
+#: src/components/automations/config/TriggerConfigForm.tsx:91
+#: src/components/automations/config/TriggerConfigForm.tsx:295
+#: src/components/automations/UpsertAutomationDrawer.tsx:201
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:514
 #: src/components/contacts/BulkUpdateDrawer.tsx:602
 #: src/components/contacts/ExportContactsModal.tsx:73
@@ -7688,7 +7988,7 @@ msgstr "ID de llista"
 msgid "List ID: {0}"
 msgstr "ID de llista: {0}"
 
-#: src/components/customers/CustomerDrawer.tsx:113
+#: src/components/customers/CustomerDrawer.tsx:71
 msgid "List memberships"
 msgstr "Pertinença a llistes"
 
@@ -7701,7 +8001,7 @@ msgid "List sent messages with their recipient address, delivery and engagement 
 msgstr "Llistar els missatges enviats amb la seva adreça de destinatari, les marques de temps de lliurament i d'interacció, i les dades amb què es va renderitzar cadascun"
 
 #: src/components/automations/AddNodeButton.tsx:84
-#: src/components/automations/NodeConfigPanel.tsx:96
+#: src/components/automations/NodeConfigPanel.tsx:85
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:38
 #: src/components/automations/nodes/StatNode.tsx:95
 #: src/components/automations/nodes/StatNode.tsx:257
@@ -7780,7 +8080,7 @@ msgstr "Llista:"
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
 #: src/pages/ListsPage.tsx:155
-#: src/services/api/errors.ts:55
+#: src/services/api/errors.ts:215
 msgid "Lists"
 msgstr "Llistes"
 
@@ -7799,7 +8099,7 @@ msgid "Live"
 msgstr "En directe"
 
 #: src/components/settings/PermissionsMatrix.tsx:128
-#: src/services/api/errors.ts:63
+#: src/services/api/errors.ts:223
 msgid "LLM"
 msgstr "LLM"
 
@@ -7831,9 +8131,13 @@ msgstr "Carregar el registre de l'espai de treball, cosa que admeten tant la lec
 msgid "Loaded the latest version of this template (v{0})."
 msgstr "S'ha carregat la darrera versió d'aquesta plantilla (v{0})."
 
-#: src/pages/AutomationsPage.tsx:186
+#: src/pages/AutomationsPage.tsx:198
 msgid "Loading automations..."
 msgstr "Carregant automatitzacions..."
+
+#: src/pages/DeliveryCenterPage.tsx:134
+msgid "Loading delivery details..."
+msgstr ""
 
 #: src/components/messages/MessageHistoryTable.tsx:416
 msgid "Loading message history..."
@@ -7892,7 +8196,7 @@ msgstr "Previsualització del logotip"
 msgid "Logo URL"
 msgstr "URL del logotip"
 
-#: src/layouts/WorkspaceLayout.tsx:538
+#: src/layouts/WorkspaceLayout.tsx:539
 msgid "Logout"
 msgstr "Tancar sessió"
 
@@ -8014,7 +8318,7 @@ msgstr "Marcat com a correu brossa"
 msgid "Marketing"
 msgstr "Màrqueting"
 
-#: src/layouts/WorkspaceLayout.tsx:255
+#: src/layouts/WorkspaceLayout.tsx:256
 msgid "Marketing Campaigns"
 msgstr ""
 
@@ -8061,6 +8365,10 @@ msgstr "Màx. 3MB per fitxer, 10MB en total, màxim 20 fitxers"
 #: src/components/templates/SendTemplateModal.tsx:199
 msgid "Maximum 20 attachments allowed"
 msgstr "Es permeten màxim 20 adjunts"
+
+#: src/components/automations/JourneyCreateWizard.tsx:386
+msgid "Maximum concurrent instances"
+msgstr ""
 
 #: src/components/settings/BlogSettings.tsx:428
 msgid "Maximum number of posts to include in the RSS/JSON feed (1–20)"
@@ -8132,9 +8440,17 @@ msgstr "Membre tret correctament"
 msgid "Message"
 msgstr "Missatge"
 
+#: src/components/automations/JourneyCreateWizard.tsx:470
+msgid "Message frequency"
+msgstr ""
+
+#: src/components/automations/JourneyCreateWizard.tsx:422
+msgid "Message frequency control"
+msgstr ""
+
 #: src/components/settings/PermissionsMatrix.tsx:125
 #: src/pages/LogsPage.tsx:37
-#: src/services/api/errors.ts:60
+#: src/services/api/errors.ts:220
 msgid "Message History"
 msgstr "Historial de missatges"
 
@@ -8203,7 +8519,7 @@ msgstr "Mínim"
 msgid "Minimal"
 msgstr "Mínim"
 
-#: src/components/automations/AutomationFlowEditor.tsx:438
+#: src/components/automations/AutomationFlowEditor.tsx:441
 msgid "Minimap"
 msgstr "Minimapa"
 
@@ -8371,9 +8687,10 @@ msgid "N/A"
 msgstr "N/D"
 
 #: src/components/analytics/NewContactsTable.tsx:158
-#: src/components/automations/UpsertAutomationDrawer.tsx:182
+#: src/components/automations/UpsertAutomationDrawer.tsx:190
 #: src/components/blog/AuthorsTable.tsx:143
 #: src/components/blog/CategoryDrawer.tsx:130
+#: src/components/errors/ActionableError.tsx:34
 #: src/components/file_manager/fileManager.tsx:868
 #: src/components/lists/ListDrawer.tsx:185
 #: src/components/segment/button_upsert.tsx:442
@@ -8432,6 +8749,10 @@ msgstr "Nous contactes"
 msgid "New conversation"
 msgstr "Nova conversa"
 
+#: src/components/automations/JourneyCreateWizard.tsx:104
+msgid "New customer welcome journey"
+msgstr ""
+
 #: src/components/file_manager/fileManager.tsx:766
 msgid "New folder"
 msgstr "Nova carpeta"
@@ -8461,11 +8782,12 @@ msgstr "Nou tema"
 msgid "New Window"
 msgstr "Nova finestra"
 
-#: src/layouts/WorkspaceLayout.tsx:474
+#: src/layouts/WorkspaceLayout.tsx:475
 #: src/pages/CreateWorkspacePage.tsx:104
 msgid "New workspace"
 msgstr "Nou espai de treball"
 
+#: src/components/automations/JourneyCreateWizard.tsx:493
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:321
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:331
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:342
@@ -8533,6 +8855,10 @@ msgstr "No hi ha contingut {0} per previsualitzar"
 msgid "No Access"
 msgstr "Sense accés"
 
+#: src/components/customers/CustomerDrawer.tsx:76
+msgid "No active audience memberships"
+msgstr ""
+
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:106
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:171
 msgid "No annotations yet"
@@ -8546,13 +8872,17 @@ msgstr "No s'ha retornat cap resposta. Torneu-ho a provar."
 msgid "No attribution rules yet. Create the first one to start shaping your traffic data."
 msgstr "Encara no hi ha regles d'atribució. Creeu la primera per començar a donar forma a les vostres dades de trànsit."
 
-#: src/pages/AutomationsPage.tsx:189
+#: src/pages/AutomationsPage.tsx:201
 msgid "No automations yet"
 msgstr "Encara no hi ha automatitzacions"
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:153
 msgid "No backfill has run yet. Run one to apply these rules to historical sessions and goals."
 msgstr "Encara no s'ha executat cap reompliment. Executeu-ne un per aplicar aquestes regles a les sessions i els objectius històrics."
+
+#: src/components/automations/JourneyPreflightPanel.tsx:118
+msgid "No blocking issues or warnings were found."
+msgstr ""
 
 #: src/pages/BroadcastsPage.tsx:1685
 msgid "No broadcasts found"
@@ -8597,7 +8927,7 @@ msgstr "Sense comparació"
 msgid "No conditions"
 msgstr "Sense condicions"
 
-#: src/components/customers/CustomerDrawer.tsx:144
+#: src/components/customers/CustomerDrawer.tsx:58
 msgid "No consent records"
 msgstr "No hi ha registres de consentiment"
 
@@ -8618,6 +8948,10 @@ msgstr "No hi ha dades de país"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:463
 msgid "No CSV data available"
 msgstr "No hi ha dades CSV disponibles"
+
+#: src/components/customers/CustomerTimelineTab.tsx:25
+msgid "No customer activity yet"
+msgstr ""
 
 #: src/pages/CustomersPage.tsx:169
 #: src/pages/CustomersPage.tsx:203
@@ -8645,6 +8979,14 @@ msgstr "No s'han retornat dades"
 #: src/components/templates/TemplatePreviewDrawer.tsx:328
 msgid "No default sender configured"
 msgstr "No s'ha configurat cap remitent per defecte"
+
+#: src/components/customers/CustomerDeliveriesTab.tsx:24
+msgid "No deliveries for this customer"
+msgstr ""
+
+#: src/pages/DeliveryCenterPage.tsx:129
+msgid "No deliveries match these filters"
+msgstr ""
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:240
 #: src/pages/WebAnalyticsLivePage.tsx:188
@@ -8712,7 +9054,7 @@ msgstr "No hi ha contingut HTML per exportar"
 msgid "No icon found"
 msgstr "No s'ha trobat cap icona"
 
-#: src/components/customers/CustomerDrawer.tsx:83
+#: src/components/customers/CustomerDrawer.tsx:52
 msgid "No identity aliases"
 msgstr "Cap àlies d'identitat"
 
@@ -8732,7 +9074,7 @@ msgstr "Encara no s'ha registrat cap clic en enllaços per a aquesta variació"
 msgid "No list"
 msgstr "Sense llista"
 
-#: src/components/customers/CustomerDrawer.tsx:124
+#: src/components/customers/CustomerDrawer.tsx:72
 msgid "No list memberships"
 msgstr "No pertany a cap llista"
 
@@ -8848,7 +9190,7 @@ msgstr "No hi ha dades de font"
 msgid "No specific details provided."
 msgstr "No s'han proporcionat detalls específics."
 
-#: src/components/customers/CustomerDrawer.tsx:107
+#: src/components/customers/CustomerDrawer.tsx:33
 msgid "No tags"
 msgstr "Sense etiquetes"
 
@@ -8878,6 +9220,10 @@ msgstr "Encara no hi ha temes"
 msgid "No timeline events found for this contact"
 msgstr "No s'han trobat esdeveniments de cronologia per a aquest contacte"
 
+#: src/components/automations/JourneyTraceDrawer.tsx:100
+msgid "No trace events yet"
+msgstr ""
+
 #: src/components/web_analytics/InstallOverlay.tsx:70
 msgid "No traffic in the last 24 hours"
 msgstr "No hi ha trànsit en les darreres 24 hores"
@@ -8890,7 +9236,7 @@ msgstr "No s'han trobat notificacions transaccionals"
 msgid "No translations found"
 msgstr "No s'ha trobat cap traducció"
 
-#: src/components/automations/AutomationCard.tsx:302
+#: src/components/automations/AutomationCard.tsx:298
 msgid "No trigger configured"
 msgstr "No s'ha configurat cap disparador"
 
@@ -8913,6 +9259,11 @@ msgstr "Cap espai de treball"
 #: src/pages/SignInPage.tsx:98
 msgid "No Yaoguang Marketing account is linked to that identity. Ask an administrator to invite you first."
 msgstr "No Yaoguang Marketing account is linked to that identity. Ask an administrator to invite you first."
+
+#. placeholder {0}: issue.node_id
+#: src/components/automations/JourneyPreflightPanel.tsx:139
+msgid "Node: {0}"
+msgstr ""
 
 #: src/components/automations/NodePalette.tsx:21
 msgid "Nodes"
@@ -8962,6 +9313,7 @@ msgstr "No assignat"
 msgid "Not configured"
 msgstr "No configurat"
 
+#: src/components/automations/AutomationNodeList.tsx:32
 #: src/components/automations/nodes/BaseNode.tsx:42
 msgid "Not connected"
 msgstr "No connectat"
@@ -9050,6 +9402,10 @@ msgstr "Notificació actualitzada correctament"
 msgid "notifuse-…"
 msgstr "notifuse-…"
 
+#: src/components/automations/JourneyCreateWizard.tsx:146
+msgid "Notify customers whenever they join the selected audience segment."
+msgstr ""
+
 #: src/components/templates/CreateTemplateDrawer.tsx:1170
 #: src/components/templates/TemplateTranslationsTab.tsx:275
 msgid "Now"
@@ -9122,8 +9478,9 @@ msgstr "D'acord"
 msgid "Once"
 msgstr "Una vegada"
 
-#: src/components/automations/AutomationCard.tsx:308
-#: src/components/automations/config/TriggerConfigForm.tsx:373
+#: src/components/automations/AutomationCard.tsx:304
+#: src/components/automations/config/TriggerConfigForm.tsx:385
+#: src/components/automations/JourneyCreateWizard.tsx:334
 msgid "Once per contact"
 msgstr "Una vegada per contacte"
 
@@ -9139,7 +9496,7 @@ msgstr "Només un propietari de l'espai de treball pot veure o rotar el secret d
 msgid "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks still count toward the variation's Clicks total."
 msgstr "Aquí només apareixen els clics registrats des que es va activar el seguiment per enllaç; els clics anteriors segueixen comptant per al total de clics de la variació."
 
-#: src/components/automations/config/TriggerConfigForm.tsx:387
+#: src/components/automations/config/TriggerConfigForm.tsx:401
 msgid "Only enroll contacts matching these conditions."
 msgstr "Inscriure només els contactes que coincideixin amb aquestes condicions."
 
@@ -9151,7 +9508,7 @@ msgstr "Només es permeten caràcters alfanumèrics en minúscules, guió baix i
 msgid "Only one breakpoint per email template is allowed"
 msgstr "Només es permet un punt de ruptura per plantilla de correu"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:342
+#: src/components/automations/config/TriggerConfigForm.tsx:353
 msgid "Only trigger when this exact tag is added or removed"
 msgstr "Only trigger when this exact tag is added or removed"
 
@@ -9177,6 +9534,11 @@ msgstr "Correu obert"
 #: src/components/templates/TemplateTranslationsTab.tsx:232
 msgid "Open email editor"
 msgstr "Obrir l'editor de correu"
+
+#: src/components/errors/ActionableError.tsx:51
+#: src/components/errors/ActionableError.tsx:52
+msgid "Open fix"
+msgstr ""
 
 #: src/components/seo/MissingMetaTagsWarning.tsx:51
 msgid "Open Graph Description"
@@ -9214,7 +9576,7 @@ msgstr "Obrir la configuració d'analítica web"
 msgid "opened"
 msgstr "Obert"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:104
+#: src/components/automations/config/TriggerConfigForm.tsx:115
 #: src/components/messages/MessageHistoryTab.tsx:140
 #: src/components/messages/MessageHistoryTab.tsx:142
 #: src/components/messages/MessageHistoryTable.tsx:282
@@ -9305,6 +9667,10 @@ msgstr "o"
 msgid "Or select a popular Google Font"
 msgstr "O seleccioneu una font de Google popular"
 
+#: src/components/automations/JourneyTraceDrawer.tsx:93
+msgid "Origin event"
+msgstr ""
+
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:255
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:255
 #: src/components/web_analytics/tabs/DashboardTab.tsx:239
@@ -9353,7 +9719,7 @@ msgstr "Anul·lar el nom de remitent per defecte per a aquest correu de prova"
 msgid "Override the workspace default email provider for this node"
 msgstr "Substituir el proveïdor de correu predeterminat de l'espai de treball per a aquest node"
 
-#: src/components/customers/CustomerDrawer.tsx:56
+#: src/components/customers/CustomerDrawer.tsx:106
 msgid "Overview"
 msgstr "Resum"
 
@@ -9446,11 +9812,11 @@ msgstr "Pausar una difusió enmig de l'enviament"
 msgid "Pause a live automation"
 msgstr "Pausar una automatització activa"
 
-#: src/components/automations/AutomationCard.tsx:229
+#: src/components/automations/AutomationCard.tsx:225
 msgid "Pause Automation"
 msgstr "Pausar automatització"
 
-#: src/components/automations/AutomationCard.tsx:233
+#: src/components/automations/AutomationCard.tsx:229
 msgid "Pause automation?"
 msgstr "Pausar automatització?"
 
@@ -9474,7 +9840,7 @@ msgid "Payload:"
 msgstr "Càrrega:"
 
 #: src/components/automations/config/AddToListConfigForm.tsx:18
-#: src/components/automations/config/TriggerConfigForm.tsx:88
+#: src/components/automations/config/TriggerConfigForm.tsx:99
 #: src/components/automations/nodes/AddToListNode.tsx:59
 #: src/components/contacts/ContactDetailsDrawer.tsx:583
 #: src/components/lists/ListStats.tsx:90
@@ -9534,7 +9900,7 @@ msgstr "Permisos"
 msgid "Permissions updated successfully"
 msgstr "Permisos actualitzats correctament"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:122
+#: src/components/automations/config/TriggerConfigForm.tsx:133
 #: src/components/contacts/ContactDetailsDrawer.tsx:444
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:93
 #: src/components/contacts/ExportContactsModal.tsx:62
@@ -9706,7 +10072,7 @@ msgid "Please enter an API key name"
 msgstr "Si us plau, introduïu un nom de clau API"
 
 #: src/components/automations/context/AutomationContext.tsx:286
-#: src/components/automations/UpsertAutomationDrawer.tsx:115
+#: src/components/automations/UpsertAutomationDrawer.tsx:125
 msgid "Please enter an automation name"
 msgstr "Si us plau, introduïu un nom d'automatització"
 
@@ -9714,6 +10080,10 @@ msgstr "Si us plau, introduïu un nom d'automatització"
 #: src/components/settings/WorkspaceMembers.tsx:488
 msgid "Please enter an email address"
 msgstr "Si us plau, introduïu una adreça de correu"
+
+#: src/pages/DeliveryCenterPage.tsx:163
+msgid "Please enter at least 8 characters"
+msgstr ""
 
 #: src/components/integrations/FirecrawlIntegration.tsx:78
 #: src/components/integrations/LLMIntegration.tsx:161
@@ -9847,8 +10217,8 @@ msgid "Please select or enter a model"
 msgstr "Seleccioneu o introduïu un model"
 
 #: src/components/customers/CustomerDrawer.tsx:40
-msgid "Please try again"
-msgstr "Torneu-ho a provar"
+#~ msgid "Please try again"
+#~ msgstr "Torneu-ho a provar"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:378
 msgid "Please upload a CSV file with email addresses"
@@ -9897,7 +10267,7 @@ msgstr "Publicació despublicada correctament"
 msgid "Post updated successfully"
 msgstr "Publicació actualitzada correctament"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:135
+#: src/components/automations/config/TriggerConfigForm.tsx:146
 #: src/components/contacts/ContactDetailsDrawer.tsx:449
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:99
 msgid "Postcode"
@@ -10094,7 +10464,7 @@ msgstr "Setmana anterior"
 msgid "Previous year"
 msgstr "Any anterior"
 
-#: src/components/customers/CustomerDrawer.tsx:89
+#: src/components/customers/CustomerDrawer.tsx:53
 msgid "Primary"
 msgstr "Principal"
 
@@ -10159,15 +10529,15 @@ msgstr "Processament pausat"
 msgid "Processing was stopped before completion."
 msgstr "El processament s'ha aturat abans de completar-se."
 
-#: src/components/customers/CustomerDrawer.tsx:149
+#: src/components/customers/CustomerDrawer.tsx:36
 msgid "Profile attributes"
 msgstr "Atributs del perfil"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:72
+#: src/components/automations/config/TriggerConfigForm.tsx:83
 msgid "Profile Created"
 msgstr "Profile Created"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:73
+#: src/components/automations/config/TriggerConfigForm.tsx:84
 msgid "Profile Updated"
 msgstr "Profile Updated"
 
@@ -10179,9 +10549,29 @@ msgstr "Progrés"
 msgid "Property name"
 msgstr "Nom de la propietat"
 
+#: src/components/errors/ActionableError.tsx:36
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:344
+#: src/pages/DeliveryCenterPage.tsx:114
+#: src/pages/DeliveryCenterPage.tsx:114
+#: src/pages/DeliveryCenterPage.tsx:145
 msgid "Provider"
 msgstr "Proveïdor"
+
+#: src/pages/DeliveryCenterPage.tsx:145
+msgid "Provider attempts"
+msgstr ""
+
+#: src/pages/DeliveryCenterPage.tsx:158
+msgid "Provider confirmed delivery"
+msgstr ""
+
+#: src/pages/DeliveryCenterPage.tsx:160
+msgid "Provider confirmed it was not accepted; retry is safe"
+msgstr ""
+
+#: src/pages/DeliveryCenterPage.tsx:159
+msgid "Provider confirmed permanent failure"
+msgstr ""
 
 #: src/components/lists/ListDrawer.tsx:214
 #: src/pages/ListsPage.tsx:273
@@ -10241,7 +10631,7 @@ msgstr "Compra"
 
 #: src/components/automations/AddNodeButton.tsx:81
 #: src/components/automations/config/ChannelConfigForm.tsx:29
-#: src/components/automations/NodeConfigPanel.tsx:90
+#: src/components/automations/NodeConfigPanel.tsx:79
 #: src/components/automations/nodes/ChannelNode.tsx:16
 #: src/components/automations/nodes/StatNode.tsx:88
 #: src/components/messages/MessageHistoryTab.tsx:221
@@ -10285,6 +10675,10 @@ msgstr "JSON en brut"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:541
 msgid "Raw Payload:"
 msgstr "Càrrega útil en brut:"
+
+#: src/components/automations/JourneyCreateWizard.tsx:122
+msgid "Re-engage customers when the business reports a churn-risk event."
+msgstr ""
 
 #: src/components/settings/Integrations.tsx:330
 msgid "Re-register"
@@ -10432,6 +10826,10 @@ msgstr "Llegiu la guia de configuració de Zapier"
 msgid "Reading Time"
 msgstr "Temps de lectura"
 
+#: src/components/automations/JourneyPreflightPanel.tsx:117
+msgid "Ready to activate"
+msgstr ""
+
 #: src/components/templates/ImportExportButton.tsx:423
 msgid "Ready to send"
 msgstr "Llest per enviar"
@@ -10439,6 +10837,10 @@ msgstr "Llest per enviar"
 #: src/components/contacts/SegmentsFilter.tsx:53
 msgid "Ready to use"
 msgstr "Llest per utilitzar"
+
+#: src/pages/DeliveryCenterPage.tsx:145
+msgid "Reason"
+msgstr ""
 
 #: src/pages/BroadcastsPage.tsx:1143
 msgid "Reason:"
@@ -10455,6 +10857,10 @@ msgstr "Reconstruir"
 #: src/components/contacts/SegmentsFilter.tsx:147
 msgid "Rebuild segment"
 msgstr "Reconstruir segment"
+
+#: src/components/automations/JourneyCreateWizard.tsx:110
+msgid "Receive a scheduled_reminder event from your scheduler and continue the journey."
+msgstr ""
 
 #: src/components/analytics/FailedMessagesTable.tsx:65
 msgid "Recent Failed Messages"
@@ -10505,6 +10911,10 @@ msgstr "Recomanat: 150-160 caràcters"
 msgid "Recommended: 50-60 characters"
 msgstr "Recomanat: 50-60 caràcters"
 
+#: src/pages/DeliveryCenterPage.tsx:146
+msgid "Reconciliation history"
+msgstr ""
+
 #: src/services/api/permissions.ts:213
 msgid "Record or overwrite a custom event on a contact"
 msgstr "Registrar o sobreescriure un esdeveniment personalitzat en un contacte"
@@ -10528,7 +10938,7 @@ msgstr "URI de redirecció"
 msgid "Redo"
 msgstr "Refer"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:159
+#: src/components/automations/UpsertAutomationDrawer.tsx:169
 msgid "Redo (Ctrl+Shift+Z)"
 msgstr "Refer (Ctrl+Shift+Z)"
 
@@ -10623,6 +11033,10 @@ msgstr "Rel"
 msgid "Reload latest"
 msgstr "Recarregar la darrera"
 
+#: src/services/api/errors.ts:135
+msgid "Reload the latest version, review the differences, and submit again."
+msgstr ""
+
 #: src/components/settings/UITranslationsSettings.tsx:376
 msgid "Reload this page to try again."
 msgstr "Torna a carregar aquesta pàgina per provar-ho de nou."
@@ -10665,7 +11079,7 @@ msgid "Remove from list"
 msgstr "Treure de la llista"
 
 #: src/components/automations/AddNodeButton.tsx:86
-#: src/components/automations/NodeConfigPanel.tsx:93
+#: src/components/automations/NodeConfigPanel.tsx:82
 #: src/components/automations/nodes/RemoveFromListNode.tsx:39
 #: src/components/automations/nodes/StatNode.tsx:92
 msgid "Remove from List"
@@ -10692,7 +11106,7 @@ msgstr "Eliminar variació"
 msgid "removed"
 msgstr "eliminat"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:89
+#: src/components/automations/config/TriggerConfigForm.tsx:100
 msgid "Removed"
 msgstr "Eliminat"
 
@@ -10712,7 +11126,8 @@ msgstr "Canviar el nom d'aquesta connexió no modifica l'adreça de la clau API 
 msgid "Rendering preview..."
 msgstr "Renderitzant vista prèvia..."
 
-#: src/components/automations/AutomationFlowEditor.tsx:426
+#: src/components/automations/AutomationFlowEditor.tsx:427
+#: src/components/automations/AutomationFlowEditor.tsx:430
 msgid "Reorganize layout"
 msgstr "Reorganitzar disseny"
 
@@ -10761,7 +11176,7 @@ msgstr "Respondre a"
 msgid "Report — {dimensions}"
 msgstr "Informe — {dimensions}"
 
-#: src/layouts/WorkspaceLayout.tsx:512
+#: src/layouts/WorkspaceLayout.tsx:513
 msgid "Report An Issue"
 msgstr "Informar d'un problema"
 
@@ -10777,6 +11192,10 @@ msgstr "L'aïllament de reputació està actiu per a aquesta integració"
 #: src/components/settings/Integrations.tsx:1094
 msgid "Reputation isolation is on. These senders have no verified identity and will fail to send: {0}"
 msgstr "L'aïllament de reputació està activat. Aquests remitents no tenen cap identitat verificada i no podran enviar: {0}"
+
+#: src/components/errors/ActionableError.tsx:83
+msgid "Request ID"
+msgstr ""
 
 #: src/components/settings/SystemSettingsDrawer.tsx:279
 #: src/components/settings/SystemSettingsDrawer.tsx:318
@@ -10851,6 +11270,14 @@ msgstr "restablir el filtre"
 msgid "Reset translation"
 msgstr "Restablir la traducció"
 
+#: src/pages/DeliveryCenterPage.tsx:149
+msgid "Resolve status"
+msgstr ""
+
+#: src/pages/DeliveryCenterPage.tsx:154
+msgid "Resolve uncertain delivery"
+msgstr ""
+
 #: src/components/settings/WebAnalyticsSettings.tsx:281
 msgid "Resolved"
 msgstr "Resolt"
@@ -10916,7 +11343,7 @@ msgstr "Restaura el menú {displayLabel}"
 msgid "Restore page {displayLabel}"
 msgstr "Restaura la pàgina {displayLabel}"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:85
+#: src/components/automations/config/TriggerConfigForm.tsx:96
 msgid "Resubscribed"
 msgstr "Resubscrit"
 
@@ -10972,6 +11399,14 @@ msgstr "Reprendre pujada"
 #: src/pages/CustomersPage.tsx:162
 msgid "Retry"
 msgstr "Torna-ho a provar"
+
+#: src/pages/DeliveryCenterPage.tsx:84
+msgid "Review"
+msgstr ""
+
+#: src/services/api/errors.ts:126
+msgid "Review the activity and global frequency policies before changing the limit."
+msgstr ""
 
 #: src/components/settings/WorkspaceMembers.tsx:55
 msgid "Revoke all"
@@ -11044,6 +11479,10 @@ msgstr "Executar una tasca de reompliment immediatament"
 #: src/services/api/permissions.ts:335
 msgid "Run a segment build/recompute task immediately"
 msgstr "Executar una tasca de construcció/recàlcul de segment immediatament"
+
+#: src/components/automations/JourneyPreflightPanel.tsx:101
+msgid "Run again"
+msgstr ""
 
 #: src/services/api/permissions.ts:705
 msgid "Run aggregate queries over the `automation_node_executions` schema"
@@ -11175,7 +11614,7 @@ msgstr "Desar"
 msgid "Save & Restart"
 msgstr "Desar i reiniciar"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:128
+#: src/components/automations/UpsertAutomationDrawer.tsx:138
 msgid "Save Anyway"
 msgstr "Desar igualment"
 
@@ -11188,13 +11627,17 @@ msgstr "Desar com a bloc nou"
 msgid "Save Block"
 msgstr "Desar bloc"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:173
+#: src/components/automations/UpsertAutomationDrawer.tsx:180
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:158
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:142
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:182
 #: src/components/settings/SettingsSaveBar.tsx:87
 msgid "Save Changes"
 msgstr "Desar canvis"
+
+#: src/components/automations/JourneyCreateWizard.tsx:493
+msgid "Save draft and check"
+msgstr ""
 
 #: src/components/templates/ImportExportButton.tsx:443
 msgid "Save for later import"
@@ -11230,6 +11673,10 @@ msgstr "Desat ({0})"
 msgid "Saved block: {0}"
 msgstr "Bloc desat: {0}"
 
+#: src/components/automations/JourneyCreateWizard.tsx:498
+msgid "Saving journey draft..."
+msgstr ""
+
 #: src/components/settings/SystemSettingsDrawer.tsx:151
 msgid "Saving settings will restart the server. You will need to sign in again."
 msgstr "Desar la configuració reiniciarà el servidor. Haureu de tornar a iniciar sessió."
@@ -11261,6 +11708,14 @@ msgstr "Programat"
 #: src/components/blog/PostsTable.tsx:272
 msgid "Scheduled in {daysUntil} {0}"
 msgstr "Programat en {daysUntil} {0}"
+
+#: src/components/automations/JourneyCreateWizard.tsx:109
+msgid "Scheduled reminder"
+msgstr ""
+
+#: src/components/automations/JourneyCreateWizard.tsx:112
+msgid "Scheduled reminder journey"
+msgstr ""
 
 #: src/components/blog/PostsTable.tsx:271
 msgid "Scheduled today"
@@ -11402,8 +11857,8 @@ msgstr "Veure els esquemes d'analítica web llistats al catàleg consultable"
 msgid "See web analytics backfill tasks; a listing that names no type is narrowed to the types you may read"
 msgstr "Veure les tasques de reompliment d'analítica web; un llistat que no indica cap tipus es restringeix als tipus que podeu llegir"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:94
-#: src/components/automations/config/TriggerConfigForm.tsx:305
+#: src/components/automations/config/TriggerConfigForm.tsx:105
+#: src/components/automations/config/TriggerConfigForm.tsx:316
 #: src/components/contacts/ExportContactsModal.tsx:89
 #: src/components/segment/button_upsert.tsx:74
 #: src/components/timeline/ContactTimeline.tsx:561
@@ -11436,7 +11891,7 @@ msgstr "Arbre del segment restablert"
 #: src/pages/BroadcastsPage.tsx:1066
 #: src/pages/ContactsPage.tsx:425
 #: src/pages/ContactsPage.tsx:625
-#: src/services/api/errors.ts:65
+#: src/services/api/errors.ts:225
 msgid "Segments"
 msgstr "Segments"
 
@@ -11486,7 +11941,7 @@ msgstr "Seleccioneu un camp"
 msgid "Select a list"
 msgstr "Seleccioneu una llista"
 
-#: src/components/automations/AddNodeButton.tsx:122
+#: src/components/automations/AddNodeButton.tsx:124
 #: src/components/automations/NodePalette.tsx:40
 msgid "Select a list to enable email nodes"
 msgstr "Seleccioneu una llista per habilitar nodes de correu"
@@ -11494,7 +11949,7 @@ msgstr "Seleccioneu una llista per habilitar nodes de correu"
 #: src/components/automations/config/AddToListConfigForm.tsx:37
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:27
 #: src/components/automations/config/RemoveFromListConfigForm.tsx:31
-#: src/components/automations/config/TriggerConfigForm.tsx:289
+#: src/components/automations/config/TriggerConfigForm.tsx:300
 msgid "Select a list..."
 msgstr "Seleccioneu una llista..."
 
@@ -11502,11 +11957,15 @@ msgstr "Seleccioneu una llista..."
 msgid "Select a model"
 msgstr "Seleccioneu un model"
 
+#: src/components/automations/AutomationNodeList.tsx:26
+msgid "Select a node here to configure it without using the canvas."
+msgstr ""
+
 #: src/components/email_builder/ui/ImportFontInput.tsx:157
 msgid "Select a popular Google Font"
 msgstr "Seleccioneu una font popular de Google"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:310
+#: src/components/automations/config/TriggerConfigForm.tsx:321
 msgid "Select a segment..."
 msgstr "Seleccioneu un segment..."
 
@@ -11535,7 +11994,7 @@ msgstr "Seleccioneu una integració de correu"
 msgid "Select an event type"
 msgstr "Seleccioneu un tipus d'esdeveniment"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:271
+#: src/components/automations/config/TriggerConfigForm.tsx:282
 msgid "Select an event..."
 msgstr "Seleccioneu un esdeveniment..."
 
@@ -11649,7 +12108,7 @@ msgstr "Seleccionar idioma"
 msgid "Select language..."
 msgstr "Seleccionar idioma..."
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:197
+#: src/components/automations/UpsertAutomationDrawer.tsx:205
 #: src/components/contacts/BulkUpdateDrawer.tsx:604
 msgid "Select list"
 msgstr "Seleccionar llista"
@@ -11704,7 +12163,7 @@ msgstr "Seleccionar plantilla"
 msgid "Select the email template to send"
 msgstr "Seleccioneu la plantilla de correu per enviar"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:259
+#: src/components/automations/config/TriggerConfigForm.tsx:270
 msgid "Select the event that will trigger this automation"
 msgstr "Seleccioneu l'esdeveniment que activarà aquesta automatització"
 
@@ -11729,7 +12188,7 @@ msgstr "Seleccionar zona horària..."
 msgid "Select type"
 msgstr "Seleccionar tipus"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:286
+#: src/components/automations/config/TriggerConfigForm.tsx:297
 msgid "Select which list this trigger applies to"
 msgstr "Seleccioneu a quina llista s'aplica aquest activador"
 
@@ -11745,7 +12204,7 @@ msgstr "Seleccioneu en quina llista comprovar l'estat del contacte"
 msgid "Select which list to remove the contact from"
 msgstr "Seleccioneu de quina llista eliminar el contacte"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:307
+#: src/components/automations/config/TriggerConfigForm.tsx:318
 msgid "Select which segment this trigger applies to"
 msgstr "Seleccioneu a quin segment s'aplica aquest activador"
 
@@ -11753,7 +12212,7 @@ msgstr "Seleccioneu a quin segment s'aplica aquest activador"
 msgid "Select Winner"
 msgstr "Seleccionar guanyador"
 
-#: src/layouts/WorkspaceLayout.tsx:446
+#: src/layouts/WorkspaceLayout.tsx:447
 #: src/pages/DashboardPage.tsx:31
 msgid "Select workspace"
 msgstr "Seleccionar espai de treball"
@@ -11963,6 +12422,10 @@ msgstr "Servidor reiniciat correctament! Ara podeu iniciar sessió."
 msgid "Server Token"
 msgstr "Token del servidor"
 
+#: src/services/api/errors.ts:153
+msgid "Service temporarily unavailable"
+msgstr ""
+
 #: src/components/settings/Integrations.tsx:2249
 msgid "SES tenant"
 msgstr "Tenant SES"
@@ -12129,7 +12592,7 @@ msgstr "Configurant..."
 
 #: src/components/settings/SettingsSidebar.tsx:155
 #: src/components/settings/UITranslationsSettings.tsx:101
-#: src/layouts/WorkspaceLayout.tsx:317
+#: src/layouts/WorkspaceLayout.tsx:318
 msgid "Settings"
 msgstr "Configuració"
 
@@ -12173,6 +12636,10 @@ msgstr "Mostrar l'evolució"
 #: src/components/blog/RecentThemesTable.tsx:264
 msgid "Show More ({0} remaining)"
 msgstr "Mostrar més ({0} restants)"
+
+#: src/components/customers/CustomerDrawer.tsx:101
+msgid "Showing the surviving customer profile."
+msgstr ""
 
 #: src/components/broadcasts/BroadcastLinkStats.tsx:200
 msgid "Showing the top 200 links by unique clicks."
@@ -12246,7 +12713,7 @@ msgstr "L'slug només pot contenir lletres minúscules, números i guions"
 
 #: src/components/automations/AddNodeButton.tsx:80
 #: src/components/automations/config/ChannelConfigForm.tsx:29
-#: src/components/automations/NodeConfigPanel.tsx:89
+#: src/components/automations/NodeConfigPanel.tsx:78
 #: src/components/automations/nodes/ChannelNode.tsx:16
 #: src/components/automations/nodes/StatNode.tsx:87
 #: src/components/messages/MessageHistoryTab.tsx:220
@@ -12395,6 +12862,10 @@ msgstr "Títol per compartir a xarxes socials"
 msgid "Solid"
 msgstr "Sòlid"
 
+#: src/services/api/errors.ts:162
+msgid "Some information needs attention"
+msgstr ""
+
 #: src/components/templates/useTemplateConflictModal.tsx:70
 msgid "Someone changed this template while you were editing. Reload the latest version — your unsaved changes will be lost — or overwrite it with yours."
 msgstr "Algú ha canviat aquesta plantilla mentre l'editàveu. Torneu a carregar la darrera versió — els vostres canvis no desats es perdran — o sobreescriviu-la amb la vostra."
@@ -12409,10 +12880,22 @@ msgstr "Algú ha desat la versió {0} mentre l'editàveu (vau començar des de l
 msgid "Something went wrong"
 msgstr "Alguna cosa ha anat malament"
 
+#: src/pages/DeliveryCenterPage.tsx:81
+msgid "Source"
+msgstr ""
+
 #. placeholder {0}: node.leaf?.source
 #: src/components/segment/input.tsx:468
 msgid "source {0} not found"
 msgstr "origen {0} no trobat"
+
+#: src/pages/DeliveryCenterPage.tsx:112
+msgid "Source ID"
+msgstr ""
+
+#: src/pages/DeliveryCenterPage.tsx:111
+msgid "Source type"
+msgstr ""
 
 #: src/components/timeline/ContactTimeline.tsx:878
 msgid "Source:"
@@ -12492,6 +12975,14 @@ msgstr "Comenceu a escriure..."
 msgid "Start Upload"
 msgstr "Iniciar càrrega"
 
+#: src/components/automations/JourneyCreateWizard.tsx:134
+msgid "Start when the business scheduler reports a customer birthday event."
+msgstr ""
+
+#: src/components/automations/JourneyCreateWizard.tsx:154
+msgid "Start with an empty trigger and build the flow yourself."
+msgstr ""
+
 #: src/components/blog/PostDrawer.tsx:821
 msgid "Start writing your blog post..."
 msgstr "Comenceu a escriure la vostra publicació..."
@@ -12517,22 +13008,27 @@ msgstr "STARTTLS"
 msgid "STARTTLS required"
 msgstr "STARTTLS obligatori"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:134
+#: src/components/automations/config/TriggerConfigForm.tsx:145
 #: src/components/contacts/ContactDetailsDrawer.tsx:448
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:100
 msgid "State"
 msgstr "Estat"
 
+#: src/components/automations/JourneyTraceDrawer.tsx:92
 #: src/components/blog/PostsTable.tsx:245
 #: src/components/blog/RecentThemesTable.tsx:122
 #: src/components/contacts/ContactDetailsDrawer.tsx:982
-#: src/components/customers/CustomerDrawer.tsx:67
+#: src/components/customers/CustomerDrawer.tsx:27
 #: src/components/messages/MessageHistoryTab.tsx:580
 #: src/components/web_analytics/filters/FilterTable.tsx:264
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:82
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:378
 #: src/pages/BroadcastsPage.tsx:453
 #: src/pages/CustomersPage.tsx:110
+#: src/pages/DeliveryCenterPage.tsx:79
+#: src/pages/DeliveryCenterPage.tsx:109
+#: src/pages/DeliveryCenterPage.tsx:140
+#: src/pages/DeliveryCenterPage.tsx:145
 msgid "Status"
 msgstr "Estat"
 
@@ -12545,7 +13041,7 @@ msgstr "estat canviat"
 msgid "Status unknown"
 msgstr "Estat desconegut"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:214
+#: src/components/automations/UpsertAutomationDrawer.tsx:222
 msgid "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Yaoguang Marketing. Without that setup, replies aren't detected and the sequence won't stop."
 msgstr "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Yaoguang Marketing. Without that setup, replies aren't detected and the sequence won't stop."
 
@@ -12637,7 +13133,7 @@ msgid "subscribed"
 msgstr "subscrit"
 
 #: src/components/automations/config/AddToListConfigForm.tsx:17
-#: src/components/automations/config/TriggerConfigForm.tsx:82
+#: src/components/automations/config/TriggerConfigForm.tsx:93
 #: src/components/automations/nodes/AddToListNode.tsx:59
 msgid "Subscribed"
 msgstr "Subscrit"
@@ -12737,6 +13233,10 @@ msgstr "Idiomes admesos"
 msgid "Supports reply_to, cc, bcc, and attachments"
 msgstr "Suporta reply_to, cc, bcc i fitxers adjunts"
 
+#: src/i18n/catalogInventory.ts:15
+msgid "Suppression"
+msgstr ""
+
 #: src/components/templates/CreateTemplateDrawer.tsx:1444
 msgid "Switch to Preview mode to see how your email will look to recipients. This shows the final rendered version with all styling applied."
 msgstr "Canvieu al mode de vista prèvia per veure com es veurà el vostre correu als destinataris. Això mostra la versió final renderitzada amb tots els estils aplicats."
@@ -12766,19 +13266,19 @@ msgstr "SMTP del sistema"
 msgid "Table of Contents"
 msgstr "Taula de continguts"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:340
+#: src/components/automations/config/TriggerConfigForm.tsx:351
 msgid "Tag"
 msgstr "Tag"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:74
+#: src/components/automations/config/TriggerConfigForm.tsx:85
 msgid "Tag Added"
 msgstr "Tag Added"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:75
+#: src/components/automations/config/TriggerConfigForm.tsx:86
 msgid "Tag Removed"
 msgstr "Tag Removed"
 
-#: src/components/customers/CustomerDrawer.tsx:98
+#: src/components/customers/CustomerDrawer.tsx:32
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:137
 #: src/components/web_analytics/filters/FilterTable.tsx:252
 #: src/pages/CustomersPage.tsx:116
@@ -12943,9 +13443,13 @@ msgstr "Plantilla:"
 #: src/components/settings/PermissionsMatrix.tsx:121
 #: src/components/settings/UITranslationsSettings.tsx:112
 #: src/pages/TemplatesPage.tsx:451
-#: src/services/api/errors.ts:56
+#: src/services/api/errors.ts:216
 msgid "Templates"
 msgstr "Plantilles"
+
+#: src/components/automations/JourneyCreateWizard.tsx:277
+msgid "Templates provide understandable defaults. Every trigger and flow node remains editable."
+msgstr ""
 
 #: src/components/settings/Integrations.tsx:2347
 msgid "Templates using this sender will need to be updated to use a different sender."
@@ -13138,10 +13642,10 @@ msgid "The API endpoint has changed. After restart, the console will be availabl
 msgstr "L'endpoint de l'API ha canviat. Després del reinici, la consola estarà disponible a:"
 
 #: src/components/automations/AutomationCard.tsx:210
-msgid "The automation will start processing contacts that match the trigger."
-msgstr "L'automatització començarà a processar contactes que coincideixin amb l'activador."
+#~ msgid "The automation will start processing contacts that match the trigger."
+#~ msgstr "L'automatització començarà a processar contactes que coincideixin amb l'activador."
 
-#: src/components/automations/AutomationCard.tsx:234
+#: src/components/automations/AutomationCard.tsx:230
 msgid "The automation will stop processing new contacts."
 msgstr "L'automatització deixarà de processar nous contactes."
 
@@ -13180,6 +13684,10 @@ msgstr "L'interval de dates actual, els filtres i el llindar de sessió"
 #: src/components/blog/RecentThemesTable.tsx:96
 msgid "The currently published theme will be unpublished automatically."
 msgstr "El tema publicat actualment es despublicarà automàticament."
+
+#: src/services/api/errors.ts:125
+msgid "The customer will not receive this delivery."
+msgstr ""
 
 #: src/components/settings/Integrations.tsx:1936
 msgid "The email address that will be used as the SMTP user for authentication"
@@ -13234,6 +13742,14 @@ msgstr "El registre de missatges sortints: cada correu que l'espai de treball ha
 #: src/components/settings/GeneralSettings.tsx:245
 msgid "The primary language for template content. Translations are stored for other languages."
 msgstr "L'idioma principal del contingut de les plantilles. Les traduccions es desen per als altres idiomes."
+
+#: src/services/api/errors.ts:116
+msgid "The provider has not confirmed whether the customer was contacted."
+msgstr ""
+
+#: src/services/api/errors.ts:180
+msgid "The requested change may not have been applied."
+msgstr ""
 
 #: src/pages/AnalyticsPage.tsx:69
 msgid "The requested workspace could not be found."
@@ -13410,11 +13926,19 @@ msgstr "Aquesta difusió es va cancel·lar abans de completar-se."
 msgid "This cannot be undone."
 msgstr "Això no es pot desfer."
 
+#: src/components/automations/JourneyPreflightPanel.tsx:170
+msgid "This check is valid for five minutes unless the journey changes."
+msgstr ""
+
 #: src/components/contacts/ContactDetailsDrawer.tsx:1030
 msgid "This contact is not subscribed to any lists"
 msgstr "Aquest contacte no està subscrit a cap llista"
 
-#: src/components/customers/CustomerDrawer.tsx:49
+#: src/components/customers/CustomerJourneysTab.tsx:24
+msgid "This customer has not entered a journey"
+msgstr ""
+
+#: src/components/customers/CustomerDrawer.tsx:101
 msgid "This customer was merged"
 msgstr "Aquest client s'ha fusionat"
 
@@ -13422,13 +13946,17 @@ msgstr "Aquest client s'ha fusionat"
 msgid "This email will be used for the root administrator account"
 msgstr "Aquest correu s'utilitzarà per al compte d'administrador arrel"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:407
+#: src/components/automations/config/TriggerConfigForm.tsx:421
 msgid "This event fires often. These conditions are evaluated for every matching event."
 msgstr "Aquest esdeveniment es dispara sovint. Aquestes condicions s'avaluen per a cada esdeveniment coincident."
 
 #: src/components/broadcasts/RecipientFeedSettings.tsx:99
 msgid "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically."
 msgstr "Aquesta funcionalitat fa una sol·licitud HTTP per a cada destinatari abans d'enviar el seu email. Això pot alentir significativament el processament del broadcast. Si la sol·licitud del feed falla després dels reintents, el broadcast es posarà en pausa automàticament."
+
+#: src/services/api/errors.ts:163
+msgid "This form was not submitted."
+msgstr ""
 
 #: src/components/integrations/SupabaseIntegration.tsx:245
 msgid "This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase."
@@ -13462,6 +13990,14 @@ msgstr "Aquest és el vostre arbre d'estructura de contingut. Podeu arrossegar i
 msgid "This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options."
 msgstr "Aquest és el vostre editor visual de correu. Feu clic a qualsevol element del vostre correu per seleccionar-lo. Els elements seleccionats es ressaltaran amb una vora blava i mostraran opcions d'edició."
 
+#: src/services/api/errors.ts:133
+msgid "This item changed before your update was saved"
+msgstr ""
+
+#: src/components/automations/JourneyTraceDrawer.tsx:97
+msgid "This journey is waiting by design"
+msgstr ""
+
 #: src/components/settings/WebAnalyticsSettings.tsx:316
 msgid "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 msgstr "Aquesta llista fa dues coses. Filtra els senyals entrants — els altres orígens s'ignoren silenciosament. També controla la identificació per clic al correu: un enllaç amb seguiment només porta un token d'identitat per a un domini que consti aquí, de manera que mentre això estigui buit cap enllaç de correu no pot identificar un contacte. Utilitzeu *.example.com per cobrir tant example.com com els seus subdominis — example.com tot sol no coincideix amb www.example.com."
@@ -13474,6 +14010,14 @@ msgstr "Aquesta notificació està gestionada per una integració i no es pot ca
 msgid "This notification is managed by an integration and the template cannot be changed"
 msgstr "Aquesta notificació està gestionada per una integració i la plantilla no es pot canviar"
 
+#: src/services/api/errors.ts:143
+msgid "This operation has not completed."
+msgstr ""
+
+#: src/services/api/errors.ts:154
+msgid "This operation is delayed; no data was discarded."
+msgstr ""
+
 #: src/components/timeline/WebPageDrawer.tsx:86
 msgid "This page cannot be previewed here"
 msgstr "Aquesta pàgina no es pot previsualitzar aquí"
@@ -13485,6 +14029,10 @@ msgstr "Aquest permís no protegeix cap endpoint actualment."
 #: src/components/settings/PermissionsMatrix.tsx:178
 msgid "This permission is not enforced yet, so it is always granted. It cannot be turned off."
 msgstr "Aquest permís encara no s'aplica, de manera que sempre està concedit. No es pot desactivar."
+
+#: src/components/automations/JourneyCreateWizard.tsx:427
+msgid "This policy does not change whether a customer enters the Journey."
+msgstr ""
 
 #: src/components/segment/input_event_property_filters.tsx:162
 msgid "This property is already filtered"
@@ -13642,12 +14190,12 @@ msgstr "Marca de temps"
 
 #: src/components/analytics/NewContactsTable.tsx:134
 #: src/components/analytics/NewContactsTable.tsx:172
-#: src/components/automations/config/TriggerConfigForm.tsx:124
+#: src/components/automations/config/TriggerConfigForm.tsx:135
 #: src/components/blog/PublishModal.tsx:184
 #: src/components/broadcasts/SendOrScheduleModal.tsx:298
 #: src/components/contacts/ContactDetailsDrawer.tsx:451
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:95
-#: src/components/customers/CustomerDrawer.tsx:73
+#: src/components/customers/CustomerDrawer.tsx:29
 #: src/components/settings/GeneralSettings.tsx:153
 #: src/components/settings/GeneralSettings.tsx:215
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:169
@@ -13744,6 +14292,10 @@ msgstr "Clau privada TLS (Base64)"
 msgid "TLS private key is required"
 msgstr "La clau privada TLS és obligatòria"
 
+#: src/pages/DeliveryCenterPage.tsx:116
+msgid "To"
+msgstr ""
+
 #: src/components/transactional/ApiCommandModal.tsx:561
 msgid "to prevent duplicate sends"
 msgstr "per evitar enviaments duplicats"
@@ -13774,6 +14326,10 @@ msgstr "Canvieu entre les vistes mòbil i escriptori per veure com es mostra el 
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:244
 msgid "Toggle caption"
 msgstr "Alternar llegenda"
+
+#: src/services/api/errors.ts:142
+msgid "Too many requests right now"
+msgstr ""
 
 #: src/pages/SignInPage.tsx:106
 msgid "Too many sign-in attempts. Please wait a moment and try again."
@@ -13863,6 +14419,10 @@ msgstr "Contactes totals"
 msgid "Total Value"
 msgstr "Valor total"
 
+#: src/pages/DeliveryCenterPage.tsx:104
+msgid "Track every send decision, provider attempt and uncertain outcome in one place."
+msgstr ""
+
 #: src/components/settings/WebAnalyticsSettings.tsx:376
 msgid "Track visitor country, region, city, and coordinates"
 msgstr "Fer el seguiment del país, la regió, la ciutat i les coordenades dels visitants"
@@ -13902,7 +14462,7 @@ msgstr "Trànsit que cap regla de filtre no ha classificat"
 #: src/components/templates/MessageTemplateDrawer.tsx:394
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
 #: src/pages/TemplatesPage.tsx:126
-#: src/services/api/errors.ts:58
+#: src/services/api/errors.ts:218
 msgid "Transactional"
 msgstr "Transaccional"
 
@@ -13951,24 +14511,37 @@ msgid "Trial"
 msgstr "Prova"
 
 #: src/components/automations/AddNodeButton.tsx:77
-#: src/components/automations/AutomationCard.tsx:294
-#: src/components/automations/NodeConfigPanel.tsx:86
+#: src/components/automations/AutomationCard.tsx:290
+#: src/components/automations/JourneyCreateWizard.tsx:467
+#: src/components/automations/NodeConfigPanel.tsx:75
 #: src/components/automations/nodes/StatNode.tsx:84
 #: src/components/automations/nodes/TriggerNode.tsx:60
 msgid "Trigger"
 msgstr "Disparador"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:257
+#: src/components/automations/config/TriggerConfigForm.tsx:268
 msgid "Trigger Event"
 msgstr "Esdeveniment activador"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:351
+#: src/components/automations/config/TriggerConfigForm.tsx:362
 msgid "Trigger on specific field changes"
 msgstr "Activar amb canvis de camp específics"
 
 #: src/pages/BroadcastsPage.tsx:1676
 msgid "Try adjusting your search or status filter"
 msgstr "Proveu d'ajustar la cerca o el filtre d'estat"
+
+#: src/components/errors/ActionableError.tsx:49
+msgid "Try again"
+msgstr ""
+
+#: src/services/api/errors.ts:155
+msgid "Try again in a moment. If it continues, give support the request ID below."
+msgstr ""
+
+#: src/services/api/errors.ts:181
+msgid "Try again. If it continues, give support the request ID below."
+msgstr ""
 
 #: src/pages/TemplatesPage.tsx:553
 msgid "Try selecting a different category or"
@@ -14037,12 +14610,20 @@ msgid "Unable to load customers"
 msgstr "No s'han pogut carregar els clients"
 
 #: src/components/customers/CustomerDrawer.tsx:39
-msgid "Unable to load this customer"
-msgstr "No s'ha pogut carregar aquest client"
+#~ msgid "Unable to load this customer"
+#~ msgstr "No s'ha pogut carregar aquest client"
+
+#: src/services/api/errors.ts:98
+msgid "Unable to reach the server"
+msgstr ""
 
 #: src/components/blog/PostsTable.tsx:168
 msgid "Uncategorized"
 msgstr "Sense categoria"
+
+#: src/pages/DeliveryCenterPage.tsx:106
+msgid "Uncertain and permanently failed deliveries need attention"
+msgstr ""
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:328
 #: src/components/email_builder/ui/FontStyleInput.tsx:137
@@ -14061,7 +14642,7 @@ msgstr "Entendre la qualitat de les referències"
 msgid "Undo"
 msgstr "Desfer"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:151
+#: src/components/automations/UpsertAutomationDrawer.tsx:161
 msgid "Undo (Ctrl+Z)"
 msgstr "Desfer (Ctrl+Z)"
 
@@ -14104,7 +14685,7 @@ msgstr "Desconegut"
 msgid "Unknown date"
 msgstr "Data desconeguda"
 
-#: src/layouts/WorkspaceLayout.tsx:210
+#: src/layouts/WorkspaceLayout.tsx:211
 msgid "Unknown error"
 msgstr "Error desconegut"
 
@@ -14148,14 +14729,14 @@ msgstr "Despublicar"
 msgid "Unpublish post"
 msgstr "Despublicar publicació"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:147
+#: src/components/automations/UpsertAutomationDrawer.tsx:157
 #: src/components/blog/PostDrawer.tsx:558
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:235
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:150
 msgid "Unsaved changes"
 msgstr "Canvis no desats"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:99
+#: src/components/automations/UpsertAutomationDrawer.tsx:109
 #: src/components/blog/ThemeEditorDrawer.tsx:275
 msgid "Unsaved Changes"
 msgstr "Canvis no desats"
@@ -14194,8 +14775,8 @@ msgstr "Cancel·lar subscripció"
 msgid "Unsubscribe from list"
 msgstr "Donar de baixa de la llista"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:83
-#: src/components/automations/config/TriggerConfigForm.tsx:108
+#: src/components/automations/config/TriggerConfigForm.tsx:94
+#: src/components/automations/config/TriggerConfigForm.tsx:119
 #: src/components/contacts/ContactDetailsDrawer.tsx:584
 #: src/components/messages/MessageHistoryTab.tsx:195
 #: src/components/messages/MessageHistoryTab.tsx:200
@@ -14216,6 +14797,10 @@ msgstr "Baixes"
 #: src/pages/BroadcastsPage.tsx:805
 msgid "Untitled"
 msgstr "Sense títol"
+
+#: src/components/automations/JourneyCreateWizard.tsx:156
+msgid "Untitled journey"
+msgstr ""
 
 #: src/components/settings/Integrations.tsx:2230
 #: src/components/settings/Integrations.tsx:2257
@@ -14254,8 +14839,8 @@ msgstr "Actualitzar estat"
 msgid "updated"
 msgstr "Actualitzat"
 
-#: src/components/automations/AutomationCard.tsx:310
-#: src/components/automations/config/TriggerConfigForm.tsx:70
+#: src/components/automations/AutomationCard.tsx:306
+#: src/components/automations/config/TriggerConfigForm.tsx:81
 #: src/components/blog/PostsTable.tsx:290
 msgid "Updated"
 msgstr "Actualitzat"
@@ -14488,7 +15073,7 @@ msgstr "Font UTM"
 msgid "UTM Term"
 msgstr "Terme UTM"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:114
+#: src/components/automations/UpsertAutomationDrawer.tsx:124
 msgid "Validation Error"
 msgstr "Error de validació"
 
@@ -14525,9 +15110,21 @@ msgstr "Nom de la variant"
 msgid "Variations"
 msgstr "Variacions"
 
+#: src/pages/DeliveryCenterPage.tsx:163
+msgid "Verification evidence"
+msgstr ""
+
+#: src/pages/DeliveryCenterPage.tsx:156
+msgid "Verified outcome"
+msgstr ""
+
 #: src/pages/SignInPage.tsx:278
 msgid "Verify Code"
 msgstr "Verificar codi"
+
+#: src/services/api/errors.ts:117
+msgid "Verify the outcome with the provider before retrying to avoid a duplicate contact."
+msgstr ""
 
 #: src/pages/AcceptInvitationPage.tsx:103
 msgid "Verifying invitation..."
@@ -14596,6 +15193,10 @@ msgstr "Veure documentació i guia de configuració del relay SMTP"
 msgid "View snippet"
 msgstr "Veure el fragment"
 
+#: src/components/customers/CustomerJourneysTab.tsx:32
+msgid "View trace"
+msgstr ""
+
 #: src/components/segment/form_leaf.tsx:388
 #: src/components/segment/input.tsx:794
 msgid "View web page"
@@ -14637,21 +15238,35 @@ msgstr "Editor visual de correu"
 msgid "vs."
 msgstr "vs."
 
+#: src/services/api/errors.ts:146
+msgid "Wait briefly, then try again."
+msgstr ""
+
 #: src/components/automations/config/DelayConfigForm.tsx:30
 msgid "Wait Duration"
 msgstr "Durada d'espera"
+
+#. placeholder {0}: details.retryAfter
+#: src/services/api/errors.ts:145
+msgid "Wait until {0}, then try again."
+msgstr ""
 
 #: src/pages/SetupWizard.tsx:289
 msgid "Waiting for server restart..."
 msgstr "Esperant el reinici del servidor..."
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:126
+#: src/components/automations/JourneyPreflightPanel.tsx:133
+#: src/components/automations/UpsertAutomationDrawer.tsx:136
 msgid "Warning"
 msgstr "Avís"
 
 #: src/components/settings/PermissionsMatrix.tsx:97
 msgid "Watch out"
 msgstr "Compte"
+
+#: src/services/api/errors.ts:179
+msgid "We could not complete this operation"
+msgstr ""
 
 #: src/pages/CreateWorkspacePage.tsx:172
 msgid "We'll automatically detect and use your website's favicon"
@@ -14670,7 +15285,7 @@ msgstr "Web"
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:349
 #: src/pages/BroadcastsPage.tsx:1158
 #: src/pages/WebAnalyticsPage.tsx:94
-#: src/services/api/errors.ts:64
+#: src/services/api/errors.ts:224
 msgid "Web Analytics"
 msgstr "Analítica web"
 
@@ -14699,7 +15314,7 @@ msgid "Web session"
 msgstr "Sessió web"
 
 #: src/components/automations/AddNodeButton.tsx:87
-#: src/components/automations/NodeConfigPanel.tsx:95
+#: src/components/automations/NodeConfigPanel.tsx:84
 #: src/components/automations/nodes/StatNode.tsx:94
 #: src/components/automations/nodes/WebhookNode.tsx:43
 #: src/components/timeline/ContactTimeline.tsx:667
@@ -14725,7 +15340,7 @@ msgid "Webhook endpoint:"
 msgstr "Punt final del webhook:"
 
 #: src/components/settings/PermissionsMatrix.tsx:132
-#: src/services/api/errors.ts:67
+#: src/services/api/errors.ts:227
 msgid "Webhook Events"
 msgstr "Esdeveniments de webhooks"
 
@@ -14746,7 +15361,7 @@ msgid "Webhook subscription updated"
 msgstr "Subscripció de webhook actualitzada"
 
 #: src/components/settings/PermissionsMatrix.tsx:131
-#: src/services/api/errors.ts:66
+#: src/services/api/errors.ts:226
 msgid "Webhook Subscriptions"
 msgstr "Subscripcions de webhooks"
 
@@ -14818,6 +15433,10 @@ msgstr "Pes"
 #: src/pages/TemplatesPage.tsx:127
 msgid "Welcome"
 msgstr "Benvingut"
+
+#: src/components/automations/JourneyCreateWizard.tsx:102
+msgid "Welcome a customer after profile creation or a business signup event."
+msgstr ""
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1420
 msgid "Welcome to Email Builder!"
@@ -14891,6 +15510,10 @@ msgstr "Quins canals d'adquisició i campanyes han portat més sessions aquest p
 msgid "Which landing pages bring the most sessions, and which ones have the worst bounce rate or engagement?"
 msgstr "Quines pàgines d'aterratge porten més sessions, i quines tenen la pitjor taxa de rebot o interacció?"
 
+#: src/pages/DeliveryCenterPage.tsx:82
+msgid "Why"
+msgstr ""
+
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:470
 msgid "Why did traffic change?"
 msgstr "Per què ha canviat el trànsit?"
@@ -14954,7 +15577,7 @@ msgstr "Amb:"
 
 #: src/components/settings/PermissionsMatrix.tsx:124
 #: src/components/settings/UITranslationsSettings.tsx:102
-#: src/services/api/errors.ts:59
+#: src/services/api/errors.ts:219
 msgid "Workspace"
 msgstr "Espai de treball"
 
@@ -15001,14 +15624,14 @@ msgstr "Nom de l'espai de treball"
 msgid "Workspace name must be at least 3 characters long"
 msgstr "El nom de l'espai de treball ha de tenir almenys 3 caràcters"
 
-#: src/layouts/WorkspaceLayout.tsx:189
+#: src/layouts/WorkspaceLayout.tsx:190
 #: src/pages/AnalyticsPage.tsx:68
 #: src/pages/FileManagerPage.tsx:56
 msgid "Workspace not found"
 msgstr "Espai de treball no trobat"
 
 #: src/components/settings/GeneralSettings.tsx:103
-#: src/layouts/WorkspaceLayout.tsx:207
+#: src/layouts/WorkspaceLayout.tsx:208
 msgid "Workspace settings updated successfully"
 msgstr "Configuració de l'espai de treball actualitzada correctament"
 
@@ -15053,6 +15676,10 @@ msgstr "L'escriptura inclou l'eliminació permanent i la sobreescriptura massiva
 #: src/components/email_builder/blocks/MjLiquidBlock.tsx:33
 msgid "Write MJML markup with Liquid template tags. This content is injected directly into the email and processed by the Liquid engine before MJML compilation. Use for-loops, conditionals, and variables to generate dynamic structural content."
 msgstr "Escriviu marcatge MJML amb etiquetes de plantilla Liquid. Aquest contingut s'injecta directament al correu i el processa el motor Liquid abans de la compilació MJML. Utilitzeu bucles for, condicionals i variables per generar contingut estructural dinàmic."
+
+#: src/pages/DeliveryCenterPage.tsx:150
+msgid "Write permission is required to reconcile or resolve this delivery"
+msgstr ""
 
 #: src/components/settings/WebhookCard.tsx:298
 msgid "Yaoguang Marketing disabled this webhook automatically"
@@ -15109,8 +15736,8 @@ msgid "Yes"
 msgstr "Sí"
 
 #: src/components/automations/AutomationCard.tsx:212
-msgid "Yes, activate"
-msgstr "Sí, activar"
+#~ msgid "Yes, activate"
+#~ msgstr "Sí, activar"
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:83
 #: src/pages/BroadcastsPage.tsx:677
@@ -15130,7 +15757,7 @@ msgstr "Sí, eliminar"
 msgid "Yes, Delete"
 msgstr "Sí, eliminar"
 
-#: src/components/automations/AutomationCard.tsx:236
+#: src/components/automations/AutomationCard.tsx:232
 #: src/pages/BroadcastsPage.tsx:630
 msgid "Yes, pause"
 msgstr "Sí, pausar"
@@ -15151,11 +15778,15 @@ msgstr "Ahir"
 msgid "You can only upload CSV files!"
 msgstr "Només podeu pujar fitxers CSV!"
 
-#: src/services/api/errors.ts:112
+#: src/services/api/errors.ts:171
+msgid "You cannot complete this operation"
+msgstr ""
+
+#: src/services/api/errors.ts:272
 msgid "You do not have read access to {resource}."
 msgstr "No teniu accés de lectura a {resource}."
 
-#: src/services/api/errors.ts:113
+#: src/services/api/errors.ts:273
 msgid "You do not have write access to {resource}."
 msgstr "No teniu accés d'escriptura a {resource}."
 
@@ -15173,7 +15804,7 @@ msgstr "No teniu permís per gestionar els camps personalitzats"
 #: src/components/automations/AutomationCard.tsx:147
 #: src/components/automations/AutomationCard.tsx:175
 #: src/components/automations/AutomationCard.tsx:204
-#: src/components/automations/AutomationCard.tsx:228
+#: src/components/automations/AutomationCard.tsx:224
 msgid "You don't have write permission for automations"
 msgstr "No teniu permís d'escriptura per a automatitzacions"
 
@@ -15225,7 +15856,7 @@ msgstr "Teniu canvis sense desar"
 msgid "You have unsaved changes. Are you sure you want to close this drawer?"
 msgstr "Teniu canvis no desats. Esteu segur que voleu tancar aquest panell?"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:100
+#: src/components/automations/UpsertAutomationDrawer.tsx:110
 msgid "You have unsaved changes. Are you sure you want to close?"
 msgstr "Teniu canvis no desats. Esteu segur que voleu tancar?"
 
@@ -15258,6 +15889,18 @@ msgstr "Les vostres credencials d'AWS no poden crear tenants SES. Concediu ses:C
 #: src/components/settings/BlogSettings.tsx:494
 msgid "Your blog settings have not been saved. Leaving this page discards them."
 msgstr "La configuració del vostre blog no s'ha desat. Si sortiu d'aquesta pàgina, es descartarà."
+
+#: src/services/api/errors.ts:134
+msgid "Your changes were not applied."
+msgstr ""
+
+#: src/services/api/errors.ts:99
+msgid "Your changes were not submitted."
+msgstr ""
+
+#: src/components/automations/JourneyCreateWizard.tsx:482
+msgid "Your draft is kept when you close this wizard."
+msgstr ""
 
 #: src/components/file_manager/buttonSettings.tsx:215
 msgid "Your files can be uploaded to any S3 compatible storage."

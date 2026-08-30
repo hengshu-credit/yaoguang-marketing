@@ -288,3 +288,57 @@ th.ant-table-cell.translations-fixed-col {
 .ant-table-tbody > tr.best-timescore-row > td:first-child {
   box-shadow: inset 4px 0 0 0 hsl(180, 70%, 50%);
 }
+
+.actionable-error-fields {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.actionable-error-fields .ant-btn-link {
+  height: auto;
+  padding: 0;
+  white-space: normal;
+  text-align: left;
+}
+
+.automation-keyboard-node-list {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 45;
+  width: min(360px, calc(100% - 32px));
+  max-height: min(50%, 420px);
+  overflow: auto;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px 10px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
+}
+
+.automation-keyboard-node-list summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.automation-keyboard-node-list ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.automation-keyboard-node-list li + li {
+  margin-top: 4px;
+}
+
+.automation-keyboard-node-list .ant-btn {
+  min-height: 44px;
+  height: auto;
+  display: flex;
+  justify-content: space-between;
+  text-align: left;
+  white-space: normal;
+}

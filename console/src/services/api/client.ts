@@ -3,7 +3,7 @@ import { router } from '../../router'
 // Defined in ./errors so it can be imported without pulling in the router; re-exported
 // here because most call sites already import it from this module.
 export { ApiError } from './errors'
-import { ApiError, permissionDeniedMessage, permissionDenialFromBody } from './errors'
+import { ApiError, apiErrorDetails, permissionDeniedMessage, permissionDenialFromBody } from './errors'
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -35,7 +35,8 @@ async function handleResponse<T>(response: Response): Promise<T> {
     // otherwise show anything but the server's English prose. errorData is passed through
     // untouched, so a handler that wants the resource and verb still reads them off `data`.
     const denial = permissionDenialFromBody(errorData)
-    const message = denial ? permissionDeniedMessage(denial) : errorData?.error
+    const details = apiErrorDetails(errorData)
+    const message = denial ? permissionDeniedMessage(denial) : details.message
 
     throw new ApiError(message || 'An error occurred', response.status, errorData)
   }

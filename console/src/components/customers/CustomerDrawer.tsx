@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Alert, Descriptions, Drawer, Empty, Result, Space, Spin, Tabs, Tag, Typography } from 'antd'
+import { Alert, Descriptions, Drawer, Empty, Space, Spin, Tabs, Tag, Typography } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { customerApi, customerQueryKeys, type Customer } from '../../services/api/customer'
 import { CustomerTimelineTab } from './CustomerTimelineTab'
 import { CustomerJourneysTab } from './CustomerJourneysTab'
 import { CustomerDeliveriesTab } from './CustomerDeliveriesTab'
 import { JourneyTraceDrawer } from '../automations/JourneyTraceDrawer'
+import { ActionableError } from '../errors/ActionableError'
 
 interface CustomerDrawerProps {
   workspaceId: string
@@ -94,7 +95,7 @@ export function CustomerDrawer({ workspaceId, customerId, open, onClose }: Custo
     <>
       <Drawer title={t`Customer 360`} open={open} onClose={onClose} size="large" styles={{ wrapper: { maxWidth: '100vw' } }} destroyOnHidden>
         {query.isLoading && <div style={{ display: 'grid', placeItems: 'center', minHeight: 240 }}><Spin /></div>}
-        {query.isError && <Result status="error" title={t`Unable to load this customer`} subTitle={query.error instanceof Error ? query.error.message : t`Please try again`} />}
+        {query.isError && <ActionableError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} />}
         {customer && (
           <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
             {(resolvedFrom || customer.merged_into_id) && <Alert type="info" showIcon title={t`This customer was merged`} description={<Space orientation="vertical" size={0}><Typography.Text>{t`Showing the surviving customer profile.`}</Typography.Text><Typography.Text copyable>{resolvedFrom || customer.merged_into_id}</Typography.Text></Space>} />}

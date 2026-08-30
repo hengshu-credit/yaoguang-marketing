@@ -12,6 +12,7 @@ import { useWorkspacePermissions, useAuth } from '../contexts/AuthContext'
 import { AutomationCard } from '../components/automations/AutomationCard'
 import { UpsertAutomationDrawer } from '../components/automations/UpsertAutomationDrawer'
 import { JourneyPreflightPanel } from '../components/automations/JourneyPreflightPanel'
+import { ActionableError } from '../components/errors/ActionableError'
 
 const { Title } = Typography
 
@@ -31,6 +32,7 @@ export function AutomationsPage() {
   const [editingAutomation, setEditingAutomation] = useState<Automation | undefined>(undefined)
   const [editingNodeId, setEditingNodeId] = useState<string | undefined>()
   const [preflightAutomation, setPreflightAutomation] = useState<Automation | undefined>()
+  const [operationError, setOperationError] = useState<unknown>()
   const handledTraceFix = useRef('')
 
   const [currentPage, setCurrentPage] = useState(1)
@@ -40,7 +42,9 @@ export function AutomationsPage() {
   const {
     data: automationsData,
     isLoading: isLoadingAutomations,
-    error: automationsError
+    isFetching: isFetchingAutomations,
+    error: automationsError,
+    refetch: refetchAutomations
   } = useQuery({
     queryKey: ['automations', workspaceId, currentPage, pageSize],
     queryFn: () =>
@@ -101,6 +105,7 @@ export function AutomationsPage() {
 
   // Handle pause automation
   const handlePause = async (automation: Automation) => {
+    setOperationError(undefined)
     try {
       await automationApi.pause({
         workspace_id: workspaceId,
@@ -109,13 +114,13 @@ export function AutomationsPage() {
       message.success(t`Automation paused successfully`)
       queryClient.invalidateQueries({ queryKey: ['automations', workspaceId] })
     } catch (error) {
-      console.error('Failed to pause automation:', error)
-      message.error(t`Failed to pause automation`)
+      setOperationError(error)
     }
   }
 
   // Handle delete automation
   const handleDelete = async (automation: Automation) => {
+    setOperationError(undefined)
     try {
       await automationApi.delete({
         workspace_id: workspaceId,
@@ -124,8 +129,7 @@ export function AutomationsPage() {
       message.success(t`Automation deleted successfully`)
       queryClient.invalidateQueries({ queryKey: ['automations', workspaceId] })
     } catch (error) {
-      console.error('Failed to delete automation:', error)
-      message.error(t`Failed to delete automation`)
+      setOperationError(error)
     }
   }
 
@@ -151,8 +155,11 @@ export function AutomationsPage() {
   if (automationsError) {
     return (
       <div className="p-6">
-        <Title level={4}>{t`Error loading automations`}</Title>
-        <p className="text-red-500">{String(automationsError)}</p>
+        <ActionableError
+          error={automationsError}
+          onRetry={() => void refetchAutomations()}
+          retrying={isFetchingAutomations}
+        />
       </div>
     )
   }
@@ -184,6 +191,8 @@ export function AutomationsPage() {
           </Space>
         </Col>
       </Row>
+
+      {Boolean(operationError) && <ActionableError error={operationError} />}
 
       {isLoadingAutomations ? (
         <div className="text-center py-12 text-gray-500">{t`Loading automations...`}</div>

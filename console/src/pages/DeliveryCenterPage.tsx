@@ -7,6 +7,7 @@ import { useLingui } from '@lingui/react/macro'
 import { deliveryApi, type DeliveryDetail, type DeliveryIntent, type DeliveryListRequest, type DeliveryStatus } from '../services/api/delivery'
 import { deliveryExplanation, deliveryStatusLabels } from '../components/delivery/deliveryPresentation'
 import { CustomerDrawer } from '../components/customers/CustomerDrawer'
+import { ActionableError } from '../components/errors/ActionableError'
 import { useWorkspacePermissions } from '../contexts/AuthContext'
 
 const PAGE_SIZE = 50
@@ -117,7 +118,7 @@ export function DeliveryCenterPage() {
         </Space>
       </Card>
 
-      {listQuery.isError && <Alert type="error" showIcon title={t`Unable to load deliveries`} description={listQuery.error instanceof Error ? listQuery.error.message : undefined} action={<Button onClick={() => listQuery.refetch()}>{t`Retry`}</Button>} />}
+      {listQuery.isError && <ActionableError error={listQuery.error} onRetry={() => void listQuery.refetch()} retrying={listQuery.isFetching} />}
       <Table<DeliveryIntent>
         rowKey="id"
         columns={columns}
@@ -131,7 +132,9 @@ export function DeliveryCenterPage() {
 
       <Drawer title={t`Delivery details`} open={Boolean(selectedIntentId)} onClose={() => setSelectedIntentId(undefined)} size="large" destroyOnHidden>
         {detailQuery.isLoading && <Typography.Text>{t`Loading delivery details...`}</Typography.Text>}
-        {detailQuery.isError && <Alert type="error" title={t`Unable to load delivery details`} />}
+        {detailQuery.isError && <ActionableError error={detailQuery.error} onRetry={() => void detailQuery.refetch()} retrying={detailQuery.isFetching} />}
+        {reconcileMutation.isError && <ActionableError error={reconcileMutation.error} />}
+        {resolveMutation.isError && <ActionableError error={resolveMutation.error} />}
         {detail && <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           <Descriptions bordered size="small" column={1}>
             <Descriptions.Item label={t`Status`}><Tag>{deliveryStatusLabels[detail.intent.status]}</Tag></Descriptions.Item>

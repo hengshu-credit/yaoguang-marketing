@@ -1,5 +1,20 @@
 import { locales, type Locale } from './index'
 import { parsePOCatalog, type POEntry } from './po'
+import { msg } from '@lingui/core/macro'
+
+// Canonical product nouns. Keeping these descriptors in the catalog prevents
+// Customer/Journey/Delivery terminology from drifting between feature teams.
+export const PRODUCT_TERM_CONTRACT = {
+  customer: msg`Customer`,
+  audience: msg`Audience`,
+  campaign: msg`Campaign`,
+  journey: msg`Journey`,
+  delivery: msg`Delivery`,
+  identity: msg`Identity`,
+  consent: msg`Consent`,
+  suppression: msg`Suppression`,
+  frequencyCap: msg`Frequency Cap`
+} as const
 
 export interface CompiledCatalog {
   [messageId: string]: unknown

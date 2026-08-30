@@ -1,9 +1,10 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Alert, Button, Collapse, Descriptions, Drawer, Empty, Result, Space, Spin, Tag, Timeline, Typography } from 'antd'
+import { Alert, Button, Collapse, Descriptions, Drawer, Empty, Space, Spin, Tag, Timeline, Typography } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { automationApi, type JourneyTrace } from '../../services/api/automation'
 import { deliveryExplanation, deliveryStatusLabels } from '../delivery/deliveryPresentation'
+import { ActionableError } from '../errors/ActionableError'
 
 interface JourneyTraceDrawerProps {
   workspaceId: string
@@ -79,7 +80,7 @@ export function JourneyTraceDrawer({
       destroyOnHidden
     >
       {query.isLoading && <div style={{ display: 'grid', placeItems: 'center', minHeight: 200 }}><Spin /></div>}
-      {query.isError && <Result status="error" title={t`Unable to load journey trace`} subTitle={query.error instanceof Error ? query.error.message : t`Please try again`} extra={<Button onClick={() => query.refetch()}>{t`Retry`}</Button>} />}
+      {query.isError && <ActionableError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} />}
       {trace && (
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           <Descriptions bordered size="small" column={1}>

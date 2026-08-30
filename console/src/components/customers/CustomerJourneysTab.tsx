@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
-import { Alert, Button, Empty, Skeleton, Space, Tag, Typography } from 'antd'
+import { Button, Empty, Skeleton, Space, Tag, Typography } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { automationApi } from '../../services/api/automation'
+import { ActionableError } from '../errors/ActionableError'
 
 interface CustomerJourneysTabProps {
   workspaceId: string
@@ -17,7 +18,7 @@ export function CustomerJourneysTab({ workspaceId, customerId, active, onViewTra
     queryFn: () => automationApi.listJourneyInstances({ workspace_id: workspaceId, customer_id: customerId, limit: 50 }),
     enabled: active
   })
-  if (query.isError) return <Alert type="error" showIcon title={t`Unable to load journeys`} action={<Button onClick={() => query.refetch()}>{t`Retry`}</Button>} />
+  if (query.isError) return <ActionableError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} />
   const instances = query.data?.instances ?? []
   if (query.isLoading) return <Skeleton active paragraph={{ rows: 3 }} />
   if (instances.length === 0) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t`This customer has not entered a journey`} />

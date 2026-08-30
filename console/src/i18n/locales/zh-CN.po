@@ -95,13 +95,18 @@ msgstr "{0, plural, one {已导出 # 行} other {已导出 # 行}}"
 #. placeholder {0}: awaitingConfirmation.toLocaleString()
 #: src/pages/BroadcastsPage.tsx:208
 msgid "{0} awaiting confirmation"
-msgstr ""
+msgstr "{0} 条待确认"
+
+#. placeholder {0}: result.blocking_count
+#: src/components/automations/JourneyPreflightPanel.tsx:167
+msgid "{0} blocking issue(s) must be fixed."
+msgstr "必须修复 {0} 个阻断问题。"
 
 #. placeholder {0}: delivery.confirmed.toLocaleString()
 #. placeholder {1}: delivery.failed.toLocaleString()
 #: src/pages/BroadcastsPage.tsx:216
 msgid "{0} confirmed and {1} failed."
-msgstr ""
+msgstr "{0} 条已确认，{1} 条失败。"
 
 #. placeholder {0}: previewResponse!.total_count
 #: src/components/segment/button_upsert.tsx:638
@@ -111,7 +116,7 @@ msgstr "{0} 联系人"
 #. placeholder {0}: delivery.unknown.toLocaleString()
 #: src/pages/BroadcastsPage.tsx:185
 msgid "{0} deliveries have an uncertain provider result and require reconciliation. They will not be retried automatically."
-msgstr ""
+msgstr "{0} 条投递的服务商结果不确定，需要核对；系统不会自动重试。"
 
 #. placeholder {0}: filter.field_name
 #: src/components/segment/input_dimension_filters.tsx:73
@@ -173,7 +178,7 @@ msgstr "{1} 时间 {0}"
 #. placeholder {0}: delivery.unknown.toLocaleString()
 #: src/pages/BroadcastsPage.tsx:187
 msgid "{0} need reconciliation"
-msgstr ""
+msgstr "{0} 条需要核对"
 
 #. placeholder {0}: processed.toLocaleString()
 #. placeholder {1}: enqueuedCount.toLocaleString()
@@ -193,7 +198,7 @@ msgstr "{1} 条规则中有 {0} 条匹配"
 #. placeholder {3}: delivery.confirmed.toLocaleString()
 #: src/pages/BroadcastsPage.tsx:203
 msgid "{0} queued, {1} submitting, {2} accepted by provider, and {3} confirmed."
-msgstr ""
+msgstr "{0} 条排队中，{1} 条提交中，{2} 条已被服务商接收，{3} 条已确认。"
 
 #. placeholder {0}: state.rows_updated.toLocaleString()
 #: src/components/web_analytics/filters/BackfillStatus.tsx:104
@@ -280,9 +285,14 @@ msgstr "共 {0} 次退订 - 点击查看详情"
 msgid "{0} total unsubscribes (hidden from chart)"
 msgstr "{0} 总计未订阅( 隐藏在图表中)"
 
+#. placeholder {0}: result.warning_count
+#: src/components/automations/JourneyPreflightPanel.tsx:169
+msgid "{0} warning(s) require confirmation."
+msgstr "有 {0} 个警告需要确认。"
+
 #. placeholder {0}: range[0]
 #. placeholder {1}: range[1]
-#: src/pages/AutomationsPage.tsx:232
+#: src/pages/AutomationsPage.tsx:244
 msgid "{0}-{1} of {total} automations"
 msgstr "{0}-{1}，共 {total} 个自动化流程"
 
@@ -559,7 +569,7 @@ msgstr "简要描述此通知的用途"
 msgid "A bulk action is already running"
 msgstr "一个散装动作已经运行"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:399
+#: src/components/automations/config/TriggerConfigForm.tsx:413
 msgid "A count of past activity includes the event that fires the automation, so \"at least 3 opens\" enrolls on the third open."
 msgstr "计算过去的活动包括点燃自动化的事件,所以\"至少3开\"在第三次开放时注册."
 
@@ -599,7 +609,7 @@ msgid "A winner has been selected. Emails are being sent to the remaining recipi
 msgstr "已选出一名胜者。 邮件将发送给其余的收件人。"
 
 #: src/components/automations/AddNodeButton.tsx:83
-#: src/components/automations/NodeConfigPanel.tsx:91
+#: src/components/automations/NodeConfigPanel.tsx:80
 #: src/components/automations/nodes/ABTestNode.tsx:47
 #: src/components/automations/nodes/StatNode.tsx:93
 #: src/components/automations/nodes/StatNode.tsx:346
@@ -629,6 +639,7 @@ msgstr "访问密钥"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:589
 #: src/components/web_analytics/filters/TestFilterModal.tsx:183
+#: src/pages/DeliveryCenterPage.tsx:84
 msgid "Action"
 msgstr "行动"
 
@@ -638,7 +649,7 @@ msgstr "行动"
 msgid "Actions"
 msgstr "行动"
 
-#: src/components/automations/AutomationCard.tsx:217
+#: src/components/automations/AutomationCard.tsx:214
 msgid "Activate"
 msgstr "启动"
 
@@ -647,8 +658,23 @@ msgid "Activate Automation"
 msgstr "激活自动化"
 
 #: src/components/automations/AutomationCard.tsx:209
-msgid "Activate automation?"
-msgstr "启动自动化?"
+#~ msgid "Activate automation?"
+#~ msgstr "启动自动化?"
+
+#: src/components/automations/JourneyPreflightPanel.tsx:174
+#: src/components/automations/JourneyPreflightPanel.tsx:180
+msgid "Activate journey"
+msgstr "启用自动化旅程"
+
+#: src/components/automations/JourneyCreateWizard.tsx:471
+msgid "Activation check"
+msgstr "启用检查"
+
+#: src/components/automations/JourneyPreflightPanel.tsx:89
+#: src/components/automations/JourneyPreflightPanel.tsx:94
+#: src/pages/AutomationsPage.tsx:269
+msgid "Activation preflight"
+msgstr "启用前检查"
 
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:48
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:60
@@ -675,6 +701,10 @@ msgstr "活动订阅者"
 #: src/components/segment/table_tag.tsx:30
 msgid "Activity"
 msgstr "活动"
+
+#: src/components/customers/CustomerDrawer.tsx:109
+msgid "Activity timeline"
+msgstr "活动时间线"
 
 #: src/components/blog/AuthorsTable.tsx:138
 #: src/components/broadcasts/HeadersEditor.tsx:54
@@ -794,7 +824,7 @@ msgstr "添加自定义信头"
 msgid "Add dimension"
 msgstr "添加维度"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:388
+#: src/components/automations/config/TriggerConfigForm.tsx:402
 msgid "Add entry conditions"
 msgstr "添加进入条件"
 
@@ -819,7 +849,8 @@ msgstr "添加关键字..."
 msgid "Add Label"
 msgstr "添加标签"
 
-#: src/components/automations/AddNodeButton.tsx:134
+#: src/components/automations/AddNodeButton.tsx:136
+#: src/components/automations/AddNodeButton.tsx:148
 msgid "Add node"
 msgstr "添加节点"
 
@@ -864,7 +895,7 @@ msgid "Add to list"
 msgstr "添加到列表中"
 
 #: src/components/automations/AddNodeButton.tsx:85
-#: src/components/automations/NodeConfigPanel.tsx:92
+#: src/components/automations/NodeConfigPanel.tsx:81
 #: src/components/automations/nodes/AddToListNode.tsx:41
 #: src/components/automations/nodes/StatNode.tsx:91
 msgid "Add to List"
@@ -886,19 +917,19 @@ msgstr "添加 Webhook 选项"
 msgid "Additional context about this event"
 msgstr "关于这一事件的其他背景"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:129
+#: src/components/automations/config/TriggerConfigForm.tsx:140
 #: src/pages/ContactsPage.tsx:433
 #: src/pages/ContactsPage.tsx:718
 msgid "Address"
 msgstr "地址"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:131
+#: src/components/automations/config/TriggerConfigForm.tsx:142
 #: src/components/contacts/ContactDetailsDrawer.tsx:445
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:97
 msgid "Address Line 1"
 msgstr "地址行 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:132
+#: src/components/automations/config/TriggerConfigForm.tsx:143
 #: src/components/contacts/ContactDetailsDrawer.tsx:446
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:98
 msgid "Address Line 2"
@@ -1115,6 +1146,10 @@ msgstr "导出时发生错误"
 msgid "An error occurred with the file manager"
 msgstr "文件管理器出错"
 
+#: src/pages/DeliveryCenterPage.tsx:106
+msgid "An uncertain provider result is never retried automatically. Verify it first to avoid duplicate customer contact."
+msgstr "服务商结果不确定时不会自动重试。请先核实，避免重复触达客户。"
+
 #: src/components/settings/UITranslationsSettings.tsx:107
 msgid "Analytics"
 msgstr "营销分析"
@@ -1181,7 +1216,7 @@ msgstr "任何群发"
 msgid "Any event"
 msgstr "任何事件"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:356
+#: src/components/automations/config/TriggerConfigForm.tsx:367
 msgid "Any field change triggers automation"
 msgstr "任何字段变化触发自动化"
 
@@ -1293,6 +1328,10 @@ msgstr "应用编译( R)"
 msgid "Apply filter"
 msgstr "应用过滤器"
 
+#: src/pages/DeliveryCenterPage.tsx:117
+msgid "Apply filters"
+msgstr "应用筛选"
+
 #: src/components/contacts/BulkUpdateDrawer.tsx:434
 msgid "Are you sure you want to cancel the operation? Progress will be saved and you can resume later."
 msgstr "您确定要取消操作吗 ? 进展将节省下来,以后可以恢复。"
@@ -1403,6 +1442,10 @@ msgstr "您确定要使用这个文件吗 ?"
 msgid "Array index: {segment}"
 msgstr "数组索引：{segment}"
 
+#: src/services/api/errors.ts:173
+msgid "Ask a workspace owner to check your access, then try again."
+msgstr "请联系工作区所有者检查您的权限，然后重试。"
+
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:202
 msgid "Ask about your traffic..."
 msgstr "问问你的交通..."
@@ -1453,11 +1496,21 @@ msgstr "尝试"
 msgid "Attribution rules"
 msgstr "归属规则"
 
+#: src/i18n/catalogInventory.ts:9
 #: src/pages/BroadcastsPage.tsx:1061
 msgid "Audience"
-msgstr "观众"
+msgstr "客群"
 
-#: src/layouts/WorkspaceLayout.tsx:246
+#: src/components/automations/JourneyCreateWizard.tsx:145
+msgid "Audience notification"
+msgstr "客群通知"
+
+#: src/components/automations/JourneyCreateWizard.tsx:148
+msgid "Audience notification journey"
+msgstr "客群通知自动化旅程"
+
+#: src/components/customers/CustomerDrawer.tsx:108
+#: src/layouts/WorkspaceLayout.tsx:247
 msgid "Audiences"
 msgstr "客群"
 
@@ -1548,15 +1601,15 @@ msgstr "自动发送赢家"
 msgid "Automation"
 msgstr "自动化"
 
-#: src/pages/AutomationsPage.tsx:89
+#: src/pages/AutomationsPage.tsx:285
 msgid "Automation activated successfully"
 msgstr "成功启动自动化"
 
-#: src/components/automations/context/AutomationContext.tsx:257
+#: src/components/automations/context/AutomationContext.tsx:344
 msgid "Automation created successfully"
 msgstr "成功创建自动化"
 
-#: src/pages/AutomationsPage.tsx:123
+#: src/pages/AutomationsPage.tsx:129
 msgid "Automation deleted successfully"
 msgstr "自动删除成功"
 
@@ -1564,15 +1617,15 @@ msgstr "自动删除成功"
 msgid "Automation flows — their triggers, nodes and per-contact execution history."
 msgstr "自动化流程——包括触发器、节点及每位联系人的执行历史。"
 
-#: src/layouts/WorkspaceLayout.tsx:264
+#: src/layouts/WorkspaceLayout.tsx:265
 msgid "Automation Journeys"
 msgstr "自动化旅程"
 
-#: src/pages/AutomationsPage.tsx:108
+#: src/pages/AutomationsPage.tsx:114
 msgid "Automation paused successfully"
 msgstr "自动暂停成功"
 
-#: src/components/automations/context/AutomationContext.tsx:272
+#: src/components/automations/context/AutomationContext.tsx:344
 msgid "Automation updated successfully"
 msgstr "自动化成功更新"
 
@@ -1582,8 +1635,8 @@ msgstr "自动化 :"
 
 #: src/components/settings/PermissionsMatrix.tsx:127
 #: src/components/settings/UITranslationsSettings.tsx:110
-#: src/pages/AutomationsPage.tsx:162
-#: src/services/api/errors.ts:62
+#: src/pages/AutomationsPage.tsx:172
+#: src/services/api/errors.ts:222
 msgid "Automations"
 msgstr "自动化"
 
@@ -1595,7 +1648,7 @@ msgstr "“自动化”写入权限会间接暴露联系人数据，而“联系
 msgid "Available Blocks"
 msgstr "可用块"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:215
+#: src/components/automations/UpsertAutomationDrawer.tsx:223
 msgid "Available once you connect an email provider that supports inbound replies (currently Mailgun and Amazon SES — more providers coming soon). It stops this automation for a contact as soon as they reply to one of its emails."
 msgstr "当您连接到一个支持输入回复的邮件服务商时可用( 目前) Mailgun 和 Amazon SES ——更多供应商即将到来). 一旦他们回复了其中的一封邮件,它就停止了这种自动联系。"
 
@@ -1624,6 +1677,7 @@ msgstr "AWS 地区"
 msgid "AWS Secret Key"
 msgstr "AWS 密钥"
 
+#: src/components/automations/JourneyCreateWizard.tsx:485
 #: src/components/web_analytics/FilterBuilder.tsx:236
 #: src/components/web_analytics/FilterBuilder.tsx:295
 #: src/components/web_analytics/filters/TestFilterModal.tsx:205
@@ -1765,6 +1819,18 @@ msgstr "最佳时间评分"
 msgid "between"
 msgstr "介于"
 
+#: src/components/automations/JourneyCreateWizard.tsx:133
+msgid "Birthday care"
+msgstr "生日关怀"
+
+#: src/components/automations/JourneyCreateWizard.tsx:136
+msgid "Birthday care journey"
+msgstr "生日关怀自动化旅程"
+
+#: src/components/automations/JourneyCreateWizard.tsx:153
+msgid "Blank journey"
+msgstr "空白自动化旅程"
+
 #. placeholder {0}: selectedBlock?.name
 #: src/components/email_builder/ui/BlockToolbar.tsx:117
 msgid "Block \"{0}\" updated"
@@ -1787,6 +1853,10 @@ msgstr "块设置面板"
 msgid "Block type:"
 msgstr "块类型 :"
 
+#: src/components/automations/JourneyPreflightPanel.tsx:133
+msgid "Blocking"
+msgstr "阻断"
+
 #: src/pages/TemplatesPage.tsx:131
 msgid "Blocklist"
 msgstr "块状"
@@ -1801,7 +1871,7 @@ msgstr "块"
 #: src/components/settings/PermissionsMatrix.tsx:126
 #: src/components/settings/SettingsSidebar.tsx:115
 #: src/components/settings/UITranslationsSettings.tsx:117
-#: src/services/api/errors.ts:61
+#: src/services/api/errors.ts:221
 msgid "Blog"
 msgstr "博客"
 
@@ -1961,8 +2031,8 @@ msgstr "弹跳类型"
 
 #: src/components/analytics/EmailMetricsChart.tsx:270
 #: src/components/analytics/EmailMetricsChart.tsx:429
-#: src/components/automations/config/TriggerConfigForm.tsx:86
-#: src/components/automations/config/TriggerConfigForm.tsx:106
+#: src/components/automations/config/TriggerConfigForm.tsx:97
+#: src/components/automations/config/TriggerConfigForm.tsx:117
 #: src/components/broadcasts/BroadcastStats.tsx:283
 #: src/components/contacts/ContactDetailsDrawer.tsx:585
 #: src/components/lists/ListStats.tsx:134
@@ -2100,7 +2170,7 @@ msgstr "群发成功更新"
 #: src/components/settings/PermissionsMatrix.tsx:122
 #: src/components/settings/UITranslationsSettings.tsx:116
 #: src/pages/BroadcastsPage.tsx:1549
-#: src/services/api/errors.ts:57
+#: src/services/api/errors.ts:217
 msgid "Broadcasts"
 msgstr "邮件群发"
 
@@ -2192,6 +2262,7 @@ msgstr "按钮大小"
 msgid "Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored."
 msgstr "一旦知道访客是谁,就打电话确认身份。 签名必须在您的服务器上使用您的工作区密钥进行计算 —— 跟踪端点是公开的, 因此一个未签名的地址被忽略 。"
 
+#: src/i18n/catalogInventory.ts:10
 #: src/pages/WebAnalyticsLivePage.tsx:202
 msgid "Campaign"
 msgstr "营销活动"
@@ -2204,13 +2275,12 @@ msgid "Campaigns"
 msgstr "营销活动"
 
 #: src/components/automations/AutomationCard.tsx:157
-#: src/components/automations/AutomationCard.tsx:213
-#: src/components/automations/AutomationCard.tsx:237
+#: src/components/automations/AutomationCard.tsx:233
 #: src/components/automations/config/ConditionsField.tsx:120
 #: src/components/automations/nodes/BaseNode.tsx:52
-#: src/components/automations/UpsertAutomationDrawer.tsx:102
-#: src/components/automations/UpsertAutomationDrawer.tsx:129
-#: src/components/automations/UpsertAutomationDrawer.tsx:167
+#: src/components/automations/UpsertAutomationDrawer.tsx:112
+#: src/components/automations/UpsertAutomationDrawer.tsx:139
+#: src/components/automations/UpsertAutomationDrawer.tsx:177
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:115
 #: src/components/blog/PostDrawer.tsx:682
 #: src/components/blog/PublishModal.tsx:205
@@ -2325,7 +2395,7 @@ msgstr "取消上传吗 ?"
 msgid "Cancelled"
 msgstr "已取消"
 
-#: src/components/automations/context/AutomationContext.tsx:131
+#: src/components/automations/context/AutomationContext.tsx:140
 msgid "Cannot remove list while email nodes exist. Delete email nodes first."
 msgstr "邮件节点存在时无法删除列表 。 先删除邮件节点 。"
 
@@ -2447,6 +2517,7 @@ msgstr "变化状况"
 msgid "Change Status for {0}"
 msgstr "变化状况 {0}"
 
+#: src/components/errors/ActionableError.tsx:35
 #: src/components/messages/MessageHistoryTab.tsx:217
 #: src/components/templates/MessageTemplateDrawer.tsx:378
 #: src/components/web_analytics/explore/BreakdownModal.tsx:63
@@ -2454,6 +2525,8 @@ msgstr "变化状况 {0}"
 #: src/components/web_analytics/FilterBuilder.tsx:55
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:179
 #: src/components/web_analytics/tabs/DashboardTab.tsx:170
+#: src/pages/DeliveryCenterPage.tsx:80
+#: src/pages/DeliveryCenterPage.tsx:110
 msgid "Channel"
 msgstr "渠道"
 
@@ -2489,6 +2562,26 @@ msgstr "检查"
 msgid "Check for Updates"
 msgstr "检查更新"
 
+#: src/pages/DeliveryCenterPage.tsx:148
+msgid "Check provider again"
+msgstr "再次查询服务商"
+
+#: src/components/automations/JourneyPreflightPanel.tsx:97
+msgid "Check the trigger, flow, templates, providers, variables, and message frequency policies before activation."
+msgstr "启用前检查触发器、流程、模板、服务商、变量和消息频控策略。"
+
+#: src/services/api/errors.ts:100
+msgid "Check your connection and try again."
+msgstr "请检查网络连接后重试。"
+
+#: src/components/automations/JourneyPreflightPanel.tsx:109
+msgid "Checking journey..."
+msgstr "正在检查自动化旅程..."
+
+#: src/components/automations/JourneyCreateWizard.tsx:275
+msgid "Choose a goal and starting template"
+msgstr "选择营销目标和起始模板"
+
 #: src/components/email_builder/ui/BlockToolbar.tsx:249
 msgid "Choose a saved block to update"
 msgstr "选择要更新的保存块"
@@ -2501,6 +2594,14 @@ msgstr "选择您新主题的起点 。 以后可以自定义一切."
 #: src/components/blog/PublishModal.tsx:110
 msgid "Choose when to publish \"{0}\""
 msgstr "选择何时发布 \"{0}\""
+
+#: src/components/automations/JourneyCreateWizard.tsx:121
+msgid "Churn win-back"
+msgstr "流失挽回"
+
+#: src/components/automations/JourneyCreateWizard.tsx:124
+msgid "Churn win-back journey"
+msgstr "流失挽回自动化旅程"
 
 #: src/pages/WebAnalyticsLivePage.tsx:164
 msgid "Cities"
@@ -2584,7 +2685,7 @@ msgstr "点击重试"
 msgid "clicked"
 msgstr "点击"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:105
+#: src/components/automations/config/TriggerConfigForm.tsx:116
 #: src/components/messages/MessageHistoryTab.tsx:153
 #: src/components/messages/MessageHistoryTab.tsx:155
 #: src/components/messages/MessageHistoryTable.tsx:290
@@ -2663,7 +2764,11 @@ msgstr "克隆模板"
 msgid "Close"
 msgstr "关闭"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:101
+#: src/components/automations/NodeConfigPanel.tsx:200
+msgid "Close node configuration"
+msgstr "关闭节点配置"
+
+#: src/components/automations/UpsertAutomationDrawer.tsx:111
 msgid "Close without saving"
 msgstr "关闭而不保存"
 
@@ -2685,8 +2790,8 @@ msgid "Code Editor"
 msgstr "代码编辑器"
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
-#: src/layouts/WorkspaceLayout.tsx:332
-#: src/layouts/WorkspaceLayout.tsx:407
+#: src/layouts/WorkspaceLayout.tsx:333
+#: src/layouts/WorkspaceLayout.tsx:408
 msgid "Collapse"
 msgstr "折叠"
 
@@ -2770,8 +2875,8 @@ msgstr "正在编译..."
 msgid "Complain email"
 msgstr "投诉邮件"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:87
-#: src/components/automations/config/TriggerConfigForm.tsx:107
+#: src/components/automations/config/TriggerConfigForm.tsx:98
+#: src/components/automations/config/TriggerConfigForm.tsx:118
 #: src/components/contacts/ContactDetailsDrawer.tsx:586
 #: src/components/messages/MessageHistoryTab.tsx:182
 #: src/components/messages/MessageHistoryTab.tsx:184
@@ -2820,7 +2925,7 @@ msgstr "在预览前完成所需的字段 。"
 msgid "completed"
 msgstr "已完成"
 
-#: src/components/automations/AutomationCard.tsx:267
+#: src/components/automations/AutomationCard.tsx:263
 #: src/components/automations/nodes/StatNode.tsx:138
 #: src/components/automations/nodes/StatNode.tsx:201
 #: src/components/automations/nodes/StatNode.tsx:270
@@ -2832,7 +2937,7 @@ msgstr "已完成"
 
 #: src/pages/BroadcastsPage.tsx:218
 msgid "Completed with failures"
-msgstr ""
+msgstr "已完成，但有失败记录"
 
 #: src/components/automations/nodes/FilterNode.tsx:66
 msgid "condition"
@@ -2853,7 +2958,7 @@ msgstr "条件"
 msgid "Conditions"
 msgstr "条件"
 
-#: src/components/automations/NodeConfigPanel.tsx:195
+#: src/components/automations/NodeConfigPanel.tsx:184
 msgid "Configuration for {nodeType} is not available in Phase 2"
 msgstr "配置用于 {nodeType} 在第二阶段没有"
 
@@ -2875,7 +2980,7 @@ msgstr "配置集"
 msgid "Configure"
 msgstr "配置"
 
-#: src/components/automations/NodeConfigPanel.tsx:206
+#: src/components/automations/NodeConfigPanel.tsx:195
 msgid "Configure {nodeLabel}"
 msgstr "配置 {nodeLabel}"
 
@@ -2912,6 +3017,10 @@ msgstr "配置服务商"
 msgid "Configure styling and SEO settings for your blog. These settings will be applied to all blog pages."
 msgstr "为您的博客配置造型和 SEO 设置 。 这些设置将应用于所有博客页面 。"
 
+#: src/components/automations/JourneyCreateWizard.tsx:311
+msgid "Configure the trigger"
+msgstr "配置触发器"
+
 #: src/components/settings/Integrations.tsx:1470
 #: src/components/settings/Integrations.tsx:1507
 #: src/components/settings/Integrations.tsx:1643
@@ -2941,7 +3050,11 @@ msgstr "确认"
 msgid "Confirm a contact exists and list everything it is subscribed to (also needs Lists read)"
 msgstr "确认联系人的存在, 并列出它所订阅的一切( 也需要读取列表)"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:84
+#: src/pages/DeliveryCenterPage.tsx:154
+msgid "Confirm resolution"
+msgstr "确认处理结果"
+
+#: src/components/automations/config/TriggerConfigForm.tsx:95
 msgid "Confirmed"
 msgstr "确认"
 
@@ -2958,6 +3071,7 @@ msgstr "连接并管理外部服务"
 msgid "Connect Zapier"
 msgstr "连接 Zapier"
 
+#: src/components/automations/AutomationNodeList.tsx:32
 #: src/components/settings/Integrations.tsx:1764
 msgid "Connected"
 msgstr "已连接"
@@ -2974,9 +3088,10 @@ msgstr "连接细节"
 msgid "Consecutive delivery failures: {consecutiveFailures}"
 msgstr "连续交付失败 : {consecutiveFailures}"
 
-#: src/components/customers/CustomerDrawer.tsx:130
+#: src/components/customers/CustomerDrawer.tsx:57
+#: src/i18n/catalogInventory.ts:14
 msgid "Consent"
-msgstr "同意记录"
+msgstr "授权同意"
 
 #: src/components/settings/Integrations.tsx:2655
 msgid "Consider connecting a marketing email provider to send newsletters, promotional campaigns, and announcements to engage with your audience."
@@ -2990,7 +3105,7 @@ msgstr "建议连接事务邮件服务商，用于发送账户通知、密码重
 msgid "Consider using the same text as your subject line"
 msgstr "考虑使用与主题行相同的文字"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:67
+#: src/components/automations/config/TriggerConfigForm.tsx:78
 #: src/components/timeline/ContactTimeline.tsx:460
 #: src/components/timeline/ContactTimeline.tsx:529
 msgid "Contact"
@@ -3048,7 +3163,8 @@ msgstr "联系人未订阅此列表"
 msgid "Contact property"
 msgstr "联系人属性"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:379
+#: src/components/automations/config/TriggerConfigForm.tsx:391
+#: src/components/automations/JourneyCreateWizard.tsx:340
 msgid "Contact re-enters each time the event occurs"
 msgstr "每次事件发生时联系人都会重新进入"
 
@@ -3063,7 +3179,7 @@ msgstr "联系人成功更新"
 #: src/components/settings/PermissionsMatrix.tsx:118
 #: src/components/settings/UITranslationsSettings.tsx:114
 #: src/pages/ContactsPage.tsx:1020
-#: src/services/api/errors.ts:53
+#: src/services/api/errors.ts:213
 msgid "Contacts"
 msgstr "联系人"
 
@@ -3111,7 +3227,7 @@ msgstr "包含"
 msgid "Content"
 msgstr "内容"
 
-#: src/layouts/WorkspaceLayout.tsx:280
+#: src/layouts/WorkspaceLayout.tsx:281
 msgid "Content Center"
 msgstr "内容中心"
 
@@ -3143,6 +3259,10 @@ msgstr "约。 费率"
 #: src/components/web_analytics/CountryMapView.tsx:69
 msgid "Conversions"
 msgstr "改划"
+
+#: src/components/automations/JourneyCreateWizard.tsx:372
+msgid "Cooldown (hours)"
+msgstr "冷却时间（小时）"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:394
 #: src/components/settings/WebAnalyticsSettings.tsx:398
@@ -3181,9 +3301,13 @@ msgstr "复制 URL"
 msgid "Copy Webhook endpoint"
 msgstr "复制 Webhook 端点"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:118
+#: src/components/automations/config/TriggerConfigForm.tsx:129
 msgid "Core Fields"
 msgstr "核心领域"
+
+#: src/services/api/errors.ts:164
+msgid "Correct the fields listed below and submit again."
+msgstr "请修正下列字段后重新提交。"
 
 #: src/components/ai-assistant/AIAssistantChat.tsx:387
 msgid "Cost"
@@ -3243,7 +3367,7 @@ msgid "Countries"
 msgstr "国家"
 
 #: src/components/analytics/NewContactsTable.tsx:178
-#: src/components/automations/config/TriggerConfigForm.tsx:133
+#: src/components/automations/config/TriggerConfigForm.tsx:144
 #: src/components/contacts/ContactDetailsDrawer.tsx:447
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:94
 #: src/components/contacts/ExportContactsModal.tsx:65
@@ -3273,7 +3397,6 @@ msgstr "覆盖"
 msgid "Covers more than templates: reusable blocks answer to the same switch, and editing a block edits every template that embeds it. Blocks are kept with the workspace's own settings, so their content also comes back from /api/workspaces.get and from /api/workspaces.list, which needs no permission at all — Templates read is not the only way to see block content. And /api/templates.compile only checks this grant for calls arriving over the API; when the workspace compiles a template for itself, nothing is checked."
 msgstr "不仅涉及模板：可复用区块受同一开关控制，编辑区块会修改所有嵌入它的模板。区块保存在工作区自身设置中，因此其内容也会由 /api/workspaces.get 和无需任何权限的 /api/workspaces.list 返回；“模板”读取权限并不是查看区块内容的唯一途径。/api/templates.compile 仅对通过 API 发起的调用检查此授权；工作区为自身编译模板时不会检查。"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:173
 #: src/components/blog/CategoryDrawer.tsx:114
 #: src/components/blog/PostDrawer.tsx:691
 #: src/components/file_manager/fileManager.tsx:1029
@@ -3284,7 +3407,7 @@ msgstr "创建"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:263
 msgid "Create {channelLabel} Template"
-msgstr ""
+msgstr "创建 {channelLabel} 模板"
 
 #: src/services/api/permissions.ts:498
 msgid "Create a blog category"
@@ -3361,9 +3484,9 @@ msgstr "创建和管理您的博客内容"
 msgid "Create API Key"
 msgstr "创建 API 密钥"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:144
-#: src/components/automations/UpsertAutomationDrawer.tsx:288
-#: src/pages/AutomationsPage.tsx:178
+#: src/components/automations/UpsertAutomationDrawer.tsx:154
+#: src/components/automations/UpsertAutomationDrawer.tsx:318
+#: src/pages/AutomationsPage.tsx:188
 msgid "Create Automation"
 msgstr "创建自动化"
 
@@ -3469,7 +3592,7 @@ msgstr "创建 Webhook"
 msgid "Create Workspace"
 msgstr "创建工作区"
 
-#: src/pages/AutomationsPage.tsx:203
+#: src/pages/AutomationsPage.tsx:215
 msgid "Create your first automation"
 msgstr "创建您的第一个自动化"
 
@@ -3505,8 +3628,9 @@ msgstr "创建您启动的第一个模板"
 msgid "created"
 msgstr "创建"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:69
+#: src/components/automations/config/TriggerConfigForm.tsx:80
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:418
+#: src/pages/DeliveryCenterPage.tsx:83
 #: src/pages/TemplatesPage.tsx:296
 msgid "Created"
 msgstr "已创建"
@@ -3601,27 +3725,27 @@ msgstr "自定义用于样式的 CSS 类"
 msgid "Custom data (JSON)"
 msgstr "自定义数据( JSON)"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:161
+#: src/components/automations/config/TriggerConfigForm.tsx:172
 msgid "Custom Date 1"
 msgstr "自定义日期 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:162
+#: src/components/automations/config/TriggerConfigForm.tsx:173
 msgid "Custom Date 2"
 msgstr "自定义日期 2"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:163
+#: src/components/automations/config/TriggerConfigForm.tsx:174
 msgid "Custom Date 3"
 msgstr "自定义日期 3"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:164
+#: src/components/automations/config/TriggerConfigForm.tsx:175
 msgid "Custom Date 4"
 msgstr "自定义日期 4"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:165
+#: src/components/automations/config/TriggerConfigForm.tsx:176
 msgid "Custom Date 5"
 msgstr "自定义日期 5"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:159
+#: src/components/automations/config/TriggerConfigForm.tsx:170
 msgid "Custom Date Fields"
 msgstr "自定义日期字段"
 
@@ -3648,7 +3772,7 @@ msgstr "自定义邮件链接域( 取消订阅、 跟踪、 通知中心) 。 �
 msgid "Custom Endpoint URL"
 msgstr "自定义端点 URL"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:111
+#: src/components/automations/config/TriggerConfigForm.tsx:122
 #: src/components/automations/nodes/TriggerNode.tsx:26
 msgid "Custom Event"
 msgstr "自定义事件"
@@ -3692,27 +3816,27 @@ msgstr "自定义图标 URL"
 msgid "Custom JSON {num}"
 msgstr "自定义 JSON {num}"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:171
+#: src/components/automations/config/TriggerConfigForm.tsx:182
 msgid "Custom JSON 1"
 msgstr "自定义 JSON 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:172
+#: src/components/automations/config/TriggerConfigForm.tsx:183
 msgid "Custom JSON 2"
 msgstr "自定义 JSON 2"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:173
+#: src/components/automations/config/TriggerConfigForm.tsx:184
 msgid "Custom JSON 3"
 msgstr "自定义 JSON 3"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:174
+#: src/components/automations/config/TriggerConfigForm.tsx:185
 msgid "Custom JSON 4"
 msgstr "自定义 JSON 4"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:175
+#: src/components/automations/config/TriggerConfigForm.tsx:186
 msgid "Custom JSON 5"
 msgstr "自定义 JSON 5"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:169
+#: src/components/automations/config/TriggerConfigForm.tsx:180
 #: src/components/contacts/ContactDetailsDrawer.tsx:911
 msgid "Custom JSON Fields"
 msgstr "自定义 JSON 字段"
@@ -3721,27 +3845,27 @@ msgstr "自定义 JSON 字段"
 msgid "Custom Label"
 msgstr "自定义标签"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:151
+#: src/components/automations/config/TriggerConfigForm.tsx:162
 msgid "Custom Number 1"
 msgstr "自定义 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:152
+#: src/components/automations/config/TriggerConfigForm.tsx:163
 msgid "Custom Number 2"
 msgstr "自定义 2"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:153
+#: src/components/automations/config/TriggerConfigForm.tsx:164
 msgid "Custom Number 3"
 msgstr "自定义 3"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:154
+#: src/components/automations/config/TriggerConfigForm.tsx:165
 msgid "Custom Number 4"
 msgstr "自定义 4"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:155
+#: src/components/automations/config/TriggerConfigForm.tsx:166
 msgid "Custom Number 5"
 msgstr "自定义 5"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:149
+#: src/components/automations/config/TriggerConfigForm.tsx:160
 #: src/components/contacts/ContactDetailsDrawer.tsx:867
 msgid "Custom Number Fields"
 msgstr "自定义数字字段"
@@ -3766,36 +3890,52 @@ msgstr "自定义发件人（事务邮件服务商）"
 msgid "Custom sender name (optional)"
 msgstr "自定义发件人名称（可选）"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:141
+#: src/components/automations/config/TriggerConfigForm.tsx:152
 msgid "Custom String 1"
 msgstr "自定义字符串 1"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:142
+#: src/components/automations/config/TriggerConfigForm.tsx:153
 msgid "Custom String 2"
 msgstr "自定义字符串 2"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:143
+#: src/components/automations/config/TriggerConfigForm.tsx:154
 msgid "Custom String 3"
 msgstr "自定义字符串 3"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:144
+#: src/components/automations/config/TriggerConfigForm.tsx:155
 msgid "Custom String 4"
 msgstr "自定义字符串 4"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:145
+#: src/components/automations/config/TriggerConfigForm.tsx:156
 msgid "Custom String 5"
 msgstr "自定义字符串 5"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:139
+#: src/components/automations/config/TriggerConfigForm.tsx:150
 #: src/components/contacts/ContactDetailsDrawer.tsx:845
 msgid "Custom String Fields"
 msgstr "自定义字符串字段"
 
-#: src/components/customers/CustomerDrawer.tsx:24
+#: src/components/automations/JourneyTraceDrawer.tsx:89
+#: src/i18n/catalogInventory.ts:8
+#: src/pages/DeliveryCenterPage.tsx:113
+#: src/pages/DeliveryCenterPage.tsx:143
+msgid "Customer"
+msgstr "客户"
+
+#: src/components/customers/CustomerDrawer.tsx:96
 msgid "Customer 360"
 msgstr "客户 360 视图"
 
-#: src/components/customers/CustomerDrawer.tsx:57
+#: src/components/automations/JourneyTraceDrawer.tsx:49
+msgid "Customer entered the journey"
+msgstr "客户已进入自动化旅程"
+
+#: src/pages/DeliveryCenterPage.tsx:113
+msgid "Customer ID or number"
+msgstr "客户 ID 或客户编号"
+
+#: src/components/customers/CustomerDrawer.tsx:24
+#: src/components/errors/ActionableError.tsx:32
 #: src/pages/CustomersPage.tsx:87
 msgid "Customer number"
 msgstr "客户编号"
@@ -3805,9 +3945,9 @@ msgid "Customer write can replace tags and list memberships and can explicitly m
 msgstr "客户写权限可以替换标签和名单成员关系，并可将匿名客户显式合并到已知客户。合并仅允许此方向，不允许已知客户之间自动合并。身份原值会加密存储，响应只返回脱敏提示。"
 
 #: src/components/settings/PermissionsMatrix.tsx:119
-#: src/layouts/WorkspaceLayout.tsx:237
+#: src/layouts/WorkspaceLayout.tsx:238
 #: src/pages/CustomersPage.tsx:134
-#: src/services/api/errors.ts:54
+#: src/services/api/errors.ts:214
 msgid "Customers"
 msgstr "客户"
 
@@ -3827,7 +3967,7 @@ msgid "Danger Zone"
 msgstr "危险区域"
 
 #: src/components/settings/UITranslationsSettings.tsx:106
-#: src/layouts/WorkspaceLayout.tsx:221
+#: src/layouts/WorkspaceLayout.tsx:222
 #: src/pages/AnalyticsPage.tsx:77
 #: src/pages/WebAnalyticsLivePage.tsx:127
 msgid "Dashboard"
@@ -3838,7 +3978,7 @@ msgstr "工作台"
 msgid "Dashed"
 msgstr "虚构"
 
-#: src/layouts/WorkspaceLayout.tsx:292
+#: src/layouts/WorkspaceLayout.tsx:293
 msgid "Data Analytics"
 msgstr "数据分析"
 
@@ -3946,7 +4086,7 @@ msgid "Define UTM parameters for links in your email for better campaign trackin
 msgstr "为邮件链接定义 UTM 参数，以便更好地跟踪活动。"
 
 #: src/components/automations/AddNodeButton.tsx:78
-#: src/components/automations/NodeConfigPanel.tsx:87
+#: src/components/automations/NodeConfigPanel.tsx:76
 #: src/components/automations/nodes/DelayNode.tsx:45
 #: src/components/automations/nodes/StatNode.tsx:85
 msgid "Delay"
@@ -4100,6 +4240,7 @@ msgid "Delete contacts"
 msgstr "删除联系人"
 
 #: src/components/automations/edges/AutomationEdge.tsx:75
+#: src/components/automations/edges/AutomationEdge.tsx:78
 msgid "Delete edge"
 msgstr "删除边缘"
 
@@ -4132,6 +4273,7 @@ msgstr "删除列表"
 
 #: src/components/automations/nodes/BaseNode.tsx:48
 #: src/components/automations/nodes/BaseNode.tsx:55
+#: src/components/automations/nodes/BaseNode.tsx:56
 msgid "Delete node"
 msgstr "删除节点"
 
@@ -4199,7 +4341,7 @@ msgstr "删除工作区"
 msgid "deleted"
 msgstr "删除"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:71
+#: src/components/automations/config/TriggerConfigForm.tsx:82
 #: src/components/contacts/SegmentsFilter.tsx:87
 msgid "Deleted"
 msgstr "删除"
@@ -4240,24 +4382,53 @@ msgstr "已交付"
 msgid "Delivered"
 msgstr "已交付"
 
+#: src/components/customers/CustomerDrawer.tsx:111
+msgid "Deliveries"
+msgstr "投递"
+
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:88
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:251
 msgid "Delivering"
 msgstr "交付"
 
-#: src/layouts/WorkspaceLayout.tsx:308
+#: src/i18n/catalogInventory.ts:12
+msgid "Delivery"
+msgstr "投递"
+
+#: src/services/api/errors.ts:124
+msgid "Delivery blocked by frequency control"
+msgstr "投递已被频控拦截"
+
+#: src/layouts/WorkspaceLayout.tsx:309
+#: src/pages/DeliveryCenterPage.tsx:103
 msgid "Delivery Center"
 msgstr "投递中心"
+
+#: src/pages/DeliveryCenterPage.tsx:133
+msgid "Delivery details"
+msgstr "投递详情"
+
+#: src/pages/DeliveryCenterPage.tsx:142
+msgid "Delivery ID"
+msgstr "投递 ID"
 
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:488
 msgid "Delivery ID:"
 msgstr "发送ID :"
 
+#: src/services/api/errors.ts:115
+msgid "Delivery outcome is uncertain"
+msgstr "投递结果不确定"
+
+#: src/pages/DeliveryCenterPage.tsx:164
+msgid "Describe the verification evidence and reason"
+msgstr "请说明核实依据和处理原因"
+
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:320
 msgid "Describe this image..."
 msgstr "描述这个图像..."
 
-#: src/components/automations/NodeConfigPanel.tsx:225
+#: src/components/automations/NodeConfigPanel.tsx:216
 #: src/components/blog/CategoryDrawer.tsx:155
 #: src/components/lists/ListDrawer.tsx:206
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:308
@@ -4308,6 +4479,10 @@ msgstr "设备"
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:73
 msgid "Devices and tech"
 msgstr "设备和技术"
+
+#: src/components/automations/JourneyTraceDrawer.tsx:129
+msgid "Diagnostic data"
+msgstr "诊断数据"
 
 #: src/components/timeline/ContactTimeline.tsx:709
 msgid "Diagnostic:"
@@ -4429,7 +4604,7 @@ msgstr "您要永久删除此文件吗 ?"
 msgid "Do you want to send \"{0}\" immediately or schedule it for later?"
 msgstr "您是否想要发送 \"{0}\" 即刻还是日后安排?"
 
-#: src/layouts/WorkspaceLayout.tsx:499
+#: src/layouts/WorkspaceLayout.tsx:500
 msgid "Documentation"
 msgstr "文档"
 
@@ -4513,6 +4688,10 @@ msgstr "在树上拖动此块"
 msgid "Drop files here to upload"
 msgstr "在此丢弃文件上传"
 
+#: src/components/customers/CustomerDrawer.tsx:75
+msgid "Dynamic audience memberships"
+msgstr "动态客群归属"
+
 #: src/services/api/permissions.ts:286
 msgid "Dynamic segment definitions, their compiled queries, and the background tasks that build them."
 msgstr "动态细分群体定义,它们汇编的查询,以及构建它们的背景任务."
@@ -4594,7 +4773,7 @@ msgstr "例如：我的 OpenAI 集成"
 msgid "e.g., My Supabase Integration"
 msgstr "例如：我的 Supabase 集成"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:344
+#: src/components/automations/config/TriggerConfigForm.tsx:355
 msgid "e.g., paid"
 msgstr "例如,已支付"
 
@@ -4602,7 +4781,7 @@ msgstr "例如,已支付"
 msgid "e.g., Product Updates"
 msgstr "例如,产品更新"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:331
+#: src/components/automations/config/TriggerConfigForm.tsx:342
 msgid "e.g., purchase"
 msgstr "例如,购买"
 
@@ -4610,11 +4789,12 @@ msgstr "例如,购买"
 msgid "e.g., Raleway, Open Sans"
 msgstr "例如,Raleway,开放桑斯"
 
-#: src/components/automations/NodeConfigPanel.tsx:239
+#: src/components/automations/NodeConfigPanel.tsx:230
 msgid "e.g., Welcome — day 1"
 msgstr "例如,欢迎——第1天"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:374
+#: src/components/automations/config/TriggerConfigForm.tsx:386
+#: src/components/automations/JourneyCreateWizard.tsx:335
 msgid "Each contact enters the automation only once"
 msgstr "每个联系人只输入一次自动化"
 
@@ -4623,7 +4803,7 @@ msgid "edit"
 msgstr "编辑"
 
 #: src/components/automations/config/ConditionsField.tsx:108
-#: src/components/automations/UpsertAutomationDrawer.tsx:288
+#: src/components/automations/UpsertAutomationDrawer.tsx:318
 #: src/components/blog/PostsTable.tsx:349
 #: src/components/email_builder/EmailBuilder.tsx:839
 #: src/components/email_builder/ui/ImportFontInput.tsx:209
@@ -4648,7 +4828,7 @@ msgstr "编辑 {0} 翻译"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:263
 msgid "Edit {channelLabel} Template"
-msgstr ""
+msgstr "编辑 {channelLabel} 模板"
 
 #: src/services/api/permissions.ts:582
 msgid "Edit a broadcast, including its audience and templates"
@@ -4687,7 +4867,7 @@ msgid "Edit Author"
 msgstr "编辑作者"
 
 #: src/components/automations/AutomationCard.tsx:176
-#: src/components/automations/UpsertAutomationDrawer.tsx:144
+#: src/components/automations/UpsertAutomationDrawer.tsx:154
 msgid "Edit Automation"
 msgstr "编辑自动化"
 
@@ -4841,8 +5021,8 @@ msgstr "邮件"
 
 #: src/components/analytics/NewContactsTable.tsx:67
 #: src/components/automations/AddNodeButton.tsx:79
-#: src/components/automations/config/TriggerConfigForm.tsx:102
-#: src/components/automations/NodeConfigPanel.tsx:88
+#: src/components/automations/config/TriggerConfigForm.tsx:113
+#: src/components/automations/NodeConfigPanel.tsx:77
 #: src/components/automations/nodes/EmailNode.tsx:39
 #: src/components/automations/nodes/StatNode.tsx:86
 #: src/components/contacts/BulkUpdateDrawer.tsx:665
@@ -5112,7 +5292,7 @@ msgstr "端点 : {label}"
 msgid "Engagement by country and region"
 msgstr "按国家和区域分列的参与情况"
 
-#: src/components/automations/AutomationCard.tsx:260
+#: src/components/automations/AutomationCard.tsx:256
 msgid "Enrolled"
 msgstr "已注册"
 
@@ -5153,7 +5333,7 @@ msgstr "输入接收测试邮件的邮件地址 :"
 msgid "Enter author name"
 msgstr "输入作者名称"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:187
+#: src/components/automations/UpsertAutomationDrawer.tsx:195
 msgid "Enter automation name"
 msgstr "输入自动化名称"
 
@@ -5281,7 +5461,7 @@ msgstr "输入间隔"
 msgid "Enter the 6-digit code sent to {email}"
 msgstr "输入发送给的六位数代码 {email}"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:328
+#: src/components/automations/config/TriggerConfigForm.tsx:339
 msgid "Enter the name of the custom event (e.g., 'purchase', 'signup')"
 msgstr "输入自定义事件的名称( 如“ 购买 ” 、 “ 签名 ” )"
 
@@ -5301,17 +5481,49 @@ msgstr "输入工作区ID"
 msgid "Enter workspace name"
 msgstr "输入工作区名称"
 
+#: src/components/customers/CustomerJourneysTab.tsx:30
+msgid "Entered the journey"
+msgstr "已进入自动化旅程"
+
 #: src/components/timeline/ContactTimeline.tsx:985
 msgid "Entity ID:"
 msgstr "实体 ID："
 
-#: src/components/automations/config/TriggerConfigForm.tsx:386
+#: src/components/automations/JourneyCreateWizard.tsx:468
+msgid "Entry"
+msgstr "进入规则"
+
+#: src/components/automations/config/TriggerConfigForm.tsx:400
 msgid "Entry conditions"
 msgstr "进入条件"
+
+#: src/components/automations/JourneyCreateWizard.tsx:324
+msgid "Entry frequency and protection"
+msgstr "进入频次与进入保护"
+
+#: src/components/automations/JourneyCreateWizard.tsx:326
+msgid "Entry frequency decides when a customer creates a Journey instance."
+msgstr "进入频次决定客户何时创建一个自动化旅程实例。"
 
 #: src/components/timeline/ContactTimeline.tsx:933
 msgid "entry page"
 msgstr "条目页面"
+
+#: src/components/automations/JourneyCreateWizard.tsx:354
+msgid "Entry protection"
+msgstr "进入保护"
+
+#: src/components/automations/JourneyCreateWizard.tsx:409
+msgid "Entry protection only limits Journey entry and is not message frequency control."
+msgstr "进入保护只限制自动化旅程的进入，不属于消息频控。"
+
+#: src/components/automations/JourneyCreateWizard.tsx:351
+msgid "Entry protection: Off"
+msgstr "进入保护：关闭"
+
+#: src/components/automations/JourneyCreateWizard.tsx:350
+msgid "Entry protection: On"
+msgstr "进入保护：开启"
 
 #: src/components/timeline/ContactTimeline.tsx:863
 msgid "Entry:"
@@ -5341,9 +5553,9 @@ msgstr "等于"
 msgid "Error"
 msgstr "错误"
 
-#: src/pages/AutomationsPage.tsx:151
-msgid "Error loading automations"
-msgstr "加载自动化时出错"
+#: src/pages/AutomationsPage.tsx:154
+#~ msgid "Error loading automations"
+#~ msgstr "加载自动化时出错"
 
 #: src/components/messages/MessageHistoryTab.tsx:603
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:492
@@ -5406,7 +5618,7 @@ msgstr "事件"
 msgid "event name"
 msgstr "事件名称"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:326
+#: src/components/automations/config/TriggerConfigForm.tsx:337
 msgid "Event Name"
 msgstr "事件名称"
 
@@ -5421,6 +5633,10 @@ msgstr "事件类型"
 #: src/components/settings/WebhooksSettings.tsx:293
 msgid "Event Types"
 msgstr "事件类型"
+
+#: src/components/automations/JourneyCreateWizard.tsx:101
+msgid "Event welcome"
+msgstr "事件欢迎"
 
 #: src/components/messages/MessageHistoryTable.tsx:133
 #: src/components/messages/MessageHistoryTable.tsx:249
@@ -5440,8 +5656,9 @@ msgstr "每个域"
 msgid "Every sub-item has fewer than {0} sessions. Lower the threshold to see them."
 msgstr "每个分项目都少于 {0} 届会。 降低门槛去见他们."
 
-#: src/components/automations/AutomationCard.tsx:308
-#: src/components/automations/config/TriggerConfigForm.tsx:378
+#: src/components/automations/AutomationCard.tsx:304
+#: src/components/automations/config/TriggerConfigForm.tsx:390
+#: src/components/automations/JourneyCreateWizard.tsx:339
 #: src/components/automations/nodes/TriggerNode.tsx:22
 msgid "Every time"
 msgstr "每次"
@@ -5467,7 +5684,7 @@ msgstr "排除未订阅"
 msgid "Exclude unsubscribed, bounced & complained recipients"
 msgstr "排除已退订、退信及投诉的收件人"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:210
+#: src/components/automations/UpsertAutomationDrawer.tsx:218
 msgid "Exit on reply"
 msgstr "收到回复时退出"
 
@@ -5487,7 +5704,7 @@ msgstr "退出时间 :"
 msgid "exited"
 msgstr "已退出"
 
-#: src/components/automations/AutomationCard.tsx:274
+#: src/components/automations/AutomationCard.tsx:270
 msgid "Exited"
 msgstr "已退出"
 
@@ -5497,13 +5714,17 @@ msgstr "退出点"
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
 #: src/components/web_analytics/DimensionTableWidget.tsx:127
-#: src/layouts/WorkspaceLayout.tsx:435
+#: src/layouts/WorkspaceLayout.tsx:436
 msgid "Expand"
 msgstr "扩展"
 
 #: src/pages/AcceptInvitationPage.tsx:154
 msgid "Expires:"
 msgstr "过期 :"
+
+#: src/pages/DeliveryCenterPage.tsx:141
+msgid "Explanation"
+msgstr "说明"
 
 #: src/services/api/permissions.ts:266
 msgid "Explicitly merge an anonymous Customer into a known Customer and retain an audit redirect"
@@ -5542,7 +5763,7 @@ msgstr "导出为 CSV"
 msgid "Exporting all contacts"
 msgstr "导出所有联系人"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:123
+#: src/components/automations/config/TriggerConfigForm.tsx:134
 #: src/components/contacts/ContactDetailsDrawer.tsx:453
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:90
 #: src/components/contacts/ExportContactsModal.tsx:53
@@ -5553,7 +5774,8 @@ msgstr "导出所有联系人"
 msgid "External ID"
 msgstr "外部标识"
 
-#: src/components/customers/CustomerDrawer.tsx:60
+#: src/components/customers/CustomerDrawer.tsx:26
+#: src/components/errors/ActionableError.tsx:33
 #: src/pages/CustomersPage.tsx:93
 msgid "External user ID"
 msgstr "外部用户 ID"
@@ -5568,7 +5790,7 @@ msgstr "失败"
 
 #: src/components/analytics/EmailMetricsChart.tsx:273
 #: src/components/analytics/EmailMetricsChart.tsx:510
-#: src/components/automations/AutomationCard.tsx:281
+#: src/components/automations/AutomationCard.tsx:277
 #: src/components/automations/nodes/StatNode.tsx:144
 #: src/components/automations/nodes/StatNode.tsx:206
 #: src/components/automations/nodes/StatNode.tsx:365
@@ -5596,8 +5818,8 @@ msgid "Failed to accept invitation"
 msgstr "接受邀请失败"
 
 #: src/pages/AutomationsPage.tsx:97
-msgid "Failed to activate automation"
-msgstr "启动自动化失败"
+#~ msgid "Failed to activate automation"
+#~ msgstr "启动自动化失败"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:317
 msgid "Failed to add to list: {error}"
@@ -5633,7 +5855,7 @@ msgid "Failed to create API key"
 msgstr "创建 API 密钥失败"
 
 #. placeholder {0}: error.message
-#: src/components/automations/context/AutomationContext.tsx:262
+#: src/components/automations/context/AutomationContext.tsx:266
 msgid "Failed to create automation: {0}"
 msgstr "创建自动化失败 : {0}"
 
@@ -5679,9 +5901,9 @@ msgstr "创建模板失败 : {0}"
 msgid "Failed to create workspace"
 msgstr "创建工作区失败"
 
-#: src/pages/AutomationsPage.tsx:127
-msgid "Failed to delete automation"
-msgstr "删除自动化失败"
+#: src/pages/AutomationsPage.tsx:128
+#~ msgid "Failed to delete automation"
+#~ msgstr "删除自动化失败"
 
 #: src/pages/BroadcastsPage.tsx:1451
 msgid "Failed to delete broadcast"
@@ -5822,9 +6044,9 @@ msgstr "加载设置失败"
 msgid "Failed to load webhook subscriptions"
 msgstr "加载 Webhook 订阅失败"
 
-#: src/pages/AutomationsPage.tsx:112
-msgid "Failed to pause automation"
-msgstr "暂停自动化失败"
+#: src/pages/AutomationsPage.tsx:113
+#~ msgid "Failed to pause automation"
+#~ msgstr "暂停自动化失败"
 
 #: src/pages/BroadcastsPage.tsx:1469
 msgid "Failed to pause broadcast"
@@ -5940,7 +6162,7 @@ msgstr "保存模板块失败"
 #. placeholder {0}: error.message
 #: src/components/templates/CreateTemplateDrawer.tsx:234
 msgid "Failed to save template: {0}"
-msgstr ""
+msgstr "保存模板失败：{0}"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:259
 msgid "Failed to save theme"
@@ -6011,7 +6233,7 @@ msgid "Failed to unpublish post"
 msgstr "卸载邮件失败"
 
 #. placeholder {0}: error.message
-#: src/components/automations/context/AutomationContext.tsx:277
+#: src/components/automations/context/AutomationContext.tsx:276
 msgid "Failed to update automation: {0}"
 msgstr "更新自动化失败 : {0}"
 
@@ -6080,7 +6302,7 @@ msgstr "更新网络分析设置失败"
 msgid "Failed to update workspace settings"
 msgstr "更新工作区设置失败"
 
-#: src/layouts/WorkspaceLayout.tsx:211
+#: src/layouts/WorkspaceLayout.tsx:212
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "更新工作区设置失败 : {errorMessage}"
 
@@ -6188,7 +6410,7 @@ msgid "Fill in the fields of a hypothetical visit; empty fields count as empty v
 msgstr "填入假设访问的字段; 空字段计为空值 。"
 
 #: src/components/automations/AddNodeButton.tsx:82
-#: src/components/automations/NodeConfigPanel.tsx:94
+#: src/components/automations/NodeConfigPanel.tsx:83
 #: src/components/automations/nodes/FilterNode.tsx:48
 #: src/components/automations/nodes/StatNode.tsx:90
 #: src/components/automations/nodes/StatNode.tsx:188
@@ -6218,6 +6440,7 @@ msgstr "在事件属性上过滤"
 
 #: src/components/messages/MessageHistoryTab.tsx:586
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:352
+#: src/pages/DeliveryCenterPage.tsx:107
 #: src/pages/WebAnalyticsPage.tsx:97
 msgid "Filters"
 msgstr "筛选器"
@@ -6264,7 +6487,7 @@ msgstr "向订阅 URL 发起测试投递——这是写入而非读取操作，�
 msgid "Firecrawl integration saved successfully"
 msgstr "Firecrawl 集成成功保存"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:120
+#: src/components/automations/config/TriggerConfigForm.tsx:131
 #: src/components/contacts/ContactDetailsDrawer.tsx:441
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:91
 #: src/components/contacts/ExportContactsModal.tsx:56
@@ -6274,6 +6497,15 @@ msgstr "Firecrawl 集成成功保存"
 msgid "First Name"
 msgstr "名称"
 
+#: src/components/automations/JourneyPreflightPanel.tsx:147
+msgid "Fix"
+msgstr "去修复"
+
+#. placeholder {0}: issue.title
+#: src/components/automations/JourneyPreflightPanel.tsx:144
+msgid "Fix {0}"
+msgstr "修复 {0}"
+
 #: src/components/settings/WebhookCard.tsx:310
 msgid "Fix the endpoint, then switch this webhook back on to resume deliveries."
 msgstr "修复端点后重新启用此 Webhook，即可恢复投递。"
@@ -6282,8 +6514,17 @@ msgstr "修复端点后重新启用此 Webhook，即可恢复投递。"
 msgid "Fix the Zap in Zapier, then switch this webhook back on to resume deliveries."
 msgstr "把扎普调好 Zapier,然后切换这个网路浏览器恢复发送。"
 
+#: src/components/automations/JourneyTraceDrawer.tsx:110
+#: src/components/automations/JourneyTraceDrawer.tsx:116
+msgid "Fix this node"
+msgstr "修复此节点"
+
+#: src/components/automations/JourneyCreateWizard.tsx:469
+msgid "Flow content"
+msgstr "流程内容"
+
 #. placeholder {0}: automation.name
-#: src/components/automations/AutomationCard.tsx:316
+#: src/components/automations/AutomationCard.tsx:312
 msgid "Flow Stats: {0}"
 msgstr "流点 : {0}"
 
@@ -6388,12 +6629,17 @@ msgstr "发现 {0} 邮件地址"
 msgid "Found unsaved changes from {0}"
 msgstr "未保存的更改从 {0}"
 
-#: src/components/automations/AutomationCard.tsx:307
-#: src/components/automations/config/TriggerConfigForm.tsx:366
+#: src/components/automations/AutomationCard.tsx:303
+#: src/components/automations/config/TriggerConfigForm.tsx:378
 msgid "Frequency"
 msgstr "频次"
 
+#: src/i18n/catalogInventory.ts:16
+msgid "Frequency Cap"
+msgstr "频控"
+
 #: src/components/templates/TemplatePreviewDrawer.tsx:298
+#: src/pages/DeliveryCenterPage.tsx:115
 msgid "From"
 msgstr "从"
 
@@ -6532,6 +6778,10 @@ msgstr "前往登录"
 msgid "Goal"
 msgstr "目标"
 
+#: src/components/automations/JourneyCreateWizard.tsx:466
+msgid "Goal and template"
+msgstr "目标与模板"
+
 #: src/components/web_analytics/tabs/DashboardTab.tsx:247
 msgid "Goal conversions and their total value"
 msgstr "目标转换及其总价值"
@@ -6660,7 +6910,7 @@ msgstr "高度"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:718
 #: src/components/templates/CreateTemplateDrawer.tsx:154
-#: src/layouts/WorkspaceLayout.tsx:525
+#: src/layouts/WorkspaceLayout.tsx:526
 msgid "Help"
 msgstr "帮助"
 
@@ -6783,6 +7033,10 @@ msgstr "https://fonts.googleapis.com/css?family=... 或 {{ font_url }}"
 msgid "I ran {maxRounds} rounds of tool calls without reaching an answer and stopped there. Ask a narrower question and I will try again."
 msgstr "我已执行 {maxRounds} 轮工具调用，但仍未得到答案，因此停止。请缩小问题范围，我会再试一次。"
 
+#: src/components/automations/JourneyPreflightPanel.tsx:160
+msgid "I understand these warnings and want to activate this journey."
+msgstr "我已了解这些警告，仍要启用此自动化旅程。"
+
 #: src/components/segment/button_upsert.tsx:461
 msgid "i.e: Big spenders..."
 msgstr "即:大开支者......"
@@ -6815,7 +7069,7 @@ msgstr "图标样式"
 msgid "Icon/Favicon URL"
 msgstr "图标/ Favicon URL"
 
-#: src/components/automations/AutomationCard.tsx:293
+#: src/components/automations/AutomationCard.tsx:289
 #: src/components/messages/MessageHistoryTable.tsx:211
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:355
 #: src/pages/ListsPage.tsx:267
@@ -6904,7 +7158,15 @@ msgstr "识别访客"
 msgid "Identify recipients who click a tracked email link"
 msgstr "识别点击跟踪邮件链接的收件人"
 
-#: src/components/customers/CustomerDrawer.tsx:80
+#: src/components/customers/CustomerDrawer.tsx:107
+msgid "Identities & Consent"
+msgstr "身份标识与授权同意"
+
+#: src/i18n/catalogInventory.ts:13
+msgid "Identity"
+msgstr "身份标识"
+
+#: src/components/customers/CustomerDrawer.tsx:51
 #: src/pages/CustomersPage.tsx:99
 msgid "Identity aliases"
 msgstr "身份标识别名"
@@ -7152,6 +7414,10 @@ msgstr "安装"
 msgid "Install the tracking snippet"
 msgstr "安装跟踪片段"
 
+#: src/components/automations/JourneyTraceDrawer.tsx:88
+msgid "Instance trace ID"
+msgstr "实例追踪 ID"
+
 #: src/components/automations/config/ChannelConfigForm.tsx:42
 msgid "Integration"
 msgstr "集成"
@@ -7189,6 +7455,10 @@ msgstr "集成已更新"
 #: src/components/settings/UITranslationsSettings.tsx:103
 msgid "Integrations"
 msgstr "集成"
+
+#: src/components/customers/CustomerDrawer.tsx:25
+msgid "Internal ID"
+msgstr "内部 ID"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:403
 msgid "Invalid email"
@@ -7339,6 +7609,15 @@ msgstr "发行者 URL"
 msgid "Issuer URL is required"
 msgstr "需要发行者 URL"
 
+#: src/components/automations/JourneyCreateWizard.tsx:428
+msgid "It only decides whether each message created by this Journey may be delivered."
+msgstr "它只决定此自动化旅程产生的每条消息是否允许投递。"
+
+#. placeholder {0}: new Date(trace.instance.next_scheduled_at).toLocaleString()
+#: src/components/automations/JourneyTraceDrawer.tsx:97
+msgid "It will continue at {0}."
+msgstr "将在 {0} 继续执行。"
+
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:311
 #: src/components/email_builder/ui/FontStyleInput.tsx:124
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:537
@@ -7364,9 +7643,26 @@ msgstr "职称"
 msgid "joined"
 msgstr "已加入"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:96
+#: src/components/automations/config/TriggerConfigForm.tsx:107
 msgid "Joined"
 msgstr "已经加入"
+
+#: src/components/automations/JourneyTraceDrawer.tsx:87
+#: src/i18n/catalogInventory.ts:11
+msgid "Journey"
+msgstr "自动化旅程"
+
+#: src/components/automations/JourneyTraceDrawer.tsx:49
+msgid "Journey entry was not allowed"
+msgstr "未允许进入自动化旅程"
+
+#: src/components/automations/JourneyTraceDrawer.tsx:75
+msgid "Journey trace"
+msgstr "自动化旅程追踪"
+
+#: src/components/customers/CustomerDrawer.tsx:110
+msgid "Journeys"
+msgstr "自动化旅程"
 
 #: src/components/templates/ImportExportButton.tsx:393
 #: src/components/templates/ImportExportButton.tsx:442
@@ -7406,6 +7702,10 @@ msgstr "保持简洁和描述性"
 msgid "key or index"
 msgstr "键或索引"
 
+#: src/components/automations/AutomationNodeList.tsx:24
+msgid "Keyboard node list"
+msgstr "键盘节点列表"
+
 #: src/components/seo/SEOSettingsForm.tsx:65
 #: src/components/seo/SEOSettingsForm.tsx:179
 msgid "Keywords"
@@ -7428,12 +7728,12 @@ msgstr "登陆页面"
 
 #: src/components/analytics/NewContactsTable.tsx:166
 #: src/components/automations/config/ChannelConfigForm.tsx:60
-#: src/components/automations/config/TriggerConfigForm.tsx:125
+#: src/components/automations/config/TriggerConfigForm.tsx:136
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:221
 #: src/components/contacts/ContactDetailsDrawer.tsx:452
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:96
 #: src/components/contacts/ExportContactsModal.tsx:68
-#: src/components/customers/CustomerDrawer.tsx:70
+#: src/components/customers/CustomerDrawer.tsx:28
 #: src/components/templates/SendTemplateModal.tsx:326
 #: src/components/templates/TemplatePreviewDrawer.tsx:400
 #: src/pages/ContactsPage.tsx:375
@@ -7480,7 +7780,7 @@ msgstr "上次获取 :"
 msgid "Last modified"
 msgstr "上次修改"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:121
+#: src/components/automations/config/TriggerConfigForm.tsx:132
 #: src/components/contacts/ContactDetailsDrawer.tsx:442
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:92
 #: src/components/contacts/ExportContactsModal.tsx:59
@@ -7519,7 +7819,7 @@ msgstr "为整个容器宽度留空"
 msgid "Leave empty to derive it from the API endpoint. Set it when the callback is reached through a proxy or a vanity domain."
 msgstr "留空从 API 端点获取 。 在通过代理或虚域达到调用时设定它."
 
-#: src/components/automations/config/TriggerConfigForm.tsx:352
+#: src/components/automations/config/TriggerConfigForm.tsx:363
 msgid "Leave empty to trigger on any field change"
 msgstr "留空以触发任何字段变化"
 
@@ -7535,7 +7835,7 @@ msgstr "留空则使用瑶光营销平台为此集成管理的配置。"
 msgid "left"
 msgstr "左边"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:97
+#: src/components/automations/config/TriggerConfigForm.tsx:108
 #: src/components/email_builder/ui/BorderInput.tsx:380
 #: src/components/email_builder/ui/FontStyleInput.tsx:145
 #: src/components/email_builder/ui/PaddingInput.tsx:199
@@ -7623,14 +7923,14 @@ msgstr "Liquid 区块 - 点击添加 MJML + Liquid 内容"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:308
 msgid "Liquid variables are supported"
-msgstr ""
+msgstr "支持 Liquid 变量"
 
-#: src/components/automations/AutomationCard.tsx:306
+#: src/components/automations/AutomationCard.tsx:302
 #: src/components/automations/config/AddToListConfigForm.tsx:32
 #: src/components/automations/config/RemoveFromListConfigForm.tsx:26
-#: src/components/automations/config/TriggerConfigForm.tsx:80
-#: src/components/automations/config/TriggerConfigForm.tsx:284
-#: src/components/automations/UpsertAutomationDrawer.tsx:193
+#: src/components/automations/config/TriggerConfigForm.tsx:91
+#: src/components/automations/config/TriggerConfigForm.tsx:295
+#: src/components/automations/UpsertAutomationDrawer.tsx:201
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:514
 #: src/components/contacts/BulkUpdateDrawer.tsx:602
 #: src/components/contacts/ExportContactsModal.tsx:73
@@ -7703,7 +8003,7 @@ msgstr "列表 ID"
 msgid "List ID: {0}"
 msgstr "列表 ID：{0}"
 
-#: src/components/customers/CustomerDrawer.tsx:113
+#: src/components/customers/CustomerDrawer.tsx:71
 msgid "List memberships"
 msgstr "名单归属"
 
@@ -7716,7 +8016,7 @@ msgid "List sent messages with their recipient address, delivery and engagement 
 msgstr "列出已发送消息，包括收件人地址、投递和互动时间，以及每条消息渲染时使用的数据"
 
 #: src/components/automations/AddNodeButton.tsx:84
-#: src/components/automations/NodeConfigPanel.tsx:96
+#: src/components/automations/NodeConfigPanel.tsx:85
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:38
 #: src/components/automations/nodes/StatNode.tsx:95
 #: src/components/automations/nodes/StatNode.tsx:257
@@ -7795,7 +8095,7 @@ msgstr "列表 :"
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
 #: src/pages/ListsPage.tsx:155
-#: src/services/api/errors.ts:55
+#: src/services/api/errors.ts:215
 msgid "Lists"
 msgstr "列表"
 
@@ -7814,7 +8114,7 @@ msgid "Live"
 msgstr "实时"
 
 #: src/components/settings/PermissionsMatrix.tsx:128
-#: src/services/api/errors.ts:63
+#: src/services/api/errors.ts:223
 msgid "LLM"
 msgstr "LLM"
 
@@ -7846,9 +8146,13 @@ msgstr "加载工作区记录；读取或写入权限均可访问"
 msgid "Loaded the latest version of this template (v{0})."
 msgstr "已加载此模板的最新版本（v{0}）。"
 
-#: src/pages/AutomationsPage.tsx:186
+#: src/pages/AutomationsPage.tsx:198
 msgid "Loading automations..."
 msgstr "正在加载自动化..."
+
+#: src/pages/DeliveryCenterPage.tsx:134
+msgid "Loading delivery details..."
+msgstr "正在加载投递详情..."
 
 #: src/components/messages/MessageHistoryTable.tsx:416
 msgid "Loading message history..."
@@ -7907,7 +8211,7 @@ msgstr "日志预览"
 msgid "Logo URL"
 msgstr "标记 URL"
 
-#: src/layouts/WorkspaceLayout.tsx:538
+#: src/layouts/WorkspaceLayout.tsx:539
 msgid "Logout"
 msgstr "注销"
 
@@ -8029,7 +8333,7 @@ msgstr "标记为垃圾邮件"
 msgid "Marketing"
 msgstr "营销"
 
-#: src/layouts/WorkspaceLayout.tsx:255
+#: src/layouts/WorkspaceLayout.tsx:256
 msgid "Marketing Campaigns"
 msgstr "营销活动"
 
@@ -8076,6 +8380,10 @@ msgstr "每个文件最多 3MB, 总计 10MB, 最多 20 文件"
 #: src/components/templates/SendTemplateModal.tsx:199
 msgid "Maximum 20 attachments allowed"
 msgstr "允许最多 20 个附件"
+
+#: src/components/automations/JourneyCreateWizard.tsx:386
+msgid "Maximum concurrent instances"
+msgstr "最大并发实例数"
 
 #: src/components/settings/BlogSettings.tsx:428
 msgid "Maximum number of posts to include in the RSS/JSON feed (1–20)"
@@ -8147,9 +8455,17 @@ msgstr "成功删除成员"
 msgid "Message"
 msgstr "消息"
 
+#: src/components/automations/JourneyCreateWizard.tsx:470
+msgid "Message frequency"
+msgstr "消息频控"
+
+#: src/components/automations/JourneyCreateWizard.tsx:422
+msgid "Message frequency control"
+msgstr "消息频控"
+
 #: src/components/settings/PermissionsMatrix.tsx:125
 #: src/pages/LogsPage.tsx:37
-#: src/services/api/errors.ts:60
+#: src/services/api/errors.ts:220
 msgid "Message History"
 msgstr "信件历史"
 
@@ -8218,7 +8534,7 @@ msgstr "分钟"
 msgid "Minimal"
 msgstr "最小数"
 
-#: src/components/automations/AutomationFlowEditor.tsx:438
+#: src/components/automations/AutomationFlowEditor.tsx:441
 msgid "Minimap"
 msgstr "最小映射"
 
@@ -8386,9 +8702,10 @@ msgid "N/A"
 msgstr "N/A"
 
 #: src/components/analytics/NewContactsTable.tsx:158
-#: src/components/automations/UpsertAutomationDrawer.tsx:182
+#: src/components/automations/UpsertAutomationDrawer.tsx:190
 #: src/components/blog/AuthorsTable.tsx:143
 #: src/components/blog/CategoryDrawer.tsx:130
+#: src/components/errors/ActionableError.tsx:34
 #: src/components/file_manager/fileManager.tsx:868
 #: src/components/lists/ListDrawer.tsx:185
 #: src/components/segment/button_upsert.tsx:442
@@ -8447,6 +8764,10 @@ msgstr "新联系人"
 msgid "New conversation"
 msgstr "新对话"
 
+#: src/components/automations/JourneyCreateWizard.tsx:104
+msgid "New customer welcome journey"
+msgstr "新客户欢迎自动化旅程"
+
 #: src/components/file_manager/fileManager.tsx:766
 msgid "New folder"
 msgstr "新建文件夹"
@@ -8476,11 +8797,12 @@ msgstr "新建主题"
 msgid "New Window"
 msgstr "新建窗口"
 
-#: src/layouts/WorkspaceLayout.tsx:474
+#: src/layouts/WorkspaceLayout.tsx:475
 #: src/pages/CreateWorkspacePage.tsx:104
 msgid "New workspace"
 msgstr "新工作区"
 
+#: src/components/automations/JourneyCreateWizard.tsx:493
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:321
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:331
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:342
@@ -8548,6 +8870,10 @@ msgstr "没有 {0} 要预览的内容"
 msgid "No Access"
 msgstr "无访问"
 
+#: src/components/customers/CustomerDrawer.tsx:76
+msgid "No active audience memberships"
+msgstr "当前没有生效的客群归属"
+
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:106
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:171
 msgid "No annotations yet"
@@ -8561,13 +8887,17 @@ msgstr "未回复。 请再试一次"
 msgid "No attribution rules yet. Create the first one to start shaping your traffic data."
 msgstr "还没有归属规则 创建第一个开始构建您的流量数据 。"
 
-#: src/pages/AutomationsPage.tsx:189
+#: src/pages/AutomationsPage.tsx:201
 msgid "No automations yet"
 msgstr "尚未实现自动化"
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:153
 msgid "No backfill has run yet. Run one to apply these rules to historical sessions and goals."
 msgstr "还没有回填 运行一个将这些规则应用于历史会议和目标."
+
+#: src/components/automations/JourneyPreflightPanel.tsx:118
+msgid "No blocking issues or warnings were found."
+msgstr "未发现阻断问题或警告。"
 
 #: src/pages/BroadcastsPage.tsx:1685
 msgid "No broadcasts found"
@@ -8612,7 +8942,7 @@ msgstr "无比较"
 msgid "No conditions"
 msgstr "无条件"
 
-#: src/components/customers/CustomerDrawer.tsx:144
+#: src/components/customers/CustomerDrawer.tsx:58
 msgid "No consent records"
 msgstr "暂无同意记录"
 
@@ -8633,6 +8963,10 @@ msgstr "无国家数据"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:463
 msgid "No CSV data available"
 msgstr "没有可用的 CSV 数据"
+
+#: src/components/customers/CustomerTimelineTab.tsx:25
+msgid "No customer activity yet"
+msgstr "暂无客户活动"
 
 #: src/pages/CustomersPage.tsx:169
 #: src/pages/CustomersPage.tsx:203
@@ -8660,6 +8994,14 @@ msgstr "未返回数据"
 #: src/components/templates/TemplatePreviewDrawer.tsx:328
 msgid "No default sender configured"
 msgstr "未配置默认发件人"
+
+#: src/components/customers/CustomerDeliveriesTab.tsx:24
+msgid "No deliveries for this customer"
+msgstr "该客户暂无投递记录"
+
+#: src/pages/DeliveryCenterPage.tsx:129
+msgid "No deliveries match these filters"
+msgstr "没有符合当前筛选条件的投递记录"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:240
 #: src/pages/WebAnalyticsLivePage.tsx:188
@@ -8727,7 +9069,7 @@ msgstr "没有要导出的 HTML 内容"
 msgid "No icon found"
 msgstr "未找到图标"
 
-#: src/components/customers/CustomerDrawer.tsx:83
+#: src/components/customers/CustomerDrawer.tsx:52
 msgid "No identity aliases"
 msgstr "无身份标识别名"
 
@@ -8747,7 +9089,7 @@ msgstr "尚未为此变换记录链接点击"
 msgid "No list"
 msgstr "无列表"
 
-#: src/components/customers/CustomerDrawer.tsx:124
+#: src/components/customers/CustomerDrawer.tsx:72
 msgid "No list memberships"
 msgstr "未加入任何名单"
 
@@ -8863,7 +9205,7 @@ msgstr "没有源数据"
 msgid "No specific details provided."
 msgstr "未提供具体细节。"
 
-#: src/components/customers/CustomerDrawer.tsx:107
+#: src/components/customers/CustomerDrawer.tsx:33
 msgid "No tags"
 msgstr "无标签"
 
@@ -8893,6 +9235,10 @@ msgstr "还没有主题"
 msgid "No timeline events found for this contact"
 msgstr "未找到此联系人的时间表事件"
 
+#: src/components/automations/JourneyTraceDrawer.tsx:100
+msgid "No trace events yet"
+msgstr "暂无追踪事件"
+
 #: src/components/web_analytics/InstallOverlay.tsx:70
 msgid "No traffic in the last 24 hours"
 msgstr "过去24小时没有车流量"
@@ -8905,7 +9251,7 @@ msgstr "未找到事务通知"
 msgid "No translations found"
 msgstr "未找到翻译"
 
-#: src/components/automations/AutomationCard.tsx:302
+#: src/components/automations/AutomationCard.tsx:298
 msgid "No trigger configured"
 msgstr "未配置触发"
 
@@ -8928,6 +9274,11 @@ msgstr "无工作区"
 #: src/pages/SignInPage.tsx:98
 msgid "No Yaoguang Marketing account is linked to that identity. Ask an administrator to invite you first."
 msgstr "该身份尚未关联瑶光营销平台账号，请先联系管理员邀请您加入。"
+
+#. placeholder {0}: issue.node_id
+#: src/components/automations/JourneyPreflightPanel.tsx:139
+msgid "Node: {0}"
+msgstr "节点：{0}"
 
 #: src/components/automations/NodePalette.tsx:21
 msgid "Nodes"
@@ -8977,6 +9328,7 @@ msgstr "未分配"
 msgid "Not configured"
 msgstr "未配置"
 
+#: src/components/automations/AutomationNodeList.tsx:32
 #: src/components/automations/nodes/BaseNode.tsx:42
 msgid "Not connected"
 msgstr "未连接"
@@ -9065,6 +9417,10 @@ msgstr "成功更新通知"
 msgid "notifuse-…"
 msgstr "没有,如果..."
 
+#: src/components/automations/JourneyCreateWizard.tsx:146
+msgid "Notify customers whenever they join the selected audience segment."
+msgstr "客户每次加入所选客群时向其发送通知。"
+
 #: src/components/templates/CreateTemplateDrawer.tsx:1170
 #: src/components/templates/TemplateTranslationsTab.tsx:275
 msgid "Now"
@@ -9137,8 +9493,9 @@ msgstr "OK"
 msgid "Once"
 msgstr "一次"
 
-#: src/components/automations/AutomationCard.tsx:308
-#: src/components/automations/config/TriggerConfigForm.tsx:373
+#: src/components/automations/AutomationCard.tsx:304
+#: src/components/automations/config/TriggerConfigForm.tsx:385
+#: src/components/automations/JourneyCreateWizard.tsx:334
 msgid "Once per contact"
 msgstr "每个联系人一次"
 
@@ -9154,7 +9511,7 @@ msgstr "只有工作区所有者才能查看或旋转签名密钥"
 msgid "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks still count toward the variation's Clicks total."
 msgstr "自启用每链接跟踪以来只记录了点击; 先前的点击数仍为变量的点击总数 。"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:387
+#: src/components/automations/config/TriggerConfigForm.tsx:401
 msgid "Only enroll contacts matching these conditions."
 msgstr "只有符合这些条件的注册联系人 。"
 
@@ -9166,7 +9523,7 @@ msgstr "只允许小写字母、下划线和破折号。"
 msgid "Only one breakpoint per email template is allowed"
 msgstr "每个邮件模板只允许有一个断点"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:342
+#: src/components/automations/config/TriggerConfigForm.tsx:353
 msgid "Only trigger when this exact tag is added or removed"
 msgstr "仅在添加或删除此精确标记时触发"
 
@@ -9192,6 +9549,11 @@ msgstr "打开邮件"
 #: src/components/templates/TemplateTranslationsTab.tsx:232
 msgid "Open email editor"
 msgstr "打开邮件编辑器"
+
+#: src/components/errors/ActionableError.tsx:51
+#: src/components/errors/ActionableError.tsx:52
+msgid "Open fix"
+msgstr "打开修复入口"
 
 #: src/components/seo/MissingMetaTagsWarning.tsx:51
 msgid "Open Graph Description"
@@ -9229,7 +9591,7 @@ msgstr "打开网络分析设置"
 msgid "opened"
 msgstr "打开"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:104
+#: src/components/automations/config/TriggerConfigForm.tsx:115
 #: src/components/messages/MessageHistoryTab.tsx:140
 #: src/components/messages/MessageHistoryTab.tsx:142
 #: src/components/messages/MessageHistoryTable.tsx:282
@@ -9320,6 +9682,10 @@ msgstr "或"
 msgid "Or select a popular Google Font"
 msgstr "或选择流行 Google 字体"
 
+#: src/components/automations/JourneyTraceDrawer.tsx:93
+msgid "Origin event"
+msgstr "来源事件"
+
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:255
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:255
 #: src/components/web_analytics/tabs/DashboardTab.tsx:239
@@ -9368,7 +9734,7 @@ msgstr "覆盖此测试邮件的默认发件人名称"
 msgid "Override the workspace default email provider for this node"
 msgstr "覆盖此节点的工作区默认邮件服务商"
 
-#: src/components/customers/CustomerDrawer.tsx:56
+#: src/components/customers/CustomerDrawer.tsx:106
 msgid "Overview"
 msgstr "概览"
 
@@ -9461,11 +9827,11 @@ msgstr "在群发过程中暂停发送"
 msgid "Pause a live automation"
 msgstr "暂停实时自动化"
 
-#: src/components/automations/AutomationCard.tsx:229
+#: src/components/automations/AutomationCard.tsx:225
 msgid "Pause Automation"
 msgstr "暂停自动化"
 
-#: src/components/automations/AutomationCard.tsx:233
+#: src/components/automations/AutomationCard.tsx:229
 msgid "Pause automation?"
 msgstr "暂停自动化?"
 
@@ -9489,7 +9855,7 @@ msgid "Payload:"
 msgstr "有效载荷 :"
 
 #: src/components/automations/config/AddToListConfigForm.tsx:18
-#: src/components/automations/config/TriggerConfigForm.tsx:88
+#: src/components/automations/config/TriggerConfigForm.tsx:99
 #: src/components/automations/nodes/AddToListNode.tsx:59
 #: src/components/contacts/ContactDetailsDrawer.tsx:583
 #: src/components/lists/ListStats.tsx:90
@@ -9549,7 +9915,7 @@ msgstr "权限"
 msgid "Permissions updated successfully"
 msgstr "权限成功更新"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:122
+#: src/components/automations/config/TriggerConfigForm.tsx:133
 #: src/components/contacts/ContactDetailsDrawer.tsx:444
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:93
 #: src/components/contacts/ExportContactsModal.tsx:62
@@ -9721,7 +10087,7 @@ msgid "Please enter an API key name"
 msgstr "请输入 API 密钥名称"
 
 #: src/components/automations/context/AutomationContext.tsx:286
-#: src/components/automations/UpsertAutomationDrawer.tsx:115
+#: src/components/automations/UpsertAutomationDrawer.tsx:125
 msgid "Please enter an automation name"
 msgstr "请输入自动化名称"
 
@@ -9729,6 +10095,10 @@ msgstr "请输入自动化名称"
 #: src/components/settings/WorkspaceMembers.tsx:488
 msgid "Please enter an email address"
 msgstr "请输入邮件地址"
+
+#: src/pages/DeliveryCenterPage.tsx:163
+msgid "Please enter at least 8 characters"
+msgstr "请至少输入 8 个字符"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:78
 #: src/components/integrations/LLMIntegration.tsx:161
@@ -9862,8 +10232,8 @@ msgid "Please select or enter a model"
 msgstr "请选择或输入模型"
 
 #: src/components/customers/CustomerDrawer.tsx:40
-msgid "Please try again"
-msgstr "请重试"
+#~ msgid "Please try again"
+#~ msgstr "请重试"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:378
 msgid "Please upload a CSV file with email addresses"
@@ -9912,7 +10282,7 @@ msgstr "未发布的文章成功"
 msgid "Post updated successfully"
 msgstr "邮件成功更新"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:135
+#: src/components/automations/config/TriggerConfigForm.tsx:146
 #: src/components/contacts/ContactDetailsDrawer.tsx:449
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:99
 msgid "Postcode"
@@ -10109,7 +10479,7 @@ msgstr "上个礼拜"
 msgid "Previous year"
 msgstr "前一年"
 
-#: src/components/customers/CustomerDrawer.tsx:89
+#: src/components/customers/CustomerDrawer.tsx:53
 msgid "Primary"
 msgstr "主要"
 
@@ -10174,15 +10544,15 @@ msgstr "处理已暂停"
 msgid "Processing was stopped before completion."
 msgstr "在完成之前,处理工作已停止。"
 
-#: src/components/customers/CustomerDrawer.tsx:149
+#: src/components/customers/CustomerDrawer.tsx:36
 msgid "Profile attributes"
 msgstr "客户画像属性"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:72
+#: src/components/automations/config/TriggerConfigForm.tsx:83
 msgid "Profile Created"
 msgstr "配置文件创建"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:73
+#: src/components/automations/config/TriggerConfigForm.tsx:84
 msgid "Profile Updated"
 msgstr "配置文件已更新"
 
@@ -10194,9 +10564,29 @@ msgstr "进展"
 msgid "Property name"
 msgstr "属性名称"
 
+#: src/components/errors/ActionableError.tsx:36
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:344
+#: src/pages/DeliveryCenterPage.tsx:114
+#: src/pages/DeliveryCenterPage.tsx:114
+#: src/pages/DeliveryCenterPage.tsx:145
 msgid "Provider"
 msgstr "供应商"
+
+#: src/pages/DeliveryCenterPage.tsx:145
+msgid "Provider attempts"
+msgstr "服务商提交记录"
+
+#: src/pages/DeliveryCenterPage.tsx:158
+msgid "Provider confirmed delivery"
+msgstr "服务商已确认投递成功"
+
+#: src/pages/DeliveryCenterPage.tsx:160
+msgid "Provider confirmed it was not accepted; retry is safe"
+msgstr "服务商确认未接收，可安全重试"
+
+#: src/pages/DeliveryCenterPage.tsx:159
+msgid "Provider confirmed permanent failure"
+msgstr "服务商已确认永久失败"
 
 #: src/components/lists/ListDrawer.tsx:214
 #: src/pages/ListsPage.tsx:273
@@ -10256,7 +10646,7 @@ msgstr "购买"
 
 #: src/components/automations/AddNodeButton.tsx:81
 #: src/components/automations/config/ChannelConfigForm.tsx:29
-#: src/components/automations/NodeConfigPanel.tsx:90
+#: src/components/automations/NodeConfigPanel.tsx:79
 #: src/components/automations/nodes/ChannelNode.tsx:16
 #: src/components/automations/nodes/StatNode.tsx:88
 #: src/components/messages/MessageHistoryTab.tsx:221
@@ -10300,6 +10690,10 @@ msgstr "原始 JSON 语录"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:541
 msgid "Raw Payload:"
 msgstr "原始有效载荷 :"
+
+#: src/components/automations/JourneyCreateWizard.tsx:122
+msgid "Re-engage customers when the business reports a churn-risk event."
+msgstr "业务系统上报流失风险事件时，重新触达客户。"
 
 #: src/components/settings/Integrations.tsx:330
 msgid "Re-register"
@@ -10447,6 +10841,10 @@ msgstr "读读 Zapier 设置指南"
 msgid "Reading Time"
 msgstr "读取时间"
 
+#: src/components/automations/JourneyPreflightPanel.tsx:117
+msgid "Ready to activate"
+msgstr "可以启用"
+
 #: src/components/templates/ImportExportButton.tsx:423
 msgid "Ready to send"
 msgstr "准备发送"
@@ -10454,6 +10852,10 @@ msgstr "准备发送"
 #: src/components/contacts/SegmentsFilter.tsx:53
 msgid "Ready to use"
 msgstr "准备使用"
+
+#: src/pages/DeliveryCenterPage.tsx:145
+msgid "Reason"
+msgstr "原因"
 
 #: src/pages/BroadcastsPage.tsx:1143
 msgid "Reason:"
@@ -10470,6 +10872,10 @@ msgstr "重建"
 #: src/components/contacts/SegmentsFilter.tsx:147
 msgid "Rebuild segment"
 msgstr "重建段"
+
+#: src/components/automations/JourneyCreateWizard.tsx:110
+msgid "Receive a scheduled_reminder event from your scheduler and continue the journey."
+msgstr "接收业务调度器上报的 scheduled_reminder 事件并继续自动化旅程。"
 
 #: src/components/analytics/FailedMessagesTable.tsx:65
 msgid "Recent Failed Messages"
@@ -10520,6 +10926,10 @@ msgstr "建议:150-160字符"
 msgid "Recommended: 50-60 characters"
 msgstr "建议:50-60字符"
 
+#: src/pages/DeliveryCenterPage.tsx:146
+msgid "Reconciliation history"
+msgstr "核对历史"
+
 #: src/services/api/permissions.ts:213
 msgid "Record or overwrite a custom event on a contact"
 msgstr "在联系人上记录或覆盖自定义事件"
@@ -10543,7 +10953,7 @@ msgstr "重定向 URI"
 msgid "Redo"
 msgstr "重做"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:159
+#: src/components/automations/UpsertAutomationDrawer.tsx:169
 msgid "Redo (Ctrl+Shift+Z)"
 msgstr "重做( Ctrl+Shift+Z)"
 
@@ -10638,6 +11048,10 @@ msgstr "调值"
 msgid "Reload latest"
 msgstr "重新加载最新版本"
 
+#: src/services/api/errors.ts:135
+msgid "Reload the latest version, review the differences, and submit again."
+msgstr "请重新加载最新版本，核对差异后再次提交。"
+
 #: src/components/settings/UITranslationsSettings.tsx:376
 msgid "Reload this page to try again."
 msgstr "请重新加载此页面后重试。"
@@ -10680,7 +11094,7 @@ msgid "Remove from list"
 msgstr "从列表中删除"
 
 #: src/components/automations/AddNodeButton.tsx:86
-#: src/components/automations/NodeConfigPanel.tsx:93
+#: src/components/automations/NodeConfigPanel.tsx:82
 #: src/components/automations/nodes/RemoveFromListNode.tsx:39
 #: src/components/automations/nodes/StatNode.tsx:92
 msgid "Remove from List"
@@ -10707,7 +11121,7 @@ msgstr "删除变量"
 msgid "removed"
 msgstr "删除"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:89
+#: src/components/automations/config/TriggerConfigForm.tsx:100
 msgid "Removed"
 msgstr "删除"
 
@@ -10727,7 +11141,8 @@ msgstr "重命名此连接不会改变它已经制作的 API 密钥的地址 。
 msgid "Rendering preview..."
 msgstr "渲染预览中..."
 
-#: src/components/automations/AutomationFlowEditor.tsx:426
+#: src/components/automations/AutomationFlowEditor.tsx:427
+#: src/components/automations/AutomationFlowEditor.tsx:430
 msgid "Reorganize layout"
 msgstr "重组布局"
 
@@ -10776,7 +11191,7 @@ msgstr "答复"
 msgid "Report — {dimensions}"
 msgstr "报 告 - {dimensions}"
 
-#: src/layouts/WorkspaceLayout.tsx:512
+#: src/layouts/WorkspaceLayout.tsx:513
 msgid "Report An Issue"
 msgstr "报告问题"
 
@@ -10792,6 +11207,10 @@ msgstr "此集成已启用信誉隔离"
 #: src/components/settings/Integrations.tsx:1094
 msgid "Reputation isolation is on. These senders have no verified identity and will fail to send: {0}"
 msgstr "信誉隔离已启用。以下发件人没有已验证的身份，将无法发送：{0}"
+
+#: src/components/errors/ActionableError.tsx:83
+msgid "Request ID"
+msgstr "请求 ID"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:279
 #: src/components/settings/SystemSettingsDrawer.tsx:318
@@ -10866,6 +11285,14 @@ msgstr "重置过滤器"
 msgid "Reset translation"
 msgstr "重置翻译"
 
+#: src/pages/DeliveryCenterPage.tsx:149
+msgid "Resolve status"
+msgstr "确认并处理状态"
+
+#: src/pages/DeliveryCenterPage.tsx:154
+msgid "Resolve uncertain delivery"
+msgstr "处理结果不确定的投递"
+
 #: src/components/settings/WebAnalyticsSettings.tsx:281
 msgid "Resolved"
 msgstr "已决定"
@@ -10931,7 +11358,7 @@ msgstr "恢复菜单 {displayLabel}"
 msgid "Restore page {displayLabel}"
 msgstr "恢复页面 {displayLabel}"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:85
+#: src/components/automations/config/TriggerConfigForm.tsx:96
 msgid "Resubscribed"
 msgstr "重新订阅"
 
@@ -10987,6 +11414,14 @@ msgstr "继续上传"
 #: src/pages/CustomersPage.tsx:162
 msgid "Retry"
 msgstr "重试"
+
+#: src/pages/DeliveryCenterPage.tsx:84
+msgid "Review"
+msgstr "查看"
+
+#: src/services/api/errors.ts:126
+msgid "Review the activity and global frequency policies before changing the limit."
+msgstr "调整限制前，请先检查本活动频控和全局频控策略。"
 
 #: src/components/settings/WorkspaceMembers.tsx:55
 msgid "Revoke all"
@@ -11059,6 +11494,10 @@ msgstr "立即执行回填任务"
 #: src/services/api/permissions.ts:335
 msgid "Run a segment build/recompute task immediately"
 msgstr "立即运行一段构建/ 重算任务"
+
+#: src/components/automations/JourneyPreflightPanel.tsx:101
+msgid "Run again"
+msgstr "重新检查"
 
 #: src/services/api/permissions.ts:705
 msgid "Run aggregate queries over the `automation_node_executions` schema"
@@ -11190,7 +11629,7 @@ msgstr "保存"
 msgid "Save & Restart"
 msgstr "保存重新启动( R)"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:128
+#: src/components/automations/UpsertAutomationDrawer.tsx:138
 msgid "Save Anyway"
 msgstr "无论如何保存"
 
@@ -11203,13 +11642,17 @@ msgstr "另存为新块"
 msgid "Save Block"
 msgstr "保存块"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:173
+#: src/components/automations/UpsertAutomationDrawer.tsx:180
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:158
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:142
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:182
 #: src/components/settings/SettingsSaveBar.tsx:87
 msgid "Save Changes"
 msgstr "保存更改"
+
+#: src/components/automations/JourneyCreateWizard.tsx:493
+msgid "Save draft and check"
+msgstr "保存草稿并检查"
 
 #: src/components/templates/ImportExportButton.tsx:443
 msgid "Save for later import"
@@ -11245,6 +11688,10 @@ msgstr "已保存( E){0})"
 msgid "Saved block: {0}"
 msgstr "已保存块 : {0}"
 
+#: src/components/automations/JourneyCreateWizard.tsx:498
+msgid "Saving journey draft..."
+msgstr "正在保存自动化旅程草稿..."
+
 #: src/components/settings/SystemSettingsDrawer.tsx:151
 msgid "Saving settings will restart the server. You will need to sign in again."
 msgstr "保存设置将重新启动服务器 。 你要再签一次"
@@ -11276,6 +11723,14 @@ msgstr "计划"
 #: src/components/blog/PostsTable.tsx:272
 msgid "Scheduled in {daysUntil} {0}"
 msgstr "预定时间 {daysUntil} {0}"
+
+#: src/components/automations/JourneyCreateWizard.tsx:109
+msgid "Scheduled reminder"
+msgstr "定时提醒"
+
+#: src/components/automations/JourneyCreateWizard.tsx:112
+msgid "Scheduled reminder journey"
+msgstr "定时提醒自动化旅程"
 
 #: src/components/blog/PostsTable.tsx:271
 msgid "Scheduled today"
@@ -11417,8 +11872,8 @@ msgstr "见可查询目录中列出的网络分析计划"
 msgid "See web analytics backfill tasks; a listing that names no type is narrowed to the types you may read"
 msgstr "参见网络分析回填任务; 无名称类型的列表将缩小为您可能读取的类型"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:94
-#: src/components/automations/config/TriggerConfigForm.tsx:305
+#: src/components/automations/config/TriggerConfigForm.tsx:105
+#: src/components/automations/config/TriggerConfigForm.tsx:316
 #: src/components/contacts/ExportContactsModal.tsx:89
 #: src/components/segment/button_upsert.tsx:74
 #: src/components/timeline/ContactTimeline.tsx:561
@@ -11451,7 +11906,7 @@ msgstr "树段重设"
 #: src/pages/BroadcastsPage.tsx:1066
 #: src/pages/ContactsPage.tsx:425
 #: src/pages/ContactsPage.tsx:625
-#: src/services/api/errors.ts:65
+#: src/services/api/errors.ts:225
 msgid "Segments"
 msgstr "细分群体"
 
@@ -11501,7 +11956,7 @@ msgstr "选择字段"
 msgid "Select a list"
 msgstr "选择列表"
 
-#: src/components/automations/AddNodeButton.tsx:122
+#: src/components/automations/AddNodeButton.tsx:124
 #: src/components/automations/NodePalette.tsx:40
 msgid "Select a list to enable email nodes"
 msgstr "选择启用邮件节点的列表"
@@ -11509,7 +11964,7 @@ msgstr "选择启用邮件节点的列表"
 #: src/components/automations/config/AddToListConfigForm.tsx:37
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:27
 #: src/components/automations/config/RemoveFromListConfigForm.tsx:31
-#: src/components/automations/config/TriggerConfigForm.tsx:289
+#: src/components/automations/config/TriggerConfigForm.tsx:300
 msgid "Select a list..."
 msgstr "选择一个列表..."
 
@@ -11517,11 +11972,15 @@ msgstr "选择一个列表..."
 msgid "Select a model"
 msgstr "选择一个模型"
 
+#: src/components/automations/AutomationNodeList.tsx:26
+msgid "Select a node here to configure it without using the canvas."
+msgstr "可在此选择节点进行配置，无需操作画布。"
+
 #: src/components/email_builder/ui/ImportFontInput.tsx:157
 msgid "Select a popular Google Font"
 msgstr "选择流行 Google 字体"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:310
+#: src/components/automations/config/TriggerConfigForm.tsx:321
 msgid "Select a segment..."
 msgstr "选择一段..."
 
@@ -11550,7 +12009,7 @@ msgstr "选择邮件集成"
 msgid "Select an event type"
 msgstr "选择事件类型"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:271
+#: src/components/automations/config/TriggerConfigForm.tsx:282
 msgid "Select an event..."
 msgstr "选择事件..."
 
@@ -11664,7 +12123,7 @@ msgstr "选择语言"
 msgid "Select language..."
 msgstr "选择语言..."
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:197
+#: src/components/automations/UpsertAutomationDrawer.tsx:205
 #: src/components/contacts/BulkUpdateDrawer.tsx:604
 msgid "Select list"
 msgstr "选择列表"
@@ -11719,7 +12178,7 @@ msgstr "选择模板"
 msgid "Select the email template to send"
 msgstr "选择要发送的邮件模板"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:259
+#: src/components/automations/config/TriggerConfigForm.tsx:270
 msgid "Select the event that will trigger this automation"
 msgstr "选择触发此自动化的事件"
 
@@ -11744,7 +12203,7 @@ msgstr "选择时区..."
 msgid "Select type"
 msgstr "选择类型"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:286
+#: src/components/automations/config/TriggerConfigForm.tsx:297
 msgid "Select which list this trigger applies to"
 msgstr "选择此触发器适用于哪一个列表"
 
@@ -11760,7 +12219,7 @@ msgstr "选择要检查联系人状态的列表"
 msgid "Select which list to remove the contact from"
 msgstr "选择要删除联系人的列表"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:307
+#: src/components/automations/config/TriggerConfigForm.tsx:318
 msgid "Select which segment this trigger applies to"
 msgstr "选择此触发器适用于哪段"
 
@@ -11768,7 +12227,7 @@ msgstr "选择此触发器适用于哪段"
 msgid "Select Winner"
 msgstr "选择赢家"
 
-#: src/layouts/WorkspaceLayout.tsx:446
+#: src/layouts/WorkspaceLayout.tsx:447
 #: src/pages/DashboardPage.tsx:31
 msgid "Select workspace"
 msgstr "选择工作区"
@@ -11978,6 +12437,10 @@ msgstr "服务器已成功重新启动 ! 你现在可以报名了"
 msgid "Server Token"
 msgstr "服务器令牌"
 
+#: src/services/api/errors.ts:153
+msgid "Service temporarily unavailable"
+msgstr "服务暂时不可用"
+
 #: src/components/settings/Integrations.tsx:2249
 msgid "SES tenant"
 msgstr "SES 租户"
@@ -12144,7 +12607,7 @@ msgstr "准备..."
 
 #: src/components/settings/SettingsSidebar.tsx:155
 #: src/components/settings/UITranslationsSettings.tsx:101
-#: src/layouts/WorkspaceLayout.tsx:317
+#: src/layouts/WorkspaceLayout.tsx:318
 msgid "Settings"
 msgstr "设置"
 
@@ -12188,6 +12651,10 @@ msgstr "显示进化"
 #: src/components/blog/RecentThemesTable.tsx:264
 msgid "Show More ({0} remaining)"
 msgstr "显示更多( R){0} (续)"
+
+#: src/components/customers/CustomerDrawer.tsx:101
+msgid "Showing the surviving customer profile."
+msgstr "当前显示合并后保留的客户档案。"
 
 #: src/components/broadcasts/BroadcastLinkStats.tsx:200
 msgid "Showing the top 200 links by unique clicks."
@@ -12261,7 +12728,7 @@ msgstr "小写字母、数字和连字符"
 
 #: src/components/automations/AddNodeButton.tsx:80
 #: src/components/automations/config/ChannelConfigForm.tsx:29
-#: src/components/automations/NodeConfigPanel.tsx:89
+#: src/components/automations/NodeConfigPanel.tsx:78
 #: src/components/automations/nodes/ChannelNode.tsx:16
 #: src/components/automations/nodes/StatNode.tsx:87
 #: src/components/messages/MessageHistoryTab.tsx:220
@@ -12410,6 +12877,10 @@ msgstr "社会份额标题"
 msgid "Solid"
 msgstr "固态"
 
+#: src/services/api/errors.ts:162
+msgid "Some information needs attention"
+msgstr "部分信息需要修正"
+
 #: src/components/templates/useTemplateConflictModal.tsx:70
 msgid "Someone changed this template while you were editing. Reload the latest version — your unsaved changes will be lost — or overwrite it with yours."
 msgstr "您编辑期间有人修改了此模板。可重新加载最新版本（未保存的更改将丢失），或用您的版本覆盖它。"
@@ -12424,10 +12895,22 @@ msgstr "您编辑期间有人保存了版本 {0}（您开始编辑时为 {1}）�
 msgid "Something went wrong"
 msgstr "出问题了"
 
+#: src/pages/DeliveryCenterPage.tsx:81
+msgid "Source"
+msgstr "来源"
+
 #. placeholder {0}: node.leaf?.source
 #: src/components/segment/input.tsx:468
 msgid "source {0} not found"
 msgstr "来源 {0} 未找到"
+
+#: src/pages/DeliveryCenterPage.tsx:112
+msgid "Source ID"
+msgstr "来源 ID"
+
+#: src/pages/DeliveryCenterPage.tsx:111
+msgid "Source type"
+msgstr "来源类型"
 
 #: src/components/timeline/ContactTimeline.tsx:878
 msgid "Source:"
@@ -12507,6 +12990,14 @@ msgstr "开始打字..."
 msgid "Start Upload"
 msgstr "开始上传"
 
+#: src/components/automations/JourneyCreateWizard.tsx:134
+msgid "Start when the business scheduler reports a customer birthday event."
+msgstr "业务调度器上报客户生日事件时启动。"
+
+#: src/components/automations/JourneyCreateWizard.tsx:154
+msgid "Start with an empty trigger and build the flow yourself."
+msgstr "从空白触发器开始，自行搭建流程。"
+
 #: src/components/blog/PostDrawer.tsx:821
 msgid "Start writing your blog post..."
 msgstr "开始写博客文章..."
@@ -12532,22 +13023,27 @@ msgstr "STARTTLS"
 msgid "STARTTLS required"
 msgstr "所需STARTLS"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:134
+#: src/components/automations/config/TriggerConfigForm.tsx:145
 #: src/components/contacts/ContactDetailsDrawer.tsx:448
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:100
 msgid "State"
 msgstr "状态"
 
+#: src/components/automations/JourneyTraceDrawer.tsx:92
 #: src/components/blog/PostsTable.tsx:245
 #: src/components/blog/RecentThemesTable.tsx:122
 #: src/components/contacts/ContactDetailsDrawer.tsx:982
-#: src/components/customers/CustomerDrawer.tsx:67
+#: src/components/customers/CustomerDrawer.tsx:27
 #: src/components/messages/MessageHistoryTab.tsx:580
 #: src/components/web_analytics/filters/FilterTable.tsx:264
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:82
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:378
 #: src/pages/BroadcastsPage.tsx:453
 #: src/pages/CustomersPage.tsx:110
+#: src/pages/DeliveryCenterPage.tsx:79
+#: src/pages/DeliveryCenterPage.tsx:109
+#: src/pages/DeliveryCenterPage.tsx:140
+#: src/pages/DeliveryCenterPage.tsx:145
 msgid "Status"
 msgstr "状态"
 
@@ -12560,7 +13056,7 @@ msgstr "状态已更改"
 msgid "Status unknown"
 msgstr "状态未知"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:214
+#: src/components/automations/UpsertAutomationDrawer.tsx:222
 msgid "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Yaoguang Marketing. Without that setup, replies aren't detected and the sequence won't stop."
 msgstr "客户回复流程中的任意邮件后立即停止该自动化。您必须在邮件服务商（ESP）中配置入站回复转发：发送域名的回复需先路由到服务商，再由服务商转发到瑶光营销平台。未完成配置时无法检测回复，流程也不会停止。"
 
@@ -12652,7 +13148,7 @@ msgid "subscribed"
 msgstr "订阅"
 
 #: src/components/automations/config/AddToListConfigForm.tsx:17
-#: src/components/automations/config/TriggerConfigForm.tsx:82
+#: src/components/automations/config/TriggerConfigForm.tsx:93
 #: src/components/automations/nodes/AddToListNode.tsx:59
 msgid "Subscribed"
 msgstr "已订阅"
@@ -12752,6 +13248,10 @@ msgstr "支持的语言"
 msgid "Supports reply_to, cc, bcc, and attachments"
 msgstr "支助 reply_to、cc、cc和附件"
 
+#: src/i18n/catalogInventory.ts:15
+msgid "Suppression"
+msgstr "触达抑制"
+
 #: src/components/templates/CreateTemplateDrawer.tsx:1444
 msgid "Switch to Preview mode to see how your email will look to recipients. This shows the final rendered version with all styling applied."
 msgstr "切换到预览模式,以查看您的邮件会如何看待收件人 。 这显示了最终渲染的版本, 并应用了所有的样式 。"
@@ -12781,19 +13281,19 @@ msgstr "系统 SMTP"
 msgid "Table of Contents"
 msgstr "目录"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:340
+#: src/components/automations/config/TriggerConfigForm.tsx:351
 msgid "Tag"
 msgstr "标记"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:74
+#: src/components/automations/config/TriggerConfigForm.tsx:85
 msgid "Tag Added"
 msgstr "标记已添加"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:75
+#: src/components/automations/config/TriggerConfigForm.tsx:86
 msgid "Tag Removed"
 msgstr "标记已删除"
 
-#: src/components/customers/CustomerDrawer.tsx:98
+#: src/components/customers/CustomerDrawer.tsx:32
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:137
 #: src/components/web_analytics/filters/FilterTable.tsx:252
 #: src/pages/CustomersPage.tsx:116
@@ -12958,9 +13458,13 @@ msgstr "模板 :"
 #: src/components/settings/PermissionsMatrix.tsx:121
 #: src/components/settings/UITranslationsSettings.tsx:112
 #: src/pages/TemplatesPage.tsx:451
-#: src/services/api/errors.ts:56
+#: src/services/api/errors.ts:216
 msgid "Templates"
 msgstr "模板"
+
+#: src/components/automations/JourneyCreateWizard.tsx:277
+msgid "Templates provide understandable defaults. Every trigger and flow node remains editable."
+msgstr "模板提供易懂的默认配置，所有触发器和流程节点仍可编辑。"
 
 #: src/components/settings/Integrations.tsx:2347
 msgid "Templates using this sender will need to be updated to use a different sender."
@@ -13153,10 +13657,10 @@ msgid "The API endpoint has changed. After restart, the console will be availabl
 msgstr "API端点改变. 重新启动后,控制台将在以下时间可用:"
 
 #: src/components/automations/AutomationCard.tsx:210
-msgid "The automation will start processing contacts that match the trigger."
-msgstr "自动化将启动与触发器匹配的处理联系人."
+#~ msgid "The automation will start processing contacts that match the trigger."
+#~ msgstr "自动化将启动与触发器匹配的处理联系人."
 
-#: src/components/automations/AutomationCard.tsx:234
+#: src/components/automations/AutomationCard.tsx:230
 msgid "The automation will stop processing new contacts."
 msgstr "自动化将停止处理新的联系人。"
 
@@ -13195,6 +13699,10 @@ msgstr "当前的日期范围、过滤器和会话阈值"
 #: src/components/blog/RecentThemesTable.tsx:96
 msgid "The currently published theme will be unpublished automatically."
 msgstr "目前公布的主题将自动发布."
+
+#: src/services/api/errors.ts:125
+msgid "The customer will not receive this delivery."
+msgstr "客户不会收到本次投递。"
 
 #: src/components/settings/Integrations.tsx:1936
 msgid "The email address that will be used as the SMTP user for authentication"
@@ -13249,6 +13757,14 @@ msgstr "出站消息日志：包括工作区发送的每封邮件、投递状态
 #: src/components/settings/GeneralSettings.tsx:245
 msgid "The primary language for template content. Translations are stored for other languages."
 msgstr "模板内容的主要语言. 翻译为其他语言所储存."
+
+#: src/services/api/errors.ts:116
+msgid "The provider has not confirmed whether the customer was contacted."
+msgstr "服务商尚未确认是否已触达客户。"
+
+#: src/services/api/errors.ts:180
+msgid "The requested change may not have been applied."
+msgstr "请求的更改可能尚未生效。"
 
 #: src/pages/AnalyticsPage.tsx:69
 msgid "The requested workspace could not be found."
@@ -13425,11 +13941,19 @@ msgstr "这次群发在完成前被取消."
 msgid "This cannot be undone."
 msgstr "这一点是无法消除的。"
 
+#: src/components/automations/JourneyPreflightPanel.tsx:170
+msgid "This check is valid for five minutes unless the journey changes."
+msgstr "若自动化旅程未发生变化，本次检查结果五分钟内有效。"
+
 #: src/components/contacts/ContactDetailsDrawer.tsx:1030
 msgid "This contact is not subscribed to any lists"
 msgstr "此联系人未订阅任何列表"
 
-#: src/components/customers/CustomerDrawer.tsx:49
+#: src/components/customers/CustomerJourneysTab.tsx:24
+msgid "This customer has not entered a journey"
+msgstr "该客户尚未进入任何自动化旅程"
+
+#: src/components/customers/CustomerDrawer.tsx:101
 msgid "This customer was merged"
 msgstr "该客户已被合并"
 
@@ -13437,13 +13961,17 @@ msgstr "该客户已被合并"
 msgid "This email will be used for the root administrator account"
 msgstr "此邮件将被用于根管理员账户"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:407
+#: src/components/automations/config/TriggerConfigForm.tsx:421
 msgid "This event fires often. These conditions are evaluated for every matching event."
 msgstr "这个事件经常发生。 每个匹配事件都对这些条件进行评估."
 
 #: src/components/broadcasts/RecipientFeedSettings.tsx:99
 msgid "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically."
 msgstr "此功能在发送每个收件人的邮件前为每个收件人提出 HTTP 请求 。 这可以大大减缓群发处理. 如果重试后种子请求失败,群发会自动暂停."
+
+#: src/services/api/errors.ts:163
+msgid "This form was not submitted."
+msgstr "表单尚未提交。"
 
 #: src/components/integrations/SupabaseIntegration.tsx:245
 msgid "This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase."
@@ -13477,6 +14005,14 @@ msgstr "这是内容结构树。您可以拖放区块以重新组织邮件布局
 msgid "This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options."
 msgstr "这是你的视觉邮件编辑器。 点击邮件中的任何元素选择它 。 将用蓝色边框突出选定元素并显示编辑选项。"
 
+#: src/services/api/errors.ts:133
+msgid "This item changed before your update was saved"
+msgstr "保存前该项目已被其他操作更新"
+
+#: src/components/automations/JourneyTraceDrawer.tsx:97
+msgid "This journey is waiting by design"
+msgstr "自动化旅程正在按配置等待"
+
 #: src/components/settings/WebAnalyticsSettings.tsx:316
 msgid "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 msgstr "此单有二事. 它过滤进球拍——其他起源被默默忽略. 它也会打开邮件点击标识:一个跟踪链接只带一个在此列出的域的身份符,因此,虽然这是空的,但是没有邮件链接可以识别联系人. 使用*.example.com可以同时覆盖示例.com及其子域名——example.com本身并不匹配www.example.com."
@@ -13489,6 +14025,14 @@ msgstr "此通知由集成管理，无法重命名"
 msgid "This notification is managed by an integration and the template cannot be changed"
 msgstr "此通知通过集成管理, 模板无法更改"
 
+#: src/services/api/errors.ts:143
+msgid "This operation has not completed."
+msgstr "本次操作尚未完成。"
+
+#: src/services/api/errors.ts:154
+msgid "This operation is delayed; no data was discarded."
+msgstr "本次操作已延迟，但没有数据丢失。"
+
 #: src/components/timeline/WebPageDrawer.tsx:86
 msgid "This page cannot be previewed here"
 msgstr "此页面无法在此预览"
@@ -13500,6 +14044,10 @@ msgstr "当前没有任何端点受此权限控制。"
 #: src/components/settings/PermissionsMatrix.tsx:178
 msgid "This permission is not enforced yet, so it is always granted. It cannot be turned off."
 msgstr "这一许可尚未执行,所以总是得到批准。 它不能关闭。"
+
+#: src/components/automations/JourneyCreateWizard.tsx:427
+msgid "This policy does not change whether a customer enters the Journey."
+msgstr "此策略不会改变客户是否进入自动化旅程。"
 
 #: src/components/segment/input_event_property_filters.tsx:162
 msgid "This property is already filtered"
@@ -13657,12 +14205,12 @@ msgstr "时间戳"
 
 #: src/components/analytics/NewContactsTable.tsx:134
 #: src/components/analytics/NewContactsTable.tsx:172
-#: src/components/automations/config/TriggerConfigForm.tsx:124
+#: src/components/automations/config/TriggerConfigForm.tsx:135
 #: src/components/blog/PublishModal.tsx:184
 #: src/components/broadcasts/SendOrScheduleModal.tsx:298
 #: src/components/contacts/ContactDetailsDrawer.tsx:451
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:95
-#: src/components/customers/CustomerDrawer.tsx:73
+#: src/components/customers/CustomerDrawer.tsx:29
 #: src/components/settings/GeneralSettings.tsx:153
 #: src/components/settings/GeneralSettings.tsx:215
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:169
@@ -13759,6 +14307,10 @@ msgstr "TLS 私钥 (Base64)"
 msgid "TLS private key is required"
 msgstr "需要 TLS 私人密钥"
 
+#: src/pages/DeliveryCenterPage.tsx:116
+msgid "To"
+msgstr "结束时间"
+
 #: src/components/transactional/ApiCommandModal.tsx:561
 msgid "to prevent duplicate sends"
 msgstr "防止重复发送"
@@ -13789,6 +14341,10 @@ msgstr "在移动视图和桌面视图之间切换, 以查看您的邮件在不�
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:244
 msgid "Toggle caption"
 msgstr "切换标题"
+
+#: src/services/api/errors.ts:142
+msgid "Too many requests right now"
+msgstr "当前请求过多"
 
 #: src/pages/SignInPage.tsx:106
 msgid "Too many sign-in attempts. Please wait a moment and try again."
@@ -13878,6 +14434,10 @@ msgstr "联系人总数"
 msgid "Total Value"
 msgstr "共计"
 
+#: src/pages/DeliveryCenterPage.tsx:104
+msgid "Track every send decision, provider attempt and uncertain outcome in one place."
+msgstr "在一个页面追踪每次发送决策、服务商提交记录和不确定结果。"
+
 #: src/components/settings/WebAnalyticsSettings.tsx:376
 msgid "Track visitor country, region, city, and coordinates"
 msgstr "跟踪访问国、区域、城市和坐标"
@@ -13917,7 +14477,7 @@ msgstr "没有过滤规则"
 #: src/components/templates/MessageTemplateDrawer.tsx:394
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
 #: src/pages/TemplatesPage.tsx:126
-#: src/services/api/errors.ts:58
+#: src/services/api/errors.ts:218
 msgid "Transactional"
 msgstr "事务通知"
 
@@ -13966,24 +14526,37 @@ msgid "Trial"
 msgstr "审判"
 
 #: src/components/automations/AddNodeButton.tsx:77
-#: src/components/automations/AutomationCard.tsx:294
-#: src/components/automations/NodeConfigPanel.tsx:86
+#: src/components/automations/AutomationCard.tsx:290
+#: src/components/automations/JourneyCreateWizard.tsx:467
+#: src/components/automations/NodeConfigPanel.tsx:75
 #: src/components/automations/nodes/StatNode.tsx:84
 #: src/components/automations/nodes/TriggerNode.tsx:60
 msgid "Trigger"
 msgstr "触发器"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:257
+#: src/components/automations/config/TriggerConfigForm.tsx:268
 msgid "Trigger Event"
 msgstr "触发事件"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:351
+#: src/components/automations/config/TriggerConfigForm.tsx:362
 msgid "Trigger on specific field changes"
 msgstr "触发特定字段变化"
 
 #: src/pages/BroadcastsPage.tsx:1676
 msgid "Try adjusting your search or status filter"
 msgstr "尝试调整搜索或状态过滤器"
+
+#: src/components/errors/ActionableError.tsx:49
+msgid "Try again"
+msgstr "重试"
+
+#: src/services/api/errors.ts:155
+msgid "Try again in a moment. If it continues, give support the request ID below."
+msgstr "请稍后重试；若问题持续，请将下方请求 ID 提供给技术支持。"
+
+#: src/services/api/errors.ts:181
+msgid "Try again. If it continues, give support the request ID below."
+msgstr "请重试；若问题持续，请将下方请求 ID 提供给技术支持。"
 
 #: src/pages/TemplatesPage.tsx:553
 msgid "Try selecting a different category or"
@@ -14052,12 +14625,20 @@ msgid "Unable to load customers"
 msgstr "无法加载客户"
 
 #: src/components/customers/CustomerDrawer.tsx:39
-msgid "Unable to load this customer"
-msgstr "无法加载该客户"
+#~ msgid "Unable to load this customer"
+#~ msgstr "无法加载该客户"
+
+#: src/services/api/errors.ts:98
+msgid "Unable to reach the server"
+msgstr "无法连接服务器"
 
 #: src/components/blog/PostsTable.tsx:168
 msgid "Uncategorized"
 msgstr "未分类"
+
+#: src/pages/DeliveryCenterPage.tsx:106
+msgid "Uncertain and permanently failed deliveries need attention"
+msgstr "请关注结果不确定和永久失败的投递"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:328
 #: src/components/email_builder/ui/FontStyleInput.tsx:137
@@ -14076,7 +14657,7 @@ msgstr "了解转介的质量"
 msgid "Undo"
 msgstr "撤销"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:151
+#: src/components/automations/UpsertAutomationDrawer.tsx:161
 msgid "Undo (Ctrl+Z)"
 msgstr "撤消( Ctrl+Z)"
 
@@ -14119,7 +14700,7 @@ msgstr "未知"
 msgid "Unknown date"
 msgstr "未知日期"
 
-#: src/layouts/WorkspaceLayout.tsx:210
+#: src/layouts/WorkspaceLayout.tsx:211
 msgid "Unknown error"
 msgstr "未知错误"
 
@@ -14160,14 +14741,14 @@ msgstr "撤销"
 msgid "Unpublish post"
 msgstr "下线文章"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:147
+#: src/components/automations/UpsertAutomationDrawer.tsx:157
 #: src/components/blog/PostDrawer.tsx:558
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:235
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:150
 msgid "Unsaved changes"
 msgstr "未保存的更改"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:99
+#: src/components/automations/UpsertAutomationDrawer.tsx:109
 #: src/components/blog/ThemeEditorDrawer.tsx:275
 msgid "Unsaved Changes"
 msgstr "未保存的更改"
@@ -14206,8 +14787,8 @@ msgstr "UNSUBSCRIBE"
 msgid "Unsubscribe from list"
 msgstr "从列表中取消订阅"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:83
-#: src/components/automations/config/TriggerConfigForm.tsx:108
+#: src/components/automations/config/TriggerConfigForm.tsx:94
+#: src/components/automations/config/TriggerConfigForm.tsx:119
 #: src/components/contacts/ContactDetailsDrawer.tsx:584
 #: src/components/messages/MessageHistoryTab.tsx:195
 #: src/components/messages/MessageHistoryTab.tsx:200
@@ -14228,6 +14809,10 @@ msgstr "未订阅"
 #: src/pages/BroadcastsPage.tsx:805
 msgid "Untitled"
 msgstr "无标题"
+
+#: src/components/automations/JourneyCreateWizard.tsx:156
+msgid "Untitled journey"
+msgstr "未命名自动化旅程"
 
 #: src/components/settings/Integrations.tsx:2230
 #: src/components/settings/Integrations.tsx:2257
@@ -14266,8 +14851,8 @@ msgstr "更新状态"
 msgid "updated"
 msgstr "更新"
 
-#: src/components/automations/AutomationCard.tsx:310
-#: src/components/automations/config/TriggerConfigForm.tsx:70
+#: src/components/automations/AutomationCard.tsx:306
+#: src/components/automations/config/TriggerConfigForm.tsx:81
 #: src/components/blog/PostsTable.tsx:290
 msgid "Updated"
 msgstr "更新"
@@ -14500,7 +15085,7 @@ msgstr "UTM 来源"
 msgid "UTM Term"
 msgstr "UTM 学期"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:114
+#: src/components/automations/UpsertAutomationDrawer.tsx:124
 msgid "Validation Error"
 msgstr "校验错误"
 
@@ -14537,9 +15122,21 @@ msgstr "备选名称"
 msgid "Variations"
 msgstr "变化"
 
+#: src/pages/DeliveryCenterPage.tsx:163
+msgid "Verification evidence"
+msgstr "核实依据"
+
+#: src/pages/DeliveryCenterPage.tsx:156
+msgid "Verified outcome"
+msgstr "已核实结果"
+
 #: src/pages/SignInPage.tsx:278
 msgid "Verify Code"
 msgstr "验证验证码"
+
+#: src/services/api/errors.ts:117
+msgid "Verify the outcome with the provider before retrying to avoid a duplicate contact."
+msgstr "重试前请先向服务商核实结果，避免重复触达客户。"
 
 #: src/pages/AcceptInvitationPage.tsx:103
 msgid "Verifying invitation..."
@@ -14608,6 +15205,10 @@ msgstr "查看 SMTP 桥梁文档和设置指南"
 msgid "View snippet"
 msgstr "查看片段"
 
+#: src/components/customers/CustomerJourneysTab.tsx:32
+msgid "View trace"
+msgstr "查看追踪"
+
 #: src/components/segment/form_leaf.tsx:388
 #: src/components/segment/input.tsx:794
 msgid "View web page"
@@ -14649,21 +15250,35 @@ msgstr "视觉邮件编辑器"
 msgid "vs."
 msgstr "报告"
 
+#: src/services/api/errors.ts:146
+msgid "Wait briefly, then try again."
+msgstr "请稍等片刻后重试。"
+
 #: src/components/automations/config/DelayConfigForm.tsx:30
 msgid "Wait Duration"
 msgstr "等待时间"
+
+#. placeholder {0}: details.retryAfter
+#: src/services/api/errors.ts:145
+msgid "Wait until {0}, then try again."
+msgstr "请等待至 {0} 后重试。"
 
 #: src/pages/SetupWizard.tsx:289
 msgid "Waiting for server restart..."
 msgstr "正在等待服务器重新启动..."
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:126
+#: src/components/automations/JourneyPreflightPanel.tsx:133
+#: src/components/automations/UpsertAutomationDrawer.tsx:136
 msgid "Warning"
 msgstr "3⁄4 ̧漯B"
 
 #: src/components/settings/PermissionsMatrix.tsx:97
 msgid "Watch out"
 msgstr "小心点"
+
+#: src/services/api/errors.ts:179
+msgid "We could not complete this operation"
+msgstr "无法完成本次操作"
 
 #: src/pages/CreateWorkspacePage.tsx:172
 msgid "We'll automatically detect and use your website's favicon"
@@ -14682,7 +15297,7 @@ msgstr "网页"
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:349
 #: src/pages/BroadcastsPage.tsx:1158
 #: src/pages/WebAnalyticsPage.tsx:94
-#: src/services/api/errors.ts:64
+#: src/services/api/errors.ts:224
 msgid "Web Analytics"
 msgstr "网站分析"
 
@@ -14711,7 +15326,7 @@ msgid "Web session"
 msgstr "网络会议"
 
 #: src/components/automations/AddNodeButton.tsx:87
-#: src/components/automations/NodeConfigPanel.tsx:95
+#: src/components/automations/NodeConfigPanel.tsx:84
 #: src/components/automations/nodes/StatNode.tsx:94
 #: src/components/automations/nodes/WebhookNode.tsx:43
 #: src/components/timeline/ContactTimeline.tsx:667
@@ -14737,7 +15352,7 @@ msgid "Webhook endpoint:"
 msgstr "Webhook 端点 :"
 
 #: src/components/settings/PermissionsMatrix.tsx:132
-#: src/services/api/errors.ts:67
+#: src/services/api/errors.ts:227
 msgid "Webhook Events"
 msgstr "Webhook 事件"
 
@@ -14758,7 +15373,7 @@ msgid "Webhook subscription updated"
 msgstr "更新 Webhook 订阅"
 
 #: src/components/settings/PermissionsMatrix.tsx:131
-#: src/services/api/errors.ts:66
+#: src/services/api/errors.ts:226
 msgid "Webhook Subscriptions"
 msgstr "Webhook 订阅"
 
@@ -14830,6 +15445,10 @@ msgstr "重量"
 #: src/pages/TemplatesPage.tsx:127
 msgid "Welcome"
 msgstr "欢迎光临"
+
+#: src/components/automations/JourneyCreateWizard.tsx:102
+msgid "Welcome a customer after profile creation or a business signup event."
+msgstr "客户档案创建或业务注册事件发生后发送欢迎触达。"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1420
 msgid "Welcome to Email Builder!"
@@ -14903,6 +15522,10 @@ msgstr "哪些采购渠道和运动带来了这一时期的大部分会议,哪�
 msgid "Which landing pages bring the most sessions, and which ones have the worst bounce rate or engagement?"
 msgstr "哪些登陆网页带来最多的会话? 哪些登陆网页的弹跳率或约定率最差?"
 
+#: src/pages/DeliveryCenterPage.tsx:82
+msgid "Why"
+msgstr "原因说明"
+
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:470
 msgid "Why did traffic change?"
 msgstr "为什么交通会变?"
@@ -14966,7 +15589,7 @@ msgstr "使用:"
 
 #: src/components/settings/PermissionsMatrix.tsx:124
 #: src/components/settings/UITranslationsSettings.tsx:102
-#: src/services/api/errors.ts:59
+#: src/services/api/errors.ts:219
 msgid "Workspace"
 msgstr "工作区"
 
@@ -15013,14 +15636,14 @@ msgstr "工作区名称"
 msgid "Workspace name must be at least 3 characters long"
 msgstr "工作区名称必须至少有3个字符长"
 
-#: src/layouts/WorkspaceLayout.tsx:189
+#: src/layouts/WorkspaceLayout.tsx:190
 #: src/pages/AnalyticsPage.tsx:68
 #: src/pages/FileManagerPage.tsx:56
 msgid "Workspace not found"
 msgstr "找不到工作区"
 
 #: src/components/settings/GeneralSettings.tsx:103
-#: src/layouts/WorkspaceLayout.tsx:207
+#: src/layouts/WorkspaceLayout.tsx:208
 msgid "Workspace settings updated successfully"
 msgstr "工作区设置成功更新"
 
@@ -15065,6 +15688,10 @@ msgstr "写入权限包括永久删除和批量覆盖：`/api/contacts.import` �
 #: src/components/email_builder/blocks/MjLiquidBlock.tsx:33
 msgid "Write MJML markup with Liquid template tags. This content is injected directly into the email and processed by the Liquid engine before MJML compilation. Use for-loops, conditionals, and variables to generate dynamic structural content."
 msgstr "写入 MJML 标记 Liquid 模板标签。 此内容直接注入邮件并由 Liquid 前一个引擎 MJML 汇编。 用-loops,条件,和变量生成动态结构内容."
+
+#: src/pages/DeliveryCenterPage.tsx:150
+msgid "Write permission is required to reconcile or resolve this delivery"
+msgstr "核对或处理此投递需要消息历史写入权限"
 
 #: src/components/settings/WebhookCard.tsx:298
 msgid "Yaoguang Marketing disabled this webhook automatically"
@@ -15121,8 +15748,8 @@ msgid "Yes"
 msgstr "是"
 
 #: src/components/automations/AutomationCard.tsx:212
-msgid "Yes, activate"
-msgstr "是,启动"
+#~ msgid "Yes, activate"
+#~ msgstr "是,启动"
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:83
 #: src/pages/BroadcastsPage.tsx:677
@@ -15142,7 +15769,7 @@ msgstr "是,删除"
 msgid "Yes, Delete"
 msgstr "是,删除"
 
-#: src/components/automations/AutomationCard.tsx:236
+#: src/components/automations/AutomationCard.tsx:232
 #: src/pages/BroadcastsPage.tsx:630
 msgid "Yes, pause"
 msgstr "是的,暂停"
@@ -15163,11 +15790,15 @@ msgstr "昨日来"
 msgid "You can only upload CSV files!"
 msgstr "您只能上传 CSV 文件 !"
 
-#: src/services/api/errors.ts:112
+#: src/services/api/errors.ts:171
+msgid "You cannot complete this operation"
+msgstr "您没有权限完成此操作"
+
+#: src/services/api/errors.ts:272
 msgid "You do not have read access to {resource}."
 msgstr "您没有读取权限 {resource}."
 
-#: src/services/api/errors.ts:113
+#: src/services/api/errors.ts:273
 msgid "You do not have write access to {resource}."
 msgstr "您没有写入权限 {resource}."
 
@@ -15185,7 +15816,7 @@ msgstr "您没有权限管理自定义字段"
 #: src/components/automations/AutomationCard.tsx:147
 #: src/components/automations/AutomationCard.tsx:175
 #: src/components/automations/AutomationCard.tsx:204
-#: src/components/automations/AutomationCard.tsx:228
+#: src/components/automations/AutomationCard.tsx:224
 msgid "You don't have write permission for automations"
 msgstr "你没有写自动化的许可"
 
@@ -15237,7 +15868,7 @@ msgstr "您有未保存的更改"
 msgid "You have unsaved changes. Are you sure you want to close this drawer?"
 msgstr "你有未保存的变化。 你确定要关闭这个抽屉吗?"
 
-#: src/components/automations/UpsertAutomationDrawer.tsx:100
+#: src/components/automations/UpsertAutomationDrawer.tsx:110
 msgid "You have unsaved changes. Are you sure you want to close?"
 msgstr "你有未保存的变化。 你确定要关门吗?"
 
@@ -15270,6 +15901,18 @@ msgstr "您的 AWS 凭据无法创建 SES 租户。请授予 ses:CreateTenant �
 #: src/components/settings/BlogSettings.tsx:494
 msgid "Your blog settings have not been saved. Leaving this page discards them."
 msgstr "您的博客设置尚未保存 。 离开这页会丢弃他们。"
+
+#: src/services/api/errors.ts:134
+msgid "Your changes were not applied."
+msgstr "您的更改尚未应用。"
+
+#: src/services/api/errors.ts:99
+msgid "Your changes were not submitted."
+msgstr "您的更改尚未提交。"
+
+#: src/components/automations/JourneyCreateWizard.tsx:482
+msgid "Your draft is kept when you close this wizard."
+msgstr "关闭向导后仍会保留草稿。"
 
 #: src/components/file_manager/buttonSettings.tsx:215
 msgid "Your files can be uploaded to any S3 compatible storage."

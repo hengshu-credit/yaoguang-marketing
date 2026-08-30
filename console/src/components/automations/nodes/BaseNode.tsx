@@ -53,7 +53,7 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
             okButtonProps={{ danger: true }}
           >
             <Tooltip title={t`Delete node`} placement="right">
-              <button className="flex items-center justify-center w-6 h-6 rounded-full bg-white hover:bg-red-50 shadow-md border border-gray-200 cursor-pointer transition-transform hover:scale-110">
+              <button type="button" aria-label={t`Delete node`} className="flex items-center justify-center w-6 h-6 rounded-full bg-white hover:bg-red-50 shadow-md border border-gray-200 cursor-pointer transition-transform hover:scale-110">
                 <Trash2 size={14} className="text-gray-400 hover:text-red-500" />
               </button>
             </Tooltip>
