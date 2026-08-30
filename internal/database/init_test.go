@@ -295,7 +295,7 @@ func TestInitializeWorkspaceDatabase_Comprehensive(t *testing.T) {
 
 		// Mock all SQL statements - tables, indexes, trigger functions, and triggers
 		// Increased to accommodate all workspace tables, indexes, and webhook-related triggers
-		for i := 0; i < 300; i++ { // Allow for many SQL statements with buffer
+		for i := 0; i < 500; i++ { // Allow for many SQL statements with buffer
 			mock.ExpectExec(".+").WillReturnResult(sqlmock.NewResult(0, 0))
 		}
 

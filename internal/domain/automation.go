@@ -156,14 +156,15 @@ func (a NodeAction) IsValid() bool {
 
 // TimelineTriggerConfig defines the trigger configuration for an automation
 type TimelineTriggerConfig struct {
-	EventKind       string           `json:"event_kind"`                  // Timeline event type to listen for
-	ListID          *string          `json:"list_id,omitempty"`           // Required for list.* events
-	SegmentID       *string          `json:"segment_id,omitempty"`        // Required for segment.* events
-	CustomEventName *string          `json:"custom_event_name,omitempty"` // Required for custom_event
-	Tag             *string          `json:"tag,omitempty"`               // Required for contact.tagged/contact.untagged
-	UpdatedFields   []string         `json:"updated_fields,omitempty"`    // For contact.updated: only trigger on these field changes
-	Conditions      *TreeNode        `json:"conditions"`                  // Reuse segments condition system
-	Frequency       TriggerFrequency `json:"frequency"`
+	EventKind       string             `json:"event_kind"`                  // Timeline event type to listen for
+	ListID          *string            `json:"list_id,omitempty"`           // Required for list.* events
+	SegmentID       *string            `json:"segment_id,omitempty"`        // Required for segment.* events
+	CustomEventName *string            `json:"custom_event_name,omitempty"` // Required for custom_event
+	Tag             *string            `json:"tag,omitempty"`               // Required for contact.tagged/contact.untagged
+	UpdatedFields   []string           `json:"updated_fields,omitempty"`    // For contact.updated: only trigger on these field changes
+	Conditions      *TreeNode          `json:"conditions"`                  // Reuse segments condition system
+	Frequency       TriggerFrequency   `json:"frequency"`
+	EntryGuard      *JourneyEntryGuard `json:"entry_guard,omitempty"`
 }
 
 // Validate validates the trigger configuration
@@ -178,6 +179,11 @@ func (c *TimelineTriggerConfig) Validate() error {
 
 	if !c.Frequency.IsValid() {
 		return fmt.Errorf("invalid trigger frequency: %s", c.Frequency)
+	}
+	if c.EntryGuard != nil {
+		if err := c.EntryGuard.Validate(); err != nil {
+			return err
+		}
 	}
 
 	// list.* events require list_id

@@ -602,6 +602,11 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			return fmt.Errorf("failed to create marketing table: %w", err)
 		}
 	}
+	for _, query := range schema.JourneyTableDefinitions() {
+		if _, err := db.Exec(query); err != nil {
+			return fmt.Errorf("failed to create journey authority table: %w", err)
+		}
+	}
 	for _, month := range schema.RealtimeBootstrapMonths(time.Now().UTC()) {
 		if _, err := db.Exec(schema.EventLedgerPartitionDDL(month)); err != nil {
 			return fmt.Errorf("failed to create event ledger partition: %w", err)
@@ -1045,6 +1050,9 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		// Automation enroll contact function, shared with the v38 migration so an
 		// upgraded workspace and a fresh one enrol identically.
 		schema.AutomationEnrollContactFunction(),
+		// V50 keeps the trigger ABI but replaces Email enrollment authority with
+		// Customer/Event uniqueness after the Journey tables exist.
+		schema.JourneyAutomationEnrollContactFunction(),
 	}
 
 	for _, query := range triggerQueries {
