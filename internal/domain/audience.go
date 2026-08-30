@@ -120,4 +120,7 @@ type AudienceRepository interface {
 	CreateAudience(context.Context, string, Audience, AudienceVersion) error
 	GetAudience(context.Context, string, string) (*Audience, error)
 	GetAudienceVersion(context.Context, string, string, int) (*AudienceVersion, error)
+	SaveAudienceVersion(context.Context, string, string, AudienceExpression) (*AudienceVersion, error)
+	PreviewAudience(context.Context, string, AudienceExpression, int) ([]CustomerSummary, int64, error)
+	BuildAudience(context.Context, string, string, int) (string, int64, error)
 }
