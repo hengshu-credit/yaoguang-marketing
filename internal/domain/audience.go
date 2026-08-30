@@ -116,11 +116,27 @@ type AudienceVersion struct {
 	CreatedAt      time.Time          `json:"created_at"`
 }
 
+type AudienceBuild struct {
+	ID              string    `json:"id"`
+	AudienceID      string    `json:"audience_id"`
+	AudienceVersion int       `json:"audience_version"`
+	Status          string    `json:"status"`
+	LastCustomerID  string    `json:"last_customer_id,omitempty"`
+	MemberCount     int64     `json:"member_count"`
+	ErrorDetail     string    `json:"error_detail,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
 type AudienceRepository interface {
 	CreateAudience(context.Context, string, Audience, AudienceVersion) error
 	GetAudience(context.Context, string, string) (*Audience, error)
+	ListAudiences(context.Context, string, int, int) ([]Audience, int, error)
 	GetAudienceVersion(context.Context, string, string, int) (*AudienceVersion, error)
 	SaveAudienceVersion(context.Context, string, string, AudienceExpression) (*AudienceVersion, error)
 	PreviewAudience(context.Context, string, AudienceExpression, int) ([]CustomerSummary, int64, error)
 	BuildAudience(context.Context, string, string, int) (string, int64, error)
+	GetAudienceBuild(context.Context, string, string) (*AudienceBuild, error)
+	ListAudienceMembers(context.Context, string, string, string, int) ([]CustomerSummary, string, error)
+	ArchiveAudience(context.Context, string, string) error
 }

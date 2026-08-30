@@ -1426,6 +1426,9 @@ func (r *contactRepository) GetContactsForBroadcast(
 	limit int,
 	afterEmail string,
 ) ([]*domain.ContactWithList, error) {
+	if audience.CampaignRunID != "" {
+		return r.getCampaignSnapshotContacts(ctx, workspaceID, audience.CampaignRunID, limit, afterEmail)
+	}
 	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
@@ -1710,6 +1713,117 @@ func (r *contactRepository) GetContactsForBroadcast(
 	return contactsWithList, nil
 }
 
+func (r *contactRepository) getCampaignSnapshotContacts(ctx context.Context, workspaceID, runID string, limit int, after string) ([]*domain.ContactWithList, error) {
+	if limit <= 0 {
+		limit = 500
+	}
+	afterOrdinal := int64(0)
+	if strings.TrimSpace(after) != "" {
+		value, err := strconv.ParseInt(after, 10, 64)
+		if err != nil || value < 0 {
+			return nil, fmt.Errorf("invalid campaign snapshot cursor")
+		}
+		afterOrdinal = value
+	}
+	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+	type snapshotRecipient struct {
+		customerID string
+		ordinal    int64
+		variant    string
+	}
+	rows, err := db.QueryContext(ctx, `SELECT snapshot.customer_id::text, snapshot.ordinal, snapshot.variant
+		FROM campaign_recipient_snapshots snapshot
+		WHERE snapshot.run_id = NULLIF($1, '')::uuid AND snapshot.ordinal > $2
+		ORDER BY snapshot.ordinal LIMIT $3`, runID, afterOrdinal, limit)
+	if err != nil {
+		return nil, fmt.Errorf("fetch campaign snapshot recipients: %w", err)
+	}
+	defer rows.Close()
+	snapshots := make([]snapshotRecipient, 0, limit)
+	customerIDs := make([]string, 0, limit)
+	for rows.Next() {
+		var item snapshotRecipient
+		if err := rows.Scan(&item.customerID, &item.ordinal, &item.variant); err != nil {
+			return nil, err
+		}
+		snapshots = append(snapshots, item)
+		customerIDs = append(customerIDs, item.customerID)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if len(snapshots) == 0 {
+		return []*domain.ContactWithList{}, nil
+	}
+	contactRows, err := db.QueryContext(ctx, `SELECT `+strings.Join(contactColumnsWithPrefix("contact"), ", ")+`, contact.customer_id::text
+		FROM contacts contact WHERE contact.customer_id = ANY($1::uuid[])`, pq.Array(customerIDs))
+	if err != nil {
+		return nil, fmt.Errorf("fetch campaign snapshot contact projections: %w", err)
+	}
+	defer contactRows.Close()
+	contacts := make(map[string]*domain.Contact, len(snapshots))
+	for contactRows.Next() {
+		var customerID string
+		contact, err := domain.ScanContact(&contactWithCustomerScanner{rows: contactRows, customerID: &customerID})
+		if err != nil {
+			return nil, err
+		}
+		contacts[customerID] = contact
+	}
+	if err := contactRows.Err(); err != nil {
+		return nil, err
+	}
+	result := make([]*domain.ContactWithList, 0, len(snapshots))
+	for _, snapshot := range snapshots {
+		contact := contacts[snapshot.customerID]
+		if contact == nil {
+			// Keep the immutable recipient in the execution stream. The message
+			// sender records a missing_identity suppression instead of silently
+			// dropping this snapshot ordinal.
+			contact = &domain.Contact{}
+		}
+		result = append(result, &domain.ContactWithList{Contact: contact, CustomerID: snapshot.customerID,
+			SnapshotOrdinal: snapshot.ordinal, DeliveryVariant: snapshot.variant})
+	}
+	return result, nil
+}
+
+type contactWithCustomerScanner struct {
+	rows       *sql.Rows
+	customerID *string
+}
+
+func (s *contactWithCustomerScanner) Scan(dest ...interface{}) error {
+	dest = append(dest, s.customerID)
+	return s.rows.Scan(dest...)
+}
+
+func (r *contactRepository) CampaignSnapshotStatus(ctx context.Context, workspaceID, runID string) (string, error) {
+	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return "", err
+	}
+	var status string
+	err = db.QueryRowContext(ctx, `SELECT status FROM campaign_runs WHERE id = NULLIF($1, '')::uuid`, runID).Scan(&status)
+	return status, err
+}
+
+func (r *contactRepository) CompleteCampaignRun(ctx context.Context, workspaceID, runID string) error {
+	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	_, err = db.ExecContext(ctx, `UPDATE campaign_runs SET status = 'completed', updated_at = CURRENT_TIMESTAMP
+		WHERE id = NULLIF($1, '')::uuid AND status IN ('dispatching', 'completed')`, runID)
+	return err
+}
+
 // CountContactsForBroadcast counts how many contacts match broadcast audience settings
 // without retrieving all contact records
 func (r *contactRepository) CountContactsForBroadcast(
@@ -1717,6 +1831,16 @@ func (r *contactRepository) CountContactsForBroadcast(
 	workspaceID string,
 	audience domain.AudienceSettings,
 ) (int, error) {
+	if audience.CampaignRunID != "" {
+		db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+		if err != nil {
+			return 0, err
+		}
+		var count int
+		err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM campaign_recipient_snapshots snapshot
+			WHERE snapshot.run_id = NULLIF($1, '')::uuid`, audience.CampaignRunID).Scan(&count)
+		return count, err
+	}
 	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get workspace connection: %w", err)

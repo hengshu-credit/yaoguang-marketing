@@ -190,8 +190,10 @@ VariationMetrics:
 
 AudienceSettings:
   type: object
-  required:
-    - list
+  description: Select either a versioned Audience (preferred) or a legacy List.
+  anyOf:
+    - required: [audience_id, audience_version]
+    - required: [list]
   properties:
     list:
       type: string
@@ -208,6 +210,22 @@ AudienceSettings:
       type: boolean
       description: Whether to exclude unsubscribed contacts
       example: true
+    audience_id:
+      type: string
+      format: uuid
+      description: Versioned Audience frozen when the campaign starts.
+    audience_version:
+      type: integer
+      minimum: 1
+    audience_build_id:
+      type: string
+      format: uuid
+      description: Completed build selected in preflight.
+    campaign_run_id:
+      type: string
+      format: uuid
+      readOnly: true
+      description: Immutable recipient snapshot run consumed by delivery.
 
 AudienceSettingsPatch:
   type: object
@@ -235,6 +253,16 @@ AudienceSettingsPatch:
         Whether to exclude unsubscribed contacts. Omit to keep the stored value; send
         false to mail them too.
       example: true
+    audience_id:
+      type: string
+      format: uuid
+      description: Omit to keep the stored Audience; changing it invalidates any prior snapshot.
+    audience_version:
+      type: integer
+      minimum: 1
+    audience_build_id:
+      type: string
+      format: uuid
 
 ScheduleSettings:
   type: object

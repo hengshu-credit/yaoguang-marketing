@@ -106,8 +106,13 @@ func reserveDeliveryIntentTx(ctx context.Context, tx *sql.Tx, intent domain.Deli
 	if intent.Status == "" {
 		intent.Status = domain.DeliveryStatusReserved
 	}
-	if intent.Status != domain.DeliveryStatusReserved {
-		return domain.DeliveryIntent{}, false, errors.New("new delivery intent must start reserved")
+	// A policy decision is part of intent creation, not a later provider
+	// transition. Persist terminal/deferred decisions directly so a retry sees
+	// the same effect key without ever enqueueing a provider request.
+	if intent.Status != domain.DeliveryStatusReserved &&
+		intent.Status != domain.DeliveryStatusSuppressed &&
+		intent.Status != domain.DeliveryStatusDeferred {
+		return domain.DeliveryIntent{}, false, errors.New("new delivery intent must start reserved, suppressed or deferred")
 	}
 	metadata, err := json.Marshal(intent.Metadata)
 	if err != nil {

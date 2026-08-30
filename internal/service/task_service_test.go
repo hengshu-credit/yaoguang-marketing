@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
 	pkgmocks "github.com/hengshu-credit/yaoguang-marketing/pkg/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -776,6 +776,10 @@ func TestTaskService_RegisterProcessor(t *testing.T) {
 			CanProcess("import_contacts").
 			Return(true).
 			Times(1)
+
+		mockProcessor.EXPECT().CanProcess(domain.ImportCustomersTaskType).Return(false).Times(1)
+		mockProcessor.EXPECT().CanProcess(domain.BuildAudienceTaskType).Return(false).Times(1)
+		mockProcessor.EXPECT().CanProcess(domain.SnapshotCampaignTaskType).Return(false).Times(1)
 
 		mockProcessor.EXPECT().
 			CanProcess("export_contacts").

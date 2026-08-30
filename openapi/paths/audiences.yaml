@@ -17,7 +17,12 @@
               kind: { type: string, enum: [static, dynamic, composite] }
               definition: { $ref: '../components/schemas/audience.yaml#/AudienceExpression' }
     responses:
-      '201': { description: Audience created }
+      '201':
+        description: Audience created
+        content:
+          application/json:
+            schema: { $ref: '../components/schemas/audience.yaml#/Audience' }
+      '400': { description: Invalid audience definition }
 
 /api/audiences.get:
   get:
@@ -28,29 +33,130 @@
       - { name: workspace_id, in: query, required: true, schema: { type: string } }
       - { name: audience_id, in: query, required: true, schema: { type: string, format: uuid } }
     responses:
-      '200': { description: Audience }
+      '200':
+        description: Audience
+        content:
+          application/json:
+            schema: { $ref: '../components/schemas/audience.yaml#/Audience' }
+      '400': { description: Invalid workspace or audience identifier }
+
+/api/audiences.list:
+  get:
+    summary: List active audiences
+    operationId: listAudiences
+    security: [{ BearerAuth: [] }]
+    parameters:
+      - { name: workspace_id, in: query, required: true, schema: { type: string } }
+      - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+      - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+    responses:
+      '200': { description: Active audience page }
+      '400': { description: Invalid pagination or workspace }
 
 /api/audiences.update:
   post:
     summary: Save a new audience definition version
     operationId: updateAudience
     security: [{ BearerAuth: [] }]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [workspace_id, audience_id, definition]
+            properties:
+              workspace_id: { type: string }
+              audience_id: { type: string, format: uuid }
+              definition: { $ref: '../components/schemas/audience.yaml#/AudienceExpression' }
     responses:
       '200': { description: Audience version created }
+      '400': { description: Invalid audience version }
 
 /api/audiences.preview:
   post:
     summary: Preview an audience with at most 100 masked customer summaries
     operationId: previewAudience
     security: [{ BearerAuth: [] }]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [workspace_id, definition]
+            properties:
+              workspace_id: { type: string }
+              definition: { $ref: '../components/schemas/audience.yaml#/AudienceExpression' }
     responses:
       '200': { description: Audience preview }
+      '400': { description: Invalid audience expression }
+
+/api/audiences.delete:
+  post:
+    summary: Archive an audience that has no active dependencies
+    operationId: deleteAudience
+    security: [{ BearerAuth: [] }]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [workspace_id, audience_id]
+            properties:
+              workspace_id: { type: string }
+              audience_id: { type: string, format: uuid }
+    responses:
+      '200': { description: Audience archived }
+      '400': { description: Audience is invalid or still referenced }
 
 /api/audiences.build:
   post:
     summary: Materialize an audience version
     operationId: buildAudience
     security: [{ BearerAuth: [] }]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [workspace_id, audience_id, version]
+            properties:
+              workspace_id: { type: string }
+              audience_id: { type: string, format: uuid }
+              version: { type: integer, minimum: 1 }
     responses:
-      '200': { description: Audience build completed }
+      '200': { description: Durable audience build accepted; poll buildStatus until terminal }
+      '400': { description: Invalid audience version }
 
+/api/audiences.buildStatus:
+  get:
+    summary: Get materialized audience build status
+    operationId: getAudienceBuildStatus
+    security: [{ BearerAuth: [] }]
+    parameters:
+      - { name: workspace_id, in: query, required: true, schema: { type: string } }
+      - { name: build_id, in: query, required: true, schema: { type: string, format: uuid } }
+    responses:
+      '200':
+        description: Audience build
+        content:
+          application/json:
+            schema: { $ref: '../components/schemas/audience.yaml#/AudienceBuild' }
+      '400': { description: Invalid build identifier }
+
+/api/audiences.members:
+  get:
+    summary: List masked Customer summaries from an immutable audience build
+    operationId: listAudienceMembers
+    security: [{ BearerAuth: [] }]
+    parameters:
+      - { name: workspace_id, in: query, required: true, schema: { type: string } }
+      - { name: build_id, in: query, required: true, schema: { type: string, format: uuid } }
+      - { name: after, in: query, schema: { type: string, format: uuid } }
+      - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+    responses:
+      '200': { description: Keyset-paginated audience members }
+      '400': { description: Invalid build cursor }

@@ -38,6 +38,15 @@ vi.mock('../../services/api/broadcast', async (importOriginal) => {
   }
 })
 
+vi.mock('../../services/api/marketing', () => ({
+  audienceApi: {
+    list: vi.fn().mockResolvedValue({
+      items: [{ id: 'audience1', name: '高意向客户', kind: 'static', active_version: 3, active_build_id: 'build1' }],
+      total: 1
+    })
+  }
+}))
+
 const workspace = {
   id: 'ws1',
   settings: {
@@ -55,7 +64,7 @@ const makeBroadcast = (overrides: Partial<Broadcast> = {}): Broadcast =>
     name: 'Weekly Newsletter',
     channel_type: 'email',
     status: 'draft',
-    audience: { list: 'list1', segments: [], exclude_unsubscribed: true },
+    audience: { audience_id: 'audience1', audience_version: 3, audience_build_id: 'build1', exclude_unsubscribed: true },
     schedule: { is_scheduled: false, use_recipient_timezone: false },
     test_settings: {
       enabled: false,
@@ -142,7 +151,7 @@ describe('UpsertBroadcastDrawer data feeds', () => {
       'Weekly Newsletter'
     )
     await userEvent.click(screen.getAllByRole('combobox')[0])
-    await userEvent.click(await screen.findByText('Newsletter'))
+    await userEvent.click(await screen.findByText('高意向客户'))
 
     await goToTab('4. Content')
     await userEvent.type(screen.getByTestId('template-selector'), 'tmpl1')
@@ -223,7 +232,7 @@ describe('UpsertBroadcastDrawer schedule', () => {
       'Weekly Newsletter'
     )
     await userEvent.click(screen.getAllByRole('combobox')[0])
-    await userEvent.click(await screen.findByText('Newsletter'))
+    await userEvent.click(await screen.findByText('高意向客户'))
 
     await goToTab('4. Content')
     await userEvent.type(screen.getByTestId('template-selector'), 'tmpl1')

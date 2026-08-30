@@ -191,17 +191,18 @@ func (s *queueMessageSender) SendBatch(
 			break
 		}
 
-		if recipient == nil || recipient.Contact == nil || strings.TrimSpace(recipient.Contact.Email) == "" {
+		if recipient == nil || recipient.Contact == nil {
 			buildErrors++
 			continue
 		}
 
 		customerID := recipient.CustomerID
+		email := strings.TrimSpace(recipient.Contact.Email)
 		phase := recipient.DeliveryPhase
 		occurrence := ""
 		if s.deliveryRepo != nil {
-			if customerID == "" {
-				customerID, err = s.deliveryRepo.ResolveCustomerID(ctx, workspaceID, recipient.Contact.Email)
+			if customerID == "" && email != "" {
+				customerID, err = s.deliveryRepo.ResolveCustomerID(ctx, workspaceID, email)
 				if err != nil {
 					return 0, 0, NewBroadcastError(ErrCodeSendFailed, "failed to resolve delivery customer", true, err)
 				}
@@ -226,13 +227,28 @@ func (s *queueMessageSender) SendBatch(
 		// legacy path keeps its existing selector until all producers are cut over.
 		template := s.selectTemplate(templates, broadcast)
 		if s.deliveryRepo != nil {
-			template = selectStableBroadcastTemplate(templates, broadcast, customerID, recipient.Contact.Email, occurrence)
+			if frozen := templates[recipient.DeliveryVariant]; frozen != nil {
+				template = frozen
+			} else {
+				template = selectStableBroadcastTemplate(templates, broadcast, customerID, email, occurrence)
+			}
 		}
 		if template == nil {
 			buildErrors++
 			continue
 		}
 		recipient.DeliveryVariant = template.ID
+		if email == "" {
+			if s.deliveryRepo == nil || strings.TrimSpace(customerID) == "" {
+				buildErrors++
+				continue
+			}
+			if reserveErr := s.reserveMissingIdentityIntent(ctx, workspaceID, broadcast, customerID, phase, occurrence, template, recipient.SnapshotOrdinal); reserveErr != nil {
+				return 0, 0, NewBroadcastError(ErrCodeSendFailed, "failed to reserve missing-identity delivery", true, reserveErr)
+			}
+			deliveryProcessed++
+			continue
+		}
 
 		// Generate message ID
 		messageID := fmt.Sprintf("%s_%s", workspaceID, uuid.New().String())
@@ -708,4 +724,23 @@ func (s *queueMessageSender) reserveBroadcastEntry(ctx context.Context, workspac
 		}
 	}
 	return s.deliveryRepo.ReserveAndEnqueue(ctx, workspaceID, intent, entry)
+}
+
+func (s *queueMessageSender) reserveMissingIdentityIntent(ctx context.Context, workspaceID string, broadcast *domain.Broadcast, customerID, phase, occurrence string, template *domain.Template, ordinal int64) error {
+	effectKey, err := broadcastDeliveryEffectKey(workspaceID, broadcast, customerID, "", phase, occurrence, template.ID)
+	if err != nil {
+		return err
+	}
+	requestHash, err := broadcastDeliveryRequestHash(broadcast, customerID, "", phase, occurrence, template, &domain.EmailQueueEntry{})
+	if err != nil {
+		return err
+	}
+	_, _, err = s.deliveryRepo.ReserveIntent(ctx, workspaceID, domain.DeliveryIntent{
+		EffectKey: effectKey, RequestHash: requestHash, SourceType: domain.DeliverySourceBroadcast,
+		SourceID: broadcast.ID, SourceVersion: broadcastDeliverySourceVersion(broadcast), CustomerID: customerID,
+		Channel: "email", TemplateID: template.ID, TemplateVersion: template.Version,
+		NodeOrPhase: phase, Occurrence: occurrence, Variant: template.ID, Status: domain.DeliveryStatusSuppressed,
+		SuppressionReason: "missing_identity", Metadata: domain.MapOfAny{"snapshot_ordinal": ordinal},
+	})
+	return err
 }

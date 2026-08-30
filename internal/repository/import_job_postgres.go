@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/lib/pq"
 )
 
 type ImportJobPostgresRepository struct {
@@ -60,35 +61,40 @@ func (r *ImportJobPostgresRepository) StageImportRows(ctx context.Context, works
 		return 0, err
 	}
 	defer func() { _ = tx.Rollback() }()
-	var inserted, pending, failed int64
+	ordinals := make([]int64, len(rows))
+	payloads := make([]string, len(rows))
+	checksums := make([]string, len(rows))
+	statuses := make([]string, len(rows))
+	errorCodes := make([]string, len(rows))
 	var maxOrdinal int64
-	for _, row := range rows {
+	for index, row := range rows {
 		payload := row.RawPayload
 		if !json.Valid(payload) {
 			return 0, fmt.Errorf("import row %d payload is not valid json", row.Ordinal)
 		}
-		result, execErr := tx.ExecContext(ctx, `INSERT INTO import_job_rows (
-			job_id, ordinal, raw_payload, row_checksum, status, error_code, error_detail
-		) VALUES (NULLIF($1, '')::uuid, $2, $3, $4, $5, NULLIF($6, ''), NULLIF($7, ''))
-		ON CONFLICT (job_id, ordinal) DO NOTHING`, jobID, row.Ordinal, payload, row.Checksum, row.Status, row.ErrorCode, "")
-		if execErr != nil {
-			return 0, fmt.Errorf("stage import row %d: %w", row.Ordinal, execErr)
-		}
-		count, execErr := result.RowsAffected()
-		if execErr != nil {
-			return 0, execErr
-		}
-		if count == 1 {
-			inserted++
-			if row.Status == domain.ImportRowFailed {
-				failed++
-			} else {
-				pending++
-			}
-		}
+		ordinals[index], payloads[index], checksums[index], statuses[index], errorCodes[index] =
+			row.Ordinal, string(payload), row.Checksum, string(row.Status), row.ErrorCode
 		if row.Ordinal > maxOrdinal {
 			maxOrdinal = row.Ordinal
 		}
+	}
+	var inserted, pending, failed int64
+	var insertedMaxOrdinal sql.NullInt64
+	err = tx.QueryRowContext(ctx, `WITH input AS (
+		SELECT item.ordinal, item.raw_payload::jsonb AS raw_payload, item.row_checksum,
+			item.status, NULLIF(item.error_code, '') AS error_code
+		FROM unnest($2::bigint[], $3::text[], $4::text[], $5::text[], $6::text[])
+			AS item(ordinal, raw_payload, row_checksum, status, error_code)
+	), inserted AS (
+		INSERT INTO import_job_rows (job_id, ordinal, raw_payload, row_checksum, status, error_code, error_detail)
+		SELECT NULLIF($1, '')::uuid, ordinal, raw_payload, row_checksum, status, error_code, NULL FROM input
+		ON CONFLICT (job_id, ordinal) DO NOTHING RETURNING ordinal, status
+	) SELECT COUNT(*), COUNT(*) FILTER (WHERE status = 'pending'),
+		COUNT(*) FILTER (WHERE status = 'failed'), MAX(ordinal) FROM inserted`,
+		jobID, pq.Array(ordinals), pq.Array(payloads), pq.Array(checksums), pq.Array(statuses), pq.Array(errorCodes)).
+		Scan(&inserted, &pending, &failed, &insertedMaxOrdinal)
+	if err != nil {
+		return 0, fmt.Errorf("stage import rows: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE import_jobs SET total_count = total_count + $2,
 		pending_count = pending_count + $3, failed_count = failed_count + $4, updated_at = CURRENT_TIMESTAMP
@@ -249,4 +255,120 @@ func (r *ImportJobPostgresRepository) GetImportJob(ctx context.Context, workspac
 	}
 	job.ObjectKey, job.FileChecksum = objectKey.String, checksum.String
 	return job, job.Counters.Validate()
+}
+
+func (r *ImportJobPostgresRepository) ListImportJobs(ctx context.Context, workspaceID string, limit, offset int) ([]domain.ImportJob, int, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return nil, 0, err
+	}
+	var total int
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM import_jobs`).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := db.QueryContext(ctx, `SELECT id, status, filename, object_key, file_checksum,
+		total_count, pending_count, processing_count, succeeded_count, failed_count, created_at, updated_at
+		FROM import_jobs ORDER BY created_at DESC, id DESC LIMIT $1 OFFSET $2`, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	items := make([]domain.ImportJob, 0)
+	for rows.Next() {
+		var item domain.ImportJob
+		var objectKey, checksum sql.NullString
+		if err := rows.Scan(&item.ID, &item.Status, &item.Filename, &objectKey, &checksum,
+			&item.Counters.Total, &item.Counters.Pending, &item.Counters.Processing,
+			&item.Counters.Succeeded, &item.Counters.Failed, &item.CreatedAt, &item.UpdatedAt); err != nil {
+			return nil, 0, err
+		}
+		item.ObjectKey, item.FileChecksum = objectKey.String, checksum.String
+		if err := item.Counters.Validate(); err != nil {
+			return nil, 0, err
+		}
+		items = append(items, item)
+	}
+	return items, total, rows.Err()
+}
+
+// CancelImportJob converts every non-terminal row into an explicit failure in
+// the same transaction as the job status change. This preserves the row
+// conservation invariant even when a worker lease is active.
+func (r *ImportJobPostgresRepository) CancelImportJob(ctx context.Context, workspaceID, jobID, reason string) error {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	result, err := tx.ExecContext(ctx, `UPDATE import_job_rows SET status = 'failed',
+		error_code = 'cancelled_by_user', error_detail = $2, claim_token = NULL,
+		lease_expires_at = NULL, updated_at = CURRENT_TIMESTAMP
+		WHERE job_id = NULLIF($1, '')::uuid AND status IN ('pending', 'processing')`, jobID, reason)
+	if err != nil {
+		return err
+	}
+	converted, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	jobResult, err := tx.ExecContext(ctx, `UPDATE import_jobs SET status = 'cancelled',
+		failed_count = failed_count + $2, pending_count = 0, processing_count = 0,
+		completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+		WHERE id = NULLIF($1, '')::uuid AND status IN ('uploading', 'staged', 'processing')`, jobID, converted)
+	if err != nil {
+		return err
+	}
+	count, err := jobResult.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count != 1 {
+		return errors.New("import job is already terminal or does not exist")
+	}
+	return tx.Commit()
+}
+
+func (r *ImportJobPostgresRepository) ListImportJobErrors(ctx context.Context, workspaceID, jobID string, limit, offset int) ([]domain.ImportJobRow, int, error) {
+	if limit <= 0 || limit > 10_000 {
+		limit = 1_000
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return nil, 0, err
+	}
+	var total int
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM import_job_rows WHERE job_id = NULLIF($1, '')::uuid AND status = 'failed'`, jobID).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := db.QueryContext(ctx, `SELECT job_id, ordinal, raw_payload, row_checksum, status,
+		COALESCE(customer_id::text, ''), COALESCE(action, ''), COALESCE(error_code, ''), COALESCE(error_detail, '')
+		FROM import_job_rows WHERE job_id = NULLIF($1, '')::uuid AND status = 'failed'
+		ORDER BY ordinal LIMIT $2 OFFSET $3`, jobID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	items := make([]domain.ImportJobRow, 0)
+	for rows.Next() {
+		var item domain.ImportJobRow
+		if err := rows.Scan(&item.JobID, &item.Ordinal, &item.RawPayload, &item.Checksum, &item.Status,
+			&item.CustomerID, &item.Action, &item.ErrorCode, &item.ErrorDetail); err != nil {
+			return nil, 0, err
+		}
+		items = append(items, item)
+	}
+	return items, total, rows.Err()
 }

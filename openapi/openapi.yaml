@@ -30,20 +30,44 @@ paths:
     $ref: './paths/journeys.yaml#/~1api~1journeys.trace'
   /api/audiences.create:
     $ref: './paths/audiences.yaml#/~1api~1audiences.create'
+  /api/audiences.list:
+    $ref: './paths/audiences.yaml#/~1api~1audiences.list'
   /api/audiences.get:
     $ref: './paths/audiences.yaml#/~1api~1audiences.get'
   /api/audiences.update:
     $ref: './paths/audiences.yaml#/~1api~1audiences.update'
+  /api/audiences.delete:
+    $ref: './paths/audiences.yaml#/~1api~1audiences.delete'
   /api/audiences.preview:
     $ref: './paths/audiences.yaml#/~1api~1audiences.preview'
   /api/audiences.build:
     $ref: './paths/audiences.yaml#/~1api~1audiences.build'
+  /api/audiences.buildStatus:
+    $ref: './paths/audiences.yaml#/~1api~1audiences.buildStatus'
+  /api/audiences.members:
+    $ref: './paths/audiences.yaml#/~1api~1audiences.members'
   /api/imports.upload:
     $ref: './paths/import_jobs.yaml#/~1api~1imports.upload'
   /api/imports.get:
     $ref: './paths/import_jobs.yaml#/~1api~1imports.get'
+  /api/imports.list:
+    $ref: './paths/import_jobs.yaml#/~1api~1imports.list'
+  /api/imports.cancel:
+    $ref: './paths/import_jobs.yaml#/~1api~1imports.cancel'
+  /api/imports.errors:
+    $ref: './paths/import_jobs.yaml#/~1api~1imports.errors'
   /api/imports.process:
     $ref: './paths/import_jobs.yaml#/~1api~1imports.process'
+  /api/campaigns.create:
+    $ref: './paths/campaigns.yaml#/~1api~1campaigns.create'
+  /api/campaigns.list:
+    $ref: './paths/campaigns.yaml#/~1api~1campaigns.list'
+  /api/campaigns.start:
+    $ref: './paths/campaigns.yaml#/~1api~1campaigns.start'
+  /api/campaigns.run:
+    $ref: './paths/campaigns.yaml#/~1api~1campaigns.run'
+  /api/campaigns.recipients:
+    $ref: './paths/campaigns.yaml#/~1api~1campaigns.recipients'
   /api/deliveries.list:
     $ref: './paths/deliveries.yaml#/~1api~1deliveries.list'
   /api/deliveries.get:

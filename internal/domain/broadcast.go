@@ -167,6 +167,10 @@ type AudienceSettings struct {
 	List                string   `json:"list,omitempty"`
 	Segments            []string `json:"segments,omitempty"`
 	ExcludeUnsubscribed bool     `json:"exclude_unsubscribed"`
+	AudienceID          string   `json:"audience_id,omitempty"`
+	AudienceVersion     int      `json:"audience_version,omitempty"`
+	AudienceBuildID     string   `json:"audience_build_id,omitempty"`
+	CampaignRunID       string   `json:"campaign_run_id,omitempty"`
 }
 
 // Value implements the driver.Valuer interface for database serialization
@@ -396,9 +400,11 @@ func (b *Broadcast) Validate() error {
 	}
 
 	// Validate audience settings
-	// CHANGED: List is required (for all broadcasts, not just web)
-	if b.Audience.List == "" {
-		return fmt.Errorf("list is required")
+	if b.Audience.List == "" && b.Audience.AudienceID == "" {
+		return fmt.Errorf("list is required when no audience is selected")
+	}
+	if b.Audience.AudienceID != "" && b.Audience.AudienceVersion <= 0 {
+		return fmt.Errorf("audience version is required")
 	}
 
 	// Validate schedule settings
@@ -512,6 +518,9 @@ type UpdateBroadcastRequest struct {
 	audienceListOmitted                bool
 	audienceSegmentsOmitted            bool
 	audienceExcludeUnsubscribedOmitted bool
+	audienceIDOmitted                  bool
+	audienceVersionOmitted             bool
+	audienceBuildIDOmitted             bool
 }
 
 // UnmarshalJSON decodes the request and records which patch keys the body actually
@@ -549,6 +558,9 @@ func (r *UpdateBroadcastRequest) UnmarshalJSON(data []byte) error {
 	r.audienceListOmitted = jsonKeyOmitted(audience, "list")
 	r.audienceSegmentsOmitted = jsonKeyOmitted(audience, "segments")
 	r.audienceExcludeUnsubscribedOmitted = jsonKeyOmitted(audience, "exclude_unsubscribed")
+	r.audienceIDOmitted = jsonKeyOmitted(audience, "audience_id")
+	r.audienceVersionOmitted = jsonKeyOmitted(audience, "audience_version")
+	r.audienceBuildIDOmitted = jsonKeyOmitted(audience, "audience_build_id")
 
 	return nil
 }
@@ -589,6 +601,19 @@ func (r *UpdateBroadcastRequest) Validate(existingBroadcast *Broadcast) (*Broadc
 	}
 	if !r.audienceExcludeUnsubscribedOmitted {
 		existingBroadcast.Audience.ExcludeUnsubscribed = r.Audience.ExcludeUnsubscribed
+	}
+	if !r.audienceIDOmitted {
+		existingBroadcast.Audience.AudienceID = r.Audience.AudienceID
+		// Retargeting invalidates the snapshot from any earlier run.
+		existingBroadcast.Audience.CampaignRunID = ""
+	}
+	if !r.audienceVersionOmitted {
+		existingBroadcast.Audience.AudienceVersion = r.Audience.AudienceVersion
+		existingBroadcast.Audience.CampaignRunID = ""
+	}
+	if !r.audienceBuildIDOmitted {
+		existingBroadcast.Audience.AudienceBuildID = r.Audience.AudienceBuildID
+		existingBroadcast.Audience.CampaignRunID = ""
 	}
 
 	if !r.scheduleOmitted {

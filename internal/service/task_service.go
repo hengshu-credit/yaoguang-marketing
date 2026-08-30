@@ -245,6 +245,9 @@ func getTaskTypes() []string {
 	// This could be expanded with more task types as needed
 	return []string{
 		"import_contacts",
+		domain.ImportCustomersTaskType,
+		domain.BuildAudienceTaskType,
+		domain.SnapshotCampaignTaskType,
 		"export_contacts",
 		"send_broadcast",
 		"generate_report",

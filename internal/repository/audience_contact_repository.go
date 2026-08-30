@@ -79,6 +79,16 @@ func (r *audienceContactRepository) GetContactsForBroadcast(
 	return contacts, nil
 }
 
+func (r *audienceContactRepository) CampaignSnapshotStatus(ctx context.Context, workspaceID, runID string) (string, error) {
+	reader, ok := r.ContactRepository.(interface {
+		CampaignSnapshotStatus(context.Context, string, string) (string, error)
+	})
+	if !ok {
+		return "", fmt.Errorf("campaign snapshot status is unavailable")
+	}
+	return reader.CampaignSnapshotStatus(ctx, workspaceID, runID)
+}
+
 func (r *audienceContactRepository) hydrate(ctx context.Context, workspaceID string, contacts []*domain.Contact) error {
 	if len(contacts) == 0 {
 		return nil

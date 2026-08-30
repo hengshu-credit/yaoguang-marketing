@@ -23,7 +23,23 @@ func NewCampaignSnapshotService(repository domain.CampaignRepository, pageSize i
 }
 
 func (s *CampaignSnapshotService) Start(ctx context.Context, workspaceID, campaignID string, version int) (*domain.CampaignRun, error) {
-	campaignVersion, err := s.repository.GetCampaignVersion(ctx, workspaceID, campaignID, version)
+	run, err := s.StartAsync(ctx, workspaceID, campaignID, version)
+	if err != nil {
+		return nil, err
+	}
+	for {
+		completed, err := s.ProcessNextPage(ctx, workspaceID, run.ID)
+		if err != nil {
+			return nil, err
+		}
+		if completed {
+			return s.repository.GetCampaignRun(ctx, workspaceID, run.ID)
+		}
+	}
+}
+
+func (s *CampaignSnapshotService) StartAsync(ctx context.Context, workspaceID, campaignID string, version int) (*domain.CampaignRun, error) {
+	_, err := s.repository.GetCampaignVersion(ctx, workspaceID, campaignID, version)
 	if err != nil {
 		return nil, err
 	}
@@ -33,39 +49,51 @@ func (s *CampaignSnapshotService) Start(ctx context.Context, workspaceID, campai
 	if err := s.repository.CreateCampaignRun(ctx, workspaceID, *run); err != nil {
 		return nil, err
 	}
-	after := ""
-	ordinal := int64(1)
-	for {
-		customerIDs, next, err := s.repository.ListAudienceMemberIDs(ctx, workspaceID, campaignVersion.AudienceID, campaignVersion.AudienceVersion, after, s.pageSize)
-		if err != nil {
-			return nil, err
-		}
-		if len(customerIDs) == 0 {
-			break
-		}
-		snapshots := make([]domain.CampaignRecipientSnapshot, 0, len(customerIDs))
-		for _, customerID := range customerIDs {
-			variant, err := campaignVersion.AssignVariant(customerID, run.RunSeed)
-			if err != nil {
-				return nil, err
+	return run, nil
+}
+
+func (s *CampaignSnapshotService) ProcessNextPage(ctx context.Context, workspaceID, runID string) (bool, error) {
+	run, err := s.repository.GetCampaignRun(ctx, workspaceID, runID)
+	if err != nil {
+		return false, err
+	}
+	if run.Status == "dispatching" || run.Status == "completed" {
+		return true, nil
+	}
+	if run.Status != "snapshotting" {
+		return false, errors.New("campaign run is not snapshotting")
+	}
+	version, err := s.repository.GetCampaignVersion(ctx, workspaceID, run.CampaignID, run.CampaignVersion)
+	if err != nil {
+		return false, err
+	}
+	members, _, err := s.repository.ListAudienceMembers(ctx, workspaceID, version.AudienceID, version.AudienceVersion, run.SnapshotLastCustomerID, s.pageSize)
+	if err != nil {
+		return false, err
+	}
+	if len(members) > 0 {
+		snapshots := make([]domain.CampaignRecipientSnapshot, 0, len(members))
+		ordinal := run.NextOrdinal
+		for _, member := range members {
+			variant, assignErr := version.AssignVariant(member.CustomerID, run.RunSeed)
+			if assignErr != nil {
+				return false, assignErr
 			}
 			snapshots = append(snapshots, domain.CampaignRecipientSnapshot{RunID: run.ID, Ordinal: ordinal,
-				CustomerID: customerID, Variant: variant, CreatedAt: now})
+				CustomerID: member.CustomerID, Variant: variant, SourceBuildID: member.BuildID, CreatedAt: s.now().UTC()})
 			ordinal++
 		}
-		if _, err := s.repository.AppendCampaignSnapshots(ctx, workspaceID, run.ID, snapshots); err != nil {
-			return nil, err
+		inserted, err := s.repository.AppendCampaignSnapshots(ctx, workspaceID, run.ID, snapshots)
+		if err != nil {
+			return false, err
 		}
-		after = next
-		if len(customerIDs) < s.pageSize {
-			break
+		run.SnapshotCount += inserted
+	}
+	completed := len(members) < s.pageSize
+	if completed {
+		if err := s.repository.CompleteCampaignSnapshot(ctx, workspaceID, run.ID, run.SnapshotCount); err != nil {
+			return false, err
 		}
 	}
-	run.SnapshotCount = ordinal - 1
-	run.NextOrdinal = ordinal
-	run.Status = "dispatching"
-	if err := s.repository.CompleteCampaignSnapshot(ctx, workspaceID, run.ID, run.SnapshotCount); err != nil {
-		return nil, err
-	}
-	return run, nil
+	return completed, nil
 }

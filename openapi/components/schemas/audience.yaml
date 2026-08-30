@@ -20,3 +20,14 @@ Audience:
     active_version: { type: integer, minimum: 1 }
     active_build_id: { type: string, format: uuid }
 
+AudienceBuild:
+  type: object
+  required: [id, audience_id, audience_version, status, member_count]
+  properties:
+    id: { type: string, format: uuid }
+    audience_id: { type: string, format: uuid }
+    audience_version: { type: integer, minimum: 1 }
+    status: { type: string, enum: [pending, building, completed, failed, cancelled] }
+    last_customer_id: { type: string, format: uuid }
+    member_count: { type: integer, format: int64, minimum: 0 }
+    error_detail: { type: string }

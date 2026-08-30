@@ -17,4 +17,35 @@ ImportJob:
     filename: { type: string }
     file_checksum: { type: string, minLength: 64, maxLength: 64 }
     counters: { $ref: '#/ImportCounters' }
+    created_at: { type: string, format: date-time }
+    updated_at: { type: string, format: date-time }
 
+ImportJobList:
+  type: object
+  required: [items, total, limit, offset]
+  properties:
+    items:
+      type: array
+      items: { $ref: '#/ImportJob' }
+    total: { type: integer, minimum: 0 }
+    limit: { type: integer, minimum: 1 }
+    offset: { type: integer, minimum: 0 }
+
+ImportJobError:
+  type: object
+  required: [ordinal, error_code]
+  properties:
+    ordinal: { type: integer, format: int64, minimum: 1 }
+    external_user_id: { type: string }
+    display_identity: { type: string, description: Masked email or phone hint }
+    error_code: { type: string }
+    error_detail: { type: string }
+
+ImportJobErrorList:
+  type: object
+  required: [items, total]
+  properties:
+    items:
+      type: array
+      items: { $ref: '#/ImportJobError' }
+    total: { type: integer, minimum: 0 }

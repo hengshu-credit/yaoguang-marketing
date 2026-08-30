@@ -13,12 +13,11 @@ import {
   InputNumber,
   Popconfirm,
   Alert,
-  Tag,
   Tabs,
   Tooltip
 } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   broadcastApi,
   Broadcast,
@@ -33,6 +32,7 @@ import extractTLD from '../../lib/tld'
 import type { List } from '../../services/api/list'
 import { DataFeedSettings } from './DataFeedSettings'
 import type { GlobalFeedSettings, RecipientFeedSettings } from '../../services/api/broadcast'
+import { audienceApi } from '../../services/api/marketing'
 
 // Custom component to handle A/B testing configuration
 const ABTestingConfig = ({ form }: { form: ReturnType<typeof Form.useForm>[0] }) => {
@@ -85,9 +85,7 @@ export function UpsertBroadcastDrawer({
   broadcast,
   buttonProps = {},
   buttonContent,
-  onClose,
-  lists = [],
-  segments = []
+  onClose
 }: UpsertBroadcastDrawerProps) {
   const { t } = useLingui()
   const [isOpen, setIsOpen] = useState(false)
@@ -106,6 +104,11 @@ export function UpsertBroadcastDrawer({
     enabled: false,
     url: '',
     headers: []
+  })
+  const audiencesQuery = useQuery({
+    queryKey: ['audiences', workspace.id],
+    queryFn: () => audienceApi.list(workspace.id),
+    enabled: isOpen
   })
 
   // Watch campaign name changes using Form.useWatch
@@ -191,8 +194,9 @@ export function UpsertBroadcastDrawer({
       form.setFieldsValue({
         name: '',
         audience: {
-          list: undefined,
-          segments: [],
+          audience_id: undefined,
+          audience_version: undefined,
+          audience_build_id: undefined,
           exclude_unsubscribed: true
         },
         test_settings: {
@@ -262,7 +266,7 @@ export function UpsertBroadcastDrawer({
     const fieldsToValidate: string[][] = []
 
     if (currentTab === 'audience') {
-      fieldsToValidate.push(['name'], ['audience', 'list'])
+      fieldsToValidate.push(['name'], ['audience', 'audience_id'])
     } else if (currentTab === 'email') {
       // Add email tab validation if needed in the future
     }
@@ -510,84 +514,35 @@ export function UpsertBroadcastDrawer({
                     </Form.Item>
 
                     <Form.Item
-                      name={['audience', 'list']}
-                      label={t`List`}
+                      name={['audience', 'audience_id']}
+                      label="目标客群"
                       rules={[
                         {
                           required: true,
                           type: 'string',
-                          message: t`Please select a list`
+                          message: '请选择已完成构建的客群'
                         }
                       ]}
                     >
                       <Select
-                        placeholder={t`Select a list`}
-                        options={lists.map((list) => ({
-                          value: list.id,
-                          label: list.name
+                        placeholder="选择活动启动时要冻结的客群"
+                        loading={audiencesQuery.isLoading}
+                        options={(audiencesQuery.data?.items ?? []).map((item) => ({
+                          value: item.id,
+                          label: item.active_build_id ? item.name : `${item.name}（尚未生成）`,
+                          disabled: !item.active_build_id
                         }))}
-                      />
-                    </Form.Item>
-
-                    <Form.Item
-                      name={['audience', 'segments']}
-                      label={
-                        <span>
-                          {t`Belonging to at least one of the following segments`}{' '}
-                          <Tooltip
-                            title={t`Optionally filter contacts by segments within the selected lists`}
-                            className="ml-1"
-                          >
-                            <InfoCircleOutlined style={{ color: '#999' }} />
-                          </Tooltip>
-                        </span>
-                      }
-                    >
-                      <Select
-                        mode="multiple"
-                        placeholder={t`Select segments (optional)`}
-                        options={segments.map((segment) => ({
-                          value: segment.id,
-                          label: segment.name
-                        }))}
-                        optionRender={(option) => {
-                          const segment = segments.find((s) => s.id === option.value)
-                          if (!segment) return option.label
-
-                          return (
-                            <Tag color={segment.color} variant="filled">
-                              {segment.name}
-                              {segment.users_count !== undefined && (
-                                <span className="ml-1">
-                                  ({segment.users_count.toLocaleString()})
-                                </span>
-                              )}
-                            </Tag>
-                          )
-                        }}
-                        tagRender={(props) => {
-                          const segment = segments.find((s) => s.id === props.value)
-                          if (!segment) return <Tag {...props}>{props.label}</Tag>
-
-                          return (
-                            <Tag
-                              color={segment.color}
-                              variant="filled"
-                              closable={props.closable}
-                              onClose={props.onClose}
-                              style={{ marginRight: 3 }}
-                            >
-                              {segment.name}
-                              {segment.users_count !== undefined && (
-                                <span className="ml-1">
-                                  ({segment.users_count.toLocaleString()})
-                                </span>
-                              )}
-                            </Tag>
-                          )
+                        onChange={(audienceId) => {
+                          const selected = audiencesQuery.data?.items.find((item) => item.id === audienceId)
+                          form.setFieldValue(['audience', 'audience_version'], selected?.active_version)
+                          form.setFieldValue(['audience', 'audience_build_id'], selected?.active_build_id)
+                          form.setFieldValue(['audience', 'list'], undefined)
+                          form.setFieldValue(['audience', 'segments'], [])
                         }}
                       />
                     </Form.Item>
+
+                    <Alert className="mb-4" type="info" showIcon title="活动开始后收件人不会随名单变化" description="系统会按当前客群版本生成不可变快照；发送时仍实时检查身份、同意、抑制和频控。" />
 
                     <Form.Item
                       name={['audience', 'exclude_unsubscribed']}

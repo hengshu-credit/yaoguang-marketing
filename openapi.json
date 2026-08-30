@@ -416,7 +416,65 @@
         },
         "responses": {
           "201": {
-            "description": "Audience created"
+            "description": "Audience created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Audience"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid audience definition"
+          }
+        }
+      }
+    },
+    "/api/audiences.list": {
+      "get": {
+        "summary": "List active audiences",
+        "operationId": "listAudiences",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active audience page"
+          },
+          "400": {
+            "description": "Invalid pagination or workspace"
           }
         }
       }
@@ -451,7 +509,17 @@
         ],
         "responses": {
           "200": {
-            "description": "Audience"
+            "description": "Audience",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Audience"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid workspace or audience identifier"
           }
         }
       }
@@ -465,9 +533,81 @@
             "BearerAuth": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "audience_id",
+                  "definition"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "audience_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "definition": {
+                    "$ref": "#/components/schemas/AudienceExpression"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Audience version created"
+          },
+          "400": {
+            "description": "Invalid audience version"
+          }
+        }
+      }
+    },
+    "/api/audiences.delete": {
+      "post": {
+        "summary": "Archive an audience that has no active dependencies",
+        "operationId": "deleteAudience",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "audience_id"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "audience_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Audience archived"
+          },
+          "400": {
+            "description": "Audience is invalid or still referenced"
           }
         }
       }
@@ -481,9 +621,34 @@
             "BearerAuth": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "definition"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "definition": {
+                    "$ref": "#/components/schemas/AudienceExpression"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Audience preview"
+          },
+          "400": {
+            "description": "Invalid audience expression"
           }
         }
       }
@@ -497,9 +662,141 @@
             "BearerAuth": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "audience_id",
+                  "version"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "audience_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Audience build completed"
+            "description": "Durable audience build accepted; poll buildStatus until terminal"
+          },
+          "400": {
+            "description": "Invalid audience version"
+          }
+        }
+      }
+    },
+    "/api/audiences.buildStatus": {
+      "get": {
+        "summary": "Get materialized audience build status",
+        "operationId": "getAudienceBuildStatus",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "build_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audience build",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudienceBuild"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid build identifier"
+          }
+        }
+      }
+    },
+    "/api/audiences.members": {
+      "get": {
+        "summary": "List masked Customer summaries from an immutable audience build",
+        "operationId": "listAudienceMembers",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "build_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Keyset-paginated audience members"
+          },
+          "400": {
+            "description": "Invalid build cursor"
           }
         }
       }
@@ -544,7 +841,17 @@
         },
         "responses": {
           "201": {
-            "description": "Upload completely staged or explicitly rejected"
+            "description": "Upload completely staged or explicitly rejected. A staged job has a durable background task before this response returns.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJob"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid CSV or configured upload limit exceeded"
           }
         }
       }
@@ -579,14 +886,201 @@
         ],
         "responses": {
           "200": {
-            "description": "Import job"
+            "description": "Import job",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJob"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid workspace or import job identifier"
+          }
+        }
+      }
+    },
+    "/api/imports.list": {
+      "get": {
+        "summary": "List durable customer import jobs",
+        "operationId": "listCustomerImports",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Import job history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJobList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination or workspace"
+          }
+        }
+      }
+    },
+    "/api/imports.cancel": {
+      "post": {
+        "summary": "Cancel pending import work without losing accepted rows",
+        "description": "Pending and leased rows become explicit cancelled_by_user failures in the same transaction as the job status change.",
+        "operationId": "cancelCustomerImport",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Import cancelled"
+          },
+          "400": {
+            "description": "Import cannot be cancelled"
+          }
+        }
+      }
+    },
+    "/api/imports.errors": {
+      "get": {
+        "summary": "List or download explicit import failures",
+        "operationId": "listCustomerImportErrors",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1000
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "csv"
+              ],
+              "default": "json"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Failure page or UTF-8 CSV download",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJobErrorList"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid error export request"
           }
         }
       }
     },
     "/api/imports.process": {
       "post": {
-        "summary": "Process one configured import chunk",
+        "summary": "Process one configured import chunk (compatibility endpoint)",
+        "deprecated": true,
         "operationId": "processCustomerImport",
         "security": [
           {
@@ -615,6 +1109,284 @@
         "responses": {
           "200": {
             "description": "Chunk result"
+          },
+          "400": {
+            "description": "Import is not processable"
+          }
+        }
+      }
+    },
+    "/api/campaigns.create": {
+      "post": {
+        "summary": "Create an immutable-version marketing campaign draft",
+        "operationId": "createMarketingCampaign",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "name",
+                  "audience_id",
+                  "audience_version",
+                  "channel",
+                  "variants"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "audience_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "audience_version": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "channel": {
+                    "type": "string"
+                  },
+                  "variants": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "$ref": "#/components/schemas/CampaignVariant"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Campaign draft created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Campaign"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid campaign draft"
+          }
+        }
+      }
+    },
+    "/api/campaigns.list": {
+      "get": {
+        "summary": "List marketing campaign versions",
+        "operationId": "listMarketingCampaigns",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campaign page"
+          },
+          "400": {
+            "description": "Invalid pagination or workspace"
+          }
+        }
+      }
+    },
+    "/api/campaigns.start": {
+      "post": {
+        "summary": "Freeze campaign recipients and deterministic variants",
+        "description": "Reads one completed Audience build version and creates an immutable ordered recipient snapshot before the run becomes dispatchable.",
+        "operationId": "startMarketingCampaign",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "campaign_id",
+                  "version"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "campaign_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Recipient snapshot completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignRun"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Campaign version or audience build is invalid"
+          }
+        }
+      }
+    },
+    "/api/campaigns.run": {
+      "get": {
+        "summary": "Get a campaign run and snapshot progress",
+        "operationId": "getMarketingCampaignRun",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campaign run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignRun"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid campaign run identifier"
+          }
+        }
+      }
+    },
+    "/api/campaigns.recipients": {
+      "get": {
+        "summary": "Read immutable recipients by snapshot ordinal",
+        "operationId": "listMarketingCampaignRecipients",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5000,
+              "default": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Snapshot recipient page"
+          },
+          "400": {
+            "description": "Invalid snapshot cursor"
           }
         }
       }
@@ -8165,8 +8937,19 @@
       },
       "AudienceSettings": {
         "type": "object",
-        "required": [
-          "list"
+        "description": "Select either a versioned Audience (preferred) or a legacy List.",
+        "anyOf": [
+          {
+            "required": [
+              "audience_id",
+              "audience_version"
+            ]
+          },
+          {
+            "required": [
+              "list"
+            ]
+          }
         ],
         "properties": {
           "list": {
@@ -8188,6 +8971,26 @@
             "type": "boolean",
             "description": "Whether to exclude unsubscribed contacts",
             "example": true
+          },
+          "audience_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Versioned Audience frozen when the campaign starts."
+          },
+          "audience_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "audience_build_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Completed build selected in preflight."
+          },
+          "campaign_run_id": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true,
+            "description": "Immutable recipient snapshot run consumed by delivery."
           }
         }
       },
@@ -8214,6 +9017,19 @@
             "type": "boolean",
             "description": "Whether to exclude unsubscribed contacts. Omit to keep the stored value; send false to mail them too.",
             "example": true
+          },
+          "audience_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Omit to keep the stored Audience; changing it invalidates any prior snapshot."
+          },
+          "audience_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "audience_build_id": {
+            "type": "string",
+            "format": "uuid"
           }
         }
       },
@@ -10971,6 +11787,347 @@
             "items": {
               "$ref": "#/components/schemas/AudienceExpression"
             }
+          }
+        }
+      },
+      "Audience": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "active_version"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "static",
+              "dynamic",
+              "composite"
+            ]
+          },
+          "active_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "active_build_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "AudienceBuild": {
+        "type": "object",
+        "required": [
+          "id",
+          "audience_id",
+          "audience_version",
+          "status",
+          "member_count"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "audience_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "audience_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "building",
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "last_customer_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "member_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "error_detail": {
+            "type": "string"
+          }
+        }
+      },
+      "ImportCounters": {
+        "type": "object",
+        "required": [
+          "total",
+          "pending",
+          "processing",
+          "succeeded",
+          "failed"
+        ],
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "pending": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "processing": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "succeeded": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "ImportJob": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "filename",
+          "counters"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "uploading",
+              "staged",
+              "processing",
+              "completed",
+              "rejected",
+              "cancelled"
+            ]
+          },
+          "filename": {
+            "type": "string"
+          },
+          "file_checksum": {
+            "type": "string",
+            "minLength": 64,
+            "maxLength": 64
+          },
+          "counters": {
+            "$ref": "#/components/schemas/ImportCounters"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ImportJobList": {
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportJob"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "ImportJobError": {
+        "type": "object",
+        "required": [
+          "ordinal",
+          "error_code"
+        ],
+        "properties": {
+          "ordinal": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "external_user_id": {
+            "type": "string"
+          },
+          "display_identity": {
+            "type": "string",
+            "description": "Masked email or phone hint"
+          },
+          "error_code": {
+            "type": "string"
+          },
+          "error_detail": {
+            "type": "string"
+          }
+        }
+      },
+      "ImportJobErrorList": {
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportJobError"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "CampaignVariant": {
+        "type": "object",
+        "required": [
+          "id",
+          "weight_bp"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "weight_bp": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          }
+        }
+      },
+      "Campaign": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "status",
+          "draft_version"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "scheduled",
+              "running",
+              "paused",
+              "completed",
+              "cancelled"
+            ]
+          },
+          "draft_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "active_version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "CampaignRun": {
+        "type": "object",
+        "required": [
+          "id",
+          "campaign_id",
+          "campaign_version",
+          "status",
+          "snapshot_count",
+          "next_ordinal"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "campaign_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "campaign_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "snapshotting",
+              "dispatching",
+              "paused",
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "snapshot_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "next_ordinal": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           }
         }
       },

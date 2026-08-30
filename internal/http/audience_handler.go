@@ -24,10 +24,29 @@ func NewAudienceHandler(service *service.AudienceService, getJWTSecret func() ([
 func (h *AudienceHandler) RegisterRoutes(mux *http.ServeMux) {
 	auth := middleware.NewAuthMiddleware(h.getJWTSecret)
 	mux.Handle("/api/audiences.create", auth.RequireAuth()(http.HandlerFunc(h.create)))
+	mux.Handle("/api/audiences.list", auth.RequireAuth()(http.HandlerFunc(h.list)))
 	mux.Handle("/api/audiences.get", auth.RequireAuth()(http.HandlerFunc(h.get)))
 	mux.Handle("/api/audiences.update", auth.RequireAuth()(http.HandlerFunc(h.update)))
+	mux.Handle("/api/audiences.delete", auth.RequireAuth()(http.HandlerFunc(h.delete)))
 	mux.Handle("/api/audiences.preview", auth.RequireAuth()(http.HandlerFunc(h.preview)))
 	mux.Handle("/api/audiences.build", auth.RequireAuth()(http.HandlerFunc(h.build)))
+	mux.Handle("/api/audiences.buildStatus", auth.RequireAuth()(http.HandlerFunc(h.buildStatus)))
+	mux.Handle("/api/audiences.members", auth.RequireAuth()(http.HandlerFunc(h.members)))
+}
+
+func (h *AudienceHandler) list(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeAPIError(w, requestIDFor(r), "method_not_allowed", "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	items, total, err := h.service.List(r.Context(), r.URL.Query().Get("workspace_id"), limit, offset)
+	if err != nil {
+		h.error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"items": items, "total": total, "limit": limit, "offset": offset})
 }
 
 type audienceMutationRequest struct {
@@ -93,6 +112,21 @@ func (h *AudienceHandler) update(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, item)
 }
 
+func (h *AudienceHandler) delete(w http.ResponseWriter, r *http.Request) {
+	request := struct {
+		WorkspaceID string `json:"workspace_id"`
+		AudienceID  string `json:"audience_id"`
+	}{}
+	if !h.decode(w, r, &request) {
+		return
+	}
+	if err := h.service.Delete(r.Context(), request.WorkspaceID, request.AudienceID); err != nil {
+		h.error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"deleted": true})
+}
+
 func (h *AudienceHandler) preview(w http.ResponseWriter, r *http.Request) {
 	request := audienceMutationRequest{}
 	if !h.decode(w, r, &request) {
@@ -121,6 +155,33 @@ func (h *AudienceHandler) build(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]interface{}{"build_id": buildID, "member_count": count, "version": strconv.Itoa(request.Version)})
+}
+
+func (h *AudienceHandler) buildStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeAPIError(w, requestIDFor(r), "method_not_allowed", "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	item, err := h.service.BuildStatus(r.Context(), r.URL.Query().Get("workspace_id"), r.URL.Query().Get("build_id"))
+	if err != nil {
+		h.error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
+}
+
+func (h *AudienceHandler) members(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeAPIError(w, requestIDFor(r), "method_not_allowed", "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	items, next, err := h.service.Members(r.Context(), r.URL.Query().Get("workspace_id"), r.URL.Query().Get("build_id"), r.URL.Query().Get("after"), limit)
+	if err != nil {
+		h.error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"items": items, "next": next})
 }
 
 func (h *AudienceHandler) error(w http.ResponseWriter, r *http.Request, err error) {

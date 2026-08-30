@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -21,15 +23,23 @@ func TestImportJobRecoveryIntegration(t *testing.T) {
 	db, err := fixture.suite.DBManager.GetWorkspaceDB(fixture.workspaceID)
 	require.NoError(t, err)
 	repo := repository.NewImportJobRepositoryWithDB(db)
+	totalRows := 10_001
+	if configured := os.Getenv("YAOGUANG_IMPORT_ROWS"); configured != "" {
+		value, parseErr := strconv.Atoi(configured)
+		require.NoError(t, parseErr)
+		require.GreaterOrEqual(t, value, 2_000)
+		totalRows = value
+	}
 	jobID := uuid.New().String()
 	now := time.Now().UTC()
 	require.NoError(t, repo.CreateImportJob(context.Background(), fixture.workspaceID, domain.ImportJob{
 		ID: jobID, Status: domain.ImportJobUploading, Filename: "large.csv", CreatedAt: now,
 	}))
-	for start := 1; start <= 10_001; start += 2_000 {
+	stagingStartedAt := time.Now()
+	for start := 1; start <= totalRows; start += 2_000 {
 		end := start + 1_999
-		if end > 10_001 {
-			end = 10_001
+		if end > totalRows {
+			end = totalRows
 		}
 		rows := make([]domain.ImportJobRow, 0, end-start+1)
 		for ordinal := start; ordinal <= end; ordinal++ {
@@ -42,10 +52,11 @@ func TestImportJobRecoveryIntegration(t *testing.T) {
 		require.NoError(t, stageErr)
 		assert.Equal(t, int64(len(rows)), inserted)
 	}
+	t.Logf("durably staged %d import rows in %s", totalRows, time.Since(stagingStartedAt))
 	require.NoError(t, repo.CommitImportJob(context.Background(), fixture.workspaceID, jobID, fmt.Sprintf("%064x", 1)))
 	job, err := repo.GetImportJob(context.Background(), fixture.workspaceID, jobID)
 	require.NoError(t, err)
-	assert.Equal(t, int64(10_001), job.Counters.Total)
+	assert.Equal(t, int64(totalRows), job.Counters.Total)
 	require.NoError(t, job.Counters.Validate())
 
 	first, _, err := repo.ClaimImportRows(context.Background(), fixture.workspaceID, jobID, 2_000, time.Millisecond)
@@ -58,7 +69,27 @@ func TestImportJobRecoveryIntegration(t *testing.T) {
 	assert.Equal(t, first[0].Ordinal, replayed[0].Ordinal)
 	job, err = repo.GetImportJob(context.Background(), fixture.workspaceID, jobID)
 	require.NoError(t, err)
-	assert.Equal(t, int64(8_001), job.Counters.Pending)
+	assert.Equal(t, int64(totalRows-2_000), job.Counters.Pending)
 	assert.Equal(t, int64(2_000), job.Counters.Processing, "lease replay must not double count processing rows")
 	require.NoError(t, job.Counters.Validate())
+
+	require.NoError(t, repo.CancelImportJob(context.Background(), fixture.workspaceID, jobID, "integration cancellation"))
+	job, err = repo.GetImportJob(context.Background(), fixture.workspaceID, jobID)
+	require.NoError(t, err)
+	assert.Equal(t, domain.ImportJobCancelled, job.Status)
+	assert.Equal(t, int64(totalRows), job.Counters.Failed)
+	assert.Zero(t, job.Counters.Pending)
+	assert.Zero(t, job.Counters.Processing)
+	require.NoError(t, job.Counters.Validate(), "cancellation must preserve every accepted row")
+
+	errorsPage, totalErrors, err := repo.ListImportJobErrors(context.Background(), fixture.workspaceID, jobID, 100, 0)
+	require.NoError(t, err)
+	assert.Equal(t, totalRows, totalErrors)
+	require.Len(t, errorsPage, 100)
+	assert.Equal(t, "cancelled_by_user", errorsPage[0].ErrorCode)
+
+	jobs, totalJobs, err := repo.ListImportJobs(context.Background(), fixture.workspaceID, 20, 0)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, totalJobs, 1)
+	assert.Contains(t, jobs, *job)
 }

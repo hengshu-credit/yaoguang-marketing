@@ -1,0 +1,97 @@
+/api/campaigns.create:
+  post:
+    summary: Create an immutable-version marketing campaign draft
+    operationId: createMarketingCampaign
+    security: [{ BearerAuth: [] }]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [workspace_id, name, audience_id, audience_version, channel, variants]
+            properties:
+              workspace_id: { type: string }
+              name: { type: string }
+              audience_id: { type: string, format: uuid }
+              audience_version: { type: integer, minimum: 1 }
+              channel: { type: string }
+              variants:
+                type: array
+                minItems: 1
+                items: { $ref: '../components/schemas/campaign.yaml#/CampaignVariant' }
+    responses:
+      '201':
+        description: Campaign draft created
+        content:
+          application/json:
+            schema: { $ref: '../components/schemas/campaign.yaml#/Campaign' }
+      '400': { description: Invalid campaign draft }
+
+/api/campaigns.list:
+  get:
+    summary: List marketing campaign versions
+    operationId: listMarketingCampaigns
+    security: [{ BearerAuth: [] }]
+    parameters:
+      - { name: workspace_id, in: query, required: true, schema: { type: string } }
+      - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+      - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+    responses:
+      '200': { description: Campaign page }
+      '400': { description: Invalid pagination or workspace }
+
+/api/campaigns.start:
+  post:
+    summary: Freeze campaign recipients and deterministic variants
+    description: Reads one completed Audience build version and creates an immutable ordered recipient snapshot before the run becomes dispatchable.
+    operationId: startMarketingCampaign
+    security: [{ BearerAuth: [] }]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [workspace_id, campaign_id, version]
+            properties:
+              workspace_id: { type: string }
+              campaign_id: { type: string, format: uuid }
+              version: { type: integer, minimum: 1 }
+    responses:
+      '201':
+        description: Recipient snapshot completed
+        content:
+          application/json:
+            schema: { $ref: '../components/schemas/campaign.yaml#/CampaignRun' }
+      '400': { description: Campaign version or audience build is invalid }
+
+/api/campaigns.run:
+  get:
+    summary: Get a campaign run and snapshot progress
+    operationId: getMarketingCampaignRun
+    security: [{ BearerAuth: [] }]
+    parameters:
+      - { name: workspace_id, in: query, required: true, schema: { type: string } }
+      - { name: run_id, in: query, required: true, schema: { type: string, format: uuid } }
+    responses:
+      '200':
+        description: Campaign run
+        content:
+          application/json:
+            schema: { $ref: '../components/schemas/campaign.yaml#/CampaignRun' }
+      '400': { description: Invalid campaign run identifier }
+
+/api/campaigns.recipients:
+  get:
+    summary: Read immutable recipients by snapshot ordinal
+    operationId: listMarketingCampaignRecipients
+    security: [{ BearerAuth: [] }]
+    parameters:
+      - { name: workspace_id, in: query, required: true, schema: { type: string } }
+      - { name: run_id, in: query, required: true, schema: { type: string, format: uuid } }
+      - { name: after, in: query, schema: { type: integer, format: int64, minimum: 0 } }
+      - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 5000, default: 500 } }
+    responses:
+      '200': { description: Snapshot recipient page }
+      '400': { description: Invalid snapshot cursor }

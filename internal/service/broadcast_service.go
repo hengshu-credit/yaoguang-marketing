@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -34,6 +35,7 @@ type BroadcastService struct {
 	apiEndpoint          string
 	deliveryProgressRepo domain.DeliveryManagementRepository
 	marketingPreflight   domain.MarketingPreflightEvaluator
+	campaigns            *CampaignService
 }
 
 // NewBroadcastService creates a new broadcast service
@@ -84,6 +86,10 @@ func (s *BroadcastService) SetDeliveryProgressRepository(repository domain.Deliv
 
 func (s *BroadcastService) SetMarketingPreflight(evaluator domain.MarketingPreflightEvaluator) {
 	s.marketingPreflight = evaluator
+}
+
+func (s *BroadcastService) SetCampaignService(campaigns *CampaignService) {
+	s.campaigns = campaigns
 }
 
 func broadcastProgressSourceVersion(item *domain.Broadcast) string {
@@ -379,6 +385,16 @@ func (s *BroadcastService) ScheduleBroadcast(ctx context.Context, request *domai
 			err := fmt.Errorf("only broadcasts with draft status can be scheduled, current status: %s", bcast.Status)
 			s.logger.Error("Cannot schedule broadcast with non-draft status")
 			return err
+		}
+		if bcast.Audience.AudienceID != "" && bcast.Audience.CampaignRunID == "" {
+			if s.campaigns == nil {
+				return errors.New("campaign snapshot service is unavailable")
+			}
+			run, prepareErr := s.campaigns.PrepareBroadcast(ctx, request.WorkspaceID, bcast)
+			if prepareErr != nil {
+				return fmt.Errorf("prepare immutable campaign audience: %w", prepareErr)
+			}
+			bcast.Audience.CampaignRunID = run.ID
 		}
 
 		// Fetch global feed if configured

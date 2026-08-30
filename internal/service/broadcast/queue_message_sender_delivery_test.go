@@ -207,3 +207,26 @@ func TestQueueMessageSenderFrequencyInfrastructureFailureCreatesDeferredIntent(t
 	require.Len(t, deliveryRepo.intents, 1)
 	assert.Equal(t, domain.DeliveryStatusDeferred, deliveryRepo.intents[0].Status)
 }
+
+func TestQueueMessageSenderSnapshotMissingIdentityCreatesSuppressedIntentWithFrozenVariant(t *testing.T) {
+	deliveryRepo := &captureBroadcastDeliveryRepository{}
+	sender, _, templates, provider := deliveryQueueSenderFixture(t, deliveryRepo)
+	recipients := []*domain.ContactWithList{{
+		Contact: &domain.Contact{}, CustomerID: "11111111-1111-4111-8111-111111111111",
+		SnapshotOrdinal: 23, DeliveryPhase: "single", DeliveryVariant: "template-b",
+	}}
+
+	processed, failed, err := sender.SendBatch(context.Background(), "workspace-1", "integration-1", "secret",
+		"https://api.example.com", "", false, nil, "broadcast-1", recipients,
+		templates, provider, time.Now().Add(time.Minute), "")
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, processed)
+	assert.Zero(t, failed)
+	assert.Empty(t, deliveryRepo.reservations)
+	require.Len(t, deliveryRepo.intents, 1)
+	assert.Equal(t, domain.DeliveryStatusSuppressed, deliveryRepo.intents[0].Status)
+	assert.Equal(t, "missing_identity", deliveryRepo.intents[0].SuppressionReason)
+	assert.Equal(t, "template-b", deliveryRepo.intents[0].Variant)
+	assert.Equal(t, int64(23), deliveryRepo.intents[0].Metadata["snapshot_ordinal"])
+}

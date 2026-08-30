@@ -1,0 +1,37 @@
+Campaign:
+  type: object
+  required: [id, name, status, draft_version]
+  properties:
+    id: { type: string, format: uuid }
+    name: { type: string }
+    status: { type: string, enum: [draft, scheduled, running, paused, completed, cancelled] }
+    draft_version: { type: integer, minimum: 1 }
+    active_version: { type: integer, minimum: 1 }
+
+CampaignVariant:
+  type: object
+  required: [id, weight_bp]
+  properties:
+    id: { type: string, minLength: 1 }
+    weight_bp: { type: integer, minimum: 1, maximum: 10000 }
+
+CampaignRun:
+  type: object
+  required: [id, campaign_id, campaign_version, status, snapshot_count, next_ordinal]
+  properties:
+    id: { type: string, format: uuid }
+    campaign_id: { type: string, format: uuid }
+    campaign_version: { type: integer, minimum: 1 }
+    status: { type: string, enum: [snapshotting, dispatching, paused, completed, failed, cancelled] }
+    snapshot_count: { type: integer, format: int64, minimum: 0 }
+    next_ordinal: { type: integer, format: int64, minimum: 1 }
+
+CampaignRecipientSnapshot:
+  type: object
+  required: [run_id, ordinal, customer_id, variant, source_build_id]
+  properties:
+    run_id: { type: string, format: uuid }
+    ordinal: { type: integer, format: int64, minimum: 1 }
+    customer_id: { type: string, format: uuid }
+    variant: { type: string }
+    source_build_id: { type: string, format: uuid }

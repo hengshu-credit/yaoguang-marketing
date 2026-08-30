@@ -20,10 +20,15 @@ import (
 type ImportJobServiceDependencies struct {
 	Repository   domain.ImportJobRepository
 	Customers    domain.CustomerService
+	Tasks        ImportTaskScheduler
 	Auth         *AuthService
 	MaxRows      int
 	ChunkSize    int
 	MaxFileBytes int64
+}
+
+type ImportTaskScheduler interface {
+	CreateTask(context.Context, string, *domain.Task) error
 }
 
 type ImportJobService struct {
@@ -34,6 +39,7 @@ type ImportJobService struct {
 	maxBytes   int64
 	now        func() time.Time
 	auth       *AuthService
+	tasks      ImportTaskScheduler
 }
 
 func NewImportJobService(dependencies ImportJobServiceDependencies) (*ImportJobService, error) {
@@ -41,7 +47,11 @@ func NewImportJobService(dependencies ImportJobServiceDependencies) (*ImportJobS
 		return nil, errors.New("import repository and positive limits are required")
 	}
 	return &ImportJobService{repository: dependencies.Repository, customers: dependencies.Customers,
-		maxRows: dependencies.MaxRows, chunkSize: dependencies.ChunkSize, maxBytes: dependencies.MaxFileBytes, now: time.Now, auth: dependencies.Auth}, nil
+		maxRows: dependencies.MaxRows, chunkSize: dependencies.ChunkSize, maxBytes: dependencies.MaxFileBytes, now: time.Now, auth: dependencies.Auth, tasks: dependencies.Tasks}, nil
+}
+
+func (s *ImportJobService) SetTaskScheduler(tasks ImportTaskScheduler) {
+	s.tasks = tasks
 }
 
 func (s *ImportJobService) authorize(ctx context.Context, workspaceID string, permission domain.PermissionType) (context.Context, error) {
@@ -139,8 +149,22 @@ func (s *ImportJobService) StageCSV(ctx context.Context, workspaceID, filename s
 		if err := s.repository.RejectImportJob(ctx, workspaceID, job.ID, rejectedReason); err != nil {
 			return nil, err
 		}
-	} else if err := s.repository.CommitImportJob(ctx, workspaceID, job.ID, checksum); err != nil {
-		return nil, err
+	} else {
+		if err := s.repository.CommitImportJob(ctx, workspaceID, job.ID, checksum); err != nil {
+			return nil, err
+		}
+		committed, err := s.repository.GetImportJob(ctx, workspaceID, job.ID)
+		if err != nil {
+			return nil, err
+		}
+		if committed.Status == domain.ImportJobStaged && s.tasks != nil {
+			task := &domain.Task{ID: job.ID, WorkspaceID: workspaceID, Type: domain.ImportCustomersTaskType,
+				Status: domain.TaskStatusPending, MaxRuntime: 50, MaxRetries: 20, RetryInterval: 15,
+				State: &domain.TaskState{ImportCustomers: &domain.ImportCustomersState{JobID: job.ID, TotalRows: committed.Counters.Total}}}
+			if err := s.tasks.CreateTask(ctx, workspaceID, task); err != nil {
+				return nil, fmt.Errorf("create import processing task: %w", err)
+			}
+		}
 	}
 	return s.repository.GetImportJob(ctx, workspaceID, job.ID)
 }
@@ -178,14 +202,27 @@ func importCSVPayload(headers []string, line []byte) ([]byte, string) {
 // ProcessNextChunk claims a bounded chunk and persists one terminal result per
 // row. The idempotency key makes lease-expiry replay safe.
 func (s *ImportJobService) ProcessNextChunk(ctx context.Context, workspaceID, jobID string) (int, error) {
+	return s.processNextChunk(ctx, workspaceID, jobID, true)
+}
+
+// ProcessNextChunkInternal is used only by the registered durable task
+// processor. The scheduler has already selected the workspace-scoped task, so
+// it must not depend on request JWT state that does not exist after restart.
+func (s *ImportJobService) ProcessNextChunkInternal(ctx context.Context, workspaceID, jobID string) (int, error) {
+	return s.processNextChunk(ctx, workspaceID, jobID, false)
+}
+
+func (s *ImportJobService) processNextChunk(ctx context.Context, workspaceID, jobID string, checkAuth bool) (int, error) {
 	if s.customers == nil {
 		return 0, errors.New("customer service is required for import processing")
 	}
-	authorized, err := s.authorize(ctx, workspaceID, domain.PermissionTypeWrite)
-	if err != nil {
-		return 0, err
+	if checkAuth {
+		authorized, err := s.authorize(ctx, workspaceID, domain.PermissionTypeWrite)
+		if err != nil {
+			return 0, err
+		}
+		ctx = authorized
 	}
-	ctx = authorized
 	rows, claimToken, err := s.repository.ClaimImportRows(ctx, workspaceID, jobID, s.chunkSize, 2*time.Minute)
 	if err != nil || len(rows) == 0 {
 		return len(rows), err
@@ -223,6 +260,10 @@ func (s *ImportJobService) ProcessNextChunk(ctx context.Context, workspaceID, jo
 			customerID, action = result.Customer.CustomerID, result.Customer.Action
 		}
 		if err := s.repository.CompleteImportRow(ctx, workspaceID, jobID, validRows[index].Ordinal, claimToken, status, customerID, action, errorCode); err != nil {
+			job, getErr := s.repository.GetImportJob(ctx, workspaceID, jobID)
+			if getErr == nil && job.Status == domain.ImportJobCancelled {
+				return len(rows), nil
+			}
 			return index, err
 		}
 	}
@@ -235,6 +276,77 @@ func (s *ImportJobService) Get(ctx context.Context, workspaceID, jobID string) (
 		return nil, err
 	}
 	return s.repository.GetImportJob(authorized, workspaceID, jobID)
+}
+
+func (s *ImportJobService) GetInternal(ctx context.Context, workspaceID, jobID string) (*domain.ImportJob, error) {
+	return s.repository.GetImportJob(ctx, workspaceID, jobID)
+}
+
+func (s *ImportJobService) List(ctx context.Context, workspaceID string, limit, offset int) (*domain.ImportJobList, error) {
+	authorized, err := s.authorize(ctx, workspaceID, domain.PermissionTypeRead)
+	if err != nil {
+		return nil, err
+	}
+	items, total, err := s.repository.ListImportJobs(authorized, workspaceID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	return &domain.ImportJobList{Items: items, Total: total, Limit: normalizedImportLimit(limit), Offset: max(offset, 0)}, nil
+}
+
+func normalizedImportLimit(limit int) int {
+	if limit <= 0 || limit > 200 {
+		return 50
+	}
+	return limit
+}
+
+func (s *ImportJobService) Cancel(ctx context.Context, workspaceID, jobID string) error {
+	authorized, err := s.authorize(ctx, workspaceID, domain.PermissionTypeWrite)
+	if err != nil {
+		return err
+	}
+	return s.repository.CancelImportJob(authorized, workspaceID, jobID, "用户取消导入；未完成行已记录为明确失败")
+}
+
+func (s *ImportJobService) Errors(ctx context.Context, workspaceID, jobID string, limit, offset int) ([]domain.ImportJobError, int, error) {
+	authorized, err := s.authorize(ctx, workspaceID, domain.PermissionTypeRead)
+	if err != nil {
+		return nil, 0, err
+	}
+	rows, total, err := s.repository.ListImportJobErrors(authorized, workspaceID, jobID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	result := make([]domain.ImportJobError, 0, len(rows))
+	for _, row := range rows {
+		values := map[string]string{}
+		_ = json.Unmarshal(row.RawPayload, &values)
+		result = append(result, domain.ImportJobError{Ordinal: row.Ordinal,
+			ExternalUserID: strings.TrimSpace(values["external_user_id"]), DisplayIdentity: maskedImportIdentity(values),
+			ErrorCode: row.ErrorCode, ErrorDetail: row.ErrorDetail})
+	}
+	return result, total, nil
+}
+
+func maskedImportIdentity(values map[string]string) string {
+	if email := strings.TrimSpace(values["email"]); email != "" {
+		parts := strings.SplitN(email, "@", 2)
+		if len(parts) == 2 {
+			prefix := parts[0]
+			if len(prefix) > 2 {
+				prefix = prefix[:2]
+			}
+			return prefix + "***@" + parts[1]
+		}
+	}
+	if phone := strings.TrimSpace(values["phone"]); phone != "" {
+		if len(phone) <= 4 {
+			return "****"
+		}
+		return "***" + phone[len(phone)-4:]
+	}
+	return ""
 }
 
 func importRowToCustomer(row domain.ImportJobRow) (domain.CustomerBatchUpsertItem, error) {

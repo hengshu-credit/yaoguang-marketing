@@ -70,6 +70,36 @@ type TaskState struct {
 	BuildSegment         *BuildSegmentState         `json:"build_segment,omitempty"`
 	IntegrationSync      *IntegrationSyncState      `json:"integration_sync,omitempty"`
 	WebAnalyticsBackfill *WebAnalyticsBackfillState `json:"web_analytics_backfill,omitempty"`
+	ImportCustomers      *ImportCustomersState      `json:"import_customers,omitempty"`
+	BuildAudience        *BuildAudienceState        `json:"build_audience,omitempty"`
+	SnapshotCampaign     *SnapshotCampaignState     `json:"snapshot_campaign,omitempty"`
+}
+
+const ImportCustomersTaskType = "import_customers"
+const BuildAudienceTaskType = "build_audience"
+const SnapshotCampaignTaskType = "snapshot_campaign"
+
+// ImportCustomersState is the durable pointer from the generic task scheduler
+// to an import job. Row leases and ordinals remain authoritative in the import
+// tables; this state only exposes progress to operators.
+type ImportCustomersState struct {
+	JobID         string `json:"job_id"`
+	ProcessedRows int64  `json:"processed_rows"`
+	TotalRows     int64  `json:"total_rows"`
+}
+
+// BuildAudienceState keeps only the durable build identity and progress
+// counters in the generic scheduler. The audience_builds row is the authority
+// for the keyset cursor, so retrying a task after a process crash is safe.
+type BuildAudienceState struct {
+	BuildID     string `json:"build_id"`
+	MemberCount int64  `json:"member_count"`
+}
+
+type SnapshotCampaignState struct {
+	RunID         string `json:"run_id"`
+	BroadcastID   string `json:"broadcast_id,omitempty"`
+	SnapshotCount int64  `json:"snapshot_count"`
 }
 
 // WebAnalyticsBackfillState is the resumable state of an attribution-rules

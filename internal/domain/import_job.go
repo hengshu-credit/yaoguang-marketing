@@ -83,14 +83,31 @@ type ImportJob struct {
 	UpdatedAt    time.Time       `json:"updated_at"`
 }
 
+type ImportJobList struct {
+	Items  []ImportJob `json:"items"`
+	Total  int         `json:"total"`
+	Limit  int         `json:"limit"`
+	Offset int         `json:"offset"`
+}
+
 type ImportJobRow struct {
-	JobID      string          `json:"job_id"`
-	Ordinal    int64           `json:"ordinal"`
-	RawPayload []byte          `json:"raw_payload,omitempty"`
-	Checksum   string          `json:"checksum"`
-	Status     ImportRowStatus `json:"status"`
-	CustomerID string          `json:"customer_id,omitempty"`
-	ErrorCode  string          `json:"error_code,omitempty"`
+	JobID       string          `json:"job_id"`
+	Ordinal     int64           `json:"ordinal"`
+	RawPayload  []byte          `json:"raw_payload,omitempty"`
+	Checksum    string          `json:"checksum"`
+	Status      ImportRowStatus `json:"status"`
+	CustomerID  string          `json:"customer_id,omitempty"`
+	Action      string          `json:"action,omitempty"`
+	ErrorCode   string          `json:"error_code,omitempty"`
+	ErrorDetail string          `json:"error_detail,omitempty"`
+}
+
+type ImportJobError struct {
+	Ordinal         int64  `json:"ordinal"`
+	ExternalUserID  string `json:"external_user_id,omitempty"`
+	DisplayIdentity string `json:"display_identity,omitempty"`
+	ErrorCode       string `json:"error_code"`
+	ErrorDetail     string `json:"error_detail,omitempty"`
 }
 
 type ImportJobRepository interface {
@@ -101,4 +118,7 @@ type ImportJobRepository interface {
 	ClaimImportRows(context.Context, string, string, int, time.Duration) ([]ImportJobRow, string, error)
 	CompleteImportRow(context.Context, string, string, int64, string, ImportRowStatus, string, string, string) error
 	GetImportJob(context.Context, string, string) (*ImportJob, error)
+	ListImportJobs(context.Context, string, int, int) ([]ImportJob, int, error)
+	CancelImportJob(context.Context, string, string, string) error
+	ListImportJobErrors(context.Context, string, string, int, int) ([]ImportJobRow, int, error)
 }

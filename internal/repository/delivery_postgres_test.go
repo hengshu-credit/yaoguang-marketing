@@ -119,6 +119,31 @@ func TestDeliveryReserveAndEnqueueCreatesIntentQueueAndStatusAtomically(t *testi
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestDeliveryReserveIntentPersistsPolicyTerminalStatesWithoutQueue(t *testing.T) {
+	for _, status := range []domain.DeliveryStatus{domain.DeliveryStatusSuppressed, domain.DeliveryStatusDeferred} {
+		t.Run(string(status), func(t *testing.T) {
+			db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+			require.NoError(t, err)
+			defer db.Close()
+			repo := NewDeliveryRepositoryWithDB(db)
+			intent := testDeliveryIntent()
+			intent.Status = status
+			intent.SuppressionReason = "frequency policy"
+
+			mock.ExpectBegin()
+			mock.ExpectQuery("INSERT INTO delivery_intents.*ON CONFLICT.*RETURNING").
+				WillReturnRows(deliveryIntentRow(intent))
+			mock.ExpectCommit()
+
+			stored, created, err := repo.ReserveIntent(context.Background(), "workspace-1", intent)
+			require.NoError(t, err)
+			assert.True(t, created)
+			assert.Equal(t, status, stored.Status)
+			require.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}
+
 func TestDeliveryReserveAndEnqueueReturnsExistingIntentForSameHash(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	require.NoError(t, err)

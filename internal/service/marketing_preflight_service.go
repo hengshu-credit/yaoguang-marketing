@@ -194,7 +194,7 @@ func (s *BroadcastMarketingPreflightSource) LoadMarketingPreflightSnapshot(ctx c
 	if err != nil {
 		return nil, err
 	}
-	if err := loadMarketingRecipientCounts(ctx, db, broadcast.Audience.List, broadcast.ChannelType, &snapshot.Counts); err != nil {
+	if err := loadMarketingRecipientCounts(ctx, db, broadcast.Audience, broadcast.ChannelType, &snapshot.Counts); err != nil {
 		return nil, err
 	}
 	if err := db.QueryRowContext(ctx, `SELECT EXISTS (
@@ -204,7 +204,11 @@ func (s *BroadcastMarketingPreflightSource) LoadMarketingPreflightSnapshot(ctx c
 	)`, broadcastID, broadcast.ChannelType).Scan(&snapshot.HasFrequencyPolicy); err != nil && !isUndefinedTable(err) {
 		return nil, err
 	}
-	if audienceID, ok := stringMetadata(broadcast.Metadata, "audience_id"); ok {
+	audienceID := strings.TrimSpace(broadcast.Audience.AudienceID)
+	if audienceID == "" {
+		audienceID, _ = stringMetadata(broadcast.Metadata, "audience_id")
+	}
+	if audienceID != "" {
 		var stale bool
 		err = db.QueryRowContext(ctx, `SELECT active_build_id IS NULL OR active_version <> COALESCE((
 			SELECT audience_version FROM audience_builds WHERE id = active_build_id AND status = 'completed'
@@ -218,7 +222,38 @@ func (s *BroadcastMarketingPreflightSource) LoadMarketingPreflightSnapshot(ctx c
 	return snapshot, nil
 }
 
-func loadMarketingRecipientCounts(ctx context.Context, db *sql.DB, listID, channel string, counts *domain.MarketingPreflightCounts) error {
+func loadMarketingRecipientCounts(ctx context.Context, db *sql.DB, audience domain.AudienceSettings, channel string, counts *domain.MarketingPreflightCounts) error {
+	if strings.TrimSpace(audience.AudienceID) != "" {
+		identityType := channel
+		if identityType == "" {
+			identityType = "email"
+		}
+		return db.QueryRowContext(ctx, `WITH source_build AS (
+			SELECT build.id FROM audience_builds build
+			WHERE build.audience_id = NULLIF($1, '')::uuid AND build.audience_version = $2
+				AND build.status = 'completed'
+				AND ($3 = '' OR build.id = NULLIF($3, '')::uuid)
+			ORDER BY build.completed_at DESC, build.id DESC LIMIT 1
+		), classified AS (
+			SELECT membership.customer_id,
+				EXISTS (SELECT 1 FROM contact_lists legacy_list WHERE legacy_list.customer_id = membership.customer_id
+					AND legacy_list.status IN ('unsubscribed', 'bounced', 'complained')) AS suppressed,
+				EXISTS (SELECT 1 FROM customer_identities identity
+					WHERE identity.customer_id = membership.customer_id AND identity.identity_type = $4
+					AND identity.enabled = TRUE) AS has_identity,
+				EXISTS (SELECT 1 FROM customer_consents consent
+					WHERE consent.customer_id = membership.customer_id AND consent.channel = $4
+					AND consent.status IN ('granted', 'subscribed', 'opted_in', 'active')
+					AND consent.revoked_at IS NULL AND consent.valid_from <= CURRENT_TIMESTAMP) AS has_consent
+			FROM audience_memberships membership JOIN source_build ON source_build.id = membership.build_id
+		) SELECT COUNT(*),
+			COUNT(*) FILTER (WHERE has_identity AND has_consent AND NOT suppressed),
+			COUNT(*) FILTER (WHERE NOT has_identity), COUNT(*) FILTER (WHERE NOT has_consent),
+			COUNT(*) FILTER (WHERE suppressed) FROM classified`, audience.AudienceID, audience.AudienceVersion,
+			audience.AudienceBuildID, identityType).Scan(&counts.TargetTotal, &counts.Reachable,
+			&counts.MissingIdentity, &counts.MissingConsent, &counts.Suppressed)
+	}
+	listID := audience.List
 	if strings.TrimSpace(listID) == "" {
 		return nil
 	}

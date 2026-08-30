@@ -71,6 +71,10 @@ export interface AudienceSettings {
   list?: string
   segments?: string[]
   exclude_unsubscribed: boolean
+  audience_id?: string
+  audience_version?: number
+  audience_build_id?: string
+  campaign_run_id?: string
 }
 
 export interface ScheduleSettings {

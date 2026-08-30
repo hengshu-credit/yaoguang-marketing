@@ -12,7 +12,12 @@
         text/csv:
           schema: { type: string, format: binary }
     responses:
-      '201': { description: Upload completely staged or explicitly rejected }
+      '201':
+        description: Upload completely staged or explicitly rejected. A staged job has a durable background task before this response returns.
+        content:
+          application/json:
+            schema: { $ref: '../components/schemas/import_job.yaml#/ImportJob' }
+      '400': { description: Invalid CSV or configured upload limit exceeded }
 
 /api/imports.get:
   get:
@@ -23,11 +28,68 @@
       - { name: workspace_id, in: query, required: true, schema: { type: string } }
       - { name: job_id, in: query, required: true, schema: { type: string, format: uuid } }
     responses:
-      '200': { description: Import job }
+      '200':
+        description: Import job
+        content:
+          application/json:
+            schema: { $ref: '../components/schemas/import_job.yaml#/ImportJob' }
+      '400': { description: Invalid workspace or import job identifier }
+
+/api/imports.list:
+  get:
+    summary: List durable customer import jobs
+    operationId: listCustomerImports
+    security: [{ BearerAuth: [] }]
+    parameters:
+      - { name: workspace_id, in: query, required: true, schema: { type: string } }
+      - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+      - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+    responses:
+      '200':
+        description: Import job history
+        content:
+          application/json:
+            schema: { $ref: '../components/schemas/import_job.yaml#/ImportJobList' }
+      '400': { description: Invalid pagination or workspace }
+
+/api/imports.cancel:
+  post:
+    summary: Cancel pending import work without losing accepted rows
+    description: Pending and leased rows become explicit cancelled_by_user failures in the same transaction as the job status change.
+    operationId: cancelCustomerImport
+    security: [{ BearerAuth: [] }]
+    parameters:
+      - { name: workspace_id, in: query, required: true, schema: { type: string } }
+      - { name: job_id, in: query, required: true, schema: { type: string, format: uuid } }
+    responses:
+      '200': { description: Import cancelled }
+      '400': { description: Import cannot be cancelled }
+
+/api/imports.errors:
+  get:
+    summary: List or download explicit import failures
+    operationId: listCustomerImportErrors
+    security: [{ BearerAuth: [] }]
+    parameters:
+      - { name: workspace_id, in: query, required: true, schema: { type: string } }
+      - { name: job_id, in: query, required: true, schema: { type: string, format: uuid } }
+      - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 10000, default: 1000 } }
+      - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+      - { name: format, in: query, schema: { type: string, enum: [json, csv], default: json } }
+    responses:
+      '200':
+        description: Failure page or UTF-8 CSV download
+        content:
+          application/json:
+            schema: { $ref: '../components/schemas/import_job.yaml#/ImportJobErrorList' }
+          text/csv:
+            schema: { type: string, format: binary }
+      '400': { description: Invalid error export request }
 
 /api/imports.process:
   post:
-    summary: Process one configured import chunk
+    summary: Process one configured import chunk (compatibility endpoint)
+    deprecated: true
     operationId: processCustomerImport
     security: [{ BearerAuth: [] }]
     parameters:
@@ -35,4 +97,4 @@
       - { name: job_id, in: query, required: true, schema: { type: string, format: uuid } }
     responses:
       '200': { description: Chunk result }
-
+      '400': { description: Import is not processable }

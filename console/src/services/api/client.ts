@@ -66,8 +66,21 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   return handleResponse<T>(response)
 }
 
+async function requestBlob(endpoint: string): Promise<Blob> {
+  const authToken = localStorage.getItem('auth_token')
+  let defaultOrigin = window.location.origin
+  if (defaultOrigin.includes('notifusedev.com')) defaultOrigin = 'https://localapi.notifuse.com:4000'
+  const apiEndpoint = window.API_ENDPOINT?.trim().replace(/\/+$/, '') || defaultOrigin
+  const response = await fetch(`${apiEndpoint}${endpoint}`, {
+    headers: authToken ? { Authorization: `Bearer ${authToken}` } : {}
+  })
+  if (!response.ok) return handleResponse<never>(response)
+  return response.blob()
+}
+
 export const api = {
   get: <T>(endpoint: string) => request<T>(endpoint),
+  getBlob: (endpoint: string) => requestBlob(endpoint),
   post: <T>(endpoint: string, data: unknown) =>
     request<T>(endpoint, {
       method: 'POST',

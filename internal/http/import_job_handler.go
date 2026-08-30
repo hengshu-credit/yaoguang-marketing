@@ -1,7 +1,9 @@
 package http
 
 import (
+	"encoding/csv"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
@@ -24,7 +26,64 @@ func (h *ImportJobHandler) RegisterRoutes(mux *http.ServeMux) {
 	auth := middleware.NewAuthMiddleware(h.getJWTSecret)
 	mux.Handle("/api/imports.upload", auth.RequireAuth()(http.HandlerFunc(h.upload)))
 	mux.Handle("/api/imports.get", auth.RequireAuth()(http.HandlerFunc(h.get)))
+	mux.Handle("/api/imports.list", auth.RequireAuth()(http.HandlerFunc(h.list)))
+	mux.Handle("/api/imports.cancel", auth.RequireAuth()(http.HandlerFunc(h.cancel)))
+	mux.Handle("/api/imports.errors", auth.RequireAuth()(http.HandlerFunc(h.errors)))
 	mux.Handle("/api/imports.process", auth.RequireAuth()(http.HandlerFunc(h.process)))
+}
+
+func (h *ImportJobHandler) list(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeAPIError(w, requestIDFor(r), "method_not_allowed", "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	result, err := h.service.List(r.Context(), r.URL.Query().Get("workspace_id"), limit, offset)
+	if err != nil {
+		h.error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (h *ImportJobHandler) cancel(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeAPIError(w, requestIDFor(r), "method_not_allowed", "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := h.service.Cancel(r.Context(), r.URL.Query().Get("workspace_id"), r.URL.Query().Get("job_id")); err != nil {
+		h.error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"cancelled": true})
+}
+
+func (h *ImportJobHandler) errors(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeAPIError(w, requestIDFor(r), "method_not_allowed", "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	items, total, err := h.service.Errors(r.Context(), r.URL.Query().Get("workspace_id"), r.URL.Query().Get("job_id"), limit, offset)
+	if err != nil {
+		h.error(w, r, err)
+		return
+	}
+	if r.URL.Query().Get("format") == "csv" {
+		w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+		w.Header().Set("Content-Disposition", `attachment; filename="import-errors.csv"`)
+		_, _ = w.Write([]byte{0xEF, 0xBB, 0xBF})
+		writer := csv.NewWriter(w)
+		_ = writer.Write([]string{"行号", "外部用户ID", "脱敏联系方式", "错误码", "错误说明"})
+		for _, item := range items {
+			_ = writer.Write([]string{strconv.FormatInt(item.Ordinal, 10), item.ExternalUserID, item.DisplayIdentity, item.ErrorCode, item.ErrorDetail})
+		}
+		writer.Flush()
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"items": items, "total": total, "limit": limit, "offset": offset})
 }
 
 func (h *ImportJobHandler) upload(w http.ResponseWriter, r *http.Request) {

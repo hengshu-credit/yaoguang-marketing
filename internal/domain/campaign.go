@@ -47,14 +47,15 @@ type CampaignVersion struct {
 }
 
 type CampaignRun struct {
-	ID              string    `json:"id"`
-	CampaignID      string    `json:"campaign_id"`
-	CampaignVersion int       `json:"campaign_version"`
-	Status          string    `json:"status"`
-	RunSeed         string    `json:"run_seed"`
-	SnapshotCount   int64     `json:"snapshot_count"`
-	NextOrdinal     int64     `json:"next_ordinal"`
-	CreatedAt       time.Time `json:"created_at"`
+	ID                     string    `json:"id"`
+	CampaignID             string    `json:"campaign_id"`
+	CampaignVersion        int       `json:"campaign_version"`
+	Status                 string    `json:"status"`
+	RunSeed                string    `json:"run_seed"`
+	SnapshotLastCustomerID string    `json:"snapshot_last_customer_id,omitempty"`
+	SnapshotCount          int64     `json:"snapshot_count"`
+	NextOrdinal            int64     `json:"next_ordinal"`
+	CreatedAt              time.Time `json:"created_at"`
 }
 
 type CampaignRecipientSnapshot struct {
@@ -66,13 +67,22 @@ type CampaignRecipientSnapshot struct {
 	CreatedAt     time.Time `json:"created_at"`
 }
 
+type CampaignAudienceMember struct {
+	CustomerID string `json:"customer_id"`
+	BuildID    string `json:"build_id"`
+}
+
 type CampaignRepository interface {
 	CreateCampaign(context.Context, string, Campaign, CampaignVersion) error
+	GetCampaign(context.Context, string, string) (*Campaign, error)
+	ListCampaigns(context.Context, string, int, int) ([]Campaign, int, error)
 	GetCampaignVersion(context.Context, string, string, int) (*CampaignVersion, error)
 	CreateCampaignRun(context.Context, string, CampaignRun) error
-	ListAudienceMemberIDs(context.Context, string, string, int, string, int) ([]string, string, error)
+	GetCampaignRun(context.Context, string, string) (*CampaignRun, error)
+	ListAudienceMembers(context.Context, string, string, int, string, int) ([]CampaignAudienceMember, string, error)
 	AppendCampaignSnapshots(context.Context, string, string, []CampaignRecipientSnapshot) (int64, error)
 	CompleteCampaignSnapshot(context.Context, string, string, int64) error
+	ListCampaignSnapshots(context.Context, string, string, int64, int) ([]CampaignRecipientSnapshot, int64, error)
 }
 
 func (v CampaignVersion) Validate() error {

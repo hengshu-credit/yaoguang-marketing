@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
@@ -52,6 +53,27 @@ type BroadcastOrchestrator struct {
 	timeProvider    TimeProvider
 	apiEndpoint     string
 	eventBus        domain.EventBus
+}
+
+type campaignSnapshotStatusReader interface {
+	CampaignSnapshotStatus(context.Context, string, string) (string, error)
+}
+
+type campaignRunCompleter interface {
+	CompleteCampaignRun(context.Context, string, string) error
+}
+
+var errCampaignSnapshotPending = errors.New("campaign recipient snapshot is still building")
+
+func (o *BroadcastOrchestrator) completeCampaignRun(ctx context.Context, workspaceID, runID string) error {
+	if runID == "" {
+		return nil
+	}
+	completer, ok := o.contactRepo.(campaignRunCompleter)
+	if !ok {
+		return nil
+	}
+	return completer.CompleteCampaignRun(ctx, workspaceID, runID)
 }
 
 // NewBroadcastOrchestrator creates a new broadcast orchestrator
@@ -250,6 +272,22 @@ func (o *BroadcastOrchestrator) GetTotalRecipientCount(ctx context.Context, work
 			return 0, interrupted
 		}
 		return 0, NewBroadcastError(ErrCodeBroadcastNotFound, "broadcast not found", false, err)
+	}
+	if broadcast.Audience.CampaignRunID != "" {
+		reader, ok := o.contactRepo.(campaignSnapshotStatusReader)
+		if !ok {
+			return 0, NewBroadcastError(ErrCodeRecipientFetch, "campaign snapshot status is unavailable", false, nil)
+		}
+		status, statusErr := reader.CampaignSnapshotStatus(ctx, workspaceID, broadcast.Audience.CampaignRunID)
+		if statusErr != nil {
+			return 0, NewBroadcastError(ErrCodeRecipientFetch, "failed to read campaign snapshot status", true, statusErr)
+		}
+		if status == "snapshotting" {
+			return 0, errCampaignSnapshotPending
+		}
+		if status != "dispatching" && status != "completed" {
+			return 0, NewBroadcastError(ErrCodeRecipientFetch, "campaign snapshot is not dispatchable", false, fmt.Errorf("status %s", status))
+		}
 	}
 
 	// Use the contact repository to count recipients
@@ -636,6 +674,10 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	if broadcastState.TotalRecipients == 0 {
 		count, countErr := o.GetTotalRecipientCount(ctx, task.WorkspaceID, broadcastState.BroadcastID)
 		if countErr != nil {
+			if errors.Is(countErr, errCampaignSnapshotPending) {
+				task.State.Message = "正在生成不可变收件人快照"
+				return false, nil
+			}
 			// codecov:ignore:start
 			o.logger.WithFields(map[string]interface{}{
 				"task_id":      task.ID,
@@ -705,6 +747,9 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				}).Error("Failed to update broadcast status to processed (no recipients)")
 				err = fmt.Errorf("failed to update broadcast status to processed: %w", updateErr)
 				return false, err
+			}
+			if completeErr := o.completeCampaignRun(context.Background(), task.WorkspaceID, broadcast.Audience.CampaignRunID); completeErr != nil {
+				return false, fmt.Errorf("complete campaign run: %w", completeErr)
 			}
 
 			o.logger.WithFields(map[string]interface{}{
@@ -1146,7 +1191,9 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			if recipient == nil {
 				continue
 			}
-			recipient.SnapshotOrdinal = int64(currentOffset + index + 1)
+			if recipient.SnapshotOrdinal == 0 {
+				recipient.SnapshotOrdinal = int64(currentOffset + index + 1)
+			}
 			recipient.DeliveryPhase = broadcastState.Phase
 			if recipient.DeliveryPhase == "" {
 				recipient.DeliveryPhase = "single"
@@ -1341,7 +1388,11 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 		if len(recipients) > 0 {
 			processedInBatch := sent + failed
 			if processedInBatch > 0 && processedInBatch <= len(recipients) {
-				cursor = recipients[processedInBatch-1].Contact.Email
+				if broadcast.Audience.CampaignRunID != "" {
+					cursor = strconv.FormatInt(recipients[processedInBatch-1].SnapshotOrdinal, 10)
+				} else {
+					cursor = recipients[processedInBatch-1].Contact.Email
+				}
 				broadcastState.LastProcessedEmail = cursor
 			}
 			// If nothing was processed, don't update cursor (will retry same batch on next run)
@@ -1477,6 +1528,9 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			// codecov:ignore:end
 			err = fmt.Errorf("failed to update broadcast status to %s: %w", statusMessage, updateErr)
 			return false, err
+		}
+		if completeErr := o.completeCampaignRun(context.Background(), task.WorkspaceID, broadcast.Audience.CampaignRunID); completeErr != nil {
+			return false, fmt.Errorf("complete campaign run: %w", completeErr)
 		}
 
 		// codecov:ignore:start

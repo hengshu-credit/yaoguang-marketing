@@ -170,6 +170,7 @@ type App struct {
 	deliveryManagementService        *service.DeliveryManagementService
 	audienceService                  *service.AudienceService
 	campaignSnapshotService          *service.CampaignSnapshotService
+	campaignService                  *service.CampaignService
 	importJobService                 *service.ImportJobService
 	frequencyPolicyService           *service.FrequencyPolicyService
 	marketingPreflightService        *service.MarketingPreflightService
@@ -709,6 +710,10 @@ func (a *App) InitServices() error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize campaign snapshot service: %w", err)
 	}
+	a.campaignService, err = service.NewAuthorizedCampaignService(a.campaignRepo, a.campaignSnapshotService, a.authService)
+	if err != nil {
+		return fmt.Errorf("failed to initialize campaign service: %w", err)
+	}
 	importMaxRows := a.config.Ingest.CustomerImportMaxRows
 	if importMaxRows <= 0 {
 		importMaxRows = 1_000_000
@@ -991,6 +996,7 @@ func (a *App) InitServices() error {
 		return fmt.Errorf("failed to initialize marketing preflight service: %w", err)
 	}
 	a.broadcastService.SetMarketingPreflight(a.marketingPreflightService)
+	a.broadcastService.SetCampaignService(a.campaignService)
 
 	// Create broadcast factory with refactored components
 	broadcastConfig := broadcast.DefaultConfig()
@@ -1116,6 +1122,32 @@ func (a *App) InitServices() error {
 		a.dnsVerificationService,
 		a.blogService,
 	)
+
+	// Initialize durable Campaign, Audience and customer-import processors.
+	a.campaignService.SetTaskScheduler(a.taskService)
+	campaignSnapshotWorker, err := service.NewCampaignSnapshotWorker(a.campaignSnapshotService)
+	if err != nil {
+		return fmt.Errorf("failed to initialize campaign snapshot worker: %w", err)
+	}
+	a.taskService.RegisterProcessor(campaignSnapshotWorker)
+
+	a.audienceService.SetTaskScheduler(a.taskService)
+	audienceBuildRunner, ok := a.audienceRepo.(service.AudienceBuildRunner)
+	if !ok {
+		return fmt.Errorf("audience repository does not support resumable builds")
+	}
+	audienceBuildWorker, err := service.NewAudienceBuildWorker(audienceBuildRunner, 5_000)
+	if err != nil {
+		return fmt.Errorf("failed to initialize audience build worker: %w", err)
+	}
+	a.taskService.RegisterProcessor(audienceBuildWorker)
+
+	a.importJobService.SetTaskScheduler(a.taskService)
+	importJobWorker, err := service.NewImportJobWorker(a.importJobService)
+	if err != nil {
+		return fmt.Errorf("failed to initialize import job worker: %w", err)
+	}
+	a.taskService.RegisterProcessor(importJobWorker)
 
 	// Initialize and register segment build processor
 	segmentBuildProcessor := service.NewSegmentBuildProcessor(
@@ -1588,6 +1620,7 @@ func (a *App) InitHandlers() error {
 	deliveryHandler := httpHandler.NewDeliveryHandler(a.deliveryManagementService, getJWTSecret, a.logger)
 	audienceHandler := httpHandler.NewAudienceHandler(a.audienceService, getJWTSecret, a.logger)
 	importJobHandler := httpHandler.NewImportJobHandler(a.importJobService, getJWTSecret, a.logger)
+	campaignHandler := httpHandler.NewCampaignHandler(a.campaignService, getJWTSecret, a.logger)
 	frequencyPolicyHandler := httpHandler.NewFrequencyPolicyHandler(a.frequencyPolicyService, getJWTSecret, a.logger)
 	channelMessageHandler := httpHandler.NewChannelMessageHandler(a.channelMessageService, getJWTSecret, a.logger)
 	notificationCenterHandler := httpHandler.NewNotificationCenterHandler(
@@ -1694,6 +1727,7 @@ func (a *App) InitHandlers() error {
 	deliveryReceiptHandler.RegisterRoutes(a.mux)
 	deliveryHandler.RegisterRoutes(a.mux)
 	audienceHandler.RegisterRoutes(a.mux)
+	campaignHandler.RegisterRoutes(a.mux)
 	importJobHandler.RegisterRoutes(a.mux)
 	frequencyPolicyHandler.RegisterRoutes(a.mux)
 	channelMessageHandler.RegisterRoutes(a.mux)

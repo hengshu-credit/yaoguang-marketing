@@ -17,6 +17,13 @@ type importJobRepositoryMemory struct {
 	rows map[int64]domain.ImportJobRow
 }
 
+type importTaskSchedulerMemory struct{ tasks []*domain.Task }
+
+func (s *importTaskSchedulerMemory) CreateTask(_ context.Context, _ string, task *domain.Task) error {
+	s.tasks = append(s.tasks, task)
+	return nil
+}
+
 func (r *importJobRepositoryMemory) CreateImportJob(_ context.Context, _ string, job domain.ImportJob) error {
 	r.job, r.rows = job, map[int64]domain.ImportJobRow{}
 	return nil
@@ -70,6 +77,30 @@ func (r *importJobRepositoryMemory) GetImportJob(context.Context, string, string
 	copy := r.job
 	return &copy, nil
 }
+func (r *importJobRepositoryMemory) ListImportJobs(context.Context, string, int, int) ([]domain.ImportJob, int, error) {
+	return []domain.ImportJob{r.job}, 1, nil
+}
+func (r *importJobRepositoryMemory) CancelImportJob(context.Context, string, string, string) error {
+	for ordinal, row := range r.rows {
+		if row.Status == domain.ImportRowPending || row.Status == domain.ImportRowProcessing {
+			row.Status, row.ErrorCode = domain.ImportRowFailed, "cancelled_by_user"
+			r.rows[ordinal] = row
+			r.job.Counters.Failed++
+		}
+	}
+	r.job.Counters.Pending, r.job.Counters.Processing = 0, 0
+	r.job.Status = domain.ImportJobCancelled
+	return nil
+}
+func (r *importJobRepositoryMemory) ListImportJobErrors(context.Context, string, string, int, int) ([]domain.ImportJobRow, int, error) {
+	items := make([]domain.ImportJobRow, 0)
+	for _, row := range r.rows {
+		if row.Status == domain.ImportRowFailed {
+			items = append(items, row)
+		}
+	}
+	return items, len(items), nil
+}
 
 func TestImportJobStagesEveryRowBeforeRejectingConfiguredLimit(t *testing.T) {
 	repository := &importJobRepositoryMemory{}
@@ -101,4 +132,21 @@ func TestImportJobPersistsMalformedRowsAsExplicitFailures(t *testing.T) {
 	assert.Equal(t, "csv_parse_error", repository.rows[2].ErrorCode)
 	assert.Equal(t, int64(3), job.Counters.Total)
 	require.NoError(t, job.Counters.Validate())
+}
+
+func TestImportJobCommitCreatesDurableBackgroundTask(t *testing.T) {
+	repository := &importJobRepositoryMemory{}
+	scheduler := &importTaskSchedulerMemory{}
+	service, err := NewImportJobService(ImportJobServiceDependencies{Repository: repository, Tasks: scheduler, MaxRows: 100, ChunkSize: 20, MaxFileBytes: 1 << 20})
+	require.NoError(t, err)
+	job, err := service.StageCSV(context.Background(), "workspace1", "customers.csv", strings.NewReader("external_user_id\ncustomer-1\n"))
+	require.NoError(t, err)
+	require.Equal(t, domain.ImportJobStaged, job.Status)
+	require.Len(t, scheduler.tasks, 1)
+	task := scheduler.tasks[0]
+	assert.Equal(t, job.ID, task.ID, "job id makes task creation idempotent")
+	assert.Equal(t, domain.ImportCustomersTaskType, task.Type)
+	require.NotNil(t, task.State.ImportCustomers)
+	assert.Equal(t, job.ID, task.State.ImportCustomers.JobID)
+	assert.Equal(t, int64(1), task.State.ImportCustomers.TotalRows)
 }

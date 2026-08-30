@@ -91,6 +91,40 @@ func (r *AudiencePostgresRepository) GetAudience(ctx context.Context, workspaceI
 	return audience, nil
 }
 
+func (r *AudiencePostgresRepository) ListAudiences(ctx context.Context, workspaceID string, limit, offset int) ([]domain.Audience, int, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return nil, 0, err
+	}
+	var total int
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM audiences WHERE status = 'active'`).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := db.QueryContext(ctx, `SELECT id, name, description, kind, active_version, active_build_id, created_at, updated_at
+		FROM audiences WHERE status = 'active' ORDER BY updated_at DESC, id DESC LIMIT $1 OFFSET $2`, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	items := make([]domain.Audience, 0)
+	for rows.Next() {
+		var item domain.Audience
+		var description, buildID sql.NullString
+		if err := rows.Scan(&item.ID, &item.Name, &description, &item.Kind, &item.ActiveVersion, &buildID, &item.CreatedAt, &item.UpdatedAt); err != nil {
+			return nil, 0, err
+		}
+		item.Description, item.ActiveBuildID = description.String, buildID.String
+		items = append(items, item)
+	}
+	return items, total, rows.Err()
+}
+
 func (r *AudiencePostgresRepository) GetAudienceVersion(ctx context.Context, workspaceID, audienceID string, version int) (*domain.AudienceVersion, error) {
 	db, err := r.getDB(ctx, workspaceID)
 	if err != nil {
@@ -273,4 +307,202 @@ func (r *AudiencePostgresRepository) BuildAudience(ctx context.Context, workspac
 		return "", 0, err
 	}
 	return buildID, count, nil
+}
+
+func (r *AudiencePostgresRepository) StartAudienceBuild(ctx context.Context, workspaceID, audienceID string, version int) (*domain.AudienceBuild, error) {
+	if _, err := r.GetAudienceVersion(ctx, workspaceID, audienceID, version); err != nil {
+		return nil, err
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	build := &domain.AudienceBuild{ID: uuid.New().String(), AudienceID: audienceID, AudienceVersion: version,
+		Status: "pending", CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()}
+	_, err = db.ExecContext(ctx, `INSERT INTO audience_builds (
+		id, audience_id, audience_version, status, created_at, updated_at
+	) VALUES (NULLIF($1, '')::uuid, NULLIF($2, '')::uuid, $3, 'pending', $4, $4)`,
+		build.ID, audienceID, version, build.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("start audience build: %w", err)
+	}
+	return build, nil
+}
+
+// ProcessAudienceBuildChunk materializes one keyset page in a single
+// transaction. The build row is locked before reading its cursor, making a
+// crash either commit both memberships and checkpoint or neither.
+func (r *AudiencePostgresRepository) ProcessAudienceBuildChunk(ctx context.Context, workspaceID, buildID string, chunkSize int) (*domain.AudienceBuild, bool, error) {
+	if chunkSize <= 0 || chunkSize > 20_000 {
+		chunkSize = 5_000
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return nil, false, err
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, false, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	build := &domain.AudienceBuild{ID: buildID}
+	var lastCustomerID, errorDetail sql.NullString
+	err = tx.QueryRowContext(ctx, `SELECT audience_id, audience_version, status, last_customer_id,
+		member_count, error_detail, created_at, updated_at FROM audience_builds
+		WHERE id = NULLIF($1, '')::uuid FOR UPDATE`, buildID).Scan(&build.AudienceID,
+		&build.AudienceVersion, &build.Status, &lastCustomerID, &build.MemberCount,
+		&errorDetail, &build.CreatedAt, &build.UpdatedAt)
+	if err != nil {
+		return nil, false, err
+	}
+	build.LastCustomerID, build.ErrorDetail = lastCustomerID.String, errorDetail.String
+	if build.Status == "completed" {
+		return build, true, tx.Commit()
+	}
+	if build.Status == "failed" || build.Status == "cancelled" {
+		return build, false, fmt.Errorf("audience build is %s", build.Status)
+	}
+	version := &domain.AudienceVersion{}
+	var definition []byte
+	err = tx.QueryRowContext(ctx, `SELECT definition FROM audience_versions
+		WHERE audience_id = $1 AND version = $2`, build.AudienceID, build.AudienceVersion).Scan(&definition)
+	if err != nil {
+		return nil, false, err
+	}
+	if err := json.Unmarshal(definition, &version.Definition); err != nil {
+		return nil, false, err
+	}
+	compiled, args, err := compileAudienceExpressionWithOffset(version.Definition, 4)
+	if err != nil {
+		return nil, false, err
+	}
+	queryArgs := []interface{}{buildID, build.MemberCount, build.LastCustomerID, chunkSize}
+	queryArgs = append(queryArgs, args...)
+	var pageCount int64
+	var pageLast sql.NullString
+	query := `WITH page AS (
+		SELECT DISTINCT result.customer_id FROM (` + compiled + `) result
+		JOIN customers customer ON customer.id = result.customer_id
+		WHERE customer.merged_into_id IS NULL
+			AND result.customer_id > COALESCE(NULLIF($3, '')::uuid, '00000000-0000-0000-0000-000000000000'::uuid)
+			ORDER BY result.customer_id LIMIT $4::integer
+	), inserted AS (
+		INSERT INTO audience_memberships (build_id, customer_id, ordinal)
+		SELECT NULLIF($1, '')::uuid, customer_id, $2::bigint + ROW_NUMBER() OVER (ORDER BY customer_id)
+		FROM page ON CONFLICT DO NOTHING RETURNING customer_id
+	) SELECT COUNT(*), (SELECT customer_id::text FROM inserted ORDER BY customer_id DESC LIMIT 1) FROM inserted`
+	if err := tx.QueryRowContext(ctx, query, queryArgs...).Scan(&pageCount, &pageLast); err != nil {
+		return nil, false, err
+	}
+	build.MemberCount += pageCount
+	if pageLast.Valid {
+		build.LastCustomerID = pageLast.String
+	}
+	completed := pageCount < int64(chunkSize)
+	status := "building"
+	if completed {
+		status = "completed"
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE audience_builds SET status = $2::text, last_customer_id = NULLIF($3::text, '')::uuid,
+		member_count = $4::bigint, started_at = COALESCE(started_at, CURRENT_TIMESTAMP),
+		completed_at = CASE WHEN $2::text = 'completed' THEN CURRENT_TIMESTAMP ELSE completed_at END,
+		updated_at = CURRENT_TIMESTAMP WHERE id = NULLIF($1, '')::uuid`, buildID, status, build.LastCustomerID, build.MemberCount)
+	if err != nil {
+		return nil, false, err
+	}
+	if completed {
+		if _, err := tx.ExecContext(ctx, `UPDATE audiences SET active_build_id = NULLIF($2, '')::uuid,
+			updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND active_version = $3`, build.AudienceID, buildID, build.AudienceVersion); err != nil {
+			return nil, false, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, false, err
+	}
+	build.Status = status
+	build.UpdatedAt = time.Now().UTC()
+	return build, completed, nil
+}
+
+func (r *AudiencePostgresRepository) GetAudienceBuild(ctx context.Context, workspaceID, buildID string) (*domain.AudienceBuild, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	item := &domain.AudienceBuild{}
+	var lastCustomerID, errorDetail sql.NullString
+	err = db.QueryRowContext(ctx, `SELECT id, audience_id, audience_version, status, last_customer_id,
+		member_count, error_detail, created_at, updated_at FROM audience_builds WHERE id = NULLIF($1, '')::uuid`, buildID).
+		Scan(&item.ID, &item.AudienceID, &item.AudienceVersion, &item.Status, &lastCustomerID,
+			&item.MemberCount, &errorDetail, &item.CreatedAt, &item.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	item.LastCustomerID, item.ErrorDetail = lastCustomerID.String, errorDetail.String
+	return item, nil
+}
+
+func (r *AudiencePostgresRepository) ListAudienceMembers(ctx context.Context, workspaceID, buildID, after string, limit int) ([]domain.CustomerSummary, string, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return nil, "", err
+	}
+	rows, err := db.QueryContext(ctx, `SELECT customer.id, customer.customer_no, customer.external_user_id,
+		customer.merged_into_id, customer.version, customer.created_at, customer.updated_at
+		FROM audience_memberships membership JOIN customers customer ON customer.id = membership.customer_id
+		WHERE membership.build_id = NULLIF($1, '')::uuid AND ($2 = '' OR customer.id > NULLIF($2, '')::uuid)
+		ORDER BY customer.id LIMIT $3`, buildID, after, limit+1)
+	if err != nil {
+		return nil, "", err
+	}
+	defer rows.Close()
+	items := make([]domain.CustomerSummary, 0, limit+1)
+	for rows.Next() {
+		var item domain.CustomerSummary
+		if err := rows.Scan(&item.ID, &item.CustomerNo, &item.ExternalUserID, &item.MergedIntoID, &item.Version, &item.CreatedAt, &item.UpdatedAt); err != nil {
+			return nil, "", err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, "", err
+	}
+	next := ""
+	if len(items) > limit {
+		next = items[limit-1].ID
+		items = items[:limit]
+	}
+	return items, next, nil
+}
+
+func (r *AudiencePostgresRepository) ArchiveAudience(ctx context.Context, workspaceID, audienceID string) error {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	var dependentCount int
+	pattern := `%"leaf_type":"audience","ref_id":"` + audienceID + `"%`
+	if err := db.QueryRowContext(ctx, `SELECT
+		(SELECT COUNT(*) FROM audiences dependency JOIN audience_versions version
+		 ON version.audience_id = dependency.id AND version.version = dependency.active_version
+		 WHERE dependency.status = 'active' AND dependency.id <> NULLIF($1, '')::uuid AND version.definition::text LIKE $2)
+		+ (SELECT COUNT(*) FROM campaign_versions WHERE audience_id = NULLIF($1, '')::uuid)`, audienceID, pattern).Scan(&dependentCount); err != nil {
+		return err
+	}
+	if dependentCount > 0 {
+		return errors.New("audience is referenced by another audience or campaign")
+	}
+	result, err := db.ExecContext(ctx, `UPDATE audiences SET status = 'archived', updated_at = CURRENT_TIMESTAMP
+		WHERE id = NULLIF($1, '')::uuid AND status = 'active'`, audienceID)
+	if err != nil {
+		return err
+	}
+	count, _ := result.RowsAffected()
+	if count != 1 {
+		return sql.ErrNoRows
+	}
+	return nil
 }
