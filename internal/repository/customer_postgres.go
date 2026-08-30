@@ -70,6 +70,206 @@ func (r *CustomerPostgresRepository) Get(ctx context.Context, workspaceID string
 	return customer, nil
 }
 
+func (r *CustomerPostgresRepository) List(ctx context.Context, workspaceID string, request domain.CustomerListRequest) (*domain.CustomerListResponse, error) {
+	request.WorkspaceID = workspaceID
+	if err := request.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid customer list request: %w", err)
+	}
+	db, err := r.workspaceRepo.GetConnection(ctx, request.WorkspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("get workspace connection: %w", err)
+	}
+
+	query := `SELECT c.id, c.customer_no, c.external_user_id, c.merged_into_id, c.version,
+		cp.status, cp.language, cp.timezone, cp.attributes, cp.version, cp.created_at, cp.updated_at,
+		c.created_at, c.updated_at
+		FROM customers c LEFT JOIN customer_profiles cp ON cp.customer_id = c.id`
+	clauses := make([]string, 0, 3)
+	args := make([]interface{}, 0, 6)
+	if !request.IncludeMerged {
+		clauses = append(clauses, "c.merged_into_id IS NULL")
+	}
+	if request.Search != "" {
+		args = append(args, "%"+escapeLikePattern(request.Search)+"%")
+		patternPlaceholder := fmt.Sprintf("$%d", len(args))
+		exactIdentity := ""
+		for _, identityType := range []domain.CustomerIdentityType{domain.CustomerIdentityEmail, domain.CustomerIdentityPhone} {
+			normalized, normalizeErr := domain.NormalizeCustomerIdentity(domain.CustomerIdentityInput{Type: identityType, Value: request.Search})
+			if normalizeErr != nil {
+				continue
+			}
+			fingerprint, fingerprintErr := domain.CustomerIdentityFingerprintForWorkspace(r.secretKey, request.WorkspaceID, normalized)
+			if fingerprintErr != nil {
+				return nil, fingerprintErr
+			}
+			args = append(args, fingerprint)
+			exactIdentity = fmt.Sprintf(" OR (ci.identity_type = '%s' AND ci.lookup_fingerprint = $%d)", identityType, len(args))
+			break
+		}
+		clauses = append(clauses, fmt.Sprintf(`(
+			c.customer_no ILIKE %[1]s ESCAPE '\' OR
+			COALESCE(c.external_user_id, '') ILIKE %[1]s ESCAPE '\' OR
+			COALESCE(cp.attributes->>'name', '') ILIKE %[1]s ESCAPE '\' OR
+			COALESCE(cp.attributes->>'first_name', '') ILIKE %[1]s ESCAPE '\' OR
+			COALESCE(cp.attributes->>'last_name', '') ILIKE %[1]s ESCAPE '\' OR
+			EXISTS (SELECT 1 FROM customer_identities ci WHERE ci.customer_id = c.id AND ci.enabled
+				AND (ci.display_hint ILIKE %[1]s ESCAPE '\'%[2]s))
+		)`, patternPlaceholder, exactIdentity))
+	}
+	if request.Cursor != "" {
+		cursor, decodeErr := domain.DecodeCustomerListCursor(request.Cursor)
+		if decodeErr != nil {
+			return nil, decodeErr
+		}
+		args = append(args, cursor.CreatedAt, cursor.CustomerID)
+		clauses = append(clauses, fmt.Sprintf("(c.created_at, c.id) < ($%d, $%d)", len(args)-1, len(args)))
+	}
+	if len(clauses) > 0 {
+		query += " WHERE " + strings.Join(clauses, " AND ")
+	}
+	args = append(args, request.Limit+1)
+	query += fmt.Sprintf(" ORDER BY c.created_at DESC, c.id DESC LIMIT $%d", len(args))
+
+	rows, err := db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query customer list: %w", err)
+	}
+	defer rows.Close()
+
+	customers := make([]domain.CustomerSummary, 0, request.Limit+1)
+	for rows.Next() {
+		var customer domain.CustomerSummary
+		var externalID, mergedInto, status, language, timezone sql.NullString
+		var attributes []byte
+		var profileVersion sql.NullInt64
+		var profileCreatedAt, profileUpdatedAt sql.NullTime
+		if err := rows.Scan(
+			&customer.ID, &customer.CustomerNo, &externalID, &mergedInto, &customer.Version,
+			&status, &language, &timezone, &attributes, &profileVersion, &profileCreatedAt, &profileUpdatedAt,
+			&customer.CreatedAt, &customer.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan customer list: %w", err)
+		}
+		if externalID.Valid {
+			customer.ExternalUserID = &externalID.String
+		}
+		if mergedInto.Valid {
+			customer.MergedIntoID = &mergedInto.String
+		}
+		if profileVersion.Valid {
+			profile := &domain.CustomerProfile{
+				CustomerID: customer.ID, Version: profileVersion.Int64,
+				CreatedAt: profileCreatedAt.Time, UpdatedAt: profileUpdatedAt.Time,
+				Attributes: map[string]interface{}{},
+			}
+			if status.Valid {
+				profile.Status = &status.String
+			}
+			if language.Valid {
+				profile.Language = &language.String
+			}
+			if timezone.Valid {
+				profile.Timezone = &timezone.String
+			}
+			if len(attributes) > 0 {
+				if err := json.Unmarshal(attributes, &profile.Attributes); err != nil {
+					return nil, fmt.Errorf("decode customer list profile attributes: %w", err)
+				}
+			}
+			customer.Profile = profile
+		}
+		customer.Identities = []domain.CustomerIdentity{}
+		customer.Tags = []string{}
+		customers = append(customers, customer)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate customer list: %w", err)
+	}
+
+	hasNext := len(customers) > request.Limit
+	if hasNext {
+		customers = customers[:request.Limit]
+	}
+	if err := loadCustomerSummaryChildren(ctx, db, customers); err != nil {
+		return nil, err
+	}
+	response := &domain.CustomerListResponse{Customers: customers}
+	if hasNext && len(customers) > 0 {
+		last := customers[len(customers)-1]
+		response.NextCursor, err = domain.EncodeCustomerListCursor(domain.CustomerListCursor{CreatedAt: last.CreatedAt, CustomerID: last.ID})
+		if err != nil {
+			return nil, err
+		}
+	}
+	return response, nil
+}
+
+func loadCustomerSummaryChildren(ctx context.Context, db customerQueryer, customers []domain.CustomerSummary) error {
+	if len(customers) == 0 {
+		return nil
+	}
+	ids := make([]string, len(customers))
+	byID := make(map[string]*domain.CustomerSummary, len(customers))
+	for index := range customers {
+		ids[index] = customers[index].ID
+		byID[customers[index].ID] = &customers[index]
+	}
+
+	identityRows, err := db.QueryContext(ctx, `SELECT customer_id, id, identity_type, display_hint, verified,
+		is_primary, enabled, metadata, created_at, updated_at FROM customer_identities
+		WHERE customer_id = ANY($1) ORDER BY customer_id, identity_type, is_primary DESC, id`, pq.Array(ids))
+	if err != nil {
+		return fmt.Errorf("query customer list identities: %w", err)
+	}
+	defer identityRows.Close()
+	for identityRows.Next() {
+		var customerID, identityType string
+		var identity domain.CustomerIdentity
+		var metadata []byte
+		if err := identityRows.Scan(
+			&customerID, &identity.ID, &identityType, &identity.DisplayHint, &identity.Verified,
+			&identity.Primary, &identity.Enabled, &metadata, &identity.CreatedAt, &identity.UpdatedAt,
+		); err != nil {
+			return fmt.Errorf("scan customer list identity: %w", err)
+		}
+		identity.Type = domain.CustomerIdentityType(identityType)
+		if len(metadata) > 0 {
+			if err := json.Unmarshal(metadata, &identity.Metadata); err != nil {
+				return fmt.Errorf("decode customer list identity metadata: %w", err)
+			}
+		}
+		if customer := byID[customerID]; customer != nil {
+			customer.Identities = append(customer.Identities, identity)
+		}
+	}
+	if err := identityRows.Err(); err != nil {
+		return fmt.Errorf("iterate customer list identities: %w", err)
+	}
+	if err := identityRows.Close(); err != nil {
+		return fmt.Errorf("close customer list identities: %w", err)
+	}
+
+	tagRows, err := db.QueryContext(ctx, `SELECT customer_id, tag FROM customer_tags
+		WHERE customer_id = ANY($1) ORDER BY customer_id, tag`, pq.Array(ids))
+	if err != nil {
+		return fmt.Errorf("query customer list tags: %w", err)
+	}
+	defer tagRows.Close()
+	for tagRows.Next() {
+		var customerID, tag string
+		if err := tagRows.Scan(&customerID, &tag); err != nil {
+			return fmt.Errorf("scan customer list tag: %w", err)
+		}
+		if customer := byID[customerID]; customer != nil {
+			customer.Tags = append(customer.Tags, tag)
+		}
+	}
+	if err := tagRows.Err(); err != nil {
+		return fmt.Errorf("iterate customer list tags: %w", err)
+	}
+	return nil
+}
+
 type customerQueryer interface {
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row

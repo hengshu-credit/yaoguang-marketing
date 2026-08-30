@@ -501,6 +501,43 @@ func TestCustomerMergeRequestValidatesWorkspaceIdempotencyAndReason(t *testing.T
 	}
 }
 
+func TestCustomerListRequestNormalizesSearchAndAppliesDefaultLimit(t *testing.T) {
+	request := CustomerListRequest{WorkspaceID: " workspace123 ", Search: " alice@example.com "}
+
+	require.NoError(t, request.Validate())
+	assert.Equal(t, "workspace123", request.WorkspaceID)
+	assert.Equal(t, "alice@example.com", request.Search)
+	assert.Equal(t, DefaultCustomerListLimit, request.Limit)
+}
+
+func TestCustomerListRequestRejectsLimitAboveMaximum(t *testing.T) {
+	request := CustomerListRequest{WorkspaceID: "workspace123", Limit: MaxCustomerListLimit + 1}
+
+	err := request.Validate()
+	assert.ErrorContains(t, err, "limit")
+	assert.ErrorContains(t, err, "200")
+}
+
+func TestCustomerListCursorRoundTripsStableCustomerPosition(t *testing.T) {
+	want := CustomerListCursor{
+		CreatedAt:  time.Date(2026, time.August, 30, 12, 34, 56, 123000000, time.UTC),
+		CustomerID: "11111111-1111-4111-8111-111111111111",
+	}
+
+	encoded, err := EncodeCustomerListCursor(want)
+	require.NoError(t, err)
+	decoded, err := DecodeCustomerListCursor(encoded)
+	require.NoError(t, err)
+	assert.Equal(t, want, decoded)
+}
+
+func TestCustomerListRequestRejectsMalformedCursor(t *testing.T) {
+	request := CustomerListRequest{WorkspaceID: "workspace123", Cursor: "not-a-cursor"}
+
+	err := request.Validate()
+	assert.ErrorContains(t, err, "cursor")
+}
+
 func stringPointer(value string) *string { return &value }
 
 func stringSlicePointer(value []string) *[]string { return &value }

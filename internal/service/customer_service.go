@@ -53,6 +53,20 @@ func (s *CustomerService) GetCustomer(ctx context.Context, request *domain.GetCu
 	return s.repository.Get(authenticatedCtx, request.WorkspaceID, request.Locator)
 }
 
+func (s *CustomerService) ListCustomers(ctx context.Context, request *domain.CustomerListRequest) (*domain.CustomerListResponse, error) {
+	if request == nil {
+		return nil, domain.NewValidationError("request is required")
+	}
+	if err := request.Validate(); err != nil {
+		return nil, domain.NewValidationError(err.Error())
+	}
+	authenticatedCtx, err := s.authorize(ctx, request.WorkspaceID, domain.PermissionTypeRead)
+	if err != nil {
+		return nil, err
+	}
+	return s.repository.List(authenticatedCtx, request.WorkspaceID, *request)
+}
+
 func (s *CustomerService) UpsertCustomer(ctx context.Context, request *domain.UpsertCustomerRequest) (*domain.CustomerMutationResult, error) {
 	if request == nil {
 		return nil, domain.NewValidationError("request is required")

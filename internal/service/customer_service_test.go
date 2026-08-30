@@ -54,6 +54,49 @@ func TestCustomerServiceGetRequiresCustomerReadPermissionAndAllowsOwner(t *testi
 	}
 }
 
+func TestCustomerServiceListRequiresReadPermissionAndUsesNormalizedRequest(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	repository := mocks.NewMockCustomerRepository(ctrl)
+	workspaceRepository := mocks.NewMockWorkspaceRepository(ctrl)
+	auth := mocks.NewMockAuthService(ctrl)
+	service, err := NewCustomerService(CustomerServiceDependencies{
+		Repository: repository, WorkspaceRepository: workspaceRepository, AuthService: auth, MaxSyncBatchSize: 10_000,
+	})
+	require.NoError(t, err)
+	ctx := context.Background()
+	auth.EXPECT().AuthenticateUserForWorkspace(ctx, "workspace1").Return(ctx, &domain.User{}, customerMembership(true, false), nil)
+	repository.EXPECT().List(ctx, "workspace1", gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, request domain.CustomerListRequest) (*domain.CustomerListResponse, error) {
+			assert.Equal(t, domain.DefaultCustomerListLimit, request.Limit)
+			assert.Equal(t, "alice", request.Search)
+			return &domain.CustomerListResponse{Customers: []domain.CustomerSummary{{ID: "customer-1"}}}, nil
+		},
+	)
+
+	response, err := service.ListCustomers(ctx, &domain.CustomerListRequest{WorkspaceID: "workspace1", Search: " alice "})
+	require.NoError(t, err)
+	require.Len(t, response.Customers, 1)
+	assert.Equal(t, "customer-1", response.Customers[0].ID)
+}
+
+func TestCustomerServiceListStopsBeforeRepositoryWithoutReadPermission(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	repository := mocks.NewMockCustomerRepository(ctrl)
+	workspaceRepository := mocks.NewMockWorkspaceRepository(ctrl)
+	auth := mocks.NewMockAuthService(ctrl)
+	service, err := NewCustomerService(CustomerServiceDependencies{
+		Repository: repository, WorkspaceRepository: workspaceRepository, AuthService: auth, MaxSyncBatchSize: 10_000,
+	})
+	require.NoError(t, err)
+	ctx := context.Background()
+	auth.EXPECT().AuthenticateUserForWorkspace(ctx, "workspace1").Return(ctx, &domain.User{}, customerMembership(false, true), nil)
+
+	response, err := service.ListCustomers(ctx, &domain.CustomerListRequest{WorkspaceID: "workspace1"})
+	assert.Nil(t, response)
+	var permission *domain.PermissionError
+	assert.ErrorAs(t, err, &permission)
+}
+
 func TestCustomerServiceUpsertAuthenticatesLoadsWorkspaceSequenceAndHashesCanonicalInput(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	repository := mocks.NewMockCustomerRepository(ctrl)

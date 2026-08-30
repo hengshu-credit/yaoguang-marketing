@@ -16,10 +16,12 @@ import (
 
 type customerServiceHTTPStub struct {
 	getRequest     *domain.GetCustomerRequest
+	listRequest    *domain.CustomerListRequest
 	upsertRequest  *domain.UpsertCustomerRequest
 	batchRequest   *domain.CustomerBatchUpsertRequest
 	mergeRequest   *domain.CustomerMergeRequest
 	getResponse    *domain.Customer
+	listResponse   *domain.CustomerListResponse
 	upsertResponse *domain.CustomerMutationResult
 	batchResponse  *domain.CustomerBatchUpsertResponse
 	mergeResponse  *domain.CustomerMergeResult
@@ -29,6 +31,11 @@ type customerServiceHTTPStub struct {
 func (stub *customerServiceHTTPStub) GetCustomer(_ context.Context, request *domain.GetCustomerRequest) (*domain.Customer, error) {
 	stub.getRequest = request
 	return stub.getResponse, stub.err
+}
+
+func (stub *customerServiceHTTPStub) ListCustomers(_ context.Context, request *domain.CustomerListRequest) (*domain.CustomerListResponse, error) {
+	stub.listRequest = request
+	return stub.listResponse, stub.err
 }
 
 func (stub *customerServiceHTTPStub) UpsertCustomer(_ context.Context, request *domain.UpsertCustomerRequest) (*domain.CustomerMutationResult, error) {
@@ -84,6 +91,43 @@ func TestCustomerHandlerGetNeverEchoesRawIdentityValue(t *testing.T) {
 	assert.Equal(t, http.StatusOK, response.Code)
 	assert.NotContains(t, response.Body.String(), "alice@example.com")
 	assert.Contains(t, response.Body.String(), "a***@example.com")
+}
+
+func TestCustomerHandlerListParsesQueryAndReturnsCursorPage(t *testing.T) {
+	stub := &customerServiceHTTPStub{listResponse: &domain.CustomerListResponse{
+		Customers:  []domain.CustomerSummary{{ID: "customer-1", CustomerNo: "U0001202608301600000811111111111141118111111111111111"}},
+		NextCursor: "next-page",
+	}}
+	handler := NewCustomerHandler(stub, nil, logger.NewLogger())
+	request := httptest.NewRequest(http.MethodGet, "/api/customers.list?workspace_id=workspace1&search=alice&limit=25&include_merged=true", nil)
+	request.Header.Set("X-Request-ID", "request-list-1")
+	response := httptest.NewRecorder()
+
+	handler.handleList(response, request)
+
+	assert.Equal(t, http.StatusOK, response.Code)
+	require.NotNil(t, stub.listRequest)
+	assert.Equal(t, "workspace1", stub.listRequest.WorkspaceID)
+	assert.Equal(t, "alice", stub.listRequest.Search)
+	assert.Equal(t, 25, stub.listRequest.Limit)
+	assert.True(t, stub.listRequest.IncludeMerged)
+	assert.JSONEq(t, `{
+		"request_id":"request-list-1",
+		"customers":[{"customer_id":"customer-1","customer_no":"U0001202608301600000811111111111141118111111111111111","version":0,"identities":null,"tags":null,"created_at":"0001-01-01T00:00:00Z","updated_at":"0001-01-01T00:00:00Z"}],
+		"next_cursor":"next-page"
+	}`, response.Body.String())
+}
+
+func TestCustomerHandlerListRejectsInvalidQueryBeforeCallingService(t *testing.T) {
+	stub := &customerServiceHTTPStub{}
+	handler := NewCustomerHandler(stub, nil, logger.NewLogger())
+	response := httptest.NewRecorder()
+
+	handler.handleList(response, httptest.NewRequest(http.MethodGet, "/api/customers.list?workspace_id=workspace1&limit=not-a-number", nil))
+
+	assert.Equal(t, http.StatusBadRequest, response.Code)
+	assert.Nil(t, stub.listRequest)
+	assert.Contains(t, response.Body.String(), `"code":"validation_error"`)
 }
 
 func TestCustomerHandlerMapsTypedConflictsAndValidation(t *testing.T) {

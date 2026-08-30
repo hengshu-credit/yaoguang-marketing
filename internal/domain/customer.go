@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"regexp"
@@ -495,6 +496,104 @@ type GetCustomerRequest struct {
 	Locator     CustomerLocator `json:"locator"`
 }
 
+const (
+	DefaultCustomerListLimit = 50
+	MaxCustomerListLimit     = 200
+)
+
+type CustomerListCursor struct {
+	CreatedAt  time.Time `json:"created_at"`
+	CustomerID string    `json:"customer_id"`
+}
+
+func EncodeCustomerListCursor(cursor CustomerListCursor) (string, error) {
+	if cursor.CreatedAt.IsZero() {
+		return "", fmt.Errorf("customer list cursor created_at is required")
+	}
+	parsed, err := uuid.Parse(strings.TrimSpace(cursor.CustomerID))
+	if err != nil || parsed == uuid.Nil {
+		return "", fmt.Errorf("customer list cursor customer_id must be a non-nil UUID")
+	}
+	cursor.CreatedAt = cursor.CreatedAt.UTC()
+	cursor.CustomerID = parsed.String()
+	encoded, err := json.Marshal(cursor)
+	if err != nil {
+		return "", fmt.Errorf("encode customer list cursor: %w", err)
+	}
+	return base64.RawURLEncoding.EncodeToString(encoded), nil
+}
+
+func DecodeCustomerListCursor(encoded string) (CustomerListCursor, error) {
+	decoded, err := base64.RawURLEncoding.DecodeString(strings.TrimSpace(encoded))
+	if err != nil {
+		return CustomerListCursor{}, fmt.Errorf("invalid customer list cursor: %w", err)
+	}
+	var cursor CustomerListCursor
+	if err := json.Unmarshal(decoded, &cursor); err != nil {
+		return CustomerListCursor{}, fmt.Errorf("invalid customer list cursor: %w", err)
+	}
+	canonical, err := EncodeCustomerListCursor(cursor)
+	if err != nil {
+		return CustomerListCursor{}, fmt.Errorf("invalid customer list cursor: %w", err)
+	}
+	if canonical != strings.TrimSpace(encoded) {
+		return CustomerListCursor{}, fmt.Errorf("invalid customer list cursor encoding")
+	}
+	return cursor, nil
+}
+
+type CustomerListRequest struct {
+	WorkspaceID   string `json:"workspace_id"`
+	Search        string `json:"search,omitempty"`
+	Cursor        string `json:"cursor,omitempty"`
+	Limit         int    `json:"limit,omitempty"`
+	IncludeMerged bool   `json:"include_merged,omitempty"`
+}
+
+func (request *CustomerListRequest) Validate() error {
+	if request == nil {
+		return fmt.Errorf("request is required")
+	}
+	request.WorkspaceID = strings.TrimSpace(request.WorkspaceID)
+	if request.WorkspaceID == "" || utf8.RuneCountInString(request.WorkspaceID) > 32 || !govalidator.IsAlphanumeric(request.WorkspaceID) {
+		return fmt.Errorf("workspace_id must be alphanumeric and contain 1 to 32 characters")
+	}
+	request.Search = trimUnicodeSpace(request.Search)
+	if utf8.RuneCountInString(request.Search) > 255 {
+		return fmt.Errorf("customer search cannot exceed 255 characters")
+	}
+	if request.Limit == 0 {
+		request.Limit = DefaultCustomerListLimit
+	}
+	if request.Limit < 1 || request.Limit > MaxCustomerListLimit {
+		return fmt.Errorf("customer list limit must be between 1 and %d", MaxCustomerListLimit)
+	}
+	if request.Cursor != "" {
+		if _, err := DecodeCustomerListCursor(request.Cursor); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type CustomerSummary struct {
+	ID             string             `json:"customer_id"`
+	CustomerNo     string             `json:"customer_no"`
+	ExternalUserID *string            `json:"external_user_id,omitempty"`
+	MergedIntoID   *string            `json:"merged_into_id,omitempty"`
+	Version        int64              `json:"version"`
+	Profile        *CustomerProfile   `json:"profile,omitempty"`
+	Identities     []CustomerIdentity `json:"identities"`
+	Tags           []string           `json:"tags"`
+	CreatedAt      time.Time          `json:"created_at"`
+	UpdatedAt      time.Time          `json:"updated_at"`
+}
+
+type CustomerListResponse struct {
+	Customers  []CustomerSummary `json:"customers"`
+	NextCursor string            `json:"next_cursor,omitempty"`
+}
+
 func (request *GetCustomerRequest) Validate() error {
 	if request == nil {
 		return fmt.Errorf("request is required")
@@ -629,6 +728,7 @@ type CustomerMergeResult struct {
 
 type CustomerService interface {
 	GetCustomer(ctx context.Context, request *GetCustomerRequest) (*Customer, error)
+	ListCustomers(ctx context.Context, request *CustomerListRequest) (*CustomerListResponse, error)
 	UpsertCustomer(ctx context.Context, request *UpsertCustomerRequest) (*CustomerMutationResult, error)
 	UpsertCustomerBatch(ctx context.Context, request *CustomerBatchUpsertRequest) (*CustomerBatchUpsertResponse, error)
 	MergeCustomer(ctx context.Context, request *CustomerMergeRequest) (*CustomerMergeResult, error)
@@ -690,6 +790,7 @@ type CustomerUpsertCommand struct {
 type CustomerRepository interface {
 	Upsert(ctx context.Context, command CustomerUpsertCommand) (*CustomerMutationResult, error)
 	Get(ctx context.Context, workspaceID string, locator CustomerLocator) (*Customer, error)
+	List(ctx context.Context, workspaceID string, request CustomerListRequest) (*CustomerListResponse, error)
 	Merge(ctx context.Context, command CustomerMergeCommand) (*CustomerMergeResult, error)
 }
 

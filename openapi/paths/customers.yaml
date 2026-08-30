@@ -1,3 +1,59 @@
+/api/customers.list:
+  get:
+    summary: List and search Customers
+    description: Returns a stable keyset-paginated Customer summary list. Exact email or phone searches use workspace-scoped identity fingerprints; responses expose masked hints only. Merged source Customers are excluded by default.
+    operationId: listCustomers
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 32
+      - name: search
+        in: query
+        schema:
+          type: string
+          maxLength: 255
+      - name: cursor
+        in: query
+        description: Opaque cursor returned by the previous page.
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: include_merged
+        in: query
+        schema:
+          type: boolean
+          default: false
+    responses:
+      '200':
+        description: Customer page
+        headers:
+          X-Request-ID:
+            schema: { type: string }
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/customer.yaml#/CustomerListResponse'
+      '400':
+        $ref: '#/components/responses/CustomerBadRequest'
+      '401':
+        $ref: '#/components/responses/CustomerUnauthorized'
+      '403':
+        $ref: '#/components/responses/CustomerForbidden'
+      '500':
+        $ref: '#/components/responses/CustomerServerError'
+
 /api/customers.get:
   post:
     summary: Get a Customer

@@ -56,6 +56,8 @@ paths:
     $ref: './paths/contacts.yaml#/~1api~1contacts.delete'
   /api/customers.get:
     $ref: './paths/customers.yaml#/~1api~1customers.get'
+  /api/customers.list:
+    $ref: './paths/customers.yaml#/~1api~1customers.list'
   /api/customers.upsert:
     $ref: './paths/customers.yaml#/~1api~1customers.upsert'
   /api/customers.batch:
@@ -183,6 +185,8 @@ components:
       $ref: './components/schemas/customer.yaml#/GetCustomerRequest'
     GetCustomerResponse:
       $ref: './components/schemas/customer.yaml#/GetCustomerResponse'
+    CustomerListResponse:
+      $ref: './components/schemas/customer.yaml#/CustomerListResponse'
     UpsertCustomerRequest:
       $ref: './components/schemas/customer.yaml#/UpsertCustomerRequest'
     UpsertCustomerResponse:

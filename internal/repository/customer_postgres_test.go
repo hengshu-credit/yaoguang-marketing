@@ -135,6 +135,86 @@ func TestCustomerRepositoryGetPopulatesProfileCustomerID(t *testing.T) {
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestCustomerRepositoryListUsesStableKeysetPaginationAndExcludesMergedByDefault(t *testing.T) {
+	now := time.Date(2026, 8, 30, 8, 0, 0, 0, time.UTC)
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	ctrl := gomock.NewController(t)
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	workspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace1").Return(db, nil)
+
+	rows := sqlmock.NewRows(customerListColumns()).
+		AddRow("11111111-1111-4111-8111-111111111111", "U0001202608301600000811111111111141118111111111111111", "crm-1", nil, 3, "active", "zh-CN", "Asia/Shanghai", []byte(`{"name":"Alice"}`), 2, now, now, now, now).
+		AddRow("22222222-2222-4222-8222-222222222222", "U0001202608301559000822222222222242228222222222222222", nil, nil, 1, nil, nil, nil, nil, nil, nil, nil, now.Add(-time.Minute), now.Add(-time.Minute)).
+		AddRow("33333333-3333-4333-8333-333333333333", "U0001202608301558000833333333333343338333333333333333", nil, nil, 1, nil, nil, nil, nil, nil, nil, nil, now.Add(-2*time.Minute), now.Add(-2*time.Minute))
+	mock.ExpectQuery(`FROM customers c LEFT JOIN customer_profiles cp ON cp.customer_id = c.id WHERE c.merged_into_id IS NULL ORDER BY c.created_at DESC, c.id DESC LIMIT \$1`).
+		WithArgs(3).
+		WillReturnRows(rows)
+	mock.ExpectQuery(`FROM customer_identities WHERE customer_id = ANY\(\$1\)`).
+		WithArgs(sqlmock.AnyArg()).
+		WillReturnRows(sqlmock.NewRows([]string{"customer_id", "id", "identity_type", "display_hint", "verified", "is_primary", "enabled", "metadata", "created_at", "updated_at"}).
+			AddRow("11111111-1111-4111-8111-111111111111", "identity-1", "email", "a***@example.com", true, true, true, []byte(`{}`), now, now))
+	mock.ExpectQuery(`SELECT customer_id, tag FROM customer_tags WHERE customer_id = ANY\(\$1\)`).
+		WithArgs(sqlmock.AnyArg()).
+		WillReturnRows(sqlmock.NewRows([]string{"customer_id", "tag"}).AddRow("11111111-1111-4111-8111-111111111111", "vip"))
+
+	repo, err := NewCustomerRepository(workspaceRepo, "secret")
+	require.NoError(t, err)
+	response, err := repo.List(context.Background(), "workspace1", domain.CustomerListRequest{WorkspaceID: "workspace1", Limit: 2})
+	require.NoError(t, err)
+	require.Len(t, response.Customers, 2)
+	assert.Equal(t, "11111111-1111-4111-8111-111111111111", response.Customers[0].ID)
+	assert.Equal(t, "vip", response.Customers[0].Tags[0])
+	assert.Equal(t, "a***@example.com", response.Customers[0].Identities[0].DisplayHint)
+	require.NotEmpty(t, response.NextCursor)
+	cursor, err := domain.DecodeCustomerListCursor(response.NextCursor)
+	require.NoError(t, err)
+	assert.Equal(t, "22222222-2222-4222-8222-222222222222", cursor.CustomerID)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCustomerRepositoryListFindsExactEmailByWorkspaceFingerprint(t *testing.T) {
+	now := time.Date(2026, 8, 30, 8, 0, 0, 0, time.UTC)
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	ctrl := gomock.NewController(t)
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	workspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace1").Return(db, nil)
+	normalized, err := domain.NormalizeCustomerIdentity(domain.CustomerIdentityInput{Type: domain.CustomerIdentityEmail, Value: "alice@example.com"})
+	require.NoError(t, err)
+	fingerprint, err := domain.CustomerIdentityFingerprintForWorkspace("secret", "workspace1", normalized)
+	require.NoError(t, err)
+
+	mock.ExpectQuery(`ci.identity_type = 'email' AND ci.lookup_fingerprint = \$2`).
+		WithArgs("%alice@example.com%", fingerprint, 2).
+		WillReturnRows(sqlmock.NewRows(customerListColumns()).AddRow(
+			"11111111-1111-4111-8111-111111111111", "U0001202608301600000811111111111141118111111111111111", "crm-1", nil, 3,
+			"active", nil, nil, []byte(`{"name":"Alice"}`), 2, now, now, now, now,
+		))
+	mock.ExpectQuery(`FROM customer_identities WHERE customer_id = ANY\(\$1\)`).
+		WillReturnRows(sqlmock.NewRows([]string{"customer_id", "id", "identity_type", "display_hint", "verified", "is_primary", "enabled", "metadata", "created_at", "updated_at"}))
+	mock.ExpectQuery(`SELECT customer_id, tag FROM customer_tags WHERE customer_id = ANY\(\$1\)`).
+		WillReturnRows(sqlmock.NewRows([]string{"customer_id", "tag"}))
+
+	repo, err := NewCustomerRepository(workspaceRepo, "secret")
+	require.NoError(t, err)
+	response, err := repo.List(context.Background(), "workspace1", domain.CustomerListRequest{WorkspaceID: "workspace1", Search: "alice@example.com", Limit: 1})
+	require.NoError(t, err)
+	require.Len(t, response.Customers, 1)
+	assert.Equal(t, "crm-1", *response.Customers[0].ExternalUserID)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func customerListColumns() []string {
+	return []string{
+		"id", "customer_no", "external_user_id", "merged_into_id", "version",
+		"status", "language", "timezone", "attributes", "profile_version", "profile_created_at", "profile_updated_at",
+		"created_at", "updated_at",
+	}
+}
+
 func TestCustomerRepositoryGetMapsMissingRows(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	require.NoError(t, err)

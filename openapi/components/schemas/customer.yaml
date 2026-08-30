@@ -272,6 +272,56 @@ Customer:
       type: string
       format: date-time
 
+CustomerSummary:
+  type: object
+  required: [customer_id, customer_no, version, identities, tags, created_at, updated_at]
+  properties:
+    customer_id:
+      type: string
+      format: uuid
+    customer_no:
+      type: string
+      pattern: '^U[0-9]{4}[0-9]{14}08[0-9a-f]{32}$'
+    external_user_id:
+      type: string
+    merged_into_id:
+      type: string
+      format: uuid
+    version:
+      type: integer
+      format: int64
+      minimum: 1
+    profile:
+      $ref: '#/CustomerProfile'
+    identities:
+      type: array
+      items:
+        $ref: '#/CustomerIdentity'
+    tags:
+      type: array
+      items:
+        type: string
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+CustomerListResponse:
+  type: object
+  required: [request_id, customers]
+  properties:
+    request_id:
+      type: string
+    customers:
+      type: array
+      items:
+        $ref: '#/CustomerSummary'
+    next_cursor:
+      type: string
+      description: Opaque cursor for the next page. Omitted when no later page exists.
+
 CustomerMutationResult:
   type: object
   required: [customer_id, customer_no, action, version, replayed]

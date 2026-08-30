@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/http/middleware"
@@ -33,9 +34,51 @@ func (handler *CustomerHandler) RegisterRoutes(mux *http.ServeMux) {
 		writeAPIError(w, requestIDFor(r), code, message, status)
 	}
 	mux.Handle("/api/customers.get", auth.RequireAuth()(http.HandlerFunc(handler.handleGet)))
+	mux.Handle("/api/customers.list", auth.RequireAuth()(http.HandlerFunc(handler.handleList)))
 	mux.Handle("/api/customers.upsert", auth.RequireAuth()(http.HandlerFunc(handler.handleUpsert)))
 	mux.Handle("/api/customers.batch", auth.RequireAuth()(http.HandlerFunc(handler.handleBatch)))
 	mux.Handle("/api/customers.merge", auth.RequireAuth()(http.HandlerFunc(handler.handleMerge)))
+}
+
+func (handler *CustomerHandler) handleList(w http.ResponseWriter, r *http.Request) {
+	requestID := requestIDFor(r)
+	if r.Method != http.MethodGet {
+		writeAPIError(w, requestID, "method_not_allowed", "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	query := r.URL.Query()
+	request := &domain.CustomerListRequest{
+		WorkspaceID: query.Get("workspace_id"),
+		Search:      query.Get("search"),
+		Cursor:      query.Get("cursor"),
+	}
+	if rawLimit := query.Get("limit"); rawLimit != "" {
+		limit, err := strconv.Atoi(rawLimit)
+		if err != nil {
+			writeAPIError(w, requestID, "validation_error", "limit must be an integer", http.StatusBadRequest)
+			return
+		}
+		request.Limit = limit
+	}
+	if rawIncludeMerged := query.Get("include_merged"); rawIncludeMerged != "" {
+		includeMerged, err := strconv.ParseBool(rawIncludeMerged)
+		if err != nil {
+			writeAPIError(w, requestID, "validation_error", "include_merged must be a boolean", http.StatusBadRequest)
+			return
+		}
+		request.IncludeMerged = includeMerged
+	}
+	result, err := handler.service.ListCustomers(r.Context(), request)
+	if err != nil {
+		handler.writeError(w, requestID, err, "list")
+		return
+	}
+	w.Header().Set("X-Request-ID", requestID)
+	writeJSON(w, http.StatusOK, struct {
+		RequestID  string                   `json:"request_id"`
+		Customers  []domain.CustomerSummary `json:"customers"`
+		NextCursor string                   `json:"next_cursor,omitempty"`
+	}{RequestID: requestID, Customers: result.Customers, NextCursor: result.NextCursor})
 }
 
 func (handler *CustomerHandler) handleGet(w http.ResponseWriter, r *http.Request) {

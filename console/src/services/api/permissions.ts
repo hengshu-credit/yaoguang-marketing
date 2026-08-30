@@ -242,6 +242,10 @@ export const PERMISSION_DESCRIPTORS: Record<
     read: {
       endpoints: [
         {
+          endpoint: "/api/customers.list",
+          action: msg`List and search workspace Customers using masked identity hints`,
+        },
+        {
           endpoint: "/api/customers.get",
           action: msg`Look up a Customer by UUID, Customer number, external user ID or normalized identity`,
         },
