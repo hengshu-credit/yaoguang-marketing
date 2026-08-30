@@ -45,11 +45,11 @@ func (e *ChannelNodeExecutor) Execute(ctx context.Context, params NodeExecutionP
 	response, err := e.service.Send(systemContext(ctx), &domain.SendChannelMessageRequest{
 		WorkspaceID: params.WorkspaceID, EffectKey: effectKey, Channel: e.channel,
 		IntegrationID: config.IntegrationID, ContactEmail: params.Contact.ContactEmail,
-		EndpointID: config.EndpointID, TemplateID: config.TemplateID, Language: config.Language,
+		EndpointID: config.EndpointID, TemplateID: config.TemplateID, TemplateVersion: config.TemplateVersion, Language: config.Language,
 		Data: data, Metadata: domain.MapOfAny{"automation_id": params.Automation.ID, "automation_node_id": params.Node.ID},
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("automation node %s field template_id/integration_id: %w", params.Node.ID, err)
 	}
 	if response == nil || response.Execution.Status != domain.ChannelSendConfirmed {
 		status := "missing"

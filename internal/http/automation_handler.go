@@ -270,6 +270,11 @@ func (h *AutomationHandler) handleCreate(w http.ResponseWriter, r *http.Request)
 		if writePermissionError(w, err) {
 			return
 		}
+		var validationErr domain.ValidationError
+		if errors.As(err, &validationErr) {
+			WriteJSONError(w, validationErr.Error(), http.StatusBadRequest)
+			return
+		}
 		WriteJSONError(w, "Failed to create automation", http.StatusInternalServerError)
 		return
 	}
@@ -355,6 +360,11 @@ func (h *AutomationHandler) handleUpdate(w http.ResponseWriter, r *http.Request)
 	if err := h.service.Update(r.Context(), req.WorkspaceID, req.Automation); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to update automation")
 		if writePermissionError(w, err) {
+			return
+		}
+		var validationErr domain.ValidationError
+		if errors.As(err, &validationErr) {
+			WriteJSONError(w, validationErr.Error(), http.StatusBadRequest)
 			return
 		}
 		// An update to a live automation regenerates its trigger, so the same
@@ -453,6 +463,11 @@ func (h *AutomationHandler) handleActivate(w http.ResponseWriter, r *http.Reques
 	if err := h.service.Activate(r.Context(), req.WorkspaceID, req.AutomationID); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to activate automation")
 		if writePermissionError(w, err) {
+			return
+		}
+		var validationErr domain.ValidationError
+		if errors.As(err, &validationErr) {
+			WriteJSONError(w, validationErr.Error(), http.StatusBadRequest)
 			return
 		}
 		// The trigger configuration is the caller's input, and PostgreSQL's complaint

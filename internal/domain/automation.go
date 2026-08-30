@@ -639,6 +639,7 @@ func (c DelayNodeConfig) Validate() error {
 type EmailNodeConfig struct {
 	NodeConfigDescription
 	TemplateID      string  `json:"template_id"`
+	TemplateVersion int64   `json:"template_version,omitempty"`
 	IntegrationID   *string `json:"integration_id,omitempty"`
 	SubjectOverride *string `json:"subject_override,omitempty"`
 	FromOverride    *string `json:"from_override,omitempty"`
@@ -647,11 +648,12 @@ type EmailNodeConfig struct {
 // ChannelNodeConfig configures an SMS or push delivery node.
 type ChannelNodeConfig struct {
 	NodeConfigDescription
-	TemplateID    string   `json:"template_id"`
-	IntegrationID string   `json:"integration_id"`
-	EndpointID    string   `json:"endpoint_id,omitempty"`
-	Language      string   `json:"language,omitempty"`
-	Data          MapOfAny `json:"data,omitempty"`
+	TemplateID      string   `json:"template_id"`
+	TemplateVersion int64    `json:"template_version,omitempty"`
+	IntegrationID   string   `json:"integration_id"`
+	EndpointID      string   `json:"endpoint_id,omitempty"`
+	Language        string   `json:"language,omitempty"`
+	Data            MapOfAny `json:"data,omitempty"`
 }
 
 func (c ChannelNodeConfig) Validate() error {
@@ -660,6 +662,9 @@ func (c ChannelNodeConfig) Validate() error {
 	}
 	if c.IntegrationID == "" {
 		return fmt.Errorf("integration_id is required")
+	}
+	if c.TemplateVersion < 0 {
+		return fmt.Errorf("template_version cannot be negative")
 	}
 	if c.Language != "" && !IsValidLanguage(c.Language) {
 		return fmt.Errorf("unsupported language '%s'", c.Language)
@@ -671,6 +676,9 @@ func (c ChannelNodeConfig) Validate() error {
 func (c EmailNodeConfig) Validate() error {
 	if c.TemplateID == "" {
 		return fmt.Errorf("template_id is required")
+	}
+	if c.TemplateVersion < 0 {
+		return fmt.Errorf("template_version cannot be negative")
 	}
 	return nil
 }
@@ -917,6 +925,12 @@ type AutomationRepository interface {
 	UpdateAutomationStats(ctx context.Context, workspaceID, automationID string, stats *AutomationStats) error
 	UpdateAutomationStatsTx(ctx context.Context, tx *sql.Tx, workspaceID, automationID string, stats *AutomationStats) error
 	IncrementAutomationStat(ctx context.Context, workspaceID, automationID, statName string) error
+}
+
+// AutomationNodeValidator validates cross-resource references that cannot be
+// checked from the embedded node JSON alone (template version/channel and Provider).
+type AutomationNodeValidator interface {
+	ValidateAutomationNodes(context.Context, string, *Automation) error
 }
 
 //go:generate mockgen -destination mocks/mock_automation_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain AutomationService

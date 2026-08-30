@@ -21,6 +21,7 @@ type AutomationService struct {
 	realtimeMode   config.RealtimeMode
 	reconciliation *RealtimeReconciliationService
 	cutover        *RealtimeCutoverService
+	nodeValidator  domain.AutomationNodeValidator
 }
 
 type AutomationServiceOption func(*AutomationService)
@@ -38,6 +39,12 @@ func WithAutomationRealtimeOperations(
 	return func(service *AutomationService) {
 		service.reconciliation = reconciliation
 		service.cutover = cutover
+	}
+}
+
+func WithAutomationNodeValidator(validator domain.AutomationNodeValidator) AutomationServiceOption {
+	return func(service *AutomationService) {
+		service.nodeValidator = validator
 	}
 }
 
@@ -157,6 +164,11 @@ func (s *AutomationService) Create(ctx context.Context, workspaceID string, auto
 
 	if err := automation.Validate(); err != nil {
 		return fmt.Errorf("invalid automation: %w", err)
+	}
+	if s.nodeValidator != nil {
+		if err := s.nodeValidator.ValidateAutomationNodes(ctx, workspaceID, automation); err != nil {
+			return fmt.Errorf("invalid automation nodes: %w", err)
+		}
 	}
 
 	if err := s.repo.Create(ctx, workspaceID, automation); err != nil {
@@ -293,6 +305,11 @@ func (s *AutomationService) Update(ctx context.Context, workspaceID string, auto
 	if automation.HasEmailNodeRestriction() {
 		if domain.HasEmailNodes(automation.Nodes) {
 			return fmt.Errorf("cannot remove list_id from automation with email nodes - remove email nodes first")
+		}
+	}
+	if s.nodeValidator != nil {
+		if err := s.nodeValidator.ValidateAutomationNodes(ctx, workspaceID, automation); err != nil {
+			return fmt.Errorf("invalid automation nodes: %w", err)
 		}
 	}
 
@@ -445,6 +462,11 @@ func (s *AutomationService) Activate(ctx context.Context, workspaceID, automatio
 	// dereferences the trigger config without checking.
 	if err := automation.Validate(); err != nil {
 		return domain.NewTriggerConditionError(fmt.Sprintf("cannot activate automation: %v", err))
+	}
+	if s.nodeValidator != nil {
+		if err := s.nodeValidator.ValidateAutomationNodes(ctx, workspaceID, automation); err != nil {
+			return fmt.Errorf("cannot activate automation: %w", err)
+		}
 	}
 
 	// Update status to live, through the status predicate: the "already live" check above

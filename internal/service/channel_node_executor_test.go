@@ -61,3 +61,20 @@ func TestChannelNodeExecutorRejectsNonConfirmedDuplicate(t *testing.T) {
 	assert.ErrorContains(t, err, "channel send effect is in unknown state")
 	assert.ErrorIs(t, err, ErrSideEffectOutcomeUnknown)
 }
+
+func TestChannelNodeExecutorReportsNodeAndPreservesTemplateVersion(t *testing.T) {
+	channelService := &recordingChannelMessageService{err: domain.NewValidationError("template ready is for channel push, not sms")}
+	executor := NewChannelNodeExecutor(domain.NodeTypeSMS, channelService)
+	_, err := executor.Execute(context.Background(), NodeExecutionParams{
+		WorkspaceID: "ws-1",
+		Contact:     &domain.ContactAutomation{ID: "ca-1", ContactEmail: "user@example.com"},
+		Automation:  &domain.Automation{ID: "automation-1"},
+		Node: &domain.AutomationNode{ID: "sms-node-9", Type: domain.NodeTypeSMS, Config: map[string]interface{}{
+			"template_id": "ready", "template_version": 7, "integration_id": "twilio-main",
+		}},
+	})
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "automation node sms-node-9 field template_id/integration_id")
+	require.NotNil(t, channelService.request)
+	assert.Equal(t, int64(7), channelService.request.TemplateVersion)
+}

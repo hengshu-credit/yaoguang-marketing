@@ -1199,6 +1199,7 @@ func (a *App) InitServices() error {
 		a.logger,
 		service.WithAutomationRealtimeMode(a.config.Realtime.Mode),
 		service.WithAutomationRealtimeOperations(reconciliationService, cutoverService),
+		service.WithAutomationNodeValidator(service.NewAutomationNodeReferenceValidator(a.templateService, a.workspaceRepo)),
 	)
 	journeyPreflightSource, err := service.NewAutomationJourneyPreflightSource(a.automationRepo, a.workspaceRepo, a.templateService)
 	if err != nil {

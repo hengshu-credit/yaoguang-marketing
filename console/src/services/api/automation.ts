@@ -151,6 +151,7 @@ export interface DelayNodeConfig extends NodeConfigBase {
 
 export interface EmailNodeConfig extends NodeConfigBase {
   template_id: string
+  template_version?: number
   integration_id?: string
   subject_override?: string
   from_override?: string
@@ -158,6 +159,7 @@ export interface EmailNodeConfig extends NodeConfigBase {
 
 export interface ChannelNodeConfig extends NodeConfigBase {
   template_id: string
+  template_version?: number
   integration_id: string
   endpoint_id?: string
   language?: string
@@ -410,13 +412,17 @@ export const automationApi = {
     return api.post<GetAutomationResponse>('/api/automations.pause', params)
   },
 
-  getNodeExecutions: async (params: GetNodeExecutionsRequest): Promise<GetNodeExecutionsResponse> => {
+  getNodeExecutions: async (
+    params: GetNodeExecutionsRequest
+  ): Promise<GetNodeExecutionsResponse> => {
     const searchParams = new URLSearchParams()
     searchParams.append('workspace_id', params.workspace_id)
     searchParams.append('automation_id', params.automation_id)
     searchParams.append('email', params.email)
 
-    return api.get<GetNodeExecutionsResponse>(`/api/automations.nodeExecutions?${searchParams.toString()}`)
+    return api.get<GetNodeExecutionsResponse>(
+      `/api/automations.nodeExecutions?${searchParams.toString()}`
+    )
   },
 
   getNodeStats: async (params: GetNodeStatsRequest): Promise<GetNodeStatsResponse> => {

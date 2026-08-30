@@ -13,11 +13,11 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/golang/mock/gomock"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
 	pkgmocks "github.com/hengshu-credit/yaoguang-marketing/pkg/mocks"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -536,6 +536,35 @@ func TestEmailNodeExecutor_Execute_Success(t *testing.T) {
 	assert.Equal(t, "recipient@example.com", result.Output["to"])
 	assert.NotEmpty(t, result.Output["message_id"])
 	assert.Equal(t, true, result.Output["queued"])
+}
+
+func TestEmailNodeExecutorRejectsTemplateChannelMismatch(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	executor := NewEmailNodeExecutor(
+		mocks.NewMockEmailQueueRepository(ctrl), mockTemplateRepo, mockWorkspaceRepo,
+		mocks.NewMockListRepository(ctrl), mocks.NewMockContactListRepository(ctrl),
+		"https://api.example.com", setupMockLoggerForNodeExecutor(ctrl),
+	)
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "ws1").Return(createTestWorkspaceWithEmailProvider(), nil)
+	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "ws1", "sms-template", int64(3)).Return(&domain.Template{
+		ID: "sms-template", Version: 3, Channel: "sms", SMS: &domain.SMSTemplate{Body: "hello"},
+	}, nil)
+
+	_, err := executor.Execute(context.Background(), NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{ID: "email-node-7", Type: domain.NodeTypeEmail, Config: map[string]interface{}{
+			"template_id": "sms-template", "template_version": 3,
+		}},
+		Contact:     &domain.ContactAutomation{ID: "ca1", ContactEmail: "recipient@example.com"},
+		ContactData: &domain.Contact{Email: "recipient@example.com"},
+		Automation:  &domain.Automation{ID: "auto1", Name: "Channel check", ListID: "list1"},
+	})
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "automation node email-node-7 field template_id")
+	assert.ErrorContains(t, err, "expected email")
 }
 
 func TestEmailNodeExecutor_Execute_NilContactData(t *testing.T) {

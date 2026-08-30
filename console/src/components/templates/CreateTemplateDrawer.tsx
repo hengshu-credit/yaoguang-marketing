@@ -17,7 +17,12 @@ import {
   MenuProps
 } from 'antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { templatesApi, type CreateTemplateRequest, type UpdateTemplateRequest } from '../../services/api/template'
+import {
+  templatesApi,
+  type CreateTemplateRequest,
+  type UpdateTemplateRequest,
+  type TemplateChannel
+} from '../../services/api/template'
 import { ApiError } from '../../services/api/client'
 import { useTemplateConflictModal } from './useTemplateConflictModal'
 import { templateBlocksApi } from '../../services/api/template_blocks'
@@ -102,8 +107,9 @@ interface CreateTemplateDrawerProps {
   fromTemplate?: Template
   buttonProps?: Record<string, unknown>
   buttonContent?: React.ReactNode
-  onClose?: () => void
+  onClose?: (savedTemplate?: Template) => void
   forceCategory?: string
+  forceChannel?: TemplateChannel
 }
 
 /**
@@ -172,7 +178,166 @@ export const renderCategoryTag = (category: string) => {
   )
 }
 
-export function CreateTemplateDrawer({
+export function CreateTemplateDrawer(props: CreateTemplateDrawerProps) {
+  if (props.forceChannel === 'sms' || props.forceChannel === 'push') {
+    return <ChannelTemplateDrawer {...props} channel={props.forceChannel} />
+  }
+  return <EmailTemplateDrawer {...props} />
+}
+
+function ChannelTemplateDrawer({
+  workspace,
+  template,
+  fromTemplate,
+  buttonProps = {},
+  buttonContent,
+  onClose,
+  forceCategory,
+  channel
+}: CreateTemplateDrawerProps & {
+  channel: Extract<TemplateChannel, 'sms' | 'push'>
+}) {
+  const { t } = useLingui()
+  const [open, setOpen] = useState(false)
+  const [form] = Form.useForm()
+  const { message } = App.useApp()
+  const queryClient = useQueryClient()
+  const source = template || fromTemplate
+  const mutation = useMutation({
+    mutationFn: (values: Record<string, unknown>) => {
+      const payload = {
+        ...(values as Omit<CreateTemplateRequest, 'workspace_id' | 'channel'>),
+        workspace_id: workspace.id,
+        channel
+      }
+      if (template) {
+        return templatesApi.update({
+          ...(payload as UpdateTemplateRequest),
+          id: template.id,
+          base_version: template.version
+        })
+      }
+      return templatesApi.create(payload as CreateTemplateRequest)
+    },
+    onSuccess: (response) => {
+      message.success(
+        template ? t`Template updated successfully` : t`Template created successfully`
+      )
+      setOpen(false)
+      form.resetFields()
+      void queryClient.invalidateQueries({
+        queryKey: ['templates', workspace.id]
+      })
+      onClose?.(response.template)
+    },
+    onError: (error: Error) => {
+      message.error(t`Failed to save template: ${error.message}`)
+    }
+  })
+
+  const showDrawer = () => {
+    form.setFieldsValue({
+      name: fromTemplate ? `${fromTemplate.name} copy` : source?.name,
+      id: fromTemplate ? kebabCase(`${fromTemplate.name}-copy`) : source?.id,
+      category: forceCategory || source?.category || 'marketing',
+      ...(channel === 'sms'
+        ? { sms: source?.sms ? { ...source.sms } : { body: '' } }
+        : { push: source?.push ? { ...source.push } : { title: '', body: '' } }),
+      test_data: source?.test_data || {}
+    })
+    setOpen(true)
+  }
+  const close = () => {
+    setOpen(false)
+    form.resetFields()
+    onClose?.()
+  }
+  const channelLabel = channel === 'sms' ? t`SMS` : t`Push`
+  return (
+    <>
+      <Button {...buttonProps} onClick={showDrawer}>
+        {buttonContent ||
+          (template ? t`Edit Template` : fromTemplate ? t`Clone Template` : t`Create Template`)}
+      </Button>
+      <Drawer
+        title={template ? t`Edit ${channelLabel} Template` : t`Create ${channelLabel} Template`}
+        open={open}
+        onClose={close}
+        width={560}
+        destroyOnHidden
+        extra={
+          <Space>
+            <Button onClick={close}>{t`Cancel`}</Button>
+            <Button type="primary" loading={mutation.isPending} onClick={() => form.submit()}>
+              {t`Save`}
+            </Button>
+          </Space>
+        }
+      >
+        <Form form={form} layout="vertical" onFinish={(values) => mutation.mutate(values)}>
+          <Form.Item name="name" label={t`Template name`} rules={[{ required: true }]}>
+            <Input
+              onChange={(event) => {
+                if (!template) form.setFieldValue('id', kebabCase(event.target.value))
+              }}
+            />
+          </Form.Item>
+          <Form.Item
+            name="id"
+            label={t`Template ID`}
+            rules={[{ required: true, pattern: /^[a-z0-9_-]+$/ }]}
+          >
+            <Input disabled={!!template} />
+          </Form.Item>
+          <Form.Item name="category" label={t`Category`} rules={[{ required: true }]}>
+            <Select
+              disabled={!!forceCategory}
+              options={['marketing', 'transactional', 'welcome', 'other'].map((value) => ({
+                value,
+                label: value
+              }))}
+            />
+          </Form.Item>
+          {channel === 'sms' ? (
+            <>
+              <Form.Item name={['sms', 'body']} label={t`Message`} rules={[{ required: true }]}>
+                <Input.TextArea
+                  rows={7}
+                  showCount
+                  maxLength={1600}
+                  placeholder={t`Liquid variables are supported`}
+                />
+              </Form.Item>
+              <Form.Item name={['sms', 'sender_id']} label={t`Sender ID`}>
+                <Input />
+              </Form.Item>
+            </>
+          ) : (
+            <>
+              <Form.Item name={['push', 'title']} label={t`Title`} rules={[{ required: true }]}>
+                <Input maxLength={120} />
+              </Form.Item>
+              <Form.Item name={['push', 'body']} label={t`Message`} rules={[{ required: true }]}>
+                <Input.TextArea rows={5} maxLength={4000} />
+              </Form.Item>
+              <Form.Item name={['push', 'image_url']} label={t`Image URL`}>
+                <Input type="url" />
+              </Form.Item>
+              <Form.Item name={['push', 'deep_link']} label={t`Deep link`}>
+                <Input />
+              </Form.Item>
+            </>
+          )}
+          <Form.Item name="test_data" hidden>
+            <Input />
+          </Form.Item>
+        </Form>
+      </Drawer>
+    </>
+  )
+}
+
+function EmailTemplateDrawer({
   workspace,
   template,
   fromTemplate,
@@ -214,7 +379,9 @@ export function CreateTemplateDrawer({
     if (fromTemplate?.email?.mjml_source) return fromTemplate.email.mjml_source
     return STARTER_TEMPLATE
   })
-  const [translationsState, setTranslationsState] = useState<Record<string, TranslationEditorState>>({})
+  const [translationsState, setTranslationsState] = useState<
+    Record<string, TranslationEditorState>
+  >({})
 
   const translationLanguages = (workspace.settings.languages || []).filter(
     (l) => l !== workspace.settings.default_language
@@ -269,7 +436,7 @@ export function CreateTemplateDrawer({
         ? workspace.settings.marketing_email_provider_id
         : workspace.settings.transactional_email_provider_id
     return workspace.integrations?.find((integration) => integration.id === providerId)
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- Provider IDs are part of workspace settings
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Provider IDs are part of workspace settings
   }, [workspace.integrations, categoryValue])
 
   const emailSender = useMemo(() => {
@@ -302,11 +469,15 @@ export function CreateTemplateDrawer({
       // Advance the base to the just-saved revision so a subsequent save isn't a false conflict.
       baseVersionRef.current = response.template.version
       dirtyRef.current = false
-      message.success(template ? t`Template updated successfully` : t`Template created successfully`)
-      handleClose()
+      message.success(
+        template ? t`Template updated successfully` : t`Template created successfully`
+      )
+      handleClose(response.template)
       queryClient.invalidateQueries({ queryKey: ['templates', workspace.id] })
       if (template) {
-        queryClient.invalidateQueries({ queryKey: ['template', workspace.id, template.id] })
+        queryClient.invalidateQueries({
+          queryKey: ['template', workspace.id, template.id]
+        })
       }
       setLoading(false)
     },
@@ -334,7 +505,11 @@ export function CreateTemplateDrawer({
         setLoading(false)
         return
       }
-      message.error(template ? t`Failed to update template: ${error.message}` : t`Failed to create template: ${error.message}`)
+      message.error(
+        template
+          ? t`Failed to update template: ${error.message}`
+          : t`Failed to create template: ${error.message}`
+      )
       setLoading(false)
     }
   })
@@ -372,9 +547,9 @@ export function CreateTemplateDrawer({
         subject: trans.email?.subject || '',
         subjectPreview: trans.email?.subject_preview || '',
         visualEditorTree: trans.email?.visual_editor_tree
-          ? (typeof trans.email.visual_editor_tree === 'object'
-              ? (JSON.parse(JSON.stringify(trans.email.visual_editor_tree)) as EmailBlock)
-              : (JSON.parse(trans.email.visual_editor_tree as unknown as string) as EmailBlock))
+          ? typeof trans.email.visual_editor_tree === 'object'
+            ? (JSON.parse(JSON.stringify(trans.email.visual_editor_tree)) as EmailBlock)
+            : (JSON.parse(trans.email.visual_editor_tree as unknown as string) as EmailBlock)
           : undefined,
         mjmlSource: trans.email?.mjml_source || undefined
       }
@@ -520,7 +695,7 @@ export function CreateTemplateDrawer({
     }, 100)
   }
 
-  const handleClose = () => {
+  const handleClose = (savedTemplate?: Template) => {
     setIsOpen(false)
     form.resetFields()
     setTab('settings')
@@ -528,7 +703,7 @@ export function CreateTemplateDrawer({
     setMjmlSource(STARTER_TEMPLATE)
     setTranslationsState({})
     if (onClose) {
-      onClose()
+      onClose(savedTemplate)
     }
   }
 
@@ -620,12 +795,12 @@ export function CreateTemplateDrawer({
           mask={{ closable: false }}
           size={'100%'}
           open={isOpen}
-          onClose={handleClose}
+          onClose={() => handleClose()}
           className="drawer-no-transition drawer-body-no-padding"
           extra={
             <div className="text-right">
               <Space>
-                <Button type="link" loading={loading} onClick={handleClose}>
+                <Button type="link" loading={loading} onClick={() => handleClose()}>
                   {t`Cancel`}
                 </Button>
 
@@ -700,7 +875,9 @@ export function CreateTemplateDrawer({
                   if (!state.enabled) continue
                   if (!state.subject || !state.subjectPreview) {
                     const langName = SUPPORTED_LANGUAGES[lang] || lang
-                    message.error(t`${langName} translation is missing required fields (subject and preview)`)
+                    message.error(
+                      t`${langName} translation is missing required fields (subject and preview)`
+                    )
                     setTab('translations')
                     setLoading(false)
                     return
@@ -821,14 +998,16 @@ export function CreateTemplateDrawer({
                             required: true,
                             type: 'string',
                             pattern: /^[a-z0-9_-]+$/,
-                            message:
-                              t`ID must contain only lowercase letters, numbers, underscores, and hyphens`
+                            message: t`ID must contain only lowercase letters, numbers, underscores, and hyphens`
                           },
                           {
                             validator: async (_rule, value) => {
                               if (value && !template) {
                                 try {
-                                  await templatesApi.get({ workspace_id: workspace.id, id: value })
+                                  await templatesApi.get({
+                                    workspace_id: workspace.id,
+                                    id: value
+                                  })
                                   return Promise.reject(t`Template ID already exists`)
                                 } catch {
                                   return Promise.resolve()
@@ -908,7 +1087,11 @@ export function CreateTemplateDrawer({
                     <Col span={12}>
                       <Form.Item
                         name={['email', 'subject']}
-                        label={showTranslationsTab ? t`Email subject (${workspace.settings.default_language})` : t`Email subject`}
+                        label={
+                          showTranslationsTab
+                            ? t`Email subject (${workspace.settings.default_language})`
+                            : t`Email subject`
+                        }
                         rules={[
                           { required: true, type: 'string' },
                           {
@@ -926,7 +1109,11 @@ export function CreateTemplateDrawer({
                       </Form.Item>
                       <Form.Item
                         name={['email', 'subject_preview']}
-                        label={showTranslationsTab ? t`Subject preview (${workspace.settings.default_language})` : t`Subject preview`}
+                        label={
+                          showTranslationsTab
+                            ? t`Subject preview (${workspace.settings.default_language})`
+                            : t`Subject preview`
+                        }
                         rules={[
                           { required: true, type: 'string' },
                           {
@@ -956,7 +1143,11 @@ export function CreateTemplateDrawer({
                         <Col span={12}>
                           <Form.Item
                             name={['email', 'sender_id']}
-                            label={categoryValue === 'marketing' ? t`Custom sender (marketing email provider)` : t`Custom sender (transactional email provider)`}
+                            label={
+                              categoryValue === 'marketing'
+                                ? t`Custom sender (marketing email provider)`
+                                : t`Custom sender (transactional email provider)`
+                            }
                             rules={[{ required: false, type: 'string' }]}
                           >
                             <Select
@@ -1096,7 +1287,11 @@ export function CreateTemplateDrawer({
                             return {
                               html: '',
                               mjml: '',
-                              errors: [{ message: err.message || 'Compilation failed' }]
+                              errors: [
+                                {
+                                  message: err.message || 'Compilation failed'
+                                }
+                              ]
                             }
                           }
                         }}
@@ -1161,7 +1356,9 @@ export function CreateTemplateDrawer({
                     defaultVisualEditorTree={visualEditorTree}
                     defaultMjmlSource={mjmlSource}
                     testData={form.getFieldValue('test_data')}
-                    onTestDataChange={(newTestData) => form.setFieldsValue({ test_data: newTestData })}
+                    onTestDataChange={(newTestData) =>
+                      form.setFieldsValue({ test_data: newTestData })
+                    }
                     savedBlocks={workspace.settings.template_blocks || []}
                     onSaveBlock={handleSaveBlock}
                   />
@@ -1221,57 +1418,49 @@ export function CreateTemplateDrawer({
             steps={[
               {
                 title: t`Welcome to Email Builder!`,
-                description:
-                  t`Let's take a quick tour to help you get started with building beautiful emails using MJML.`,
+                description: t`Let's take a quick tour to help you get started with building beautiful emails using MJML.`,
                 target: null // Center of screen
               },
               {
                 title: t`Content Structure Tree`,
-                description:
-                  t`This is your content structure tree. You can drag and drop blocks to reorganize your email layout. Click the + buttons to add new blocks, or drag blocks from one section to another.`,
+                description: t`This is your content structure tree. You can drag and drop blocks to reorganize your email layout. Click the + buttons to add new blocks, or drag blocks from one section to another.`,
                 target: () => treePanelRef.current!,
                 placement: 'right' as const
               },
               {
                 title: t`Visual Email Editor`,
-                description:
-                  t`This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options.`,
+                description: t`This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options.`,
                 target: () => editPanelRef.current!,
                 placement: 'top' as const
               },
               {
                 title: t`Block Settings Panel`,
-                description:
-                  t`When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design.`,
+                description: t`When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design.`,
                 target: () => settingsPanelRef.current!,
                 placement: 'left' as const
               },
               {
                 title: t`Preview Your Email`,
-                description:
-                  t`Switch to Preview mode to see how your email will look to recipients. This shows the final rendered version with all styling applied.`,
+                description: t`Switch to Preview mode to see how your email will look to recipients. This shows the final rendered version with all styling applied.`,
                 target: () => previewSwitcherRef.current!,
                 placement: 'bottom' as const
               },
               {
                 title: t`Mobile & Desktop Preview`,
-                description:
-                  t`Toggle between mobile and desktop views to see how your email appears on different devices. Mobile view shows a 400px width while desktop shows the full width.`,
+                description: t`Toggle between mobile and desktop views to see how your email appears on different devices. Mobile view shows a 400px width while desktop shows the full width.`,
                 target: () => mobileDesktopSwitcherRef.current!,
                 placement: 'left' as const
               },
               {
                 title: t`Template Data & Liquid Templating`,
-                description:
-                  t`Use the Template Data tab to define dynamic content for your emails. Add variables like {{ name }} or {{ company }} in your email content, then define their values here. The Liquid templating engine supports conditionals, loops, and filters for powerful personalization.`,
+                description: t`Use the Template Data tab to define dynamic content for your emails. Add variables like {{ name }} or {{ company }} in your email content, then define their values here. The Liquid templating engine supports conditionals, loops, and filters for powerful personalization.`,
                 target: () =>
                   (templateDataRef.current?.getTemplateDataTabRef() as HTMLElement) || null,
                 placement: 'top' as const
               },
               {
                 title: t`Import & Export Templates`,
-                description:
-                  t`Use this button to import saved email templates or export your finished emails. You can import JSON/MJML templates or export as HTML, MJML, or JSON for future use.`,
+                description: t`Use this button to import saved email templates or export your finished emails. You can import JSON/MJML templates or export as HTML, MJML, or JSON for future use.`,
                 target: () => importExportButtonRef.current!,
                 placement: 'bottom' as const
               }
@@ -1291,123 +1480,137 @@ export function CreateTemplateDrawer({
 
           {/* AI Email Assistant - persists across tab switches, hidden in code mode */}
           <EmailAIAssistant
-              hidden={tab !== 'template' || editorMode === 'code'}
-              workspace={workspace}
-              currentSubject={emailSubject}
-              currentPreviewText={emailPreview}
-              onUpdateSubject={(subject) => form.setFieldValue(['email', 'subject'], subject)}
-              onUpdatePreviewText={(preview) => form.setFieldValue(['email', 'subject_preview'], preview)}
-              validateOnComplete={async () => {
-                // Compile the freshly-edited tree; surface MJML errors so a broken
-                // generation is never presented as success.
-                try {
-                  const response = await templatesApi.compile({
+            hidden={tab !== 'template' || editorMode === 'code'}
+            workspace={workspace}
+            currentSubject={emailSubject}
+            currentPreviewText={emailPreview}
+            onUpdateSubject={(subject) => form.setFieldValue(['email', 'subject'], subject)}
+            onUpdatePreviewText={(preview) =>
+              form.setFieldValue(['email', 'subject_preview'], preview)
+            }
+            validateOnComplete={async () => {
+              // Compile the freshly-edited tree; surface MJML errors so a broken
+              // generation is never presented as success.
+              try {
+                const response = await templatesApi.compile({
+                  workspace_id: workspace.id,
+                  message_id: 'preview',
+                  visual_editor_tree: visualEditorTreeRef.current,
+                  test_data: {},
+                  channel: 'email',
+                  tracking_settings: {
+                    enable_tracking: workspace.settings?.email_tracking_enabled || false,
+                    endpoint: workspace.settings?.custom_endpoint_url || undefined,
                     workspace_id: workspace.id,
-                    message_id: 'preview',
-                    visual_editor_tree: visualEditorTreeRef.current,
-                    test_data: {},
-                    channel: 'email',
-                    tracking_settings: {
-                      enable_tracking: workspace.settings?.email_tracking_enabled || false,
-                      endpoint: workspace.settings?.custom_endpoint_url || undefined,
-                      workspace_id: workspace.id,
-                      message_id: 'preview'
-                    }
-                  })
-                  if (response.error) {
-                    const details = (response.error.details || [])
-                      .map((d) => (d.line ? `• line ${d.line}: ${d.message}` : `• ${d.message}`))
-                      .join('\n')
-                    const errorText = [response.error.message, details].filter(Boolean).join('\n')
-                    return { ok: false, errorText: errorText || 'MJML compilation failed' }
+                    message_id: 'preview'
                   }
-                  return { ok: true }
-                } catch (error) {
-                  return { ok: false, errorText: (error as Error).message || 'Compilation failed' }
+                })
+                if (response.error) {
+                  const details = (response.error.details || [])
+                    .map((d) => (d.line ? `• line ${d.line}: ${d.message}` : `• ${d.message}`))
+                    .join('\n')
+                  const errorText = [response.error.message, details].filter(Boolean).join('\n')
+                  return {
+                    ok: false,
+                    errorText: errorText || 'MJML compilation failed'
+                  }
                 }
-              }}
-              callbacks={{
-                getEmailTree: () => visualEditorTreeRef.current,
-                setEmailTree: setVisualEditorTree,
-                onAddBlock: (parentId, blockType, position, content, attributes) => {
-                  dirtyRef.current = true
-                  // Use functional updater to ensure we have the latest state
-                  setVisualEditorTree(prevTree => {
-                    // Create a new block with defaults
-                    const newBlock = EmailBlockClass.createBlock(
-                      blockType as MJMLComponentType,
-                      undefined,
-                      content,
-                      prevTree
-                    )
-                    // Apply custom attributes if provided
-                    if (attributes) {
-                      newBlock.attributes = { ...newBlock.attributes, ...attributes }
-                    }
-                    // Insert into tree
-                    const updatedTree = EmailBlockClass.insertBlockIntoTree(
-                      prevTree,
-                      parentId,
-                      newBlock,
-                      position ?? (prevTree.children?.length || 0)
-                    )
-                    if (updatedTree) {
-                      // Schedule selection update after state is applied
-                      setTimeout(() => setSelectedBlockId(newBlock.id), 0)
-                      return updatedTree
-                    }
-                    return prevTree
-                  })
-                },
-                onUpdateBlock: (blockId, updates) => {
-                  dirtyRef.current = true
-                  // Use functional updater to ensure atomic updates
-                  setVisualEditorTree(prevTree => {
-                    const updatedTree = JSON.parse(JSON.stringify(prevTree)) as EmailBlock
-                    const block = EmailBlockClass.findBlockById(updatedTree, blockId)
-                    if (block) {
-                      if (updates.attributes) {
-                        block.attributes = { ...block.attributes, ...updates.attributes }
-                      }
-                      if (updates.content !== undefined) {
-                        block.content = updates.content
-                      }
-                      return updatedTree
-                    }
-                    return prevTree
-                  })
-                },
-                onDeleteBlock: (blockId) => {
-                  dirtyRef.current = true
-                  setVisualEditorTree(prevTree => {
-                    const updatedTree = EmailBlockClass.removeBlockFromTree(prevTree, blockId)
-                    if (updatedTree) {
-                      // Clear selection if deleted block was selected
-                      if (selectedBlockId === blockId) {
-                        setTimeout(() => setSelectedBlockId(null), 0)
-                      }
-                      return updatedTree
-                    }
-                    return prevTree
-                  })
-                },
-                onMoveBlock: (blockId, newParentId, position) => {
-                  dirtyRef.current = true
-                  setVisualEditorTree(prevTree => {
-                    const updatedTree = EmailBlockClass.moveBlockInTree(
-                      prevTree,
-                      blockId,
-                      newParentId,
-                      position
-                    )
-                    return updatedTree || prevTree
-                  })
-                },
-                onSelectBlock: (blockId) => {
-                  setSelectedBlockId(blockId)
+                return { ok: true }
+              } catch (error) {
+                return {
+                  ok: false,
+                  errorText: (error as Error).message || 'Compilation failed'
                 }
-              }}
-            />
+              }
+            }}
+            callbacks={{
+              getEmailTree: () => visualEditorTreeRef.current,
+              setEmailTree: setVisualEditorTree,
+              onAddBlock: (parentId, blockType, position, content, attributes) => {
+                dirtyRef.current = true
+                // Use functional updater to ensure we have the latest state
+                setVisualEditorTree((prevTree) => {
+                  // Create a new block with defaults
+                  const newBlock = EmailBlockClass.createBlock(
+                    blockType as MJMLComponentType,
+                    undefined,
+                    content,
+                    prevTree
+                  )
+                  // Apply custom attributes if provided
+                  if (attributes) {
+                    newBlock.attributes = {
+                      ...newBlock.attributes,
+                      ...attributes
+                    }
+                  }
+                  // Insert into tree
+                  const updatedTree = EmailBlockClass.insertBlockIntoTree(
+                    prevTree,
+                    parentId,
+                    newBlock,
+                    position ?? (prevTree.children?.length || 0)
+                  )
+                  if (updatedTree) {
+                    // Schedule selection update after state is applied
+                    setTimeout(() => setSelectedBlockId(newBlock.id), 0)
+                    return updatedTree
+                  }
+                  return prevTree
+                })
+              },
+              onUpdateBlock: (blockId, updates) => {
+                dirtyRef.current = true
+                // Use functional updater to ensure atomic updates
+                setVisualEditorTree((prevTree) => {
+                  const updatedTree = JSON.parse(JSON.stringify(prevTree)) as EmailBlock
+                  const block = EmailBlockClass.findBlockById(updatedTree, blockId)
+                  if (block) {
+                    if (updates.attributes) {
+                      block.attributes = {
+                        ...block.attributes,
+                        ...updates.attributes
+                      }
+                    }
+                    if (updates.content !== undefined) {
+                      block.content = updates.content
+                    }
+                    return updatedTree
+                  }
+                  return prevTree
+                })
+              },
+              onDeleteBlock: (blockId) => {
+                dirtyRef.current = true
+                setVisualEditorTree((prevTree) => {
+                  const updatedTree = EmailBlockClass.removeBlockFromTree(prevTree, blockId)
+                  if (updatedTree) {
+                    // Clear selection if deleted block was selected
+                    if (selectedBlockId === blockId) {
+                      setTimeout(() => setSelectedBlockId(null), 0)
+                    }
+                    return updatedTree
+                  }
+                  return prevTree
+                })
+              },
+              onMoveBlock: (blockId, newParentId, position) => {
+                dirtyRef.current = true
+                setVisualEditorTree((prevTree) => {
+                  const updatedTree = EmailBlockClass.moveBlockInTree(
+                    prevTree,
+                    blockId,
+                    newParentId,
+                    position
+                  )
+                  return updatedTree || prevTree
+                })
+              },
+              onSelectBlock: (blockId) => {
+                setSelectedBlockId(blockId)
+              }
+            }}
+          />
         </Drawer>
       )}
       {conflictModal}

@@ -10,10 +10,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
-	"github.com/google/uuid"
 )
 
 // NodeExecutionResult contains the outcome of executing a node
@@ -239,9 +239,12 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 	}
 
 	// 4. Get template (version 0 means latest version)
-	template, err := e.templateRepo.GetTemplateByID(ctx, params.WorkspaceID, config.TemplateID, 0)
+	template, err := e.templateRepo.GetTemplateByID(ctx, params.WorkspaceID, config.TemplateID, config.TemplateVersion)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get template: %w", err)
+		return nil, fmt.Errorf("automation node %s field template_id: failed to load template %s version %d: %w", params.Node.ID, config.TemplateID, config.TemplateVersion, err)
+	}
+	if template.Channel != "email" || template.Email == nil {
+		return nil, domain.NewValidationError(fmt.Sprintf("automation node %s field template_id: template %s version %d is channel %s, expected email", params.Node.ID, template.ID, template.Version, template.Channel))
 	}
 
 	// 4b. Check subscription status for marketing/blog emails
@@ -410,6 +413,7 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 			FromName:            sender.Name,
 			Subject:             subject,
 			HTMLContent:         htmlContent,
+			TemplateVersion:     int(template.Version),
 			RateLimitPerMinute:  emailProvider.RateLimitPerMinute,
 			ContactAutomationID: contactAutomationID,
 			EmailOptions: domain.EmailOptions{

@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { App, ConfigProvider } from 'antd'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { I18nProvider } from '@lingui/react'
@@ -28,21 +28,40 @@ vi.mock('../../contexts/AuthContext', () => ({
 vi.mock('./TemplatePreviewDrawer', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }))
+const createDrawerProps = vi.hoisted(() => vi.fn())
 vi.mock('./CreateTemplateDrawer', () => ({
-  CreateTemplateDrawer: () => null
+  CreateTemplateDrawer: (props: { forceChannel?: string }) => {
+    createDrawerProps(props)
+    return <button type="button">create-template</button>
+  }
 }))
 
-const makeTemplate = (id: string, name: string): Template =>
-  ({ id, name, category: 'marketing', channel: 'email' }) as unknown as Template
+const makeTemplate = (id: string, name: string, channel: Template['channel'] = 'email'): Template =>
+  ({ id, name, category: 'marketing', channel }) as unknown as Template
 
-const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } }
+})
 
-const Wrapper = ({ value }: { value: string | null }) => (
+const Wrapper = ({
+  value,
+  channel = 'email',
+  onChange = vi.fn()
+}: {
+  value: string | null
+  channel?: Template['channel']
+  onChange?: (value: string | null) => void
+}) => (
   <QueryClientProvider client={queryClient}>
     <I18nProvider i18n={i18n}>
       <ConfigProvider>
         <App>
-          <TemplateSelectorInput value={value} onChange={vi.fn()} workspaceId="ws1" />
+          <TemplateSelectorInput
+            value={value}
+            onChange={onChange}
+            workspaceId="ws1"
+            channel={channel}
+          />
         </App>
       </ConfigProvider>
     </I18nProvider>
@@ -52,13 +71,36 @@ const Wrapper = ({ value }: { value: string | null }) => (
 describe('TemplateSelectorInput', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    ;(templatesApi.list as ReturnType<typeof vi.fn>).mockResolvedValue({ templates: [] })
-    ;(templatesApi.get as ReturnType<typeof vi.fn>).mockImplementation(
-      ({ id }: { id: string }) =>
-        Promise.resolve({
-          template: makeTemplate(id, id === 'tpl-a' ? 'Template A' : 'Template B')
-        })
+    ;(templatesApi.list as ReturnType<typeof vi.fn>).mockResolvedValue({
+      templates: []
+    })
+    ;(templatesApi.get as ReturnType<typeof vi.fn>).mockImplementation(({ id }: { id: string }) =>
+      Promise.resolve({
+        template: makeTemplate(id, id === 'tpl-a' ? 'Template A' : 'Template B')
+      })
     )
+  })
+
+  it('passes the selected node channel to list and create flows', async () => {
+    render(<Wrapper value={null} channel="sms" />)
+    const input = screen.getByPlaceholderText('Select a template')
+    fireEvent.click(input)
+    await waitFor(() => {
+      expect(templatesApi.list).toHaveBeenCalledWith(expect.objectContaining({ channel: 'sms' }))
+      expect(createDrawerProps).toHaveBeenCalledWith(
+        expect.objectContaining({ forceChannel: 'sms' })
+      )
+    })
+  })
+
+  it('clears a controlled template that belongs to another channel', async () => {
+    const onChange = vi.fn()
+    ;(templatesApi.get as ReturnType<typeof vi.fn>).mockResolvedValue({
+      template: makeTemplate('email-template', 'Email Template', 'email')
+    })
+    render(<Wrapper value="email-template" channel="push" onChange={onChange} />)
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith(null))
+    expect(screen.queryByDisplayValue('Email Template')).not.toBeInTheDocument()
   })
 
   // Regression for issue #353: the same instance is reused while `value` changes

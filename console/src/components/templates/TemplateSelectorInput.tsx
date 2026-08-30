@@ -80,7 +80,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
       return
     }
     // Already showing the right template
-    if (selectedTemplate?.id === value) return
+    if (selectedTemplate?.id === value && selectedTemplate.channel === channel) return
     if (!workspaceId) return
 
     // Guard against out-of-order responses when `value` changes rapidly
@@ -88,9 +88,13 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
     templatesApi
       .get({ workspace_id: workspaceId, id: value })
       .then((response) => {
-        if (!cancelled && response.template) {
-          setSelectedTemplate(response.template)
+        if (cancelled || !response.template) return
+        if (response.template.channel !== channel) {
+          setSelectedTemplate(null)
+          onChange?.(null)
+          return
         }
+        setSelectedTemplate(response.template)
       })
       .catch((error) => {
         console.error('Failed to fetch template details:', error)
@@ -98,10 +102,12 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
     return () => {
       cancelled = true
     }
-  }, [value, workspaceId, selectedTemplate])
+  }, [value, workspaceId, channel, selectedTemplate, onChange])
 
   // Get templates array from response
-  const templates = templatesResponse?.templates || []
+  const templates = (templatesResponse?.templates || []).filter(
+    (template) => template.channel === channel
+  )
 
   // Filter templates based on search query
   const filteredTemplates = templates.filter((template) =>
@@ -126,21 +132,19 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
   }
 
   // Handle template creation complete - refetch templates and select the new one
-  const handleTemplateCreated = async () => {
+  const handleTemplateCreated = async (template?: Template) => {
     await refetch()
-    // Templates will be refetched, wait for the drawer to close before refetching
-    setTimeout(() => {
-      setOpen(true) // Reopen the template selection drawer
-    }, 500)
+    if (template?.channel === channel) {
+      handleSelect(template)
+    }
   }
 
   // Handle clone template complete - same as handleTemplateCreated
-  const handleTemplateCloned = async () => {
+  const handleTemplateCloned = async (template?: Template) => {
     await refetch()
-    // Templates will be refetched, wait for the drawer to close before refetching
-    setTimeout(() => {
-      setOpen(true) // Reopen the template selection drawer
-    }, 500)
+    if (template?.channel === channel) {
+      handleSelect(template)
+    }
   }
 
   if (!currentWorkspace) {
@@ -192,6 +196,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
             <CreateTemplateDrawer
               workspace={currentWorkspace}
               forceCategory={category}
+              forceChannel={channel}
               buttonProps={{
                 type: 'primary',
                 icon: <PlusOutlined />,
@@ -228,6 +233,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
                       workspace={currentWorkspace}
                       fromTemplate={template}
                       forceCategory={category}
+                      forceChannel={channel}
                       buttonProps={{
                         type: 'link',
                         title: t`Clone`
@@ -265,6 +271,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
               <CreateTemplateDrawer
                 workspace={currentWorkspace}
                 forceCategory={category}
+                forceChannel={channel}
                 buttonProps={{
                   type: 'primary',
                   icon: <PlusOutlined />,

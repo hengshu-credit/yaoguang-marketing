@@ -62,15 +62,12 @@ export const EmailConfigForm: React.FC<EmailConfigFormProps> = ({
 
   return (
     <Form layout="vertical" className="nodrag">
-      <Form.Item
-        label={t`Email Template`}
-        required
-        extra={t`Select the email template to send`}
-      >
+      <Form.Item label={t`Email Template`} required extra={t`Select the email template to send`}>
         <TemplateSelectorInput
           value={config.template_id || null}
           onChange={handleTemplateChange}
           workspaceId={workspaceId}
+          channel="email"
           placeholder={t`Select email template...`}
         />
       </Form.Item>
