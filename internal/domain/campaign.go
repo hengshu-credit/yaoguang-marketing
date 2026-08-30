@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
@@ -43,6 +44,35 @@ type CampaignVersion struct {
 	Variants        []CampaignVariant `json:"variants"`
 	ActivatedAt     *time.Time        `json:"activated_at,omitempty"`
 	CreatedAt       time.Time         `json:"created_at"`
+}
+
+type CampaignRun struct {
+	ID              string    `json:"id"`
+	CampaignID      string    `json:"campaign_id"`
+	CampaignVersion int       `json:"campaign_version"`
+	Status          string    `json:"status"`
+	RunSeed         string    `json:"run_seed"`
+	SnapshotCount   int64     `json:"snapshot_count"`
+	NextOrdinal     int64     `json:"next_ordinal"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
+type CampaignRecipientSnapshot struct {
+	RunID         string    `json:"run_id"`
+	Ordinal       int64     `json:"ordinal"`
+	CustomerID    string    `json:"customer_id"`
+	Variant       string    `json:"variant"`
+	SourceBuildID string    `json:"source_build_id,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
+type CampaignRepository interface {
+	CreateCampaign(context.Context, string, Campaign, CampaignVersion) error
+	GetCampaignVersion(context.Context, string, string, int) (*CampaignVersion, error)
+	CreateCampaignRun(context.Context, string, CampaignRun) error
+	ListAudienceMemberIDs(context.Context, string, string, int, string, int) ([]string, string, error)
+	AppendCampaignSnapshots(context.Context, string, string, []CampaignRecipientSnapshot) (int64, error)
+	CompleteCampaignSnapshot(context.Context, string, string, int64) error
 }
 
 func (v CampaignVersion) Validate() error {
