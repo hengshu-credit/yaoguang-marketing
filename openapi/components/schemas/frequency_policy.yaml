@@ -1,0 +1,48 @@
+FrequencyPolicy:
+  type: object
+  required: [id, version, name, scope, channel, max_events, window_kind, window_seconds, deny_action, priority, enabled, created_at]
+  properties:
+    id: { type: string, format: uuid }
+    version: { type: integer, minimum: 1 }
+    name: { type: string }
+    scope:
+      type: string
+      enum: [campaign, trigger, workspace_global]
+    scope_ref: { type: string }
+    channel: { type: string }
+    max_events: { type: integer, minimum: 1 }
+    window_kind:
+      type: string
+      enum: [sliding, calendar]
+    window_seconds: { type: integer, format: int64, minimum: 1 }
+    timezone: { type: string }
+    deny_action:
+      type: string
+      enum: [suppress, defer]
+    priority: { type: integer }
+    enabled: { type: boolean }
+    created_at: { type: string, format: date-time }
+
+SaveFrequencyPolicyRequest:
+  type: object
+  required: [workspace_id, name, scope, channel, max_events, window_kind, window_seconds, deny_action, enabled]
+  properties:
+    workspace_id: { type: string }
+    id: { type: string, format: uuid }
+    name: { type: string }
+    scope:
+      type: string
+      enum: [campaign, trigger, workspace_global]
+    scope_ref: { type: string }
+    channel: { type: string }
+    max_events: { type: integer, minimum: 1 }
+    window_kind:
+      type: string
+      enum: [sliding, calendar]
+    window_seconds: { type: integer, format: int64, minimum: 1 }
+    timezone: { type: string }
+    deny_action:
+      type: string
+      enum: [suppress, defer]
+    priority: { type: integer, default: 0 }
+    enabled: { type: boolean }

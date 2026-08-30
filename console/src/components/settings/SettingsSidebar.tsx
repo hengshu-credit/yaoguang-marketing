@@ -6,7 +6,8 @@ import {
   ExclamationCircleOutlined,
   LineChartOutlined,
   MailOutlined,
-  TranslationOutlined
+  TranslationOutlined,
+  FieldTimeOutlined
 } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 
@@ -16,6 +17,7 @@ import { useLingui } from '@lingui/react/macro'
 export const SETTINGS_SECTIONS = [
   'team',
   'integrations',
+  'frequency',
   'webhooks',
   'custom-fields',
   'smtp-bridge',
@@ -63,6 +65,11 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
         </svg>
       ),
       label: t`Integrations`
+    },
+    {
+      key: 'frequency',
+      icon: <FieldTimeOutlined />,
+      label: '触达频控'
     },
     {
       key: 'webhooks',

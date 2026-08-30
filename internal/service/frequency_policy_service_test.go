@@ -12,12 +12,17 @@ import (
 )
 
 type frequencyPolicyRepositoryStub struct {
-	policies []domain.FrequencyPolicy
-	saved    domain.FrequencyDecision
+	policies    []domain.FrequencyPolicy
+	saved       domain.FrequencyDecision
+	savedPolicy domain.FrequencyPolicy
 }
 
-func (s *frequencyPolicyRepositoryStub) SaveFrequencyPolicy(context.Context, string, domain.FrequencyPolicy) error {
+func (s *frequencyPolicyRepositoryStub) SaveFrequencyPolicy(_ context.Context, _ string, policy domain.FrequencyPolicy) error {
+	s.savedPolicy = policy
 	return nil
+}
+func (s *frequencyPolicyRepositoryStub) ListFrequencyPolicies(context.Context, string) ([]domain.FrequencyPolicy, error) {
+	return s.policies, nil
 }
 func (s *frequencyPolicyRepositoryStub) ResolveFrequencyPolicies(context.Context, string, string, string, string) ([]domain.FrequencyPolicy, error) {
 	return s.policies, nil
@@ -64,4 +69,21 @@ func TestFrequencyPolicyServiceDefersAndAuditsRedisFailure(t *testing.T) {
 	require.Error(t, err)
 	assert.True(t, decision.Deferred)
 	assert.Contains(t, repository.saved.Reason, "frequency control unavailable")
+}
+
+func TestFrequencyPolicyManagementCreatesImmutableVersions(t *testing.T) {
+	id := "33333333-3333-4333-8333-333333333333"
+	repository := &frequencyPolicyRepositoryStub{policies: []domain.FrequencyPolicy{{ID: id, Version: 3}}}
+	limiter, err := NewFrequencyLimiter(&fakeMultiFrequencyStore{})
+	require.NoError(t, err)
+	svc, err := NewFrequencyPolicyService(repository, limiter)
+	require.NoError(t, err)
+	policy, err := svc.SaveFrequencyPolicy(context.Background(), domain.SaveFrequencyPolicyRequest{
+		WorkspaceID: "workspace-1", ID: id, Name: "全量邮件频控", Scope: domain.FrequencyScopeWorkspaceGlobal,
+		Channel: "email", MaxEvents: 2, WindowKind: domain.FrequencyWindowCalendar, WindowSeconds: 86400,
+		Timezone: "Asia/Shanghai", DenyAction: domain.FrequencyActionSuppress, Enabled: true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 4, policy.Version)
+	assert.Equal(t, *policy, repository.savedPolicy)
 }

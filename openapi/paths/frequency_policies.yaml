@@ -1,0 +1,58 @@
+/api/frequencyPolicies.list:
+  get:
+    summary: List current frequency policy versions
+    operationId: listFrequencyPolicies
+    security: [{ BearerAuth: [] }]
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema: { type: string }
+    responses:
+      '200':
+        description: Latest version of every policy
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [policies]
+              properties:
+                policies:
+                  type: array
+                  items:
+                    $ref: '../components/schemas/frequency_policy.yaml#/FrequencyPolicy'
+      '400':
+        description: Missing workspace
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/frequencyPolicies.save:
+  post:
+    summary: Save an immutable frequency policy version
+    operationId: saveFrequencyPolicy
+    security: [{ BearerAuth: [] }]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/frequency_policy.yaml#/SaveFrequencyPolicyRequest'
+    responses:
+      '200':
+        description: Saved policy version
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [policy]
+              properties:
+                policy:
+                  $ref: '../components/schemas/frequency_policy.yaml#/FrequencyPolicy'
+      '400':
+        description: Invalid policy
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'

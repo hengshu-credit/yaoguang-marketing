@@ -102,6 +102,10 @@ paths:
     $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.schedule'
   /api/broadcasts.preflight:
     $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.preflight'
+  /api/frequencyPolicies.list:
+    $ref: './paths/frequency_policies.yaml#/~1api~1frequencyPolicies.list'
+  /api/frequencyPolicies.save:
+    $ref: './paths/frequency_policies.yaml#/~1api~1frequencyPolicies.save'
   /api/broadcasts.pause:
     $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.pause'
   /api/broadcasts.resume:
@@ -257,6 +261,10 @@ components:
       $ref: './components/schemas/broadcast.yaml#/MarketingPreflightIssue'
     MarketingPreflightResult:
       $ref: './components/schemas/broadcast.yaml#/MarketingPreflightResult'
+    FrequencyPolicy:
+      $ref: './components/schemas/frequency_policy.yaml#/FrequencyPolicy'
+    SaveFrequencyPolicyRequest:
+      $ref: './components/schemas/frequency_policy.yaml#/SaveFrequencyPolicyRequest'
     PauseBroadcastRequest:
       $ref: './components/schemas/broadcast.yaml#/PauseBroadcastRequest'
     ResumeBroadcastRequest:

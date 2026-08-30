@@ -743,6 +743,7 @@ func (a *App) InitServices() error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize frequency policy service: %w", err)
 	}
+	a.frequencyPolicyService.SetManagementAuth(a.authService)
 	legacyContactAdapter, err := service.NewLegacyContactAdapter(a.customerService, customerSyncMaxBatchSize)
 	if err != nil {
 		return fmt.Errorf("failed to initialize legacy contact adapter: %w", err)
@@ -1568,6 +1569,7 @@ func (a *App) InitHandlers() error {
 	deliveryHandler := httpHandler.NewDeliveryHandler(a.deliveryManagementService, getJWTSecret, a.logger)
 	audienceHandler := httpHandler.NewAudienceHandler(a.audienceService, getJWTSecret, a.logger)
 	importJobHandler := httpHandler.NewImportJobHandler(a.importJobService, getJWTSecret, a.logger)
+	frequencyPolicyHandler := httpHandler.NewFrequencyPolicyHandler(a.frequencyPolicyService, getJWTSecret, a.logger)
 	channelMessageHandler := httpHandler.NewChannelMessageHandler(a.channelMessageService, getJWTSecret, a.logger)
 	notificationCenterHandler := httpHandler.NewNotificationCenterHandler(
 		a.notificationCenterService,
@@ -1673,6 +1675,7 @@ func (a *App) InitHandlers() error {
 	deliveryHandler.RegisterRoutes(a.mux)
 	audienceHandler.RegisterRoutes(a.mux)
 	importJobHandler.RegisterRoutes(a.mux)
+	frequencyPolicyHandler.RegisterRoutes(a.mux)
 	channelMessageHandler.RegisterRoutes(a.mux)
 	notificationCenterHandler.RegisterRoutes(a.mux)
 	analyticsHandler.RegisterRoutes(a.mux)

@@ -96,12 +96,34 @@ type FrequencyEvaluationRequest struct {
 	OccurredAt  time.Time
 }
 
+type SaveFrequencyPolicyRequest struct {
+	WorkspaceID   string               `json:"workspace_id"`
+	ID            string               `json:"id,omitempty"`
+	Name          string               `json:"name"`
+	Scope         FrequencyPolicyScope `json:"scope"`
+	ScopeRef      string               `json:"scope_ref,omitempty"`
+	Channel       string               `json:"channel"`
+	MaxEvents     int                  `json:"max_events"`
+	WindowKind    FrequencyWindowKind  `json:"window_kind"`
+	WindowSeconds int64                `json:"window_seconds"`
+	Timezone      string               `json:"timezone,omitempty"`
+	DenyAction    FrequencyDenyAction  `json:"deny_action"`
+	Priority      int                  `json:"priority"`
+	Enabled       bool                 `json:"enabled"`
+}
+
+type FrequencyPolicyManager interface {
+	ListFrequencyPolicies(context.Context, string) ([]FrequencyPolicy, error)
+	SaveFrequencyPolicy(context.Context, SaveFrequencyPolicyRequest) (*FrequencyPolicy, error)
+}
+
 type MarketingFrequencyEvaluator interface {
 	Evaluate(context.Context, FrequencyEvaluationRequest) (FrequencyDecision, error)
 }
 
 type FrequencyPolicyRepository interface {
 	SaveFrequencyPolicy(context.Context, string, FrequencyPolicy) error
+	ListFrequencyPolicies(context.Context, string) ([]FrequencyPolicy, error)
 	ResolveFrequencyPolicies(context.Context, string, string, string, string) ([]FrequencyPolicy, error)
 	SaveFrequencyDecision(context.Context, string, FrequencyDecision) error
 }

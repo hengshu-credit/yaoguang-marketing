@@ -43,7 +43,7 @@ func (r *FrequencyPolicyPostgresRepository) SaveFrequencyPolicy(ctx context.Cont
 	if err != nil {
 		return err
 	}
-	_, err = db.ExecContext(ctx, `INSERT INTO frequency_policies (
+	result, err := db.ExecContext(ctx, `INSERT INTO frequency_policies (
 		id, version, name, scope, scope_ref, channel, max_events, window_kind,
 		window_seconds, timezone, deny_action, priority, enabled, created_at
 	) VALUES (NULLIF($1, '')::uuid, $2, $3, $4, NULLIF($5, ''), $6, $7, $8, $9, NULLIF($10, ''), $11, $12, $13, $14)
@@ -53,7 +53,39 @@ func (r *FrequencyPolicyPostgresRepository) SaveFrequencyPolicy(ctx context.Cont
 	if err != nil {
 		return fmt.Errorf("save frequency policy: %w", err)
 	}
+	if affected, _ := result.RowsAffected(); affected != 1 {
+		return fmt.Errorf("save frequency policy: version conflict")
+	}
 	return nil
+}
+
+func (r *FrequencyPolicyPostgresRepository) ListFrequencyPolicies(ctx context.Context, workspaceID string) ([]domain.FrequencyPolicy, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := db.QueryContext(ctx, `SELECT id, version, name, scope, COALESCE(scope_ref, ''), channel,
+		max_events, window_kind, window_seconds, COALESCE(timezone, ''), deny_action, priority, enabled, created_at
+	FROM (
+		SELECT DISTINCT ON (id) id, version, name, scope, scope_ref, channel, max_events,
+			window_kind, window_seconds, timezone, deny_action, priority, enabled, created_at
+		FROM frequency_policies ORDER BY id, version DESC
+	) latest ORDER BY priority DESC, scope, name, id`)
+	if err != nil {
+		return nil, fmt.Errorf("list frequency policies: %w", err)
+	}
+	defer rows.Close()
+	policies := []domain.FrequencyPolicy{}
+	for rows.Next() {
+		var policy domain.FrequencyPolicy
+		if err := rows.Scan(&policy.ID, &policy.Version, &policy.Name, &policy.Scope, &policy.ScopeRef, &policy.Channel,
+			&policy.MaxEvents, &policy.WindowKind, &policy.WindowSeconds, &policy.Timezone, &policy.DenyAction,
+			&policy.Priority, &policy.Enabled, &policy.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan frequency policy: %w", err)
+		}
+		policies = append(policies, policy)
+	}
+	return policies, rows.Err()
 }
 
 // ResolveFrequencyPolicies returns independent campaign, trigger and global
@@ -63,13 +95,17 @@ func (r *FrequencyPolicyPostgresRepository) ResolveFrequencyPolicies(ctx context
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.QueryContext(ctx, `SELECT DISTINCT ON (id) id, version, name, scope, COALESCE(scope_ref, ''), channel,
+	rows, err := db.QueryContext(ctx, `SELECT id, version, name, scope, COALESCE(scope_ref, ''), channel,
 		max_events, window_kind, window_seconds, COALESCE(timezone, ''), deny_action, priority, enabled, created_at
-	FROM frequency_policies
-	WHERE enabled = TRUE AND channel = $1 AND (
+	FROM (
+		SELECT DISTINCT ON (id) id, version, name, scope, scope_ref, channel, max_events, window_kind,
+			window_seconds, timezone, deny_action, priority, enabled, created_at
+		FROM frequency_policies ORDER BY id, version DESC
+	) latest
+	WHERE enabled = TRUE AND (channel = $1 OR channel = '*') AND (
 		scope = 'workspace_global' OR (scope = 'campaign' AND scope_ref = NULLIF($2, '')) OR (scope = 'trigger' AND scope_ref = NULLIF($3, ''))
 	)
-	ORDER BY id, version DESC`, channel, campaignRef, triggerRef)
+	ORDER BY priority DESC, scope, id`, channel, campaignRef, triggerRef)
 	if err != nil {
 		return nil, fmt.Errorf("resolve frequency policies: %w", err)
 	}

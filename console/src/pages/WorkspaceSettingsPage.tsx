@@ -14,6 +14,7 @@ import { BlogSettings } from '../components/settings/BlogSettings'
 import { WebAnalyticsSettings } from '../components/settings/WebAnalyticsSettings'
 import { WebhooksSettings } from '../components/settings/WebhooksSettings'
 import { UITranslationsSettings } from '../components/settings/UITranslationsSettings'
+import { FrequencyPoliciesSettings } from '../components/settings/FrequencyPoliciesSettings'
 import { useAuth } from '../contexts/AuthContext'
 import { DeleteWorkspaceSection } from '../components/settings/DeleteWorkspace'
 import {
@@ -176,6 +177,8 @@ export function WorkspaceSettingsPage() {
             isOwner={isOwner}
           />
         )
+      case 'frequency':
+        return <FrequencyPoliciesSettings workspaceId={workspaceId} />
       case 'webhooks':
         return workspace ? <WebhooksSettings workspaceId={workspace.id} /> : null
       case 'custom-fields':
