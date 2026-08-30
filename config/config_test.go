@@ -167,6 +167,31 @@ func TestLoadCustomerSyncBatchLimitDefaultsAndOverrides(t *testing.T) {
 	})
 }
 
+func TestLoadCustomerImportLimitsDefaultsAndOverrides(t *testing.T) {
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
+	defer os.Unsetenv("SECRET_KEY")
+	for _, key := range []string{"CUSTOMER_IMPORT_MAX_ROWS", "CUSTOMER_IMPORT_PROCESS_CHUNK_SIZE", "CUSTOMER_IMPORT_MAX_FILE_BYTES"} {
+		_ = os.Unsetenv(key)
+	}
+	cfg, err := LoadWithOptions(LoadOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, 1_000_000, cfg.Ingest.CustomerImportMaxRows)
+	assert.Equal(t, 2_000, cfg.Ingest.CustomerImportChunkSize)
+	assert.Equal(t, int64(1<<30), cfg.Ingest.CustomerImportMaxBytes)
+
+	_ = os.Setenv("CUSTOMER_IMPORT_MAX_ROWS", "2000000")
+	_ = os.Setenv("CUSTOMER_IMPORT_PROCESS_CHUNK_SIZE", "5000")
+	_ = os.Setenv("CUSTOMER_IMPORT_MAX_FILE_BYTES", "2147483648")
+	defer os.Unsetenv("CUSTOMER_IMPORT_MAX_ROWS")
+	defer os.Unsetenv("CUSTOMER_IMPORT_PROCESS_CHUNK_SIZE")
+	defer os.Unsetenv("CUSTOMER_IMPORT_MAX_FILE_BYTES")
+	cfg, err = LoadWithOptions(LoadOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, 2_000_000, cfg.Ingest.CustomerImportMaxRows)
+	assert.Equal(t, 5_000, cfg.Ingest.CustomerImportChunkSize)
+	assert.Equal(t, int64(2<<30), cfg.Ingest.CustomerImportMaxBytes)
+}
+
 func TestInvalidKeysHandling(t *testing.T) {
 	t.Run("missing_secret_key", func(t *testing.T) {
 		// Clear any existing environment variables

@@ -597,6 +597,11 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			return fmt.Errorf("failed to create delivery ledger table: %w", err)
 		}
 	}
+	for _, query := range schema.MarketingTableDefinitions() {
+		if _, err := db.Exec(query); err != nil {
+			return fmt.Errorf("failed to create marketing table: %w", err)
+		}
+	}
 	for _, month := range schema.RealtimeBootstrapMonths(time.Now().UTC()) {
 		if _, err := db.Exec(schema.EventLedgerPartitionDDL(month)); err != nil {
 			return fmt.Errorf("failed to create event ledger partition: %w", err)

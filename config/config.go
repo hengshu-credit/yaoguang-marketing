@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const VERSION = "48.0"
+const VERSION = "49.0"
 
 type Config struct {
 	Server              ServerConfig
@@ -210,6 +210,9 @@ type IngestConfig struct {
 	MaxBatchSize             int
 	MaxInFlight              int
 	CustomerSyncMaxBatchSize int
+	CustomerImportMaxRows    int
+	CustomerImportChunkSize  int
+	CustomerImportMaxBytes   int64
 }
 
 // PlanLimitsConfig holds the quotas of the subscribed plan. Notifuse Cloud sets
@@ -514,6 +517,9 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	v.SetDefault("INGEST_MAX_BATCH_SIZE", 500)
 	v.SetDefault("INGEST_MAX_INFLIGHT", 32)
 	v.SetDefault("CUSTOMER_SYNC_MAX_BATCH_SIZE", 10000)
+	v.SetDefault("CUSTOMER_IMPORT_MAX_ROWS", 1_000_000)
+	v.SetDefault("CUSTOMER_IMPORT_PROCESS_CHUNK_SIZE", 2_000)
+	v.SetDefault("CUSTOMER_IMPORT_MAX_FILE_BYTES", int64(1<<30))
 
 	// Realtime runtime defaults preserve the existing single-process behavior.
 	v.SetDefault("NOTIFUSE_ROLE", string(RoleAll))
@@ -1065,6 +1071,9 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 			MaxBatchSize:             v.GetInt("INGEST_MAX_BATCH_SIZE"),
 			MaxInFlight:              v.GetInt("INGEST_MAX_INFLIGHT"),
 			CustomerSyncMaxBatchSize: v.GetInt("CUSTOMER_SYNC_MAX_BATCH_SIZE"),
+			CustomerImportMaxRows:    v.GetInt("CUSTOMER_IMPORT_MAX_ROWS"),
+			CustomerImportChunkSize:  v.GetInt("CUSTOMER_IMPORT_PROCESS_CHUNK_SIZE"),
+			CustomerImportMaxBytes:   v.GetInt64("CUSTOMER_IMPORT_MAX_FILE_BYTES"),
 		},
 		Realtime: realtimeConfig,
 		Plan:     planConfig,
