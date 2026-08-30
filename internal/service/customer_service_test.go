@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -221,6 +222,43 @@ func TestCustomerServiceBatchLimitIsConfigurable(t *testing.T) {
 	var validation domain.ValidationError
 	assert.ErrorAs(t, err, &validation)
 	assert.ErrorContains(t, err, "2")
+}
+
+func TestCustomerServiceBatchPreservesAllTenThousandOrderedResults(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	repository := mocks.NewMockCustomerRepository(ctrl)
+	workspaceRepository := mocks.NewMockWorkspaceRepository(ctrl)
+	auth := mocks.NewMockAuthService(ctrl)
+	service, err := NewCustomerService(CustomerServiceDependencies{
+		Repository: repository, WorkspaceRepository: workspaceRepository, AuthService: auth, MaxSyncBatchSize: 10_000,
+	})
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	auth.EXPECT().AuthenticateUserForWorkspace(ctx, "workspace1").Return(ctx, &domain.User{}, customerMembership(false, true), nil).Times(1)
+	workspaceRepository.EXPECT().GetByID(ctx, "workspace1").Return(&domain.Workspace{ID: "workspace1", Sequence: 42}, nil).Times(1)
+	repository.EXPECT().Upsert(ctx, gomock.Any()).Return(&domain.CustomerMutationResult{CustomerID: "customer", Action: "created"}, nil).Times(10_000)
+
+	items := make([]domain.CustomerBatchUpsertItem, 10_000)
+	for index := range items {
+		externalID := fmt.Sprintf("external-%d", index)
+		items[index] = domain.CustomerBatchUpsertItem{
+			IdempotencyKey: fmt.Sprintf("batch-%d", index),
+			Customer:       domain.CustomerUpsertInput{ExternalUserID: &externalID},
+		}
+	}
+	response, err := service.UpsertCustomerBatch(ctx, &domain.CustomerBatchUpsertRequest{
+		WorkspaceID: "workspace1",
+		Items:       items,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 10_000, response.Accepted)
+	assert.Zero(t, response.Failed)
+	require.Len(t, response.Results, 10_000)
+	for index, result := range response.Results {
+		assert.Equal(t, index, result.Index)
+		assert.Equal(t, "accepted", result.Status)
+	}
 }
 
 func TestCustomerServiceMergeRequiresWriteAndPassesActorAndCanonicalHash(t *testing.T) {

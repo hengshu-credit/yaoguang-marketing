@@ -36,7 +36,7 @@ func (r *contactListRepository) AddContactToList(ctx context.Context, workspaceI
 
 	query := `
 		INSERT INTO contact_lists (email, list_id, status, created_at, updated_at, deleted_at, customer_id)
-		VALUES ($1, $2, $3, $4, $5, NULL, (SELECT customer_id FROM contacts WHERE email = $1))
+		VALUES ($1::text, $2, $3, $4, $5, NULL, (SELECT customer_id FROM contacts WHERE email = $1::text))
 		ON CONFLICT (email, list_id) DO UPDATE
 		SET status = $3, updated_at = $5, deleted_at = NULL,
 			customer_id = COALESCE(EXCLUDED.customer_id, contact_lists.customer_id)
@@ -101,7 +101,7 @@ func (r *contactListRepository) BulkAddContactsToLists(ctx context.Context, work
 
 				qb.WriteString("($")
 				qb.WriteString(strconv.Itoa(argIndex))
-				qb.WriteString(", $")
+				qb.WriteString("::text, $")
 				qb.WriteString(strconv.Itoa(argIndex + 1))
 				qb.WriteString(", $")
 				qb.WriteString(strconv.Itoa(argIndex + 2))
@@ -111,7 +111,7 @@ func (r *contactListRepository) BulkAddContactsToLists(ctx context.Context, work
 				qb.WriteString(strconv.Itoa(argIndex + 4))
 				qb.WriteString(", NULL, (SELECT customer_id FROM contacts WHERE email = $")
 				qb.WriteString(strconv.Itoa(argIndex))
-				qb.WriteString("))")
+				qb.WriteString("::text))")
 				argIndex += 5
 
 				args = append(args, email, listID, status, now, now)

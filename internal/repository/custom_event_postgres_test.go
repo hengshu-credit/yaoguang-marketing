@@ -188,6 +188,18 @@ func TestCustomEventRepositoryCustomerAuthorityWritesResolvedCustomerID(t *testi
 	require.NoError(t, err)
 }
 
+func TestCustomEventQueriesPinSharedEmailParameterType(t *testing.T) {
+	for name, query := range map[string]string{
+		"upsert":     upsertCustomEventQuery,
+		"insert new": insertNewCustomEventQuery,
+	} {
+		t.Run(name, func(t *testing.T) {
+			assert.Contains(t, query, "$3::text")
+			assert.NotContains(t, query, "WHERE email = $3)")
+		})
+	}
+}
+
 func TestCustomEventRepository_BatchUpsert(t *testing.T) {
 	mockWorkspaceRepo, repo, mock, db, cleanup := setupCustomEventTest(t)
 	defer cleanup()

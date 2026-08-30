@@ -524,7 +524,7 @@ describe('Page Smoke Tests', () => {
       const Wrapper = createWrapper()
       render(<ContactsPage />, { wrapper: Wrapper })
       await waitFor(() => {
-        expect(screen.getByText(/Contacts/i)).toBeTruthy()
+        expect(screen.getByRole('heading', { name: 'Contacts' })).toBeTruthy()
       })
     })
   })

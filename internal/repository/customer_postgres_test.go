@@ -670,10 +670,10 @@ func TestCustomerRepositoryUpsertAtomicallyUpdatesProfileIdentityTagsListsAndCon
 	mock.ExpectExec(`INSERT INTO customer_list_memberships`).
 		WithArgs(customerID, "list1", "active", now).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`UPDATE contacts SET email = COALESCE`).
-		WithArgs(customerID, "crm-new", "Asia/Shanghai", "zh-CN", now, "alice@example.com").
+		WithArgs(customerID, "crm-new", "Asia/Shanghai", "zh-CN", now, "alice@example.com", JSONEqual(`{"a":1,"nested":{"keep":1,"new":3}}`)).
 		WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec(`INSERT INTO contacts`).
-		WithArgs("alice@example.com", "crm-new", "Asia/Shanghai", "zh-CN", customerID, now, now).
+	mock.ExpectExec(`INSERT INTO contacts \(.*first_name.*custom_json_5`).
+		WithArgs("alice@example.com", "crm-new", "Asia/Shanghai", "zh-CN", customerID, now, now, JSONEqual(`{"a":1,"nested":{"keep":1,"new":3}}`)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`DELETE FROM contact_lists WHERE customer_id`).WithArgs(customerID).WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectQuery(`SELECT email FROM contacts WHERE customer_id`).WithArgs(customerID).
@@ -710,7 +710,7 @@ func TestProjectCustomerContactUpdatesExistingProjectionWithoutEmailInPatch(t *t
 	defer db.Close()
 	mock.ExpectBegin()
 	mock.ExpectExec(`UPDATE contacts SET email = COALESCE`).
-		WithArgs("11111111-1111-4111-8111-111111111111", "crm-42", "Asia/Shanghai", "zh-CN", now, "").
+		WithArgs("11111111-1111-4111-8111-111111111111", "crm-42", "Asia/Shanghai", "zh-CN", now, "", nil).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 	tx, err := db.Begin()
@@ -731,7 +731,7 @@ func TestProjectCustomerContactMovesProjectionToNewPrimaryEmail(t *testing.T) {
 	defer db.Close()
 	mock.ExpectBegin()
 	mock.ExpectExec(`UPDATE contacts SET email = COALESCE\(NULLIF\(\$6, ''\), email\)`).
-		WithArgs("11111111-1111-4111-8111-111111111111", nil, nil, nil, now, "new@example.com").
+		WithArgs("11111111-1111-4111-8111-111111111111", nil, nil, nil, now, "new@example.com", nil).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 	tx, err := db.Begin()
@@ -754,7 +754,7 @@ func TestProjectCustomerContactReportsPrimaryEmailCollisionAsIdentityConflict(t 
 	defer db.Close()
 	mock.ExpectBegin()
 	mock.ExpectExec(`UPDATE contacts SET email = COALESCE\(NULLIF\(\$6, ''\), email\)`).
-		WithArgs("11111111-1111-4111-8111-111111111111", nil, nil, nil, now, "owned@example.com").
+		WithArgs("11111111-1111-4111-8111-111111111111", nil, nil, nil, now, "owned@example.com", nil).
 		WillReturnError(&pq.Error{Code: "23505", Constraint: "contacts_pkey"})
 	mock.ExpectRollback()
 	tx, err := db.Begin()

@@ -176,7 +176,9 @@ export function CustomersPage() {
                 onClick={() => setSelectedCustomerID(customer.customer_id)}
               >
                 <Space orientation="vertical" size="small" style={{ width: '100%' }}>
-                  <Typography.Text strong>{customer.customer_no}</Typography.Text>
+                  <Typography.Text strong style={{ wordBreak: 'break-all' }}>
+                    {customer.customer_no}
+                  </Typography.Text>
                   <Typography.Text>{customer.external_user_id || t`No external user ID`}</Typography.Text>
                   <Space wrap>
                     {(customer.identities ?? []).map((identity) => (

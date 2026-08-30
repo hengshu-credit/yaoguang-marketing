@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -134,6 +135,45 @@ func TestContactServiceBatchImportUsesCustomerAuthorityInInputOrder(t *testing.T
 		require.NotNil(t, item.Customer.ListMemberships)
 		assert.Equal(t, "news", (*item.Customer.ListMemberships)[0].ListID)
 	}
+}
+
+func TestContactServiceBatchImportCustomerAuthorityDeduplicatesByNormalizedEmail(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	contactService, _, _, auth, _, _, _, _, _, _, _, _, _ := createContactServiceWithMocks(ctrl)
+	customerAuthority := &legacyCustomerServiceStub{batchResult: &domain.CustomerBatchUpsertResponse{
+		Accepted: 2,
+		Results: []domain.CustomerBatchItemResult{
+			{Index: 0, Status: "accepted", Customer: &domain.CustomerMutationResult{Action: "created"}},
+			{Index: 1, Status: "accepted", Customer: &domain.CustomerMutationResult{Action: "created"}},
+		},
+	}}
+	adapter, err := NewLegacyContactAdapter(customerAuthority, 10_000)
+	require.NoError(t, err)
+	require.NoError(t, contactService.SetCustomerAuthority(adapter))
+
+	ctx := context.Background()
+	membership := &domain.UserWorkspace{WorkspaceID: "workspace123", Permissions: domain.UserPermissions{
+		domain.PermissionResourceContacts: {Write: true},
+	}}
+	auth.EXPECT().AuthenticateUserForWorkspace(ctx, "workspace123").Return(ctx, &domain.User{}, membership, nil)
+
+	response := contactService.BatchImportContacts(ctx, "workspace123", []*domain.Contact{
+		{Email: "duplicate@example.com", FirstName: &domain.NullableString{String: "First"}},
+		{Email: "unique@example.com"},
+		{Email: " DUPLICATE@example.com ", FirstName: &domain.NullableString{String: "Last"}},
+	}, nil)
+
+	require.Len(t, response.Operations, 2)
+	require.NotNil(t, customerAuthority.batchRequest)
+	require.Len(t, customerAuthority.batchRequest.Items, 2)
+	assert.Equal(t, []string{"unique@example.com", "duplicate@example.com"}, []string{
+		customerAuthority.batchRequest.Items[0].Customer.Identities[0].Value,
+		customerAuthority.batchRequest.Items[1].Customer.Identities[0].Value,
+	})
+	var attributes map[string]interface{}
+	require.NoError(t, json.Unmarshal(customerAuthority.batchRequest.Items[1].Customer.Profile.Attributes.Merge, &attributes))
+	assert.Equal(t, "Last", attributes["first_name"])
 }
 
 func TestContactService_GetContactByEmail(t *testing.T) {

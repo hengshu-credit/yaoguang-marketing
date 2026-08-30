@@ -88,8 +88,8 @@ const upsertCustomEventQuery = `
 			event_name, external_id, email, properties, occurred_at,
 			source, integration_id, goal_name, goal_type, goal_value,
 			deleted_at, created_at, updated_at, customer_id
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
-			(SELECT customer_id FROM contacts WHERE email = $3))
+		) VALUES ($1, $2, $3::text, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+			(SELECT customer_id FROM contacts WHERE email = $3::text))
 		ON CONFLICT (event_name, external_id) DO UPDATE SET
 			email = EXCLUDED.email,
 			properties = CASE WHEN $14::boolean
@@ -130,6 +130,16 @@ func encodeEventProperties(event *domain.CustomEvent) (payload []byte, provided 
 	return payload, true, nil
 }
 
+const insertNewCustomEventQuery = `
+		INSERT INTO custom_events (
+			event_name, external_id, email, properties, occurred_at,
+			source, integration_id, goal_name, goal_type, goal_value,
+			deleted_at, created_at, updated_at, customer_id
+		) VALUES ($1, $2, $3::text, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+			(SELECT customer_id FROM contacts WHERE email = $3::text))
+		ON CONFLICT (event_name, external_id) DO NOTHING
+	`
+
 // BatchInsertNew inserts events that do not already exist and leaves existing
 // rows entirely alone.
 //
@@ -160,15 +170,7 @@ func (r *customEventRepository) BatchInsertNew(ctx context.Context, workspaceID 
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	stmt, err := tx.PrepareContext(ctx, `
-		INSERT INTO custom_events (
-			event_name, external_id, email, properties, occurred_at,
-			source, integration_id, goal_name, goal_type, goal_value,
-			deleted_at, created_at, updated_at, customer_id
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
-			(SELECT customer_id FROM contacts WHERE email = $3))
-		ON CONFLICT (event_name, external_id) DO NOTHING
-	`)
+	stmt, err := tx.PrepareContext(ctx, insertNewCustomEventQuery)
 	if err != nil {
 		return fmt.Errorf("failed to prepare insert: %w", err)
 	}

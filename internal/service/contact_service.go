@@ -479,37 +479,50 @@ func (s *ContactService) batchImportContactsThroughCustomerAuthority(
 	contacts []*domain.Contact,
 	listIDs []string,
 ) *domain.BatchImportContactsResponse {
-	response := &domain.BatchImportContactsResponse{Operations: make([]*domain.UpsertContactOperation, len(contacts))}
-	mutations := make([]LegacyContactMutation, 0, len(contacts))
+	response := &domain.BatchImportContactsResponse{Operations: make([]*domain.UpsertContactOperation, 0, len(contacts))}
+	validContacts := make([]*domain.Contact, 0, len(contacts))
 	validIndices := make([]int, 0, len(contacts))
+	lastIndexByEmail := make(map[string]int, len(contacts))
 	memberships := make([]domain.CustomerListMembershipInput, len(listIDs))
 	for index, listID := range listIDs {
 		memberships[index] = domain.CustomerListMembershipInput{ListID: listID, Status: string(domain.ContactListStatusActive)}
 	}
 
 	for index, contact := range contacts {
-		operation := &domain.UpsertContactOperation{Action: domain.UpsertContactOperationError}
-		response.Operations[index] = operation
-		if contact != nil {
-			operation.Email = contact.Email
-		}
 		if contact == nil {
-			operation.Error = fmt.Sprintf("invalid contact at index %d: contact is required", index)
+			response.Operations = append(response.Operations, &domain.UpsertContactOperation{
+				Action: domain.UpsertContactOperationError,
+				Error:  fmt.Sprintf("invalid contact at index %d: contact is required", index),
+			})
 			continue
 		}
 		if err := contact.Validate(); err != nil {
-			operation.Email = contact.Email
-			operation.Error = fmt.Sprintf("invalid contact at index %d: %v", index, err)
+			response.Operations = append(response.Operations, &domain.UpsertContactOperation{
+				Email: contact.Email, Action: domain.UpsertContactOperationError,
+				Error: fmt.Sprintf("invalid contact at index %d: %v", index, err),
+			})
 			continue
 		}
-		operation.Email = contact.Email
+		validContacts = append(validContacts, contact)
+		validIndices = append(validIndices, index)
+		lastIndexByEmail[contact.Email] = index
+	}
+
+	mutations := make([]LegacyContactMutation, 0, len(validContacts))
+	validOperations := make([]*domain.UpsertContactOperation, 0, len(validContacts))
+	for validIndex, contact := range validContacts {
+		if lastIndexByEmail[contact.Email] != validIndices[validIndex] {
+			continue
+		}
 		mutation := LegacyContactMutation{Contact: contact}
 		if len(memberships) > 0 {
 			copyOfMemberships := append([]domain.CustomerListMembershipInput(nil), memberships...)
 			mutation.ListMemberships = &copyOfMemberships
 		}
 		mutations = append(mutations, mutation)
-		validIndices = append(validIndices, index)
+		validOperations = append(validOperations, &domain.UpsertContactOperation{
+			Email: contact.Email, Action: domain.UpsertContactOperationError,
+		})
 	}
 	if len(mutations) == 0 {
 		return response
@@ -519,15 +532,19 @@ func (s *ContactService) batchImportContactsThroughCustomerAuthority(
 	if err != nil {
 		response.Error = fmt.Sprintf("failed to upsert contacts through customer authority: %v", err)
 		response.Err = err
+		for _, operation := range validOperations {
+			operation.Error = response.Error
+		}
+		response.Operations = append(response.Operations, validOperations...)
 		return response
 	}
 	seen := make(map[int]struct{}, len(batch.Results))
 	for _, item := range batch.Results {
-		if item.Index < 0 || item.Index >= len(validIndices) {
+		if item.Index < 0 || item.Index >= len(validOperations) {
 			continue
 		}
 		seen[item.Index] = struct{}{}
-		operation := response.Operations[validIndices[item.Index]]
+		operation := validOperations[item.Index]
 		if item.Status != "accepted" || item.Customer == nil {
 			operation.Action = domain.UpsertContactOperationError
 			if item.Error != nil {
@@ -540,11 +557,12 @@ func (s *ContactService) batchImportContactsThroughCustomerAuthority(
 		operation.Action = legacyContactOperationAction(item.Customer.Action)
 		operation.Error = ""
 	}
-	for itemIndex, originalIndex := range validIndices {
+	for itemIndex, operation := range validOperations {
 		if _, ok := seen[itemIndex]; !ok {
-			response.Operations[originalIndex].Error = "customer authority returned no result"
+			operation.Error = "customer authority returned no result"
 		}
 	}
+	response.Operations = append(response.Operations, validOperations...)
 	return response
 }
 

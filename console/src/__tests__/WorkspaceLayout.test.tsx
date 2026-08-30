@@ -70,6 +70,11 @@ const grantAll = (value: boolean) => ({
 
 const signInAsRoot = (settings: Record<string, unknown> = {}) => {
   vi.clearAllMocks()
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    writable: true,
+    value: 1024
+  })
   currentPathname = '/console/workspace/ws1'
   vi.mocked(useNavigate).mockReturnValue(mockNavigate as never)
   vi.mocked(isRootUser).mockReturnValue(true)
@@ -145,6 +150,26 @@ describe('WorkspaceLayout sidebar groups', () => {
 
     await screen.findByText('Customers')
     expect(document.querySelector('.ant-menu-item-selected')?.textContent).toBe('Customers')
+  })
+
+  it('collapses navigation without shifting content on a narrow viewport', async () => {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 375
+    })
+
+    render(<WorkspaceLayout />)
+
+    const toggle = screen.getByTestId('workspace-mobile-nav-toggle')
+    const pageLayout = document.querySelector('.workspace-main-layout')
+    expect(toggle).toBeVisible()
+    expect(document.querySelector('.workspace-sider')).toHaveClass('ant-layout-sider-collapsed')
+    expect((pageLayout as HTMLElement).style.marginLeft).toBe('0px')
+
+    await userEvent.click(toggle)
+    expect(document.querySelector('.workspace-sider')).not.toHaveClass('ant-layout-sider-collapsed')
+    expect((pageLayout as HTMLElement).style.marginLeft).toBe('0px')
   })
 
   const openGroup = async (label: string) => {

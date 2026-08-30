@@ -1017,7 +1017,7 @@ export function ContactsPage() {
       {/* Header with title and actions */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
-          <div className="text-2xl font-medium">{t`Contacts`}</div>
+          <div role="heading" aria-level={2} className="text-2xl font-medium">{t`Contacts`}</div>
           {totalContactsData?.total_contacts !== undefined && (
             <Tag variant="filled" color="blue">
               {numbro(totalContactsData.total_contacts).format({

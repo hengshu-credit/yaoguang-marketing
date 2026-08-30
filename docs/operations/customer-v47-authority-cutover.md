@@ -11,6 +11,16 @@ V47 keeps every Workspace isolated in its own database. Customer remains the wri
 5. Run scan again. Enable Customer-authority traffic only when repairable missing counts are zero and every conflict has been investigated.
 6. Observe reconciliation, Customer write failures, Contact compatibility reads, event ingestion and delivery for at least 24 hours.
 
+## Pre-cutover acceptance checklist
+
+- Confirm the deployed console and API report version `47.0`.
+- Run the backend unit/repository gate and the Customer/Contact/Ingest PostgreSQL integration gate with Mailpit available.
+- Confirm a 10,000-item batch returns exactly 10,000 ordered per-item results; do not infer success from only an aggregate count.
+- Confirm the same external user ID can exist in different Workspaces and cannot have two owners inside one Workspace.
+- Confirm a clean Workspace scan persists zero missing references and zero conflicts.
+- Confirm the 375px Customer page has no horizontal overflow.
+- Attach the environment-specific run IDs and screenshots. The repository baseline is recorded in [B0 acceptance evidence](./evidence/b0-customer-authority.md).
+
 All three endpoints require Customers write permission. Runs use a Workspace-local advisory lock, process rows in batches of 2,000 and persist a stable-key checkpoint. A restarted repair resumes the running job. Repair only sets a missing `customer_id` when the legacy Email resolves to one Contact Customer; it never replaces a non-null conflicting UUID.
 
 ## Interpreting findings

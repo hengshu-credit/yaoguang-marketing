@@ -288,6 +288,34 @@ func TestCustomerProfileAPIIntegration(t *testing.T) {
 		assert.Equal(t, "accepted", envelope.Results[2].Status)
 	})
 
+	t.Run("clean workspace reconciliation has zero gaps", func(t *testing.T) {
+		response := postCustomer(t, suite.APIClient, "/api/customers.reconciliation.scan", map[string]interface{}{
+			"workspace_id": workspaceTwo.ID,
+		}, http.StatusOK)
+		var envelope struct {
+			Reconciliation domain.CustomerReconciliationRun `json:"reconciliation"`
+		}
+		decodeCustomerResponse(t, response, &envelope)
+		assert.Equal(t, domain.CustomerReconciliationCompleted, envelope.Reconciliation.Status)
+		assert.Zero(t, envelope.Reconciliation.MissingCount)
+		assert.Zero(t, envelope.Reconciliation.ConflictCount)
+		require.NotEmpty(t, envelope.Reconciliation.ID)
+
+		getResponse, getErr := suite.APIClient.Get("/api/customers.reconciliation.get", map[string]string{
+			"workspace_id": workspaceTwo.ID,
+			"run_id":       envelope.Reconciliation.ID,
+		})
+		require.NoError(t, getErr)
+		require.Equal(t, http.StatusOK, getResponse.StatusCode)
+		var persisted struct {
+			Reconciliation domain.CustomerReconciliationRun `json:"reconciliation"`
+		}
+		decodeCustomerResponse(t, getResponse, &persisted)
+		assert.Equal(t, envelope.Reconciliation.ID, persisted.Reconciliation.ID)
+		assert.Zero(t, persisted.Reconciliation.MissingCount)
+		assert.Zero(t, persisted.Reconciliation.ConflictCount)
+	})
+
 	t.Run("explicit anonymous to known merge redirects source", func(t *testing.T) {
 		anonymousEmail := "anonymous.session@example.com"
 		response := postCustomer(t, suite.APIClient, "/api/customers.upsert", map[string]interface{}{

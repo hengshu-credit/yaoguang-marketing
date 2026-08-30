@@ -36,6 +36,7 @@ import {
   SettingOutlined,
   WarningOutlined,
   DownOutlined,
+  MenuOutlined,
   TeamOutlined
 } from '@ant-design/icons'
 
@@ -65,7 +66,8 @@ export function WorkspaceLayout() {
   const { signout, workspaces, user, refreshWorkspaces } = useAuth()
   const workspaceTranslations = workspaces.find((workspace) => workspace.id === workspaceId)?.settings.ui_translations
   const navigate = useNavigate()
-  const [collapsed, setCollapsed] = useState(false)
+  const [narrow, setNarrow] = useState(() => window.innerWidth < 768)
+  const [collapsed, setCollapsed] = useState(() => window.innerWidth < 768)
   const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null)
   const [loadingPermissions, setLoadingPermissions] = useState(true)
 
@@ -73,6 +75,20 @@ export function WorkspaceLayout() {
   const matches = useMatches()
   const currentPath = matches[matches.length - 1]?.pathname || ''
   const isSettingsPage = currentPath.includes('/settings') || currentPath.includes('/blog')
+
+  useEffect(() => {
+    const updateViewport = () => {
+      const nextNarrow = window.innerWidth < 768
+      setNarrow(nextNarrow)
+      setCollapsed(nextNarrow)
+    }
+    window.addEventListener('resize', updateViewport)
+    return () => window.removeEventListener('resize', updateViewport)
+  }, [])
+
+  useEffect(() => {
+    if (narrow) setCollapsed(true)
+  }, [currentPath, narrow])
 
   // The web analytics settings live at /settings/web-analytics and belong to
   // the settings entry, so a settings path belongs to no group.
@@ -516,6 +532,7 @@ export function WorkspaceLayout() {
         <Layout>
           <Sider
             width={250}
+            collapsedWidth={narrow ? 0 : 80}
             theme="light"
             style={{
               position: 'fixed',
@@ -595,11 +612,11 @@ export function WorkspaceLayout() {
               position: 'fixed',
               top: 0,
               right: 0,
-              width: `calc(100% - ${collapsed ? '80px' : '250px'})`,
+              width: narrow ? '100%' : `calc(100% - ${collapsed ? '80px' : '250px'})`,
               height: '64px',
               backgroundColor: '#F9F9F9',
               borderBottom: '1px solid #f0f0f0',
-              padding: '0 24px',
+              padding: narrow ? '0 12px' : '0 24px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -607,91 +624,107 @@ export function WorkspaceLayout() {
               transition: 'width 0.2s'
             }}
           >
-            <Select
-              value={workspaceId}
-              variant="filled"
-              onChange={handleWorkspaceChange}
-              style={{ width: '200px' }}
-              placeholder={t`Select workspace`}
-              options={[
-                ...workspaces.map((workspace: Workspace) => ({
-                  label: (
-                    <Space size="small">
-                      {workspace.settings.logo_url && (
-                        <img
-                          src={workspace.settings.logo_url}
-                          alt=""
-                          style={{
-                            height: '14px',
-                            width: '14px',
-                            objectFit: 'contain',
-                            verticalAlign: 'middle',
-                            display: 'inline-block'
-                          }}
-                        />
-                      )}
-                      {workspace.name}
-                    </Space>
-                  ),
-                  value: workspace.id
-                })),
-                ...(isRootUser(user?.email)
-                  ? [
+            <Space size="small" style={{ minWidth: 0 }}>
+              {narrow && (
+                <Button
+                  data-testid="workspace-mobile-nav-toggle"
+                  type="text"
+                  icon={<MenuOutlined />}
+                  aria-label={t`Expand`}
+                  onClick={() => setCollapsed(false)}
+                />
+              )}
+              <Select
+                value={workspaceId}
+                variant="filled"
+                onChange={handleWorkspaceChange}
+                style={{
+                  width: narrow ? 'min(180px, calc(100vw - 116px))' : '200px'
+                }}
+                placeholder={t`Select workspace`}
+                options={[
+                  ...workspaces.map((workspace: Workspace) => ({
+                    label: (
+                      <Space size="small">
+                        {workspace.settings.logo_url && (
+                          <img
+                            src={workspace.settings.logo_url}
+                            alt=""
+                            style={{
+                              height: '14px',
+                              width: '14px',
+                              objectFit: 'contain',
+                              verticalAlign: 'middle',
+                              display: 'inline-block'
+                            }}
+                          />
+                        )}
+                        {workspace.name}
+                      </Space>
+                    ),
+                    value: workspace.id
+                  })),
+                  ...(isRootUser(user?.email)
+                    ? [
+                        {
+                          label: (
+                            <Space className="text-indigo-500">
+                              <FontAwesomeIcon icon={faPlus} /> {t`New workspace`}
+                            </Space>
+                          ),
+                          value: 'new-workspace'
+                        }
+                      ]
+                    : [])
+                ]}
+              />
+            </Space>
+            <Space size="middle">
+              {!narrow && (
+                <Dropdown
+                  trigger={['click']}
+                  menu={{
+                    items: [
                       {
+                        key: 'docs',
                         label: (
-                          <Space className="text-indigo-500">
-                            <FontAwesomeIcon icon={faPlus} /> {t`New workspace`}
-                          </Space>
-                        ),
-                        value: 'new-workspace'
+                          <a
+                            href="https://github.com/hengshu-credit/yaoguang-marketing#readme"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <FontAwesomeIcon icon={faFileLines} className="mr-2" />{' '}
+                            {t`Documentation`}
+                          </a>
+                        )
+                      },
+                      {
+                        key: 'report-issue',
+                        label: (
+                          <a
+                            href="https://github.com/hengshu-credit/yaoguang-marketing/issues"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <WarningOutlined className="mr-2" />
+                            {t`Report An Issue`}
+                          </a>
+                        )
                       }
                     ]
-                  : [])
-              ]}
-            />
-            <Space size="middle">
-              <Dropdown
-                trigger={['click']}
-                menu={{
-                  items: [
-                    {
-                      key: 'docs',
-                      label: (
-                        <a
-                          href="https://github.com/hengshu-credit/yaoguang-marketing#readme"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <FontAwesomeIcon icon={faFileLines} className="mr-2" /> {t`Documentation`}
-                        </a>
-                      )
-                    },
-                    {
-                      key: 'report-issue',
-                      label: (
-                        <a
-                          href="https://github.com/hengshu-credit/yaoguang-marketing/issues"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <WarningOutlined className="mr-2" />
-                          {t`Report An Issue`}
-                        </a>
-                      )
-                    }
-                  ]
-                }}
-                placement="bottomRight"
-              >
-                <Button
-                  color="default"
-                  variant="filled"
-                  icon={<FontAwesomeIcon icon={faQuestionCircle} />}
+                  }}
+                  placement="bottomRight"
                 >
-                  {t`Help`}
-                </Button>
-              </Dropdown>
-              <LanguageSwitcher />
+                  <Button
+                    color="default"
+                    variant="filled"
+                    icon={<FontAwesomeIcon icon={faQuestionCircle} />}
+                  >
+                    {t`Help`}
+                  </Button>
+                </Dropdown>
+              )}
+              {!narrow && <LanguageSwitcher />}
               <Dropdown
                 menu={{
                   items: [
@@ -713,23 +746,25 @@ export function WorkspaceLayout() {
                 <Button type="text">
                   <Space size="small">
                     <Avatar src={getGravatarUrl(user?.email)} size={24} />
-                    {user?.email}
-                    <DownOutlined style={{ fontSize: '10px' }} />
+                    {!narrow && user?.email}
+                    {!narrow && <DownOutlined style={{ fontSize: '10px' }} />}
                   </Space>
                 </Button>
               </Dropdown>
             </Space>
           </Header>
           <Layout
+            className="workspace-main-layout"
             style={{
-              marginLeft: collapsed ? '80px' : '250px',
+              marginLeft: narrow ? '0px' : collapsed ? '80px' : '250px',
               marginTop: '64px',
-              padding: isSettingsPage ? '0' : '24px',
+              padding: isSettingsPage ? '0' : narrow ? '16px' : '24px',
               transition: 'margin-left 0.2s',
-              backgroundColor: '#F9F9F9'
+              backgroundColor: '#F9F9F9',
+              minWidth: 0
             }}
           >
-            <Content style={{ backgroundColor: '#F9F9F9' }}>
+            <Content style={{ backgroundColor: '#F9F9F9', minWidth: 0 }}>
               <FileManagerProvider
                 key={`fm-${workspaceId}-${!userPermissions?.templates?.write}`}
                 settings={workspaces.find((w) => w.id === workspaceId)?.settings.file_manager}

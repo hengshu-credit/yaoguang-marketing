@@ -766,6 +766,7 @@ func isCustomerNotFound(err error) bool {
 type customerProfileProjection struct {
 	Language *string
 	Timezone *string
+	Attributes []byte
 }
 
 func upsertCustomerProfile(ctx context.Context, tx *sql.Tx, customerID string, patch *domain.CustomerProfilePatch, now time.Time) (*customerProfileProjection, error) {
@@ -806,7 +807,9 @@ func upsertCustomerProfile(ctx context.Context, tx *sql.Tx, customerID string, p
 		customerID, statusValue, languageValue, timezoneValue, encoded, nextVersion, now); err != nil {
 		return nil, fmt.Errorf("upsert customer profile: %w", err)
 	}
-	return &customerProfileProjection{Language: stringPointer(languageValue), Timezone: stringPointer(timezoneValue)}, nil
+	return &customerProfileProjection{
+		Language: stringPointer(languageValue), Timezone: stringPointer(timezoneValue), Attributes: encoded,
+	}, nil
 }
 
 func nullableStringOrExisting(patch *string, current sql.NullString) interface{} {
@@ -967,15 +970,49 @@ func projectCustomerContact(ctx context.Context, tx *sql.Tx, customer *domain.Cu
 	if email == "" && profile == nil && customer.ExternalUserID == nil {
 		return nil
 	}
-	var language, timezone interface{}
+	var language, timezone, attributes interface{}
 	if profile != nil {
 		language = profile.Language
 		timezone = profile.Timezone
+		if len(profile.Attributes) > 0 {
+			attributes = profile.Attributes
+		}
 	}
 	result, err := tx.ExecContext(ctx, `UPDATE contacts SET email = COALESCE(NULLIF($6, ''), email),
 		external_id = COALESCE($2, external_id),
-		timezone = COALESCE($3, timezone), language = COALESCE($4, language), updated_at = $5
-		WHERE customer_id = $1`, customer.ID, customer.ExternalUserID, timezone, language, now, email)
+		timezone = COALESCE($3, timezone), language = COALESCE($4, language),
+		first_name = CASE WHEN COALESCE($7::jsonb ? 'first_name', FALSE) THEN $7::jsonb->>'first_name' ELSE first_name END,
+		last_name = CASE WHEN COALESCE($7::jsonb ? 'last_name', FALSE) THEN $7::jsonb->>'last_name' ELSE last_name END,
+		full_name = CASE WHEN COALESCE($7::jsonb ? 'full_name', FALSE) THEN $7::jsonb->>'full_name' ELSE full_name END,
+		phone = CASE WHEN COALESCE($7::jsonb ? 'phone', FALSE) THEN $7::jsonb->>'phone' ELSE phone END,
+		address_line_1 = CASE WHEN COALESCE($7::jsonb ? 'address_line_1', FALSE) THEN $7::jsonb->>'address_line_1' ELSE address_line_1 END,
+		address_line_2 = CASE WHEN COALESCE($7::jsonb ? 'address_line_2', FALSE) THEN $7::jsonb->>'address_line_2' ELSE address_line_2 END,
+		country = CASE WHEN COALESCE($7::jsonb ? 'country', FALSE) THEN $7::jsonb->>'country' ELSE country END,
+		postcode = CASE WHEN COALESCE($7::jsonb ? 'postcode', FALSE) THEN $7::jsonb->>'postcode' ELSE postcode END,
+		state = CASE WHEN COALESCE($7::jsonb ? 'state', FALSE) THEN $7::jsonb->>'state' ELSE state END,
+		job_title = CASE WHEN COALESCE($7::jsonb ? 'job_title', FALSE) THEN $7::jsonb->>'job_title' ELSE job_title END,
+		custom_string_1 = CASE WHEN COALESCE($7::jsonb ? 'custom_string_1', FALSE) THEN $7::jsonb->>'custom_string_1' ELSE custom_string_1 END,
+		custom_string_2 = CASE WHEN COALESCE($7::jsonb ? 'custom_string_2', FALSE) THEN $7::jsonb->>'custom_string_2' ELSE custom_string_2 END,
+		custom_string_3 = CASE WHEN COALESCE($7::jsonb ? 'custom_string_3', FALSE) THEN $7::jsonb->>'custom_string_3' ELSE custom_string_3 END,
+		custom_string_4 = CASE WHEN COALESCE($7::jsonb ? 'custom_string_4', FALSE) THEN $7::jsonb->>'custom_string_4' ELSE custom_string_4 END,
+		custom_string_5 = CASE WHEN COALESCE($7::jsonb ? 'custom_string_5', FALSE) THEN $7::jsonb->>'custom_string_5' ELSE custom_string_5 END,
+		custom_number_1 = CASE WHEN COALESCE($7::jsonb ? 'custom_number_1', FALSE) THEN ($7::jsonb->>'custom_number_1')::double precision ELSE custom_number_1 END,
+		custom_number_2 = CASE WHEN COALESCE($7::jsonb ? 'custom_number_2', FALSE) THEN ($7::jsonb->>'custom_number_2')::double precision ELSE custom_number_2 END,
+		custom_number_3 = CASE WHEN COALESCE($7::jsonb ? 'custom_number_3', FALSE) THEN ($7::jsonb->>'custom_number_3')::double precision ELSE custom_number_3 END,
+		custom_number_4 = CASE WHEN COALESCE($7::jsonb ? 'custom_number_4', FALSE) THEN ($7::jsonb->>'custom_number_4')::double precision ELSE custom_number_4 END,
+		custom_number_5 = CASE WHEN COALESCE($7::jsonb ? 'custom_number_5', FALSE) THEN ($7::jsonb->>'custom_number_5')::double precision ELSE custom_number_5 END,
+		custom_datetime_1 = CASE WHEN COALESCE($7::jsonb ? 'custom_datetime_1', FALSE) THEN ($7::jsonb->>'custom_datetime_1')::timestamptz ELSE custom_datetime_1 END,
+		custom_datetime_2 = CASE WHEN COALESCE($7::jsonb ? 'custom_datetime_2', FALSE) THEN ($7::jsonb->>'custom_datetime_2')::timestamptz ELSE custom_datetime_2 END,
+		custom_datetime_3 = CASE WHEN COALESCE($7::jsonb ? 'custom_datetime_3', FALSE) THEN ($7::jsonb->>'custom_datetime_3')::timestamptz ELSE custom_datetime_3 END,
+		custom_datetime_4 = CASE WHEN COALESCE($7::jsonb ? 'custom_datetime_4', FALSE) THEN ($7::jsonb->>'custom_datetime_4')::timestamptz ELSE custom_datetime_4 END,
+		custom_datetime_5 = CASE WHEN COALESCE($7::jsonb ? 'custom_datetime_5', FALSE) THEN ($7::jsonb->>'custom_datetime_5')::timestamptz ELSE custom_datetime_5 END,
+		custom_json_1 = CASE WHEN COALESCE($7::jsonb ? 'custom_json_1', FALSE) THEN $7::jsonb->'custom_json_1' ELSE custom_json_1 END,
+		custom_json_2 = CASE WHEN COALESCE($7::jsonb ? 'custom_json_2', FALSE) THEN $7::jsonb->'custom_json_2' ELSE custom_json_2 END,
+		custom_json_3 = CASE WHEN COALESCE($7::jsonb ? 'custom_json_3', FALSE) THEN $7::jsonb->'custom_json_3' ELSE custom_json_3 END,
+		custom_json_4 = CASE WHEN COALESCE($7::jsonb ? 'custom_json_4', FALSE) THEN $7::jsonb->'custom_json_4' ELSE custom_json_4 END,
+		custom_json_5 = CASE WHEN COALESCE($7::jsonb ? 'custom_json_5', FALSE) THEN $7::jsonb->'custom_json_5' ELSE custom_json_5 END,
+		updated_at = $5
+		WHERE customer_id = $1`, customer.ID, customer.ExternalUserID, timezone, language, now, email, attributes)
 	if err != nil {
 		return mapCustomerMutationError(err, domain.CustomerIdentityEmail)
 	}
@@ -987,13 +1024,31 @@ func projectCustomerContact(ctx context.Context, tx *sql.Tx, customer *domain.Cu
 		return nil
 	}
 	result, err = tx.ExecContext(ctx, `INSERT INTO contacts (
-		email, external_id, timezone, language, customer_id, created_at, updated_at
-	) VALUES ($1, $2, $3, $4, $5, $6, $7)
+		email, external_id, timezone, language, customer_id, created_at, updated_at,
+		first_name, last_name, full_name, phone, address_line_1, address_line_2, country, postcode, state, job_title,
+		custom_string_1, custom_string_2, custom_string_3, custom_string_4, custom_string_5,
+		custom_number_1, custom_number_2, custom_number_3, custom_number_4, custom_number_5,
+		custom_datetime_1, custom_datetime_2, custom_datetime_3, custom_datetime_4, custom_datetime_5,
+		custom_json_1, custom_json_2, custom_json_3, custom_json_4, custom_json_5
+	) VALUES ($1, $2, $3, $4, $5, $6, $7,
+		$8::jsonb->>'first_name', $8::jsonb->>'last_name', $8::jsonb->>'full_name', $8::jsonb->>'phone',
+		$8::jsonb->>'address_line_1', $8::jsonb->>'address_line_2', $8::jsonb->>'country', $8::jsonb->>'postcode',
+		$8::jsonb->>'state', $8::jsonb->>'job_title',
+		$8::jsonb->>'custom_string_1', $8::jsonb->>'custom_string_2', $8::jsonb->>'custom_string_3',
+		$8::jsonb->>'custom_string_4', $8::jsonb->>'custom_string_5',
+		($8::jsonb->>'custom_number_1')::double precision, ($8::jsonb->>'custom_number_2')::double precision,
+		($8::jsonb->>'custom_number_3')::double precision, ($8::jsonb->>'custom_number_4')::double precision,
+		($8::jsonb->>'custom_number_5')::double precision,
+		($8::jsonb->>'custom_datetime_1')::timestamptz, ($8::jsonb->>'custom_datetime_2')::timestamptz,
+		($8::jsonb->>'custom_datetime_3')::timestamptz, ($8::jsonb->>'custom_datetime_4')::timestamptz,
+		($8::jsonb->>'custom_datetime_5')::timestamptz,
+		$8::jsonb->'custom_json_1', $8::jsonb->'custom_json_2', $8::jsonb->'custom_json_3',
+		$8::jsonb->'custom_json_4', $8::jsonb->'custom_json_5')
 	ON CONFLICT (email) DO UPDATE SET external_id = COALESCE(EXCLUDED.external_id, contacts.external_id),
 		timezone = COALESCE(EXCLUDED.timezone, contacts.timezone), language = COALESCE(EXCLUDED.language, contacts.language),
 		customer_id = EXCLUDED.customer_id, updated_at = EXCLUDED.updated_at
 	WHERE contacts.customer_id IS NULL OR contacts.customer_id = EXCLUDED.customer_id`,
-		email, customer.ExternalUserID, timezone, language, customer.ID, now, now)
+		email, customer.ExternalUserID, timezone, language, customer.ID, now, now, attributes)
 	if err != nil {
 		return mapCustomerMutationError(err, domain.CustomerIdentityEmail)
 	}

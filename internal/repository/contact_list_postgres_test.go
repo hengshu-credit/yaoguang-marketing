@@ -89,7 +89,7 @@ func TestContactListRepositoryCustomerAuthorityWritesResolvedCustomerID(t *testi
 	defer cleanup()
 	ctx := context.Background()
 	mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(db, nil)
-	mock.ExpectExec(`(?s)INSERT INTO contact_lists \(.*customer_id.*SELECT customer_id FROM contacts WHERE email`).
+	mock.ExpectExec(`(?s)INSERT INTO contact_lists \(.*VALUES \(\$1::text.*SELECT customer_id FROM contacts WHERE email = \$1::text`).
 		WithArgs("user@example.com", "news", domain.ContactListStatusActive, sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
