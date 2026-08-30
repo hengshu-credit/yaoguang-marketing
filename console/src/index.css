@@ -69,6 +69,18 @@ th.ant-table-cell.contacts-fixed-col {
   background-color: var(--ant-control-item-bg-active, rgb(244, 240, 255));
 }
 
+/* Translation grid: the item and current-language columns stay fixed while
+ * the other language columns scroll beneath them. Their cells must be opaque,
+ * otherwise input text from a scrolled column remains visible through the
+ * fixed columns. */
+td.ant-table-cell.translations-fixed-col,
+th.ant-table-cell.translations-fixed-col {
+  background-color: var(--ant-color-bg-container, #fff);
+}
+.ant-table-tbody > tr:hover > td.ant-table-cell.translations-fixed-col {
+  background-color: var(--ant-color-bg-container, #fff);
+}
+
 .drawer-body-no-padding .ant-drawer-body {
   padding: 0;
 }

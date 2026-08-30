@@ -136,10 +136,10 @@ describe('UITranslationsSettings', () => {
   it('orders all supported locale columns with the current locale first', async () => {
     renderSettings({ currentLocale: 'zh-CN' })
 
-    const table = within(
-      await screen.findByRole('region', { name: 'Workspace UI translations' })
-    ).getByRole('table')
-    const headers = within(table)
+    const region = await screen.findByRole('region', { name: 'Workspace UI translations' })
+    const header = region.querySelector('.ant-table-header')
+    expect(header).not.toBeNull()
+    const headers = within(header as HTMLElement)
       .getAllByRole('columnheader')
       .map((header) => header.textContent?.replace('Current', '').trim())
 
@@ -154,6 +154,47 @@ describe('UITranslationsSettings', () => {
       '日本語',
       'Italiano'
     ])
+  })
+
+  it('keeps the complete header visible while the translation grid scrolls', async () => {
+    renderSettings()
+
+    const region = await screen.findByRole('region', { name: 'Workspace UI translations' })
+    const stickyHeader = region.querySelector('.ant-table-header')
+
+    expect(stickyHeader).not.toBeNull()
+    expect(within(stickyHeader as HTMLElement).getAllByRole('columnheader')).toHaveLength(
+      locales.length + 1
+    )
+  })
+
+  it('marks both frozen columns as opaque scroll boundaries', async () => {
+    renderSettings()
+
+    const region = await screen.findByRole('region', { name: 'Workspace UI translations' })
+    const stickyHeader = region.querySelector('.ant-table-header')
+    const body = region.querySelector('.ant-table-tbody')
+    const firstDataRow = body?.querySelector('tr.ant-table-row')
+
+    expect(stickyHeader?.querySelectorAll('th.translations-fixed-col')).toHaveLength(2)
+    expect(firstDataRow?.querySelectorAll('td.translations-fixed-col')).toHaveLength(2)
+  })
+
+  it('expands and collapses hierarchy rows when their content is clicked', async () => {
+    renderSettings()
+
+    const menuRow = (await screen.findByText('Settings')).closest('tr')
+    expect(menuRow).not.toBeNull()
+
+    fireEvent.click(menuRow as HTMLTableRowElement)
+    const pageRow = (await screen.findByText('General')).closest('tr')
+    expect(pageRow).not.toBeNull()
+
+    fireEvent.click(pageRow as HTMLTableRowElement)
+    expect(await screen.findByText('Workspace name')).toBeInTheDocument()
+
+    fireEvent.click(menuRow as HTMLTableRowElement)
+    await waitFor(() => expect(screen.queryByText('Workspace name')).not.toBeInTheDocument())
   })
 
   it('starts with menu and page rows collapsed and expands matching ancestors during search', async () => {

@@ -188,6 +188,8 @@ export function UITranslationsSettings({
         key: 'item',
         fixed: 'left',
         width: 260,
+        onHeaderCell: () => ({ className: 'translations-fixed-col' }),
+        onCell: () => ({ className: 'translations-fixed-col' }),
         render: (_, record) => {
           const displayLabel = record.item
             ? record.label
@@ -232,6 +234,12 @@ export function UITranslationsSettings({
         key: locale,
         width: 290,
         fixed: index === 0 ? ('left' as const) : undefined,
+        onHeaderCell: () => ({
+          className: index === 0 ? 'translations-fixed-col' : ''
+        }),
+        onCell: () => ({
+          className: index === 0 ? 'translations-fixed-col' : ''
+        }),
         render: (_: unknown, record: TranslationTreeNode) => {
           if (!record.item) return null
           const item = record.item
@@ -350,11 +358,12 @@ export function UITranslationsSettings({
             loading={loading}
             pagination={false}
             size="small"
-            scroll={{ x: 'max-content' }}
+            scroll={{ x: 'max-content', y: 'calc(100vh - 360px)' }}
             expandable={{
               expandedRowKeys: searchExpandedKeys,
               onExpandedRowsChange: (keys) => setExpandedKeys([...keys]),
-              rowExpandable: (record) => Boolean(record.children?.length)
+              rowExpandable: (record) => Boolean(record.children?.length),
+              expandRowByClick: true
             }}
             locale={{ emptyText: t`No translations found` }}
           />
