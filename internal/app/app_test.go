@@ -271,6 +271,8 @@ func TestAppInitRepositories(t *testing.T) {
 	assert.NotNil(t, appImpl.taskRepo)
 	assert.NotNil(t, appImpl.transactionalNotificationRepo)
 	assert.NotNil(t, appImpl.messageHistoryRepo)
+	assert.NotNil(t, appImpl.emailQueueRepo)
+	assert.NotNil(t, appImpl.deliveryRepo)
 	assert.NotNil(t, appImpl.annotationRepo)
 }
 
@@ -1154,6 +1156,11 @@ func TestApp_RepositoryGetters(t *testing.T) {
 	t.Run("GetMessageHistoryRepository", func(t *testing.T) {
 		repo := app.GetMessageHistoryRepository()
 		_ = repo // Just call the getter to increase coverage
+	})
+
+	t.Run("GetDeliveryRepository", func(t *testing.T) {
+		repo := app.GetDeliveryRepository()
+		_ = repo
 	})
 
 	t.Run("GetContactListRepository", func(t *testing.T) {

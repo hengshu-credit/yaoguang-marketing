@@ -10,8 +10,8 @@ import (
 	reflect "reflect"
 	time "time"
 
-	domain "github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	gomock "github.com/golang/mock/gomock"
+	domain "github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
 // MockEmailQueueRepository is a mock of EmailQueueRepository interface.
@@ -35,6 +35,35 @@ func NewMockEmailQueueRepository(ctrl *gomock.Controller) *MockEmailQueueReposit
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockEmailQueueRepository) EXPECT() *MockEmailQueueRepositoryMockRecorder {
 	return m.recorder
+}
+
+// ClaimPending mocks base method.
+func (m *MockEmailQueueRepository) ClaimPending(arg0 context.Context, arg1 string, arg2 int, arg3 time.Duration) ([]*domain.EmailQueueEntry, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClaimPending", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].([]*domain.EmailQueueEntry)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ClaimPending indicates an expected call of ClaimPending.
+func (mr *MockEmailQueueRepositoryMockRecorder) ClaimPending(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClaimPending", reflect.TypeOf((*MockEmailQueueRepository)(nil).ClaimPending), arg0, arg1, arg2, arg3)
+}
+
+// CompleteClaim mocks base method.
+func (m *MockEmailQueueRepository) CompleteClaim(arg0 context.Context, arg1, arg2, arg3 string, arg4 time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CompleteClaim", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CompleteClaim indicates an expected call of CompleteClaim.
+func (mr *MockEmailQueueRepositoryMockRecorder) CompleteClaim(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteClaim", reflect.TypeOf((*MockEmailQueueRepository)(nil).CompleteClaim), arg0, arg1, arg2, arg3, arg4)
 }
 
 // CountBySourceAndStatus mocks base method.
@@ -125,6 +154,21 @@ func (mr *MockEmailQueueRepositoryMockRecorder) Enqueue(arg0, arg1, arg2 interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Enqueue", reflect.TypeOf((*MockEmailQueueRepository)(nil).Enqueue), arg0, arg1, arg2)
 }
 
+// EnqueueIntentTx mocks base method.
+func (m *MockEmailQueueRepository) EnqueueIntentTx(arg0 context.Context, arg1 *sql.Tx, arg2 *domain.EmailQueueEntry) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnqueueIntentTx", arg0, arg1, arg2)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EnqueueIntentTx indicates an expected call of EnqueueIntentTx.
+func (mr *MockEmailQueueRepositoryMockRecorder) EnqueueIntentTx(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnqueueIntentTx", reflect.TypeOf((*MockEmailQueueRepository)(nil).EnqueueIntentTx), arg0, arg1, arg2)
+}
+
 // EnqueueTx mocks base method.
 func (m *MockEmailQueueRepository) EnqueueTx(arg0 context.Context, arg1 *sql.Tx, arg2 []*domain.EmailQueueEntry) error {
 	m.ctrl.T.Helper()
@@ -137,6 +181,20 @@ func (m *MockEmailQueueRepository) EnqueueTx(arg0 context.Context, arg1 *sql.Tx,
 func (mr *MockEmailQueueRepositoryMockRecorder) EnqueueTx(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnqueueTx", reflect.TypeOf((*MockEmailQueueRepository)(nil).EnqueueTx), arg0, arg1, arg2)
+}
+
+// FailClaim mocks base method.
+func (m *MockEmailQueueRepository) FailClaim(arg0 context.Context, arg1, arg2, arg3, arg4 string, arg5 *time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FailClaim", arg0, arg1, arg2, arg3, arg4, arg5)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// FailClaim indicates an expected call of FailClaim.
+func (mr *MockEmailQueueRepositoryMockRecorder) FailClaim(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FailClaim", reflect.TypeOf((*MockEmailQueueRepository)(nil).FailClaim), arg0, arg1, arg2, arg3, arg4, arg5)
 }
 
 // FetchPending mocks base method.

@@ -215,8 +215,15 @@ type DeliveryReconciliation struct {
 
 var ErrDeliveryIntentHashConflict = errors.New("effect key already exists with a different delivery request")
 
+type ReserveDeliveryResult struct {
+	Intent       DeliveryIntent `json:"intent"`
+	Created      bool           `json:"created"`
+	QueueCreated bool           `json:"queue_created"`
+}
+
 type DeliveryRepository interface {
 	ReserveIntent(context.Context, string, DeliveryIntent) (DeliveryIntent, bool, error)
+	ReserveAndEnqueue(context.Context, string, DeliveryIntent, *EmailQueueEntry) (ReserveDeliveryResult, error)
 	GetIntentByEffectKey(context.Context, string, string) (*DeliveryIntent, error)
 	TransitionIntent(context.Context, string, string, DeliveryStatus, DeliveryStatus, time.Time) (bool, error)
 }

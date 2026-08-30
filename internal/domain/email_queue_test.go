@@ -30,7 +30,11 @@ func TestEmailQueueStatus_Values(t *testing.T) {
 			status:   EmailQueueStatusFailed,
 			expected: "failed",
 		},
-		// Note: There is no "sent" status - entries are deleted immediately after successful send
+		{
+			name:     "confirmed status",
+			status:   EmailQueueStatusConfirmed,
+			expected: "confirmed",
+		},
 	}
 
 	for _, tt := range tests {
@@ -38,6 +42,22 @@ func TestEmailQueueStatus_Values(t *testing.T) {
 			assert.Equal(t, tt.expected, string(tt.status))
 		})
 	}
+}
+
+func TestEmailQueueEntryCarriesDeliveryClaimIdentity(t *testing.T) {
+	lease := time.Date(2026, 8, 30, 12, 5, 0, 0, time.UTC)
+	completed := lease.Add(time.Minute)
+	entry := EmailQueueEntry{
+		DeliveryIntentID: "11111111-1111-4111-8111-111111111111",
+		ClaimToken:       "22222222-2222-4222-8222-222222222222",
+		LeaseExpiresAt:   &lease,
+		CompletedAt:      &completed,
+	}
+
+	assert.NotEmpty(t, entry.DeliveryIntentID)
+	assert.NotEmpty(t, entry.ClaimToken)
+	assert.Equal(t, lease, *entry.LeaseExpiresAt)
+	assert.Equal(t, completed, *entry.CompletedAt)
 }
 
 func TestEmailQueueSourceType_Values(t *testing.T) {

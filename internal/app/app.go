@@ -62,6 +62,7 @@ type AppInterface interface {
 	GetTransactionalNotificationRepository() domain.TransactionalNotificationRepository
 	GetTelemetryRepository() domain.TelemetryRepository
 	GetEmailQueueRepository() domain.EmailQueueRepository
+	GetDeliveryRepository() domain.DeliveryRepository
 	GetTaskRepository() domain.TaskRepository
 
 	// Service getters for testing
@@ -118,6 +119,7 @@ type App struct {
 	transactionalNotificationRepo domain.TransactionalNotificationRepository
 	messageHistoryRepo            domain.MessageHistoryRepository
 	deliveryReceiptRepo           domain.DeliveryReceiptRepository
+	deliveryRepo                  domain.DeliveryRepository
 	channelSendRepo               domain.ChannelSendRepository
 	inboundWebhookEventRepo       domain.InboundWebhookEventRepository
 	telemetryRepo                 domain.TelemetryRepository
@@ -499,6 +501,7 @@ func (a *App) InitRepositories() error {
 
 	// Initialize email queue repository
 	a.emailQueueRepo = repository.NewEmailQueueRepository(a.workspaceRepo)
+	a.deliveryRepo = repository.NewDeliveryRepository(a.workspaceRepo, a.emailQueueRepo)
 
 	// Initialize setting service
 	a.settingService = service.NewSettingService(a.settingRepo)
@@ -2242,6 +2245,10 @@ func (a *App) GetTelemetryRepository() domain.TelemetryRepository {
 
 func (a *App) GetEmailQueueRepository() domain.EmailQueueRepository {
 	return a.emailQueueRepo
+}
+
+func (a *App) GetDeliveryRepository() domain.DeliveryRepository {
+	return a.deliveryRepo
 }
 
 func (a *App) GetTaskRepository() domain.TaskRepository {

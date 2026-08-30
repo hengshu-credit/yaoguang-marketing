@@ -8,8 +8,8 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/google/uuid"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 )
 
 // EmailQueueRepository implements domain.EmailQueueRepository
@@ -133,6 +133,166 @@ func (r *EmailQueueRepository) EnqueueTx(ctx context.Context, tx *sql.Tx, entrie
 		return fmt.Errorf("failed to insert queue entries: %w", err)
 	}
 
+	return nil
+}
+
+// EnqueueIntentTx inserts one queue row keyed by its logical delivery intent.
+// The unique delivery_intent_id index makes a repeated orchestration call a
+// no-op even when it supplies a different random queue ID.
+func (r *EmailQueueRepository) EnqueueIntentTx(ctx context.Context, tx *sql.Tx, entry *domain.EmailQueueEntry) (bool, error) {
+	if entry == nil {
+		return false, fmt.Errorf("email queue entry is required")
+	}
+	if entry.DeliveryIntentID == "" {
+		return false, fmt.Errorf("delivery_intent_id is required")
+	}
+	if entry.ID == "" {
+		entry.ID = uuid.New().String()
+	}
+	if entry.Status == "" {
+		entry.Status = domain.EmailQueueStatusPending
+	}
+	if entry.Priority == 0 {
+		entry.Priority = domain.EmailQueuePriorityMarketing
+	}
+	if entry.MaxAttempts == 0 {
+		entry.MaxAttempts = 3
+	}
+	now := time.Now().UTC()
+	entry.CreatedAt, entry.UpdatedAt = now, now
+	payload, err := json.Marshal(entry.Payload)
+	if err != nil {
+		return false, fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	result, err := tx.ExecContext(ctx, `INSERT INTO email_queue (
+		id, delivery_intent_id, status, priority, source_type, source_id,
+		integration_id, provider_kind, contact_email, message_id, template_id,
+		payload, attempts, max_attempts, created_at, updated_at
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+	ON CONFLICT (delivery_intent_id) DO NOTHING`,
+		entry.ID, entry.DeliveryIntentID, entry.Status, entry.Priority, entry.SourceType, entry.SourceID,
+		entry.IntegrationID, entry.ProviderKind, entry.ContactEmail, entry.MessageID, entry.TemplateID,
+		payload, entry.Attempts, entry.MaxAttempts, entry.CreatedAt, entry.UpdatedAt,
+	)
+	if err != nil {
+		return false, fmt.Errorf("failed to insert delivery queue entry: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to inspect delivery queue insert: %w", err)
+	}
+	return rows == 1, nil
+}
+
+const claimPendingEmailQueueSQL = `
+	WITH candidates AS (
+		SELECT queue.id
+		FROM email_queue queue
+		LEFT JOIN delivery_intents intent ON intent.id = queue.delivery_intent_id
+		WHERE (
+			(queue.status = 'pending' AND (queue.next_retry_at IS NULL OR queue.next_retry_at <= CURRENT_TIMESTAMP))
+			OR (queue.status = 'failed' AND queue.attempts < queue.max_attempts AND queue.next_retry_at <= CURRENT_TIMESTAMP)
+			OR (queue.status = 'processing' AND queue.lease_expires_at <= CURRENT_TIMESTAMP)
+		)
+		AND (queue.delivery_intent_id IS NULL OR intent.status IN ('reserved', 'queued', 'transient_failed'))
+		AND NOT EXISTS (
+			SELECT 1 FROM delivery_attempts attempt
+			WHERE attempt.intent_id = queue.delivery_intent_id
+			  AND attempt.status IN ('submitting', 'provider_accepted', 'unknown')
+		)
+		ORDER BY queue.priority ASC, queue.created_at ASC
+		LIMIT $1
+		FOR UPDATE SKIP LOCKED
+	)
+	UPDATE email_queue queue
+	SET status = 'processing', claim_token = $2, lease_expires_at = $3,
+		attempts = queue.attempts + 1, updated_at = CURRENT_TIMESTAMP
+	FROM candidates
+	WHERE queue.id = candidates.id
+	RETURNING queue.id, queue.status, queue.priority, queue.source_type, queue.source_id,
+		queue.integration_id, queue.provider_kind, queue.contact_email, queue.message_id,
+		queue.template_id, queue.payload, queue.attempts, queue.max_attempts, queue.last_error,
+		queue.next_retry_at, queue.created_at, queue.updated_at, queue.processed_at,
+		queue.delivery_intent_id, queue.claim_token, queue.lease_expires_at, queue.completed_at
+`
+
+// ClaimPending atomically chooses, marks and leases entries. SKIP LOCKED and
+// UPDATE ... RETURNING ensure two workers can never receive the same claim.
+func (r *EmailQueueRepository) ClaimPending(ctx context.Context, workspaceID string, limit int, leaseDuration time.Duration) ([]*domain.EmailQueueEntry, error) {
+	if limit <= 0 {
+		return []*domain.EmailQueueEntry{}, nil
+	}
+	if leaseDuration <= 0 {
+		return nil, fmt.Errorf("lease duration must be positive")
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database connection: %w", err)
+	}
+	claimToken := uuid.New().String()
+	leaseExpiresAt := time.Now().UTC().Add(leaseDuration)
+	rows, err := db.QueryContext(ctx, claimPendingEmailQueueSQL, limit, claimToken, leaseExpiresAt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to claim pending emails: %w", err)
+	}
+	defer rows.Close()
+
+	entries := make([]*domain.EmailQueueEntry, 0)
+	for rows.Next() {
+		entry, scanErr := scanClaimedEmailQueueEntry(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		entries = append(entries, entry)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating claimed emails: %w", err)
+	}
+	return entries, nil
+}
+
+func (r *EmailQueueRepository) CompleteClaim(ctx context.Context, workspaceID, id, claimToken string, completedAt time.Time) error {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+	result, err := db.ExecContext(ctx, `UPDATE email_queue
+		SET status = 'confirmed', completed_at = $3, processed_at = $3,
+			claim_token = NULL, lease_expires_at = NULL, updated_at = $3
+		WHERE id = $1 AND claim_token = $2`, id, claimToken, completedAt.UTC())
+	if err != nil {
+		return fmt.Errorf("failed to complete email queue claim: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to inspect completed email queue claim: %w", err)
+	}
+	if rows != 1 {
+		return fmt.Errorf("email queue claim was lost: %s", id)
+	}
+	return nil
+}
+
+func (r *EmailQueueRepository) FailClaim(ctx context.Context, workspaceID, id, claimToken, errorMsg string, nextRetryAt *time.Time) error {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+	result, err := db.ExecContext(ctx, `UPDATE email_queue
+		SET status = 'failed', last_error = $3, next_retry_at = $4,
+			claim_token = NULL, lease_expires_at = NULL, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1 AND claim_token = $2`, id, claimToken, errorMsg, nextRetryAt)
+	if err != nil {
+		return fmt.Errorf("failed to fail email queue claim: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to inspect failed email queue claim: %w", err)
+	}
+	if rows != 1 {
+		return fmt.Errorf("email queue claim was lost: %s", id)
+	}
 	return nil
 }
 
@@ -506,6 +666,46 @@ func scanEmailQueueEntry(rows *sql.Rows) (*domain.EmailQueueEntry, error) {
 		return nil, fmt.Errorf("failed to unmarshal payload: %w", err)
 	}
 
+	return &entry, nil
+}
+
+func scanClaimedEmailQueueEntry(rows *sql.Rows) (*domain.EmailQueueEntry, error) {
+	var entry domain.EmailQueueEntry
+	var payloadJSON []byte
+	var lastError, deliveryIntentID sql.NullString
+	var nextRetryAt, processedAt, leaseExpiresAt, completedAt sql.NullTime
+
+	err := rows.Scan(
+		&entry.ID, &entry.Status, &entry.Priority, &entry.SourceType, &entry.SourceID,
+		&entry.IntegrationID, &entry.ProviderKind, &entry.ContactEmail, &entry.MessageID,
+		&entry.TemplateID, &payloadJSON, &entry.Attempts, &entry.MaxAttempts,
+		&lastError, &nextRetryAt, &entry.CreatedAt, &entry.UpdatedAt, &processedAt,
+		&deliveryIntentID, &entry.ClaimToken, &leaseExpiresAt, &completedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to scan claimed email queue entry: %w", err)
+	}
+	if lastError.Valid {
+		entry.LastError = &lastError.String
+	}
+	if nextRetryAt.Valid {
+		entry.NextRetryAt = &nextRetryAt.Time
+	}
+	if processedAt.Valid {
+		entry.ProcessedAt = &processedAt.Time
+	}
+	if deliveryIntentID.Valid {
+		entry.DeliveryIntentID = deliveryIntentID.String
+	}
+	if leaseExpiresAt.Valid {
+		entry.LeaseExpiresAt = &leaseExpiresAt.Time
+	}
+	if completedAt.Valid {
+		entry.CompletedAt = &completedAt.Time
+	}
+	if err := json.Unmarshal(payloadJSON, &entry.Payload); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal claimed email payload: %w", err)
+	}
 	return &entry, nil
 }
 

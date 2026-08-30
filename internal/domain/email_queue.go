@@ -17,7 +17,7 @@ const (
 	EmailQueueStatusProcessing EmailQueueStatus = "processing"
 	EmailQueueStatusFailed     EmailQueueStatus = "failed"
 	EmailQueueStatusPaused     EmailQueueStatus = "paused"
-	// Note: There is no "sent" status - entries are deleted immediately after successful send
+	EmailQueueStatusConfirmed  EmailQueueStatus = "confirmed"
 )
 
 // EmailQueueSourceType identifies the origin of the queued email
@@ -33,13 +33,14 @@ const EmailQueuePriorityMarketing = 5
 
 // EmailQueueEntry represents a single email in the queue
 type EmailQueueEntry struct {
-	ID            string               `json:"id"`
-	Status        EmailQueueStatus     `json:"status"`
-	Priority      int                  `json:"priority"`
-	SourceType    EmailQueueSourceType `json:"source_type"`
-	SourceID      string               `json:"source_id"` // BroadcastID or AutomationID
-	IntegrationID string               `json:"integration_id"`
-	ProviderKind  EmailProviderKind    `json:"provider_kind"`
+	ID               string               `json:"id"`
+	DeliveryIntentID string               `json:"delivery_intent_id,omitempty"`
+	Status           EmailQueueStatus     `json:"status"`
+	Priority         int                  `json:"priority"`
+	SourceType       EmailQueueSourceType `json:"source_type"`
+	SourceID         string               `json:"source_id"` // BroadcastID or AutomationID
+	IntegrationID    string               `json:"integration_id"`
+	ProviderKind     EmailProviderKind    `json:"provider_kind"`
 
 	// Email identification
 	ContactEmail string `json:"contact_email"`
@@ -56,9 +57,12 @@ type EmailQueueEntry struct {
 	NextRetryAt *time.Time `json:"next_retry_at,omitempty"`
 
 	// Timestamps
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
-	ProcessedAt *time.Time `json:"processed_at,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+	ProcessedAt    *time.Time `json:"processed_at,omitempty"`
+	ClaimToken     string     `json:"claim_token,omitempty"`
+	LeaseExpiresAt *time.Time `json:"lease_expires_at,omitempty"`
+	CompletedAt    *time.Time `json:"completed_at,omitempty"`
 }
 
 // EmailQueuePayload contains all data needed to send the email
@@ -124,10 +128,24 @@ type EmailQueueRepository interface {
 	// EnqueueTx adds emails to the queue within an existing transaction
 	EnqueueTx(ctx context.Context, tx *sql.Tx, entries []*EmailQueueEntry) error
 
+	// EnqueueIntentTx inserts one intent-keyed queue row and reports whether it
+	// was created. Replays are identified by delivery_intent_id, not queue ID.
+	EnqueueIntentTx(ctx context.Context, tx *sql.Tx, entry *EmailQueueEntry) (bool, error)
+
 	// FetchPending retrieves pending emails for processing
 	// Uses FOR UPDATE SKIP LOCKED to allow concurrent workers
 	// Orders by priority ASC (lower = higher priority), then created_at ASC
 	FetchPending(ctx context.Context, workspaceID string, limit int) ([]*EmailQueueEntry, error)
+
+	// ClaimPending selects and leases queue entries in one SQL statement. A
+	// returned ClaimToken is mandatory for every later mutation of that claim.
+	ClaimPending(ctx context.Context, workspaceID string, limit int, leaseDuration time.Duration) ([]*EmailQueueEntry, error)
+
+	// CompleteClaim persists successful completion without deleting audit data.
+	CompleteClaim(ctx context.Context, workspaceID, id, claimToken string, completedAt time.Time) error
+
+	// FailClaim records a retryable failure only while the caller still owns the lease.
+	FailClaim(ctx context.Context, workspaceID, id, claimToken, errorMsg string, nextRetryAt *time.Time) error
 
 	// MarkAsProcessing atomically marks an entry as processing
 	MarkAsProcessing(ctx context.Context, workspaceID string, id string) error
