@@ -13,20 +13,20 @@ import (
 var ErrIngestBusy = errors.New("ingest capacity is full")
 
 type IngestService struct {
-	auth         domain.AuthService
-	contacts     domain.ContactRepository
-	profiles     domain.AudienceProfileRepository
-	endpoints    domain.ContactEndpointRepository
-	lists        domain.ContactListRepository
-	events       domain.CustomEventRepository
-	maxBatchSize int
-	slots        chan struct{}
-	now          func() time.Time
+	auth              domain.AuthService
+	customerAuthority *LegacyContactAdapter
+	profiles          domain.AudienceProfileRepository
+	endpoints         domain.ContactEndpointRepository
+	lists             domain.ContactListRepository
+	events            domain.CustomEventRepository
+	maxBatchSize      int
+	slots             chan struct{}
+	now               func() time.Time
 }
 
 func NewIngestService(
 	auth domain.AuthService,
-	contacts domain.ContactRepository,
+	customerAuthority *LegacyContactAdapter,
 	profiles domain.AudienceProfileRepository,
 	endpoints domain.ContactEndpointRepository,
 	lists domain.ContactListRepository,
@@ -34,14 +34,14 @@ func NewIngestService(
 	maxBatchSize int,
 	maxInFlight int,
 ) (*IngestService, error) {
-	if auth == nil || contacts == nil || profiles == nil || endpoints == nil || lists == nil || events == nil {
+	if auth == nil || customerAuthority == nil || profiles == nil || endpoints == nil || lists == nil || events == nil {
 		return nil, errors.New("ingest dependencies are required")
 	}
 	if maxBatchSize <= 0 || maxInFlight <= 0 {
 		return nil, errors.New("ingest batch and concurrency limits must be positive")
 	}
 	return &IngestService{
-		auth: auth, contacts: contacts, profiles: profiles, endpoints: endpoints, lists: lists, events: events,
+		auth: auth, customerAuthority: customerAuthority, profiles: profiles, endpoints: endpoints, lists: lists, events: events,
 		maxBatchSize: maxBatchSize, slots: make(chan struct{}, maxInFlight),
 		now: func() time.Time { return time.Now().UTC() },
 	}, nil
@@ -138,41 +138,69 @@ func (s *IngestService) processContacts(
 	}
 	validContacts, validIndices = deduplicated, deduplicatedIndices
 
-	for start := 0; start < len(validContacts); start += domain.BulkImportChunkSize {
-		end := min(start+domain.BulkImportChunkSize, len(validContacts))
-		results, err := s.contacts.BulkUpsertContacts(ctx, request.WorkspaceID, validContacts[start:end])
-		if err != nil {
-			for _, resultIndex := range validIndices[start:end] {
-				response.Results[resultIndex].Error = err.Error()
+	if len(validContacts) == 0 {
+		return
+	}
+	mutations := make([]LegacyContactMutation, len(validContacts))
+	for index, contact := range validContacts {
+		record := &request.Contacts[validIndices[index]]
+		mutation := LegacyContactMutation{Contact: contact, Status: record.Status, Attributes: record.Attributes}
+		if record.Tags != nil && record.Tags.Operation == domain.TagOperationSet {
+			tags := append([]string(nil), record.Tags.Values...)
+			mutation.Tags = &tags
+		}
+		if len(record.ListMemberships) > 0 {
+			memberships := make([]domain.CustomerListMembershipInput, len(record.ListMemberships))
+			for membershipIndex, membership := range record.ListMemberships {
+				memberships[membershipIndex] = domain.CustomerListMembershipInput{
+					ListID: membership.ListID, Status: string(membership.Status),
+				}
+			}
+			mutation.ListMemberships = &memberships
+		}
+		mutations[index] = mutation
+	}
+	results, err := s.customerAuthority.UpsertBatch(ctx, request.WorkspaceID, LegacyContactOperationIngest, mutations)
+	if err != nil {
+		for _, resultIndex := range validIndices {
+			response.Results[resultIndex].Error = err.Error()
+			response.Results[resultIndex].Retryable = true
+		}
+		return
+	}
+	seen := make(map[int]struct{}, len(results.Results))
+	for _, result := range results.Results {
+		if result.Index < 0 || result.Index >= len(validIndices) {
+			continue
+		}
+		seen[result.Index] = struct{}{}
+		resultIndex := validIndices[result.Index]
+		if result.Status != "accepted" || result.Customer == nil {
+			if result.Error != nil {
+				response.Results[resultIndex].Error = result.Error.Message
+				response.Results[resultIndex].Retryable = result.Error.Code == "internal_error"
+			} else {
+				response.Results[resultIndex].Error = "customer authority rejected contact mutation"
 				response.Results[resultIndex].Retryable = true
 			}
 			continue
 		}
-		actionByEmail := make(map[string]string, len(results))
-		for _, result := range results {
-			action := domain.UpsertContactOperationUpdate
-			if result.IsNew {
-				action = domain.UpsertContactOperationCreate
-			}
-			actionByEmail[result.Email] = action
+		response.Results[resultIndex].Action = legacyContactOperationAction(result.Customer.Action)
+		contact := validContacts[result.Index]
+		if err := s.applyContactExtensions(ctx, request.WorkspaceID, contact.Email, &request.Contacts[resultIndex]); err != nil {
+			response.Results[resultIndex].Error = err.Error()
+			response.Results[resultIndex].Retryable = true
+			continue
 		}
-		for offset, contact := range validContacts[start:end] {
-			resultIndex := validIndices[start+offset]
-			action, ok := actionByEmail[contact.Email]
-			if !ok {
-				response.Results[resultIndex].Error = "contact upsert returned no result"
-				response.Results[resultIndex].Retryable = true
-				continue
-			}
-			response.Results[resultIndex].Action = action
-			if err := s.applyContactExtensions(ctx, request.WorkspaceID, contact.Email, &request.Contacts[resultIndex]); err != nil {
-				response.Results[resultIndex].Error = err.Error()
-				response.Results[resultIndex].Retryable = true
-				continue
-			}
-			response.Results[resultIndex].Status = "accepted"
-			response.Results[resultIndex].Error = ""
+		response.Results[resultIndex].Status = "accepted"
+		response.Results[resultIndex].Error = ""
+	}
+	for itemIndex, resultIndex := range validIndices {
+		if _, ok := seen[itemIndex]; ok {
+			continue
 		}
+		response.Results[resultIndex].Error = "customer authority returned no result"
+		response.Results[resultIndex].Retryable = true
 	}
 }
 

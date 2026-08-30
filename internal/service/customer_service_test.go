@@ -127,6 +127,27 @@ func TestCustomerServiceUpsertAuthenticatesLoadsWorkspaceSequenceAndHashesCanoni
 	assert.Equal(t, "customer-1", result.CustomerID)
 }
 
+func TestLegacyContactAdapterUsesAlreadyAuthorizedCustomerWritePath(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	repository := mocks.NewMockCustomerRepository(ctrl)
+	workspaceRepository := mocks.NewMockWorkspaceRepository(ctrl)
+	auth := mocks.NewMockAuthService(ctrl)
+	customerService, err := NewCustomerService(CustomerServiceDependencies{
+		Repository: repository, WorkspaceRepository: workspaceRepository, AuthService: auth, MaxSyncBatchSize: 10_000,
+	})
+	require.NoError(t, err)
+	adapter, err := NewLegacyContactAdapter(customerService, 10_000)
+	require.NoError(t, err)
+	workspaceRepository.EXPECT().GetByID(gomock.Any(), "workspace1").Return(&domain.Workspace{ID: "workspace1", Sequence: 42}, nil)
+	repository.EXPECT().Upsert(gomock.Any(), gomock.Any()).Return(&domain.CustomerMutationResult{CustomerID: "customer-1", Action: "created"}, nil)
+
+	result, err := adapter.Upsert(context.Background(), "workspace1", LegacyContactOperationUpsert, LegacyContactMutation{
+		Contact: &domain.Contact{Email: "user@example.com"},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "customer-1", result.CustomerID)
+}
+
 func TestCustomerServiceWriteAuthenticationFailuresStopBeforeRepository(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	repository := mocks.NewMockCustomerRepository(ctrl)

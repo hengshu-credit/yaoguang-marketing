@@ -123,6 +123,28 @@ func writeServiceError(w http.ResponseWriter, err error, fallback string) bool {
 	if writePermissionError(w, err) {
 		return true
 	}
+	var customerIdentityConflict *domain.ErrCustomerIdentityConflict
+	var customerExternalConflict *domain.ErrCustomerExternalIDConflict
+	var customerNumberConflict *domain.ErrCustomerNumberConflict
+	var customerIdempotencyConflict *domain.ErrCustomerIdempotencyConflict
+	var customerMergeRejected *domain.ErrCustomerMergeRejected
+	switch {
+	case errors.As(err, &customerIdentityConflict):
+		WriteJSONError(w, customerIdentityConflict.Error(), http.StatusConflict)
+		return true
+	case errors.As(err, &customerExternalConflict):
+		WriteJSONError(w, customerExternalConflict.Error(), http.StatusConflict)
+		return true
+	case errors.As(err, &customerNumberConflict):
+		WriteJSONError(w, customerNumberConflict.Error(), http.StatusConflict)
+		return true
+	case errors.As(err, &customerIdempotencyConflict):
+		WriteJSONError(w, customerIdempotencyConflict.Error(), http.StatusConflict)
+		return true
+	case errors.As(err, &customerMergeRejected):
+		WriteJSONError(w, customerMergeRejected.Error(), http.StatusConflict)
+		return true
+	}
 	var notFound *domain.ErrWorkspaceNotFound
 	if errors.As(err, &notFound) {
 		WriteJSONError(w, "Workspace not found", http.StatusNotFound)

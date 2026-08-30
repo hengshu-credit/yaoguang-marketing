@@ -659,7 +659,26 @@ func (a *App) InitServices() error {
 		a.logger,
 	)
 
-	// Initialize contact service
+	customerSyncMaxBatchSize := a.config.Ingest.CustomerSyncMaxBatchSize
+	if customerSyncMaxBatchSize == 0 {
+		customerSyncMaxBatchSize = service.DefaultCustomerSyncMaxBatchSize
+	}
+	a.customerService, err = service.NewCustomerService(service.CustomerServiceDependencies{
+		Repository:          a.customerRepo,
+		WorkspaceRepository: a.workspaceRepo,
+		AuthService:         a.authService,
+		MaxSyncBatchSize:    customerSyncMaxBatchSize,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to initialize customer service: %w", err)
+	}
+	legacyContactAdapter, err := service.NewLegacyContactAdapter(a.customerService, customerSyncMaxBatchSize)
+	if err != nil {
+		return fmt.Errorf("failed to initialize legacy contact adapter: %w", err)
+	}
+
+	// Contact reads remain on the compatibility projection while every write is
+	// routed through the Customer aggregate above.
 	a.contactService = service.NewContactService(
 		a.contactRepo,
 		a.workspaceRepo,
@@ -675,18 +694,8 @@ func (a *App) InitServices() error {
 		a.contactSegmentQueueRepo,
 		a.logger,
 	)
-	customerSyncMaxBatchSize := a.config.Ingest.CustomerSyncMaxBatchSize
-	if customerSyncMaxBatchSize == 0 {
-		customerSyncMaxBatchSize = service.DefaultCustomerSyncMaxBatchSize
-	}
-	a.customerService, err = service.NewCustomerService(service.CustomerServiceDependencies{
-		Repository:          a.customerRepo,
-		WorkspaceRepository: a.workspaceRepo,
-		AuthService:         a.authService,
-		MaxSyncBatchSize:    customerSyncMaxBatchSize,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to initialize customer service: %w", err)
+	if err := a.contactService.SetCustomerAuthority(legacyContactAdapter); err != nil {
+		return fmt.Errorf("failed to configure contact customer authority: %w", err)
 	}
 
 	// Initialize contact list service
@@ -717,7 +726,7 @@ func (a *App) InitServices() error {
 	}
 	a.ingestService, err = service.NewIngestService(
 		a.authService,
-		a.contactRepo,
+		legacyContactAdapter,
 		a.audienceProfileRepo,
 		a.contactEndpointRepo,
 		a.contactListRepo,

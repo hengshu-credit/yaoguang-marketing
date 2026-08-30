@@ -26,6 +26,7 @@ type ContactService struct {
 	customEventRepo         domain.CustomEventRepository
 	segmentRepo             domain.SegmentRepository
 	contactSegmentQueueRepo domain.ContactSegmentQueueRepository
+	customerAuthority       *LegacyContactAdapter
 	logger                  logger.Logger
 }
 
@@ -67,6 +68,17 @@ func NewContactService(
 		contactSegmentQueueRepo: contactSegmentQueueRepo,
 		logger:                  logger,
 	}
+}
+
+// SetCustomerAuthority enables the compatibility write path after the shared
+// CustomerService has been initialized. Contact reads and deletion keep using
+// the legacy projection during the cutover window.
+func (s *ContactService) SetCustomerAuthority(authority *LegacyContactAdapter) error {
+	if authority == nil {
+		return fmt.Errorf("customer authority adapter is required")
+	}
+	s.customerAuthority = authority
+	return nil
 }
 
 func (s *ContactService) GetContactByEmail(ctx context.Context, workspaceID string, email string) (*domain.Contact, error) {
@@ -353,6 +365,10 @@ func (s *ContactService) BatchImportContacts(ctx context.Context, workspaceID st
 		}
 	}
 
+	if s.customerAuthority != nil {
+		return s.batchImportContactsThroughCustomerAuthority(ctx, workspaceID, contacts, listIDs)
+	}
+
 	// Pre-validate all contacts and separate valid from invalid
 	// This allows us to provide immediate feedback on validation errors
 	// while still processing valid contacts in bulk
@@ -457,6 +473,81 @@ func (s *ContactService) BatchImportContacts(ctx context.Context, workspaceID st
 	return response
 }
 
+func (s *ContactService) batchImportContactsThroughCustomerAuthority(
+	ctx context.Context,
+	workspaceID string,
+	contacts []*domain.Contact,
+	listIDs []string,
+) *domain.BatchImportContactsResponse {
+	response := &domain.BatchImportContactsResponse{Operations: make([]*domain.UpsertContactOperation, len(contacts))}
+	mutations := make([]LegacyContactMutation, 0, len(contacts))
+	validIndices := make([]int, 0, len(contacts))
+	memberships := make([]domain.CustomerListMembershipInput, len(listIDs))
+	for index, listID := range listIDs {
+		memberships[index] = domain.CustomerListMembershipInput{ListID: listID, Status: string(domain.ContactListStatusActive)}
+	}
+
+	for index, contact := range contacts {
+		operation := &domain.UpsertContactOperation{Action: domain.UpsertContactOperationError}
+		response.Operations[index] = operation
+		if contact != nil {
+			operation.Email = contact.Email
+		}
+		if contact == nil {
+			operation.Error = fmt.Sprintf("invalid contact at index %d: contact is required", index)
+			continue
+		}
+		if err := contact.Validate(); err != nil {
+			operation.Email = contact.Email
+			operation.Error = fmt.Sprintf("invalid contact at index %d: %v", index, err)
+			continue
+		}
+		operation.Email = contact.Email
+		mutation := LegacyContactMutation{Contact: contact}
+		if len(memberships) > 0 {
+			copyOfMemberships := append([]domain.CustomerListMembershipInput(nil), memberships...)
+			mutation.ListMemberships = &copyOfMemberships
+		}
+		mutations = append(mutations, mutation)
+		validIndices = append(validIndices, index)
+	}
+	if len(mutations) == 0 {
+		return response
+	}
+
+	batch, err := s.customerAuthority.UpsertBatch(ctx, workspaceID, LegacyContactOperationImport, mutations)
+	if err != nil {
+		response.Error = fmt.Sprintf("failed to upsert contacts through customer authority: %v", err)
+		response.Err = err
+		return response
+	}
+	seen := make(map[int]struct{}, len(batch.Results))
+	for _, item := range batch.Results {
+		if item.Index < 0 || item.Index >= len(validIndices) {
+			continue
+		}
+		seen[item.Index] = struct{}{}
+		operation := response.Operations[validIndices[item.Index]]
+		if item.Status != "accepted" || item.Customer == nil {
+			operation.Action = domain.UpsertContactOperationError
+			if item.Error != nil {
+				operation.Error = item.Error.Message
+			} else {
+				operation.Error = "customer authority rejected contact mutation"
+			}
+			continue
+		}
+		operation.Action = legacyContactOperationAction(item.Customer.Action)
+		operation.Error = ""
+	}
+	for itemIndex, originalIndex := range validIndices {
+		if _, ok := seen[itemIndex]; !ok {
+			response.Operations[originalIndex].Error = "customer authority returned no result"
+		}
+	}
+	return response
+}
+
 func (s *ContactService) UpsertContact(ctx context.Context, workspaceID string, contact *domain.Contact) domain.UpsertContactOperation {
 	operation := domain.UpsertContactOperation{
 		Email:  contact.Email,
@@ -503,6 +594,26 @@ func (s *ContactService) UpsertContact(ctx context.Context, workspaceID string, 
 		s.logger.WithField("email", contact.Email).Error(fmt.Sprintf("Invalid contact: %v", err))
 		return operation
 	}
+	operation.Email = contact.Email
+
+	if s.customerAuthority != nil {
+		result, err := s.customerAuthority.Upsert(ctx, workspaceID, LegacyContactOperationUpsert, LegacyContactMutation{Contact: contact})
+		if err != nil {
+			operation.Action = domain.UpsertContactOperationError
+			operation.Error = err.Error()
+			operation.Err = err
+			s.logger.WithField("email", contact.Email).Error(fmt.Sprintf("Failed to upsert customer authority: %v", err))
+			return operation
+		}
+		operation.Action = legacyContactOperationAction(result.Action)
+		stored, readErr := s.repo.GetContactByEmail(ctx, workspaceID, contact.Email)
+		if readErr != nil {
+			s.logger.WithField("email", contact.Email).Error(fmt.Sprintf("Failed to read back customer contact projection: %v", readErr))
+		} else {
+			operation.Contact = stored
+		}
+		return operation
+	}
 
 	// CreatedAt and UpdatedAt are optional - if not provided, DB will use CURRENT_TIMESTAMP
 	// If provided, the values will be used (allows historical imports)
@@ -533,6 +644,13 @@ func (s *ContactService) UpsertContact(ctx context.Context, workspaceID string, 
 	}
 
 	return operation
+}
+
+func legacyContactOperationAction(customerAction string) string {
+	if customerAction == "created" {
+		return domain.UpsertContactOperationCreate
+	}
+	return domain.UpsertContactOperationUpdate
 }
 
 func (s *ContactService) CountContacts(ctx context.Context, workspaceID string) (int, error) {

@@ -862,6 +862,27 @@ func TestContactHandler_HandleUpsert(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 			expectedAction: "",
 		},
+		{
+			name:   "Customer Authority Conflict",
+			method: http.MethodPost,
+			reqBody: map[string]interface{}{
+				"workspace_id": "workspace123",
+				"contact": map[string]interface{}{
+					"email": "conflict@example.com",
+				},
+			},
+			setupMock: func(m *mocks.MockContactService) {
+				conflict := &domain.ErrCustomerIdentityConflict{IdentityType: domain.CustomerIdentityEmail}
+				m.EXPECT().
+					UpsertContact(gomock.Any(), "workspace123", gomock.Any()).
+					Return(domain.UpsertContactOperation{
+						Email: "conflict@example.com", Action: domain.UpsertContactOperationError,
+						Error: conflict.Error(), Err: conflict,
+					})
+			},
+			expectedStatus: http.StatusConflict,
+			expectedAction: "",
+		},
 	}
 
 	for _, tc := range testCases {

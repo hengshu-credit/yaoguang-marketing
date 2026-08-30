@@ -29,28 +29,34 @@ func (s *ingestAuthStub) AuthenticateUserForWorkspace(ctx context.Context, works
 	}, nil
 }
 
-type ingestContactRepoStub struct {
-	domain.ContactRepository
-	bulkCalls   int
-	bulkInputs  [][]*domain.Contact
-	bulkResults []domain.BulkUpsertResult
+type ingestCustomerServiceStub struct {
+	domain.CustomerService
+	batchCalls  int
+	batchInputs []*domain.CustomerBatchUpsertRequest
 	err         error
 }
 
-func (s *ingestContactRepoStub) BulkUpsertContacts(_ context.Context, _ string, contacts []*domain.Contact) ([]domain.BulkUpsertResult, error) {
-	s.bulkCalls++
-	s.bulkInputs = append(s.bulkInputs, contacts)
+func (s *ingestCustomerServiceStub) UpsertCustomerBatch(_ context.Context, request *domain.CustomerBatchUpsertRequest) (*domain.CustomerBatchUpsertResponse, error) {
+	s.batchCalls++
+	s.batchInputs = append(s.batchInputs, request)
 	if s.err != nil {
 		return nil, s.err
 	}
-	if s.bulkResults != nil {
-		return s.bulkResults, nil
+	response := &domain.CustomerBatchUpsertResponse{Results: make([]domain.CustomerBatchItemResult, len(request.Items))}
+	for index := range request.Items {
+		response.Results[index] = domain.CustomerBatchItemResult{
+			Index: index, Status: "accepted", Customer: &domain.CustomerMutationResult{Action: "created"},
+		}
+		response.Accepted++
 	}
-	results := make([]domain.BulkUpsertResult, len(contacts))
-	for i, contact := range contacts {
-		results[i] = domain.BulkUpsertResult{Email: contact.Email, IsNew: true}
-	}
-	return results, nil
+	return response, nil
+}
+
+func newIngestCustomerAuthority(t *testing.T, customers domain.CustomerService) *LegacyContactAdapter {
+	t.Helper()
+	adapter, err := NewLegacyContactAdapter(customers, 10_000)
+	require.NoError(t, err)
+	return adapter
 }
 
 type ingestProfileRepoStub struct {
@@ -126,17 +132,17 @@ func ingestWritePermissions(withLists bool) domain.UserPermissions {
 
 func TestIngestServiceBatchAuthenticatesOnceAndAppliesAllMutationTypes(t *testing.T) {
 	auth := &ingestAuthStub{permissions: ingestWritePermissions(true)}
-	contacts := &ingestContactRepoStub{}
+	customers := &ingestCustomerServiceStub{}
 	profiles := &ingestProfileRepoStub{}
 	lists := &ingestListRepoStub{}
 	events := &ingestEventRepoStub{}
 	endpoints := &ingestEndpointRepoStub{}
-	service, err := NewIngestService(auth, contacts, profiles, endpoints, lists, events, 500, 2)
+	service, err := NewIngestService(auth, newIngestCustomerAuthority(t, customers), profiles, endpoints, lists, events, 500, 2)
 	require.NoError(t, err)
 
 	status := "active"
 	request := &domain.IngestBatchRequest{
-		WorkspaceID: "workspace-1",
+		WorkspaceID: "workspace1",
 		Contacts: []domain.IngestContact{{
 			ID: "contact-1", Contact: json.RawMessage(`{"email":"USER@example.com"}`),
 			Status: &status, Attributes: map[string]interface{}{"plan": "pro"},
@@ -155,8 +161,11 @@ func TestIngestServiceBatchAuthenticatesOnceAndAppliesAllMutationTypes(t *testin
 	response, err := service.IngestBatch(context.Background(), request)
 	require.NoError(t, err)
 	assert.Equal(t, 1, auth.calls)
-	assert.Equal(t, 1, contacts.bulkCalls)
-	assert.Equal(t, "user@example.com", contacts.bulkInputs[0][0].Email)
+	assert.Equal(t, 1, customers.batchCalls)
+	assert.Equal(t, "user@example.com", customers.batchInputs[0].Items[0].Customer.Identities[0].Value)
+	require.NotNil(t, customers.batchInputs[0].Items[0].Customer.Profile)
+	require.NotNil(t, customers.batchInputs[0].Items[0].Customer.Tags)
+	require.NotNil(t, customers.batchInputs[0].Items[0].Customer.ListMemberships)
 	assert.Equal(t, []string{"other@example.com"}, profiles.ensured)
 	assert.Equal(t, []string{"user@example.com"}, profiles.profiles)
 	assert.Equal(t, []string{"user@example.com"}, profiles.tagged)
@@ -172,13 +181,13 @@ func TestIngestServiceBatchAuthenticatesOnceAndAppliesAllMutationTypes(t *testin
 
 func TestIngestServiceBatchReturnsPerItemValidationErrors(t *testing.T) {
 	auth := &ingestAuthStub{permissions: ingestWritePermissions(false)}
-	contacts := &ingestContactRepoStub{}
+	customers := &ingestCustomerServiceStub{}
 	profiles := &ingestProfileRepoStub{}
-	service, err := NewIngestService(auth, contacts, profiles, &ingestEndpointRepoStub{}, &ingestListRepoStub{}, &ingestEventRepoStub{}, 500, 1)
+	service, err := NewIngestService(auth, newIngestCustomerAuthority(t, customers), profiles, &ingestEndpointRepoStub{}, &ingestListRepoStub{}, &ingestEventRepoStub{}, 500, 1)
 	require.NoError(t, err)
 
 	request := &domain.IngestBatchRequest{
-		WorkspaceID: "workspace-1",
+		WorkspaceID: "workspace1",
 		Contacts: []domain.IngestContact{
 			{ID: "bad", Contact: json.RawMessage(`{"email":"not-an-email"}`)},
 			{ID: "good", Contact: json.RawMessage(`{"email":"good@example.com"}`)},
@@ -198,13 +207,13 @@ func TestIngestServiceNormalizesEndpointDisableOperation(t *testing.T) {
 	auth := &ingestAuthStub{permissions: ingestWritePermissions(false)}
 	endpoints := &ingestEndpointRepoStub{}
 	service, err := NewIngestService(
-		auth, &ingestContactRepoStub{}, &ingestProfileRepoStub{}, endpoints,
+		auth, newIngestCustomerAuthority(t, &ingestCustomerServiceStub{}), &ingestProfileRepoStub{}, endpoints,
 		&ingestListRepoStub{}, &ingestEventRepoStub{}, 500, 1,
 	)
 	require.NoError(t, err)
 
 	response, err := service.IngestBatch(context.Background(), &domain.IngestBatchRequest{
-		WorkspaceID: "workspace-1",
+		WorkspaceID: "workspace1",
 		Contacts: []domain.IngestContact{{
 			ID: "contact-1", Contact: json.RawMessage(`{"email":"user@example.com"}`),
 			Endpoints: []domain.ContactEndpointMutation{{Operation: " DISABLE ", EndpointID: "device-1"}},
@@ -218,11 +227,11 @@ func TestIngestServiceNormalizesEndpointDisableOperation(t *testing.T) {
 
 func TestIngestServiceRequiresListsWriteForMembershipChanges(t *testing.T) {
 	auth := &ingestAuthStub{permissions: ingestWritePermissions(false)}
-	service, err := NewIngestService(auth, &ingestContactRepoStub{}, &ingestProfileRepoStub{}, &ingestEndpointRepoStub{}, &ingestListRepoStub{}, &ingestEventRepoStub{}, 500, 1)
+	service, err := NewIngestService(auth, newIngestCustomerAuthority(t, &ingestCustomerServiceStub{}), &ingestProfileRepoStub{}, &ingestEndpointRepoStub{}, &ingestListRepoStub{}, &ingestEventRepoStub{}, 500, 1)
 	require.NoError(t, err)
 
 	request := &domain.IngestBatchRequest{
-		WorkspaceID: "workspace-1",
+		WorkspaceID: "workspace1",
 		Contacts: []domain.IngestContact{{
 			ID: "contact-1", Contact: json.RawMessage(`{"email":"user@example.com"}`),
 			ListMemberships: []domain.IngestListMembership{{ListID: "news", Status: domain.ContactListStatusActive}},
@@ -238,7 +247,7 @@ func TestIngestServiceRequiresListsWriteForMembershipChanges(t *testing.T) {
 func TestIngestServiceRejectsImmediatelyWhenCapacityIsFull(t *testing.T) {
 	service, err := NewIngestService(
 		&ingestAuthStub{permissions: ingestWritePermissions(false)},
-		&ingestContactRepoStub{}, &ingestProfileRepoStub{}, &ingestEndpointRepoStub{}, &ingestListRepoStub{}, &ingestEventRepoStub{}, 500, 1,
+		newIngestCustomerAuthority(t, &ingestCustomerServiceStub{}), &ingestProfileRepoStub{}, &ingestEndpointRepoStub{}, &ingestListRepoStub{}, &ingestEventRepoStub{}, 500, 1,
 	)
 	require.NoError(t, err)
 	service.slots <- struct{}{}
@@ -247,7 +256,7 @@ func TestIngestServiceRejectsImmediatelyWhenCapacityIsFull(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 	_, err = service.IngestBatch(ctx, &domain.IngestBatchRequest{
-		WorkspaceID: "workspace-1",
+		WorkspaceID: "workspace1",
 		Contacts:    []domain.IngestContact{{ID: "one", Contact: json.RawMessage(`{"email":"user@example.com"}`)}},
 	})
 	assert.ErrorIs(t, err, ErrIngestBusy)

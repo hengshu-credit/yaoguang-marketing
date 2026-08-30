@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
 	pkgmocks "github.com/hengshu-credit/yaoguang-marketing/pkg/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -47,6 +47,93 @@ func createContactServiceWithMocks(ctrl *gomock.Controller) (*ContactService, *m
 	)
 
 	return service, mockRepo, mockWorkspaceRepo, mockAuthService, mockMessageHistoryRepo, mockInboundWebhookEventRepo, mockContactListRepo, mockContactTimelineRepo, mockEmailQueueRepo, mockCustomEventRepo, mockSegmentRepo, mockSegmentQueueRepo, mockLogger
+}
+
+func TestContactServiceUpsertUsesCustomerAuthority(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	contactService, contactRepo, _, auth, _, _, _, _, _, _, _, _, _ := createContactServiceWithMocks(ctrl)
+	customerAuthority := &legacyCustomerServiceStub{result: &domain.CustomerMutationResult{
+		CustomerID: "customer-1", CustomerNo: "U00012026083012000008aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Action: "created",
+	}}
+	adapter, err := NewLegacyContactAdapter(customerAuthority, 10_000)
+	require.NoError(t, err)
+	require.NoError(t, contactService.SetCustomerAuthority(adapter))
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+	contact := &domain.Contact{Email: "USER@example.com"}
+	membership := &domain.UserWorkspace{WorkspaceID: workspaceID, Permissions: domain.UserPermissions{
+		domain.PermissionResourceContacts: {Write: true},
+	}}
+	auth.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, membership, nil)
+	contactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "user@example.com").Return(&domain.Contact{Email: "user@example.com"}, nil)
+
+	result := contactService.UpsertContact(ctx, workspaceID, contact)
+	assert.Equal(t, domain.UpsertContactOperationCreate, result.Action)
+	assert.Equal(t, "user@example.com", result.Email)
+	require.NotNil(t, result.Contact)
+	require.NotNil(t, customerAuthority.request)
+	assert.Equal(t, "user@example.com", customerAuthority.request.Customer.Identities[0].Value)
+}
+
+func TestContactServiceCustomerAuthorityConflictRemainsTyped(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	contactService, _, _, auth, _, _, _, _, _, _, _, _, mockLogger := createContactServiceWithMocks(ctrl)
+	conflict := &domain.ErrCustomerIdentityConflict{IdentityType: domain.CustomerIdentityEmail}
+	adapter, err := NewLegacyContactAdapter(&legacyCustomerServiceStub{err: conflict}, 10_000)
+	require.NoError(t, err)
+	require.NoError(t, contactService.SetCustomerAuthority(adapter))
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+	membership := &domain.UserWorkspace{WorkspaceID: workspaceID, Permissions: domain.UserPermissions{
+		domain.PermissionResourceContacts: {Write: true},
+	}}
+	auth.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, membership, nil)
+	mockLogger.EXPECT().WithField("email", "user@example.com").Return(mockLogger)
+	mockLogger.EXPECT().Error(gomock.Any())
+
+	result := contactService.UpsertContact(ctx, workspaceID, &domain.Contact{Email: "user@example.com"})
+	assert.Equal(t, domain.UpsertContactOperationError, result.Action)
+	assert.ErrorIs(t, result.Err, conflict)
+}
+
+func TestContactServiceBatchImportUsesCustomerAuthorityInInputOrder(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	contactService, _, _, auth, _, _, _, _, _, _, _, _, _ := createContactServiceWithMocks(ctrl)
+	customerAuthority := &legacyCustomerServiceStub{batchResult: &domain.CustomerBatchUpsertResponse{
+		Accepted: 2,
+		Results: []domain.CustomerBatchItemResult{
+			{Index: 0, Status: "accepted", Customer: &domain.CustomerMutationResult{Action: "created"}},
+			{Index: 1, Status: "accepted", Customer: &domain.CustomerMutationResult{Action: "updated"}},
+		},
+	}}
+	adapter, err := NewLegacyContactAdapter(customerAuthority, 10_000)
+	require.NoError(t, err)
+	require.NoError(t, contactService.SetCustomerAuthority(adapter))
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+	membership := &domain.UserWorkspace{WorkspaceID: workspaceID, Permissions: domain.UserPermissions{
+		domain.PermissionResourceContacts: {Write: true}, domain.PermissionResourceLists: {Write: true},
+	}}
+	auth.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, membership, nil)
+
+	response := contactService.BatchImportContacts(ctx, workspaceID, []*domain.Contact{
+		{Email: "first@example.com"}, {Email: "second@example.com"},
+	}, []string{"news"})
+	require.Empty(t, response.Error)
+	require.Len(t, response.Operations, 2)
+	assert.Equal(t, []string{"first@example.com", "second@example.com"}, []string{response.Operations[0].Email, response.Operations[1].Email})
+	assert.Equal(t, []string{domain.UpsertContactOperationCreate, domain.UpsertContactOperationUpdate}, []string{response.Operations[0].Action, response.Operations[1].Action})
+	require.NotNil(t, customerAuthority.batchRequest)
+	for _, item := range customerAuthority.batchRequest.Items {
+		require.NotNil(t, item.Customer.ListMemberships)
+		assert.Equal(t, "news", (*item.Customer.ListMemberships)[0].ListID)
+	}
 }
 
 func TestContactService_GetContactByEmail(t *testing.T) {

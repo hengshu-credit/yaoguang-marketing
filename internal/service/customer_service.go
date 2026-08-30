@@ -78,11 +78,21 @@ func (s *CustomerService) UpsertCustomer(ctx context.Context, request *domain.Up
 	if err != nil {
 		return nil, err
 	}
-	workspace, err := s.workspaceRepository.GetByID(authenticatedCtx, request.WorkspaceID)
+	return s.upsertCustomerAuthorized(authenticatedCtx, request)
+}
+
+func (s *CustomerService) upsertCustomerAuthorized(ctx context.Context, request *domain.UpsertCustomerRequest) (*domain.CustomerMutationResult, error) {
+	if request == nil {
+		return nil, domain.NewValidationError("request is required")
+	}
+	if err := request.Validate(); err != nil {
+		return nil, domain.NewValidationError(err.Error())
+	}
+	workspace, err := s.workspaceRepository.GetByID(ctx, request.WorkspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("load workspace customer sequence: %w", err)
 	}
-	return s.upsertValidated(authenticatedCtx, workspace, request.IdempotencyKey, request.Customer)
+	return s.upsertValidated(ctx, workspace, request.IdempotencyKey, request.Customer)
 }
 
 func (s *CustomerService) UpsertCustomerBatch(ctx context.Context, request *domain.CustomerBatchUpsertRequest) (*domain.CustomerBatchUpsertResponse, error) {
@@ -96,7 +106,17 @@ func (s *CustomerService) UpsertCustomerBatch(ctx context.Context, request *doma
 	if err != nil {
 		return nil, err
 	}
-	workspace, err := s.workspaceRepository.GetByID(authenticatedCtx, request.WorkspaceID)
+	return s.upsertCustomerBatchAuthorized(authenticatedCtx, request)
+}
+
+func (s *CustomerService) upsertCustomerBatchAuthorized(ctx context.Context, request *domain.CustomerBatchUpsertRequest) (*domain.CustomerBatchUpsertResponse, error) {
+	if request == nil {
+		return nil, domain.NewValidationError("request is required")
+	}
+	if err := request.Validate(s.maxSyncBatchSize); err != nil {
+		return nil, domain.NewValidationError(err.Error())
+	}
+	workspace, err := s.workspaceRepository.GetByID(ctx, request.WorkspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("load workspace customer sequence: %w", err)
 	}
@@ -113,7 +133,7 @@ func (s *CustomerService) UpsertCustomerBatch(ctx context.Context, request *doma
 			response.Failed++
 			continue
 		}
-		result, err := s.upsertValidated(authenticatedCtx, workspace, validated.IdempotencyKey, validated.Customer)
+		result, err := s.upsertValidated(ctx, workspace, validated.IdempotencyKey, validated.Customer)
 		if err != nil {
 			response.Results[index].Error = customerBatchError(err)
 			response.Failed++
