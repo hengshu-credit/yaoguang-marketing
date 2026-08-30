@@ -1,18 +1,24 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { i18n } from '@lingui/core'
 import { FrequencyPolicyForm } from './FrequencyPolicyForm'
 
 describe('FrequencyPolicyForm', () => {
+  beforeEach(() => {
+    i18n.load('en', {})
+    i18n.activate('en')
+  })
+
   it('keeps campaign, trigger, and workspace caps as separate business cards', () => {
     const onSave = vi.fn()
     const { rerender } = render(<FrequencyPolicyForm scope="campaign" onSave={onSave} />)
-    expect(screen.getByText('本活动限制')).toBeInTheDocument()
+    expect(screen.getByText('Campaign limit')).toBeInTheDocument()
     rerender(<FrequencyPolicyForm scope="trigger" onSave={onSave} />)
-    expect(screen.getByText('事件 / 定时触发限制')).toBeInTheDocument()
-    expect(screen.getByText('入场频次与消息频控是两套规则')).toBeInTheDocument()
+    expect(screen.getByText('Event / scheduled trigger limit')).toBeInTheDocument()
+    expect(screen.getByText('Entry frequency and message frequency control are separate rules')).toBeInTheDocument()
     rerender(<FrequencyPolicyForm scope="workspace_global" onSave={onSave} />)
-    expect(screen.getByText('Workspace 全量限制')).toBeInTheDocument()
+    expect(screen.getByText('Workspace-wide limit')).toBeInTheDocument()
   })
 
   it('locks the technical trigger reference when used inside a journey wizard', async () => {
@@ -27,9 +33,9 @@ describe('FrequencyPolicyForm', () => {
       />
     )
 
-    expect(screen.queryByLabelText('自动化:触发器标识')).not.toBeInTheDocument()
-    await user.click(screen.getByRole('switch', { name: '事件 / 定时触发限制开关' }))
-    await user.click(screen.getByRole('button', { name: '保存此层策略' }))
+    expect(screen.queryByLabelText('Automation:trigger identifier')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('switch', { name: 'Toggle Event / scheduled trigger limit' }))
+    await user.click(screen.getByRole('button', { name: 'Save this policy' }))
 
     await waitFor(() => {
       expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ scope_ref: 'automation-1' }))

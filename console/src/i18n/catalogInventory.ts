@@ -47,6 +47,7 @@ interface HierarchyRule extends Omit<Hierarchy, 'order'> {
 const hierarchyRules: HierarchyRule[] = [
   { menuKey: 'Navigation', pageKey: 'Workspace', matches: /^src\/layouts\/WorkspaceLayout\.tsx:/ },
   { menuKey: 'Settings', pageKey: 'Navigation', matches: /^src\/components\/settings\/SettingsSidebar\.tsx:/ },
+  { menuKey: 'Settings', pageKey: 'Message frequency control', matches: /^src\/components\/(?:frequency\/|settings\/FrequencyPoliciesSettings\.tsx:)/ },
   { menuKey: 'Settings', pageKey: 'Integrations', matches: /^src\/components\/settings\/Integrations\.tsx:/ },
   { menuKey: 'Settings', pageKey: 'Webhooks', matches: /^src\/components\/settings\/Webhook[^/]*\.tsx:/ },
   { menuKey: 'Settings', pageKey: 'Web Analytics', matches: /^src\/components\/settings\/WebAnalytics[^/]*\.tsx:/ },

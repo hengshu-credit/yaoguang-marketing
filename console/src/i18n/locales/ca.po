@@ -15282,3 +15282,154 @@ msgstr "Zapier és el propietari de l'URL del punt final d'aquest webhook, de ma
 #: src/components/file_manager/fileManager.tsx:784
 msgid "Zip"
 msgstr "Codi postal"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:110
+msgid "“Once per customer / re-enter on every event” controls Journey entry. This policy controls message delivery after entry."
+msgstr "“Once per customer / re-enter on every event” controls Journey entry. This policy controls message delivery after entry."
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:125
+msgid "After reaching the limit"
+msgstr "After reaching the limit"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:57
+msgid "Automation:trigger identifier"
+msgstr "Automation:trigger identifier"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:124
+msgid "Calendar cycle timezone"
+msgstr "Calendar cycle timezone"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:123
+msgid "Calendar day / cycle"
+msgstr "Calendar day / cycle"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:51
+msgid "Campaign ID"
+msgstr "Campaign ID"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:49
+msgid "Campaign limit"
+msgstr "Campaign limit"
+
+#: src/components/settings/FrequencyPoliciesSettings.tsx:45
+msgid "Configure both campaign protection and a Workspace-wide safety limit. Automation entry frequency remains configured in the Journey."
+msgstr "Configure both campaign protection and a Workspace-wide safety limit. Automation entry frequency remains configured in the Journey."
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:50
+msgid "Count only deliveries in the same marketing campaign without affecting other campaigns."
+msgstr "Count only deliveries in the same marketing campaign without affecting other campaigns."
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:115
+msgid "Delivery channel"
+msgstr "Delivery channel"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:125
+msgid "Do not send this message"
+msgstr "Do not send this message"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:58
+msgid "Enter the automation:trigger identifier"
+msgstr "Enter the automation:trigger identifier"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:52
+msgid "Enter the campaign ID"
+msgstr "Enter the campaign ID"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:110
+msgid "Entry frequency and message frequency control are separate rules"
+msgstr "Entry frequency and message frequency control are separate rules"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:55
+msgid "Event / scheduled trigger limit"
+msgstr "Event / scheduled trigger limit"
+
+#: src/components/settings/FrequencyPoliciesSettings.tsx:17
+msgid "Failed to load frequency policies"
+msgstr "Failed to load frequency policies"
+
+#: src/components/settings/FrequencyPoliciesSettings.tsx:28
+msgid "Failed to save frequency policy"
+msgstr "Failed to save frequency policy"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:119
+msgid "For each customer in"
+msgstr "For each customer in"
+
+#: src/components/settings/FrequencyPoliciesSettings.tsx:26
+msgid "Frequency policy saved as a new version"
+msgstr "Frequency policy saved as a new version"
+
+#: src/components/delivery/DeliveryFiltersBar.tsx:44
+#: src/components/frequency/FrequencyPolicyForm.tsx:90
+msgid "In-App"
+msgstr "In-App"
+
+#: src/components/settings/FrequencyPoliciesSettings.tsx:38
+msgid "Limit marketing messages per customer and channel."
+msgstr "Limit marketing messages per customer and channel."
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:56
+msgid "Limit messages produced by the same automation trigger without changing whether the customer enters the Journey."
+msgstr "Limit messages produced by the same automation trigger without changing whether the customer enters the Journey."
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:121
+msgid "Maximum deliveries"
+msgstr "Maximum deliveries"
+
+#: src/components/automations/JourneyCreateWizard.tsx:422
+#: src/components/settings/FrequencyPoliciesSettings.tsx:36
+#: src/components/settings/SettingsSidebar.tsx:72
+msgid "Message frequency control"
+msgstr "Message frequency control"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:113
+msgid "Policy name"
+msgstr "Policy name"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:62
+msgid "Protect each customer across campaigns and automations as a Workspace-wide safety limit."
+msgstr "Protect each customer across campaigns and automations as a Workspace-wide safety limit."
+
+#: src/components/settings/FrequencyPoliciesSettings.tsx:38
+msgid "Reaching any level blocks this delivery; infrastructure failures defer it instead of allowing it."
+msgstr "Reaching any level blocks this delivery; infrastructure failures defer it instead of allowing it."
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:125
+msgid "Retry later"
+msgstr "Retry later"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:123
+msgid "Rolling window"
+msgstr "Rolling window"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:126
+msgid "Save this policy"
+msgstr "Save this policy"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:89
+msgid "Telegram"
+msgstr "Telegram"
+
+#: src/components/settings/FrequencyPoliciesSettings.tsx:44
+msgid "The three levels are independent"
+msgstr "The three levels are independent"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:120
+msgid "Time range"
+msgstr "Time range"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:107
+msgid "Toggle"
+msgstr "Toggle"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:88
+msgid "WhatsApp"
+msgstr "WhatsApp"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:123
+msgid "Window calculation"
+msgstr "Window calculation"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:61
+msgid "Workspace-wide limit"
+msgstr "Workspace-wide limit"

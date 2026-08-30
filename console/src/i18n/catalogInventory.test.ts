@@ -1,12 +1,35 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { locales, type Locale } from './index'
-import { buildStaticCatalogInventory, orderLocales, type CompiledCatalog } from './catalogInventory'
-import type { POEntry } from './po'
+import {
+  buildStaticCatalogInventory,
+  orderLocales,
+  type CompiledCatalog,
+} from './catalogInventory'
+import { parsePOCatalog, type POEntry } from './po'
 
 const catalog = (messages: CompiledCatalog): Record<Locale, CompiledCatalog> =>
   Object.fromEntries(locales.map((locale) => [locale, { ...messages }])) as Record<Locale, CompiledCatalog>
 
 describe('catalog inventory', () => {
+  it('lists message frequency control under Settings with the reviewed Chinese label', () => {
+    const englishEntries = parsePOCatalog(
+      readFileSync(resolve(process.cwd(), 'src/i18n/locales/en.po'), 'utf8')
+    )
+    const chineseEntries = parsePOCatalog(
+      readFileSync(resolve(process.cwd(), 'src/i18n/locales/zh-CN.po'), 'utf8')
+    )
+    const englishEntry = englishEntries.find((entry) => entry.msgid === 'Message frequency control')
+    const chineseEntry = chineseEntries.find((entry) => entry.msgid === 'Message frequency control')
+
+    expect(englishEntry?.references).toEqual(expect.arrayContaining([
+      expect.stringContaining('SettingsSidebar.tsx'),
+      expect.stringContaining('FrequencyPoliciesSettings.tsx'),
+    ]))
+    expect(chineseEntry?.msgstr).toBe('触达频控')
+  })
+
   it('includes only compiled single-literal messages and supplies every locale with English fallback', () => {
     const entries: POEntry[] = [
       {
@@ -78,6 +101,38 @@ describe('catalog inventory', () => {
       'pt-BR',
       'ja',
       'it',
+    ])
+  })
+
+  it('groups frequency-control configuration beneath its Settings page', () => {
+    const entries: POEntry[] = [
+      {
+        msgid: 'Campaign limit',
+        msgstr: 'Campaign limit',
+        references: ['src/components/frequency/FrequencyPolicyForm.tsx:49'],
+      },
+      {
+        msgid: 'The three levels are independent',
+        msgstr: 'The three levels are independent',
+        references: ['src/components/settings/FrequencyPoliciesSettings.tsx:44'],
+      },
+    ]
+    const inventory = buildStaticCatalogInventory(entries, catalog({
+      campaignLimit: ['Campaign limit'],
+      levelSummary: ['The three levels are independent'],
+    }))
+
+    expect(inventory).toEqual([
+      expect.objectContaining({
+        source: 'Campaign limit',
+        menuKey: 'Settings',
+        pageKey: 'Message frequency control',
+      }),
+      expect.objectContaining({
+        source: 'The three levels are independent',
+        menuKey: 'Settings',
+        pageKey: 'Message frequency control',
+      }),
     ])
   })
 

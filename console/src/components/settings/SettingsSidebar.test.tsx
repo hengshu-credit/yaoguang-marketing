@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from 'vitest'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { i18n } from '@lingui/core'
 import { SettingsSidebar, SETTINGS_SECTIONS, SettingsSection } from './SettingsSidebar'
 
 // Menu keys are strings until the onClick handler casts them to SettingsSection, so a key that no
@@ -19,6 +20,11 @@ const renderMemberSidebar = () => {
 }
 
 describe('SettingsSidebar', () => {
+  beforeEach(() => {
+    i18n.load('en', { 'Message frequency control': 'Message frequency control' })
+    i18n.activate('en')
+  })
+
   it('reports a valid section for every entry it renders', () => {
     const onSectionChange = renderSidebar()
     // isOwner={true} so the conditional danger-zone entry is in the menu too.
@@ -45,6 +51,12 @@ describe('SettingsSidebar', () => {
     fireEvent.click(screen.getByText('Languages'))
 
     expect(onSectionChange).toHaveBeenCalledWith('languages')
+  })
+
+  it('renders frequency control from the active language catalog', () => {
+    renderSidebar()
+
+    expect(screen.getByText('Message frequency control')).toBeInTheDocument()
   })
 
   it('does not expose Languages to non-owners', () => {

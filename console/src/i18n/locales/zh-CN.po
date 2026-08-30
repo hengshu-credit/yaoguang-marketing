@@ -8460,8 +8460,10 @@ msgid "Message frequency"
 msgstr "消息频控"
 
 #: src/components/automations/JourneyCreateWizard.tsx:422
+#: src/components/settings/FrequencyPoliciesSettings.tsx:36
+#: src/components/settings/SettingsSidebar.tsx:72
 msgid "Message frequency control"
-msgstr "消息频控"
+msgstr "触达频控"
 
 #: src/components/settings/PermissionsMatrix.tsx:125
 #: src/pages/LogsPage.tsx:37
@@ -15977,3 +15979,147 @@ msgstr "Zapier 拥有此 Webhook 的端点 URL, 因此无法在此更改 。 更
 #: src/components/file_manager/fileManager.tsx:784
 msgid "Zip"
 msgstr "齐普"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:110
+msgid "“Once per customer / re-enter on every event” controls Journey entry. This policy controls message delivery after entry."
+msgstr "“每位客户仅一次 / 每次事件重新进入”控制客户是否进入自动化旅程；本策略控制进入后的消息触达。"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:125
+msgid "After reaching the limit"
+msgstr "达到限制后"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:57
+msgid "Automation:trigger identifier"
+msgstr "自动化:触发器标识"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:124
+msgid "Calendar cycle timezone"
+msgstr "自然周期时区"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:123
+msgid "Calendar day / cycle"
+msgstr "自然日 / 自然周期"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:51
+msgid "Campaign ID"
+msgstr "活动 ID"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:49
+msgid "Campaign limit"
+msgstr "本活动限制"
+
+#: src/components/settings/FrequencyPoliciesSettings.tsx:45
+msgid "Configure both campaign protection and a Workspace-wide safety limit. Automation entry frequency remains configured in the Journey."
+msgstr "建议同时配置活动级保护和 Workspace 全量安全底线。自动化入场频次仍在自动化旅程中配置。"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:50
+msgid "Count only deliveries in the same marketing campaign without affecting other campaigns."
+msgstr "只统计同一营销活动内的触达，不影响其他活动。"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:115
+msgid "Delivery channel"
+msgstr "触达渠道"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:125
+msgid "Do not send this message"
+msgstr "本次不发送"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:58
+msgid "Enter the automation:trigger identifier"
+msgstr "请输入自动化:触发器标识"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:52
+msgid "Enter the campaign ID"
+msgstr "请输入活动 ID"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:110
+msgid "Entry frequency and message frequency control are separate rules"
+msgstr "入场频次与触达频控是两套规则"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:55
+msgid "Event / scheduled trigger limit"
+msgstr "事件 / 定时触发限制"
+
+#: src/components/settings/FrequencyPoliciesSettings.tsx:17
+msgid "Failed to load frequency policies"
+msgstr "触达频控策略加载失败"
+
+#: src/components/settings/FrequencyPoliciesSettings.tsx:28
+msgid "Failed to save frequency policy"
+msgstr "触达频控策略保存失败"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:119
+msgid "For each customer in"
+msgstr "每位客户在"
+
+#: src/components/settings/FrequencyPoliciesSettings.tsx:26
+msgid "Frequency policy saved as a new version"
+msgstr "触达频控策略已保存为新版本"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:90
+msgid "In-App"
+msgstr "站内消息"
+
+#: src/components/settings/FrequencyPoliciesSettings.tsx:38
+msgid "Limit marketing messages per customer and channel."
+msgstr "按客户和渠道限制营销消息触达次数。"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:56
+msgid "Limit messages produced by the same automation trigger without changing whether the customer enters the Journey."
+msgstr "限制同一自动化触发器产生的消息触达；不改变客户是否进入自动化旅程。"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:121
+msgid "Maximum deliveries"
+msgstr "最多触达（次）"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:113
+msgid "Policy name"
+msgstr "策略名称"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:62
+msgid "Protect each customer across campaigns and automations as a Workspace-wide safety limit."
+msgstr "跨活动和自动化统一保护每位客户，适合作为 Workspace 全量安全底线。"
+
+#: src/components/settings/FrequencyPoliciesSettings.tsx:38
+msgid "Reaching any level blocks this delivery; infrastructure failures defer it instead of allowing it."
+msgstr "任意一层达到上限都会阻止本次触达；基础设施异常时会延后，不会放行。"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:125
+msgid "Retry later"
+msgstr "延后重试"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:123
+msgid "Rolling window"
+msgstr "滚动窗口"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:126
+msgid "Save this policy"
+msgstr "保存此层策略"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:89
+msgid "Telegram"
+msgstr "Telegram"
+
+#: src/components/settings/FrequencyPoliciesSettings.tsx:44
+msgid "The three levels are independent"
+msgstr "三个层级彼此独立"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:120
+msgid "Time range"
+msgstr "时间范围"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:107
+msgid "Toggle"
+msgstr "切换"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:88
+msgid "WhatsApp"
+msgstr "WhatsApp"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:123
+msgid "Window calculation"
+msgstr "窗口计算方式"
+
+#: src/components/frequency/FrequencyPolicyForm.tsx:61
+msgid "Workspace-wide limit"
+msgstr "Workspace 全量限制"

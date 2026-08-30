@@ -69,7 +69,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
     {
       key: 'frequency',
       icon: <FieldTimeOutlined />,
-      label: '触达频控'
+      label: t`Message frequency control`
     },
     {
       key: 'webhooks',
