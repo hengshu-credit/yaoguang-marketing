@@ -39,3 +39,11 @@ func TestCustomerAuthorityTableDefinitionsCreateIndexedReconciliationState(t *te
 	assert.Contains(t, ddl, "last_error TEXT")
 	assert.Contains(t, ddl, "CREATE INDEX IF NOT EXISTS idx_customer_projection_reconciliation_attention")
 }
+
+func TestCustomerAuthorityTableDefinitionsPopulateTimelineCustomerReference(t *testing.T) {
+	ddl := strings.Join(CustomerAuthorityTableDefinitions(), ";\n")
+
+	assert.Contains(t, ddl, "CREATE OR REPLACE FUNCTION populate_contact_timeline_customer_id()")
+	assert.Contains(t, ddl, "SELECT customer_id INTO NEW.customer_id FROM contacts WHERE email = NEW.email")
+	assert.Contains(t, ddl, "BEFORE INSERT OR UPDATE OF email ON contact_timeline")
+}

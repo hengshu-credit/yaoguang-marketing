@@ -35,10 +35,11 @@ func (r *contactListRepository) AddContactToList(ctx context.Context, workspaceI
 	contactList.UpdatedAt = now
 
 	query := `
-		INSERT INTO contact_lists (email, list_id, status, created_at, updated_at, deleted_at)
-		VALUES ($1, $2, $3, $4, $5, NULL)
+		INSERT INTO contact_lists (email, list_id, status, created_at, updated_at, deleted_at, customer_id)
+		VALUES ($1, $2, $3, $4, $5, NULL, (SELECT customer_id FROM contacts WHERE email = $1))
 		ON CONFLICT (email, list_id) DO UPDATE
-		SET status = $3, updated_at = $5, deleted_at = NULL
+		SET status = $3, updated_at = $5, deleted_at = NULL,
+			customer_id = COALESCE(EXCLUDED.customer_id, contact_lists.customer_id)
 		WHERE contact_lists.status NOT IN ('bounced', 'complained')
 	`
 	_, err = workspaceDB.ExecContext(ctx, query,
@@ -88,7 +89,7 @@ func (r *contactListRepository) BulkAddContactsToLists(ctx context.Context, work
 		args := make([]interface{}, 0, len(batchEmails)*len(listIDs)*5)
 		argIndex := 1
 
-		qb.WriteString(`INSERT INTO contact_lists (email, list_id, status, created_at, updated_at, deleted_at) VALUES `)
+		qb.WriteString(`INSERT INTO contact_lists (email, list_id, status, created_at, updated_at, deleted_at, customer_id) VALUES `)
 
 		first := true
 		for _, email := range batchEmails {
@@ -99,16 +100,18 @@ func (r *contactListRepository) BulkAddContactsToLists(ctx context.Context, work
 				first = false
 
 				qb.WriteString("($")
-			qb.WriteString(strconv.Itoa(argIndex))
-			qb.WriteString(", $")
-			qb.WriteString(strconv.Itoa(argIndex + 1))
-			qb.WriteString(", $")
-			qb.WriteString(strconv.Itoa(argIndex + 2))
-			qb.WriteString(", $")
-			qb.WriteString(strconv.Itoa(argIndex + 3))
-			qb.WriteString(", $")
-			qb.WriteString(strconv.Itoa(argIndex + 4))
-			qb.WriteString(", NULL)")
+				qb.WriteString(strconv.Itoa(argIndex))
+				qb.WriteString(", $")
+				qb.WriteString(strconv.Itoa(argIndex + 1))
+				qb.WriteString(", $")
+				qb.WriteString(strconv.Itoa(argIndex + 2))
+				qb.WriteString(", $")
+				qb.WriteString(strconv.Itoa(argIndex + 3))
+				qb.WriteString(", $")
+				qb.WriteString(strconv.Itoa(argIndex + 4))
+				qb.WriteString(", NULL, (SELECT customer_id FROM contacts WHERE email = $")
+				qb.WriteString(strconv.Itoa(argIndex))
+				qb.WriteString("))")
 				argIndex += 5
 
 				args = append(args, email, listID, status, now, now)
@@ -117,7 +120,8 @@ func (r *contactListRepository) BulkAddContactsToLists(ctx context.Context, work
 
 		qb.WriteString(`
 		ON CONFLICT (email, list_id) DO UPDATE
-		SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at, deleted_at = NULL
+		SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at, deleted_at = NULL,
+			customer_id = COALESCE(EXCLUDED.customer_id, contact_lists.customer_id)
 		WHERE contact_lists.status NOT IN ('unsubscribed', 'bounced', 'complained')`)
 
 		_, err = workspaceDB.ExecContext(ctx, qb.String(), args...)
@@ -140,7 +144,9 @@ func (r *contactListRepository) GetContactListByIDs(ctx context.Context, workspa
 	query := `
 		SELECT email, list_id, status, created_at, updated_at, deleted_at
 		FROM contact_lists
-		WHERE email = $1 AND list_id = $2 AND deleted_at IS NULL
+		WHERE (customer_id = (SELECT customer_id FROM contacts WHERE email = $1)
+			OR (customer_id IS NULL AND email = $1))
+			AND list_id = $2 AND deleted_at IS NULL
 	`
 
 	row := workspaceDB.QueryRowContext(ctx, query, email, listID)
@@ -204,7 +210,8 @@ func (r *contactListRepository) GetListsByEmail(ctx context.Context, workspaceID
 	query := `
 		SELECT email, list_id, status, created_at, updated_at, deleted_at
 		FROM contact_lists
-		WHERE email = $1 AND deleted_at IS NULL
+		WHERE (customer_id = (SELECT customer_id FROM contacts WHERE email = $1)
+			OR (customer_id IS NULL AND email = $1)) AND deleted_at IS NULL
 		ORDER BY created_at DESC
 	`
 
@@ -243,7 +250,8 @@ func (r *contactListRepository) UpdateContactListStatus(ctx context.Context, wor
 	query := `
 		UPDATE contact_lists
 		SET status = $1, updated_at = $2, deleted_at = NULL	
-		WHERE email = $3 AND list_id = $4
+		WHERE (customer_id = (SELECT customer_id FROM contacts WHERE email = $3)
+			OR (customer_id IS NULL AND email = $3)) AND list_id = $4
 	`
 
 	result, err := workspaceDB.ExecContext(ctx, query,
@@ -277,7 +285,9 @@ func (r *contactListRepository) RemoveContactFromList(ctx context.Context, works
 		return fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	query := `UPDATE contact_lists SET deleted_at = $1 WHERE email = $2 AND list_id = $3`
+	query := `UPDATE contact_lists SET deleted_at = $1
+		WHERE (customer_id = (SELECT customer_id FROM contacts WHERE email = $2)
+			OR (customer_id IS NULL AND email = $2)) AND list_id = $3`
 
 	result, err := workspaceDB.ExecContext(ctx, query, time.Now().UTC(), email, listID)
 	if err != nil {
@@ -303,7 +313,8 @@ func (r *contactListRepository) DeleteForEmail(ctx context.Context, workspaceID,
 		return fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	query := `DELETE FROM contact_lists WHERE email = $1`
+	query := `DELETE FROM contact_lists WHERE customer_id = (SELECT customer_id FROM contacts WHERE email = $1)
+		OR (customer_id IS NULL AND email = $1)`
 
 	result, err := workspaceDB.ExecContext(ctx, query, email)
 	if err != nil {

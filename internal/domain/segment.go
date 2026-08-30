@@ -49,6 +49,7 @@ type Segment struct {
 
 // ContactSegment represents the relationship between a contact and a segment
 type ContactSegment struct {
+	CustomerID string    `json:"customer_id,omitempty"`
 	Email      string    `json:"email"`
 	SegmentID  string    `json:"segment_id"`
 	Version    int64     `json:"version"`

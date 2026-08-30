@@ -417,6 +417,9 @@ func (r *CustomerPostgresRepository) Upsert(ctx context.Context, command domain.
 		if err := projectCustomerContact(ctx, tx, customer, profile, command.Input.Identities, action == "created", now); err != nil {
 			return err
 		}
+		if err := syncCustomerListProjection(ctx, tx, customer.ID, command.Input.ListMemberships, now); err != nil {
+			return err
+		}
 
 		result = &domain.CustomerMutationResult{
 			CustomerID: customer.ID, CustomerNo: customer.CustomerNo, ExternalUserID: customer.ExternalUserID,
@@ -614,9 +617,36 @@ func moveCustomerAggregate(ctx context.Context, tx *sql.Tx, sourceID, targetID s
 		{query: `UPDATE customer_consents SET customer_id = $1, updated_at = $3 WHERE customer_id = $2`, args: []interface{}{targetID, sourceID, now}},
 		{query: `INSERT INTO customer_list_memberships (customer_id, list_id, status, created_at, updated_at)
 			SELECT $1, list_id, status, created_at, updated_at FROM customer_list_memberships WHERE customer_id = $2
-			ON CONFLICT (customer_id, list_id) DO NOTHING`, args: []interface{}{targetID, sourceID}},
+			ON CONFLICT (customer_id, list_id) DO UPDATE SET
+				status = CASE
+					WHEN CASE EXCLUDED.status WHEN 'complained' THEN 5 WHEN 'bounced' THEN 4 WHEN 'unsubscribed' THEN 3 WHEN 'active' THEN 2 ELSE 1 END
+						> CASE customer_list_memberships.status WHEN 'complained' THEN 5 WHEN 'bounced' THEN 4 WHEN 'unsubscribed' THEN 3 WHEN 'active' THEN 2 ELSE 1 END
+					THEN EXCLUDED.status ELSE customer_list_memberships.status END,
+				updated_at = GREATEST(customer_list_memberships.updated_at, EXCLUDED.updated_at)`, args: []interface{}{targetID, sourceID}},
 		{query: `DELETE FROM customer_list_memberships WHERE customer_id = $1`, args: []interface{}{sourceID}},
 		{query: `UPDATE contact_endpoints SET customer_id = $1 WHERE customer_id = $2`, args: []interface{}{targetID, sourceID}},
+		{query: `UPDATE contact_lists target_membership SET
+			status = CASE
+				WHEN CASE source_membership.status WHEN 'complained' THEN 5 WHEN 'bounced' THEN 4 WHEN 'unsubscribed' THEN 3 WHEN 'active' THEN 2 ELSE 1 END
+					> CASE target_membership.status WHEN 'complained' THEN 5 WHEN 'bounced' THEN 4 WHEN 'unsubscribed' THEN 3 WHEN 'active' THEN 2 ELSE 1 END
+				THEN source_membership.status ELSE target_membership.status END,
+			updated_at = GREATEST(target_membership.updated_at, source_membership.updated_at)
+			FROM contact_lists source_membership
+			WHERE target_membership.customer_id = $1 AND source_membership.customer_id = $2
+				AND target_membership.list_id = source_membership.list_id
+				AND target_membership.deleted_at IS NULL AND source_membership.deleted_at IS NULL`, args: []interface{}{targetID, sourceID}},
+		{query: `DELETE FROM contact_lists source_membership USING contact_lists target_membership
+			WHERE source_membership.customer_id = $1 AND target_membership.customer_id = $2
+				AND source_membership.list_id = target_membership.list_id
+				AND source_membership.deleted_at IS NULL AND target_membership.deleted_at IS NULL`, args: []interface{}{sourceID, targetID}},
+		{query: `UPDATE contact_lists SET customer_id = $1 WHERE customer_id = $2`, args: []interface{}{targetID, sourceID}},
+		{query: `UPDATE contact_segments SET customer_id = $1 WHERE customer_id = $2`, args: []interface{}{targetID, sourceID}},
+		{query: `UPDATE custom_events SET customer_id = $1 WHERE customer_id = $2`, args: []interface{}{targetID, sourceID}},
+		{query: `UPDATE contact_timeline SET customer_id = $1 WHERE customer_id = $2`, args: []interface{}{targetID, sourceID}},
+		{query: `UPDATE contact_automations SET customer_id = $1 WHERE customer_id = $2`, args: []interface{}{targetID, sourceID}},
+		{query: `UPDATE automation_trigger_log SET customer_id = $1 WHERE customer_id = $2`, args: []interface{}{targetID, sourceID}},
+		{query: `UPDATE message_history SET customer_id = $1 WHERE customer_id = $2`, args: []interface{}{targetID, sourceID}},
+		{query: `UPDATE email_queue SET customer_id = $1 WHERE customer_id = $2`, args: []interface{}{targetID, sourceID}},
 		{query: `UPDATE contacts source_contact
 			SET customer_id = CASE
 				WHEN EXISTS (SELECT 1 FROM contacts target_contact WHERE target_contact.customer_id = $1) THEN NULL
@@ -883,6 +913,33 @@ func replaceCustomerListMemberships(ctx context.Context, tx *sql.Tx, customerID 
 	return nil
 }
 
+func syncCustomerListProjection(ctx context.Context, tx *sql.Tx, customerID string, memberships *[]domain.CustomerListMembershipInput, now time.Time) error {
+	if memberships == nil {
+		return nil
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM contact_lists WHERE customer_id = $1`, customerID); err != nil {
+		return fmt.Errorf("replace customer contact-list projection: %w", err)
+	}
+	if len(*memberships) == 0 {
+		return nil
+	}
+	var email string
+	if err := tx.QueryRowContext(ctx, `SELECT email FROM contacts WHERE customer_id = $1`, customerID).Scan(&email); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		return fmt.Errorf("resolve customer contact-list projection email: %w", err)
+	}
+	for _, membership := range *memberships {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO contact_lists (
+			email, list_id, status, created_at, updated_at, deleted_at, customer_id
+		) VALUES ($1, $2, $3, $4, $4, NULL, $5)`, email, membership.ListID, membership.Status, now, customerID); err != nil {
+			return fmt.Errorf("insert customer contact-list projection: %w", err)
+		}
+	}
+	return nil
+}
+
 func projectCustomerContact(ctx context.Context, tx *sql.Tx, customer *domain.Customer, profile *customerProfileProjection, identities []domain.CustomerIdentityInput, created bool, now time.Time) error {
 	var email string
 	disabledEmails := make([]string, 0)
@@ -915,11 +972,12 @@ func projectCustomerContact(ctx context.Context, tx *sql.Tx, customer *domain.Cu
 		language = profile.Language
 		timezone = profile.Timezone
 	}
-	result, err := tx.ExecContext(ctx, `UPDATE contacts SET external_id = COALESCE($2, external_id),
+	result, err := tx.ExecContext(ctx, `UPDATE contacts SET email = COALESCE(NULLIF($6, ''), email),
+		external_id = COALESCE($2, external_id),
 		timezone = COALESCE($3, timezone), language = COALESCE($4, language), updated_at = $5
-		WHERE customer_id = $1`, customer.ID, customer.ExternalUserID, timezone, language, now)
+		WHERE customer_id = $1`, customer.ID, customer.ExternalUserID, timezone, language, now, email)
 	if err != nil {
-		return fmt.Errorf("update customer contact projection: %w", err)
+		return mapCustomerMutationError(err, domain.CustomerIdentityEmail)
 	}
 	affected, err := result.RowsAffected()
 	if err != nil {
@@ -957,7 +1015,7 @@ func mapCustomerMutationError(err error, identityType domain.CustomerIdentityTyp
 	switch postgresError.Constraint {
 	case "uq_customers_external_user_id":
 		return &domain.ErrCustomerExternalIDConflict{}
-	case "uq_customer_identities_lookup":
+	case "uq_customer_identities_lookup", "contacts_pkey":
 		return &domain.ErrCustomerIdentityConflict{IdentityType: identityType}
 	case "uq_customers_customer_no":
 		return &domain.ErrCustomerNumberConflict{}

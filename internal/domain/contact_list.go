@@ -36,13 +36,14 @@ func IsTerminalContactListStatus(status ContactListStatus) bool {
 
 // ContactList represents the relationship between a contact and a list
 type ContactList struct {
-	Email     string            `json:"email"`
-	ListID    string            `json:"list_id"`
-	ListName  string            `json:"list_name"`
-	Status    ContactListStatus `json:"status"`
-	CreatedAt time.Time         `json:"created_at"`
-	UpdatedAt time.Time         `json:"updated_at"`
-	DeletedAt *time.Time        `json:"deleted_at"`
+	CustomerID string            `json:"customer_id,omitempty"`
+	Email      string            `json:"email"`
+	ListID     string            `json:"list_id"`
+	ListName   string            `json:"list_name"`
+	Status     ContactListStatus `json:"status"`
+	CreatedAt  time.Time         `json:"created_at"`
+	UpdatedAt  time.Time         `json:"updated_at"`
+	DeletedAt  *time.Time        `json:"deleted_at"`
 }
 
 // Validate performs validation on the contact list fields

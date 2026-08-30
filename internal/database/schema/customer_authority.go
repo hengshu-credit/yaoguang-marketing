@@ -22,7 +22,7 @@ func CustomerAuthorityTableDefinitions() []string {
 		{table: "email_queue", index: "customer_id, status, priority, created_at"},
 	}
 
-	statements := make([]string, 0, len(references)*3+2)
+	statements := make([]string, 0, len(references)*3+5)
 	for _, reference := range references {
 		statements = append(statements,
 			fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS customer_id UUID", reference.table),
@@ -45,6 +45,19 @@ func CustomerAuthorityTableDefinitions() []string {
 	}
 
 	return append(statements,
+		`CREATE OR REPLACE FUNCTION populate_contact_timeline_customer_id()
+		RETURNS TRIGGER AS $$
+		BEGIN
+			IF NEW.customer_id IS NULL AND NULLIF(BTRIM(NEW.email), '') IS NOT NULL THEN
+				SELECT customer_id INTO NEW.customer_id FROM contacts WHERE email = NEW.email;
+			END IF;
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql`,
+		`DROP TRIGGER IF EXISTS contact_timeline_customer_authority_trigger ON contact_timeline`,
+		`CREATE TRIGGER contact_timeline_customer_authority_trigger
+			BEFORE INSERT OR UPDATE OF email ON contact_timeline
+			FOR EACH ROW EXECUTE FUNCTION populate_contact_timeline_customer_id()`,
 		`CREATE TABLE IF NOT EXISTS customer_projection_reconciliation (
 			entity_name VARCHAR(64) PRIMARY KEY,
 			missing_customer_id_count BIGINT NOT NULL DEFAULT 0 CHECK (missing_customer_id_count >= 0),

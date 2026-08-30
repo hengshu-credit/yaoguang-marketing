@@ -472,6 +472,16 @@ func TestCustomerRepositoryMergeMovesAnonymousAggregateIntoKnownTarget(t *testin
 	mock.ExpectExec(`INSERT INTO customer_list_memberships`).WithArgs(targetID, sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`DELETE FROM customer_list_memberships`).WithArgs(sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`UPDATE contact_endpoints SET customer_id`).WithArgs(targetID, sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE contact_lists target_membership`).WithArgs(targetID, sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`DELETE FROM contact_lists source_membership`).WithArgs(sourceID, targetID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE contact_lists SET customer_id`).WithArgs(targetID, sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE contact_segments SET customer_id`).WithArgs(targetID, sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE custom_events SET customer_id`).WithArgs(targetID, sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE contact_timeline SET customer_id`).WithArgs(targetID, sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE contact_automations SET customer_id`).WithArgs(targetID, sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE automation_trigger_log SET customer_id`).WithArgs(targetID, sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE message_history SET customer_id`).WithArgs(targetID, sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE email_queue SET customer_id`).WithArgs(targetID, sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`UPDATE contacts source_contact.*CASE.*target_contact.customer_id = \$1.*THEN NULL.*ELSE \$1`).
 		WithArgs(targetID, sourceID, now).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`UPDATE customers SET merged_into_id`).WithArgs(targetID, now, sourceID).WillReturnResult(sqlmock.NewResult(0, 1))
@@ -654,11 +664,16 @@ func TestCustomerRepositoryUpsertAtomicallyUpdatesProfileIdentityTagsListsAndCon
 	mock.ExpectExec(`DELETE FROM customer_list_memberships`).WithArgs(customerID).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`INSERT INTO customer_list_memberships`).
 		WithArgs(customerID, "list1", "active", now).WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectExec(`UPDATE contacts SET external_id`).
-		WithArgs(customerID, "crm-new", "Asia/Shanghai", "zh-CN", now).
+	mock.ExpectExec(`UPDATE contacts SET email = COALESCE`).
+		WithArgs(customerID, "crm-new", "Asia/Shanghai", "zh-CN", now, "alice@example.com").
 		WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectExec(`INSERT INTO contacts`).
 		WithArgs("alice@example.com", "crm-new", "Asia/Shanghai", "zh-CN", customerID, now, now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`DELETE FROM contact_lists WHERE customer_id`).WithArgs(customerID).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectQuery(`SELECT email FROM contacts WHERE customer_id`).WithArgs(customerID).
+		WillReturnRows(sqlmock.NewRows([]string{"email"}).AddRow("alice@example.com"))
+	mock.ExpectExec(`INSERT INTO contact_lists`).WithArgs("alice@example.com", "list1", "active", now, customerID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`UPDATE customer_idempotency SET customer_id`).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
@@ -689,8 +704,8 @@ func TestProjectCustomerContactUpdatesExistingProjectionWithoutEmailInPatch(t *t
 	require.NoError(t, err)
 	defer db.Close()
 	mock.ExpectBegin()
-	mock.ExpectExec(`UPDATE contacts SET external_id`).
-		WithArgs("11111111-1111-4111-8111-111111111111", "crm-42", "Asia/Shanghai", "zh-CN", now).
+	mock.ExpectExec(`UPDATE contacts SET email = COALESCE`).
+		WithArgs("11111111-1111-4111-8111-111111111111", "crm-42", "Asia/Shanghai", "zh-CN", now, "").
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 	tx, err := db.Begin()
@@ -701,6 +716,54 @@ func TestProjectCustomerContactUpdatesExistingProjectionWithoutEmailInPatch(t *t
 	}, &customerProfileProjection{Language: pointerTo("zh-CN"), Timezone: pointerTo("Asia/Shanghai")}, nil, false, now)
 	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestProjectCustomerContactMovesProjectionToNewPrimaryEmail(t *testing.T) {
+	now := time.Date(2026, 8, 30, 1, 2, 3, 0, time.UTC)
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	mock.ExpectBegin()
+	mock.ExpectExec(`UPDATE contacts SET email = COALESCE\(NULLIF\(\$6, ''\), email\)`).
+		WithArgs("11111111-1111-4111-8111-111111111111", nil, nil, nil, now, "new@example.com").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+	tx, err := db.Begin()
+	require.NoError(t, err)
+
+	err = projectCustomerContact(context.Background(), tx, &domain.Customer{
+		ID: "11111111-1111-4111-8111-111111111111",
+	}, nil, []domain.CustomerIdentityInput{{
+		Type: domain.CustomerIdentityEmail, Value: "new@example.com", Primary: true,
+	}}, false, now)
+	require.NoError(t, err)
+	require.NoError(t, tx.Commit())
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestProjectCustomerContactReportsPrimaryEmailCollisionAsIdentityConflict(t *testing.T) {
+	now := time.Date(2026, 8, 30, 1, 2, 3, 0, time.UTC)
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	mock.ExpectBegin()
+	mock.ExpectExec(`UPDATE contacts SET email = COALESCE\(NULLIF\(\$6, ''\), email\)`).
+		WithArgs("11111111-1111-4111-8111-111111111111", nil, nil, nil, now, "owned@example.com").
+		WillReturnError(&pq.Error{Code: "23505", Constraint: "contacts_pkey"})
+	mock.ExpectRollback()
+	tx, err := db.Begin()
+	require.NoError(t, err)
+
+	err = projectCustomerContact(context.Background(), tx, &domain.Customer{
+		ID: "11111111-1111-4111-8111-111111111111",
+	}, nil, []domain.CustomerIdentityInput{{
+		Type: domain.CustomerIdentityEmail, Value: "owned@example.com", Primary: true,
+	}}, false, now)
+	var conflict *domain.ErrCustomerIdentityConflict
+	require.ErrorAs(t, err, &conflict)
+	assert.Equal(t, domain.CustomerIdentityEmail, conflict.IdentityType)
+	require.NoError(t, tx.Rollback())
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -792,7 +855,7 @@ func TestProjectCustomerContactSkipsDisabledEmailAndRejectsCrossCustomerReassign
 		require.NoError(t, err)
 		defer db.Close()
 		mock.ExpectBegin()
-		mock.ExpectExec(`UPDATE contacts SET external_id`).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec(`UPDATE contacts SET email = COALESCE`).WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec(`INSERT INTO contacts.*WHERE contacts.customer_id IS NULL OR contacts.customer_id = EXCLUDED.customer_id`).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectRollback()

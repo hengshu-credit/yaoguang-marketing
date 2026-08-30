@@ -87,8 +87,9 @@ const upsertCustomEventQuery = `
 		INSERT INTO custom_events (
 			event_name, external_id, email, properties, occurred_at,
 			source, integration_id, goal_name, goal_type, goal_value,
-			deleted_at, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+			deleted_at, created_at, updated_at, customer_id
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+			(SELECT customer_id FROM contacts WHERE email = $3))
 		ON CONFLICT (event_name, external_id) DO UPDATE SET
 			email = EXCLUDED.email,
 			properties = CASE WHEN $14::boolean
@@ -106,6 +107,7 @@ const upsertCustomEventQuery = `
 			goal_type = COALESCE(EXCLUDED.goal_type, custom_events.goal_type),
 			goal_value = COALESCE(EXCLUDED.goal_value, custom_events.goal_value),
 			deleted_at = EXCLUDED.deleted_at,
+			customer_id = COALESCE(EXCLUDED.customer_id, custom_events.customer_id),
 			updated_at = NOW()
 		WHERE EXCLUDED.occurred_at > custom_events.occurred_at
 		   OR EXCLUDED.deleted_at IS DISTINCT FROM custom_events.deleted_at
@@ -162,8 +164,9 @@ func (r *customEventRepository) BatchInsertNew(ctx context.Context, workspaceID 
 		INSERT INTO custom_events (
 			event_name, external_id, email, properties, occurred_at,
 			source, integration_id, goal_name, goal_type, goal_value,
-			deleted_at, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+			deleted_at, created_at, updated_at, customer_id
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+			(SELECT customer_id FROM contacts WHERE email = $3))
 		ON CONFLICT (event_name, external_id) DO NOTHING
 	`)
 	if err != nil {
@@ -330,7 +333,8 @@ func (r *customEventRepository) ListByEmail(ctx context.Context, workspaceID, em
 		       source, integration_id, goal_name, goal_type, goal_value,
 		       deleted_at, created_at, updated_at
 		FROM custom_events
-		WHERE email = $1 AND deleted_at IS NULL
+		WHERE (customer_id = (SELECT customer_id FROM contacts WHERE email = $1)
+			OR (customer_id IS NULL AND email = $1)) AND deleted_at IS NULL
 		ORDER BY occurred_at DESC
 		LIMIT $2 OFFSET $3
 	`
@@ -363,7 +367,8 @@ func (r *customEventRepository) DeleteForEmail(ctx context.Context, workspaceID,
 		return fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	query := `DELETE FROM custom_events WHERE email = $1`
+	query := `DELETE FROM custom_events WHERE customer_id = (SELECT customer_id FROM contacts WHERE email = $1)
+		OR (customer_id IS NULL AND email = $1)`
 
 	_, err = db.ExecContext(ctx, query, email)
 	if err != nil {

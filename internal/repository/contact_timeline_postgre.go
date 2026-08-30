@@ -37,8 +37,8 @@ func (r *ContactTimelineRepository) Create(ctx context.Context, workspaceID stri
 	}
 
 	query := `
-		INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at, customer_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, (SELECT customer_id FROM contacts WHERE email = $1))
 	`
 	_, err = workspaceDB.ExecContext(ctx, query,
 		entry.Email, entry.Operation, entry.EntityType, entry.Kind,
@@ -125,15 +125,20 @@ func (r *ContactTimelineRepository) List(ctx context.Context, workspaceID string
 				ELSE NULL
 			END as entity_data
 		FROM contact_timeline ct
-		LEFT JOIN contacts c ON ct.entity_type = 'contact' AND ct.email = c.email
-		LEFT JOIN contact_lists cl ON ct.entity_type = 'contact_list' AND ct.entity_id = cl.list_id AND ct.email = cl.email
+		LEFT JOIN contacts c ON ct.entity_type = 'contact' AND (
+			(ct.customer_id IS NOT NULL AND ct.customer_id = c.customer_id) OR
+			(ct.customer_id IS NULL AND ct.email = c.email))
+		LEFT JOIN contact_lists cl ON ct.entity_type = 'contact_list' AND ct.entity_id = cl.list_id AND (
+			(ct.customer_id IS NOT NULL AND ct.customer_id = cl.customer_id) OR
+			(ct.customer_id IS NULL AND ct.email = cl.email))
 		LEFT JOIN lists l ON cl.list_id = l.id
 		LEFT JOIN message_history mh ON ct.entity_type = 'message_history' AND ct.entity_id = mh.id
 		LEFT JOIN templates t_mh ON ct.entity_type = 'message_history' AND mh.template_id = t_mh.id AND mh.template_version = t_mh.version
 		LEFT JOIN inbound_webhook_events we ON ct.entity_type = 'inbound_webhook_event' AND (ct.entity_id = we.message_id OR ct.entity_id = we.id::text)
 		LEFT JOIN message_history mh_we ON ct.entity_type = 'inbound_webhook_event' AND we.message_id = mh_we.id
 		LEFT JOIN templates t_we ON ct.entity_type = 'inbound_webhook_event' AND mh_we.template_id = t_we.id AND mh_we.template_version = t_we.version
-		WHERE ct.email = $1
+		WHERE (ct.customer_id = (SELECT customer_id FROM contacts WHERE email = $1)
+			OR (ct.customer_id IS NULL AND ct.email = $1))
 	`
 
 	args := []interface{}{email}
@@ -269,7 +274,7 @@ func (r *ContactTimelineRepository) DeleteForEmail(ctx context.Context, workspac
 	// Build and execute delete query
 	query, args, err := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 		Delete("contact_timeline").
-		Where(sq.Eq{"email": email}).
+		Where("customer_id = (SELECT customer_id FROM contacts WHERE email = ?) OR (customer_id IS NULL AND email = ?)", email, email).
 		ToSql()
 
 	if err != nil {

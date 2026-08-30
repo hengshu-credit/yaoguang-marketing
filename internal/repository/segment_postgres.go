@@ -303,10 +303,11 @@ func (r *segmentRepository) AddContactToSegment(ctx context.Context, workspaceID
 	}
 
 	query := `
-		INSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at, customer_id)
+		VALUES ($1, $2, $3, $4, $5, (SELECT customer_id FROM contacts WHERE email = $1))
 		ON CONFLICT (email, segment_id)
-		DO UPDATE SET version = $3, computed_at = $5
+		DO UPDATE SET version = $3, computed_at = $5,
+			customer_id = COALESCE(EXCLUDED.customer_id, contact_segments.customer_id)
 	`
 
 	now := time.Now().UTC()
@@ -332,7 +333,8 @@ func (r *segmentRepository) DeleteForEmail(ctx context.Context, workspaceID stri
 	}
 
 	if _, err = workspaceDB.ExecContext(ctx,
-		`DELETE FROM contact_segments WHERE email = $1`, email); err != nil {
+		`DELETE FROM contact_segments WHERE customer_id = (SELECT customer_id FROM contacts WHERE email = $1)
+			OR (customer_id IS NULL AND email = $1)`, email); err != nil {
 		return fmt.Errorf("failed to delete contact segments: %w", err)
 	}
 	return nil
@@ -346,7 +348,8 @@ func (r *segmentRepository) RemoveContactFromSegment(ctx context.Context, worksp
 		return fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	query := `DELETE FROM contact_segments WHERE email = $1 AND segment_id = $2`
+	query := `DELETE FROM contact_segments WHERE (customer_id = (SELECT customer_id FROM contacts WHERE email = $1)
+		OR (customer_id IS NULL AND email = $1)) AND segment_id = $2`
 
 	_, err = workspaceDB.ExecContext(ctx, query, email, segmentID)
 	if err != nil {
@@ -389,7 +392,8 @@ func (r *segmentRepository) GetContactSegments(ctx context.Context, workspaceID 
 			0 as users_count
 		FROM segments s
 		INNER JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
-		WHERE cs.email = $1 AND s.status = 'active'
+		WHERE (cs.customer_id = (SELECT customer_id FROM contacts WHERE email = $1)
+			OR (cs.customer_id IS NULL AND cs.email = $1)) AND s.status = 'active'
 		ORDER BY s.name ASC
 	`
 
@@ -471,7 +475,8 @@ func (r *segmentRepository) GetSegmentContactDetails(ctx context.Context, worksp
 	query := fmt.Sprintf(`
 		SELECT %s, cs.matched_at
 		FROM contact_segments cs
-		JOIN contacts c ON c.email = cs.email
+		JOIN contacts c ON (cs.customer_id IS NOT NULL AND c.customer_id = cs.customer_id)
+			OR (cs.customer_id IS NULL AND c.email = cs.email)
 		WHERE cs.segment_id = $1
 		ORDER BY cs.matched_at DESC, cs.email ASC
 		LIMIT $2 OFFSET $3

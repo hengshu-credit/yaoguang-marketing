@@ -2,13 +2,12 @@ package repository
 
 import (
 	"context"
-	"regexp"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/golang/mock/gomock"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -124,7 +123,7 @@ func TestSegmentRepositoryDeleteForEmailRemovesEverySegmentMembership(t *testing
 
 	repo := NewSegmentRepository(workspaceRepo)
 
-	mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM contact_segments WHERE email = $1`)).
+	mock.ExpectExec(`DELETE FROM contact_segments WHERE customer_id = .*OR \(customer_id IS NULL AND email = \$1\)`).
 		WithArgs("gone@example.com").
 		WillReturnResult(sqlmock.NewResult(0, 4))
 

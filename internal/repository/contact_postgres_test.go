@@ -25,6 +25,13 @@ import (
 // This matches the contactColumnsWithPrefix("c") output in contact_postgres.go.
 const contactColumnsPattern = `c\.email, c\.external_id, c\.timezone, c\.language, c\.first_name, c\.last_name, c\.full_name, c\.phone, c\.address_line_1, c\.address_line_2, c\.country, c\.postcode, c\.state, c\.job_title, c\.custom_string_1, c\.custom_string_2, c\.custom_string_3, c\.custom_string_4, c\.custom_string_5, c\.custom_number_1, c\.custom_number_2, c\.custom_number_3, c\.custom_number_4, c\.custom_number_5, c\.custom_datetime_1, c\.custom_datetime_2, c\.custom_datetime_3, c\.custom_datetime_4, c\.custom_datetime_5, c\.custom_json_1, c\.custom_json_2, c\.custom_json_3, c\.custom_json_4, c\.custom_json_5, c\.created_at, c\.updated_at, c\.db_created_at, c\.db_updated_at`
 
+const contactListsByCustomerPattern = `SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.customer_id = \(SELECT customer_id FROM contacts WHERE email = \$1\) OR \(cl\.customer_id IS NULL AND cl\.email = \$2\)`
+const contactSegmentsByCustomerPattern = `SELECT cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.customer_id = \(SELECT customer_id FROM contacts WHERE email = \$1\) OR \(cs\.customer_id IS NULL AND cs\.email = \$2\)`
+const contactListCustomerJoinPattern = `JOIN contact_lists cl ON \(\(cl\.customer_id IS NOT NULL AND cl\.customer_id = c\.customer_id\) OR \(cl\.customer_id IS NULL AND c\.email = cl\.email\)\)`
+const contactSegmentCustomerJoinPattern = `JOIN contact_segments cs ON \(\(cs\.customer_id IS NOT NULL AND cs\.customer_id = c\.customer_id\) OR \(cs\.customer_id IS NULL AND c\.email = cs\.email\)\)`
+const bulkContactListsByCustomerPattern = `SELECT COALESCE\(\(SELECT current_contact\.email FROM contacts current_contact WHERE current_contact\.customer_id = cl\.customer_id\), cl\.email\) AS email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE COALESCE\(\(SELECT current_contact\.email FROM contacts current_contact WHERE current_contact\.customer_id = cl\.customer_id\), cl\.email\) IN \(\$1\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`
+const bulkContactSegmentsByCustomerPattern = `SELECT COALESCE\(\(SELECT current_contact\.email FROM contacts current_contact WHERE current_contact\.customer_id = cs\.customer_id\), cs\.email\) AS email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE COALESCE\(\(SELECT current_contact\.email FROM contacts current_contact WHERE current_contact\.customer_id = cs\.customer_id\), cs\.email\) IN \(\$1\)`
+
 // setupMockDB creates a mock database and sqlmock for testing
 func setupMockDB(t *testing.T) (*sql.DB, sqlmock.Sqlmock, func()) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
@@ -84,8 +91,8 @@ func TestGetContactByEmail(t *testing.T) {
 		"list1", "active", now, now, nil, "Marketing List",
 	)
 
-	mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1 AND l\.deleted_at IS NULL`).
-		WithArgs(email).
+	mock.ExpectQuery(contactListsByCustomerPattern).
+		WithArgs(email, email).
 		WillReturnRows(listRows)
 
 	// Set up expectations for contact segments query
@@ -95,8 +102,8 @@ func TestGetContactByEmail(t *testing.T) {
 		"segment1", int64(1), now, now, "Active Users", "#FF5733",
 	)
 
-	mock.ExpectQuery(`SELECT cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email = \$1`).
-		WithArgs(email).
+	mock.ExpectQuery(contactSegmentsByCustomerPattern).
+		WithArgs(email, email).
 		WillReturnRows(segmentRows)
 
 	contact, err := repo.GetContactByEmail(context.Background(), "workspace123", email)
@@ -167,8 +174,8 @@ func TestGetContactByExternalID(t *testing.T) {
 		"list1", "active", now, now, nil, "Marketing List",
 	)
 
-	mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1 AND l\.deleted_at IS NULL`).
-		WithArgs(email).
+	mock.ExpectQuery(contactListsByCustomerPattern).
+		WithArgs(email, email).
 		WillReturnRows(listRows)
 
 	// Set up expectations for contact segments query
@@ -178,8 +185,8 @@ func TestGetContactByExternalID(t *testing.T) {
 		"segment1", int64(1), now, now, "Active Users", "#FF5733",
 	)
 
-	mock.ExpectQuery(`SELECT cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email = \$1`).
-		WithArgs(email).
+	mock.ExpectQuery(contactSegmentsByCustomerPattern).
+		WithArgs(email, email).
 		WillReturnRows(segmentRows)
 
 	contact, err := repo.GetContactByExternalID(context.Background(), "workspace123", externalID)
@@ -232,8 +239,8 @@ func TestGetContactByExternalID(t *testing.T) {
 			"list_id", "status", "created_at", "updated_at", "deleted_at", "list_name",
 		})
 
-		mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1`).
-			WithArgs(email).
+		mock.ExpectQuery(contactListsByCustomerPattern).
+			WithArgs(email, email).
 			WillReturnRows(listRows)
 
 		// Set up expectations for contact segments query (empty result)
@@ -241,8 +248,8 @@ func TestGetContactByExternalID(t *testing.T) {
 			"segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
 		})
 
-		mock.ExpectQuery(`SELECT cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email = \$1`).
-			WithArgs(email).
+		mock.ExpectQuery(contactSegmentsByCustomerPattern).
+			WithArgs(email, email).
 			WillReturnRows(segmentRows)
 
 		// Act
@@ -311,8 +318,8 @@ func TestFetchContact(t *testing.T) {
 			"list2", "active", now, now, nil, "Newsletter",
 		)
 
-		mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1`).
-			WithArgs(email).
+		mock.ExpectQuery(contactListsByCustomerPattern).
+			WithArgs(email, email).
 			WillReturnRows(listRows)
 
 		// Set up expectations for contact segments query
@@ -324,8 +331,8 @@ func TestFetchContact(t *testing.T) {
 			"segment2", int64(2), now, now, "Premium Users", "#00FF00",
 		)
 
-		mock.ExpectQuery(`SELECT cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email = \$1`).
-			WithArgs(email).
+		mock.ExpectQuery(contactSegmentsByCustomerPattern).
+			WithArgs(email, email).
 			WillReturnRows(segmentRows)
 
 		// Use the private method directly for testing
@@ -370,8 +377,8 @@ func TestFetchContact(t *testing.T) {
 			WillReturnRows(rows)
 
 		// Set up expectations for contact lists query with error
-		mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1`).
-			WithArgs(email).
+		mock.ExpectQuery(contactListsByCustomerPattern).
+			WithArgs(email, email).
 			WillReturnError(errors.New("database error"))
 
 		// Use GetContactByEmail which uses fetchContact internally
@@ -429,7 +436,7 @@ func TestGetContacts(t *testing.T) {
 			"test@example.com", "list1", "active", time.Now(), time.Now(), "Marketing List",
 		)
 
-		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`).
+		mock.ExpectQuery(bulkContactListsByCustomerPattern).
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
@@ -440,7 +447,7 @@ func TestGetContacts(t *testing.T) {
 			"test@example.com", "segment1", int64(1), time.Now(), time.Now(), "Active Users", "#FF5733",
 		)
 
-		mock.ExpectQuery(`SELECT cs\.email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email IN \(\$1\)`).
+		mock.ExpectQuery(bulkContactSegmentsByCustomerPattern).
 			WithArgs("test@example.com").
 			WillReturnRows(segmentRows)
 
@@ -510,7 +517,7 @@ func TestGetContacts(t *testing.T) {
 			"test@example.com", "list1", "active", time.Now(), time.Now(), "Marketing List",
 		)
 
-		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`).
+		mock.ExpectQuery(bulkContactListsByCustomerPattern).
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
@@ -518,7 +525,7 @@ func TestGetContacts(t *testing.T) {
 		segmentRows := sqlmock.NewRows([]string{
 			"email", "segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
 		})
-		mock.ExpectQuery(`SELECT cs\.email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email IN \(\$1\)`).
+		mock.ExpectQuery(bulkContactSegmentsByCustomerPattern).
 			WithArgs("test@example.com").
 			WillReturnRows(segmentRows)
 
@@ -610,7 +617,7 @@ func TestGetContacts(t *testing.T) {
 
 		// Create the expected SQL pattern for the IN query with multiple params
 		// Use this simpler pattern to match the actual SQL generated
-		sqlPattern := `SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`
+		sqlPattern := `SELECT COALESCE\(\(SELECT current_contact\.email FROM contacts current_contact WHERE current_contact\.customer_id = cl\.customer_id\), cl\.email\) AS email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE COALESCE\(\(SELECT current_contact\.email FROM contacts current_contact WHERE current_contact\.customer_id = cl\.customer_id\), cl\.email\) IN \(\$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`
 
 		listRows := sqlmock.NewRows([]string{
 			"email", "list_id", "status", "created_at", "updated_at", "list_name",
@@ -634,7 +641,7 @@ func TestGetContacts(t *testing.T) {
 			WillReturnRows(listRows)
 
 		// Set up expectations for contact segments query
-		segmentSqlPattern := `SELECT cs\.email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email IN \(\$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10\)`
+		segmentSqlPattern := `SELECT COALESCE\(\(SELECT current_contact\.email FROM contacts current_contact WHERE current_contact\.customer_id = cs\.customer_id\), cs\.email\) AS email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE COALESCE\(\(SELECT current_contact\.email FROM contacts current_contact WHERE current_contact\.customer_id = cs\.customer_id\), cs\.email\) IN \(\$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10\)`
 		segmentRows := sqlmock.NewRows([]string{
 			"email", "segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
 		})
@@ -838,7 +845,7 @@ func TestGetContacts(t *testing.T) {
 			"test@example.com", "list1", "active", time.Now(), time.Now(), "Marketing List",
 		)
 
-		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`).
+		mock.ExpectQuery(bulkContactListsByCustomerPattern).
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
@@ -846,7 +853,7 @@ func TestGetContacts(t *testing.T) {
 		segmentRows := sqlmock.NewRows([]string{
 			"email", "segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
 		})
-		mock.ExpectQuery(`SELECT cs\.email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email IN \(\$1\)`).
+		mock.ExpectQuery(bulkContactSegmentsByCustomerPattern).
 			WithArgs("test@example.com").
 			WillReturnRows(segmentRows)
 
@@ -942,7 +949,7 @@ func TestGetContacts(t *testing.T) {
 		)
 
 		// Match the query using a regex pattern that includes the EXISTS subquery
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE EXISTS \(SELECT 1 FROM contact_lists cl WHERE cl\.email = c\.email AND cl\.deleted_at IS NULL AND cl\.list_id = \$1\) ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
+		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE EXISTS \(SELECT 1 FROM contact_lists cl WHERE \(\(cl\.customer_id IS NOT NULL.*cl\.list_id = \$1\) ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
 			WithArgs("list123").
 			WillReturnRows(rows)
 
@@ -953,7 +960,7 @@ func TestGetContacts(t *testing.T) {
 			AddRow("test@example.com", "list123", "active", time.Now(), time.Now(), "Marketing List").
 			AddRow("test@example.com", "list456", "active", time.Now(), time.Now(), "Sales List")
 
-		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`).
+		mock.ExpectQuery(bulkContactListsByCustomerPattern).
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
@@ -961,7 +968,7 @@ func TestGetContacts(t *testing.T) {
 		segmentRows := sqlmock.NewRows([]string{
 			"email", "segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
 		})
-		mock.ExpectQuery(`SELECT cs\.email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email IN \(\$1\)`).
+		mock.ExpectQuery(bulkContactSegmentsByCustomerPattern).
 			WithArgs("test@example.com").
 			WillReturnRows(segmentRows)
 
@@ -1022,7 +1029,7 @@ func TestGetContacts(t *testing.T) {
 		)
 
 		// Match the query using a regex pattern that includes the EXISTS subquery
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE EXISTS \(SELECT 1 FROM contact_lists cl WHERE cl\.email = c\.email AND cl\.deleted_at IS NULL AND cl\.status = \$1\) ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
+		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE EXISTS \(SELECT 1 FROM contact_lists cl WHERE \(\(cl\.customer_id IS NOT NULL.*cl\.status = \$1\) ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
 			WithArgs(string(domain.ContactListStatusActive)).
 			WillReturnRows(rows)
 
@@ -1033,7 +1040,7 @@ func TestGetContacts(t *testing.T) {
 			AddRow("test@example.com", "list123", "active", time.Now(), time.Now(), "Marketing List").
 			AddRow("test@example.com", "list456", "pending", time.Now(), time.Now(), "Sales List")
 
-		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`).
+		mock.ExpectQuery(bulkContactListsByCustomerPattern).
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
@@ -1041,7 +1048,7 @@ func TestGetContacts(t *testing.T) {
 		segmentRows := sqlmock.NewRows([]string{
 			"email", "segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
 		})
-		mock.ExpectQuery(`SELECT cs\.email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email IN \(\$1\)`).
+		mock.ExpectQuery(bulkContactSegmentsByCustomerPattern).
 			WithArgs("test@example.com").
 			WillReturnRows(segmentRows)
 
@@ -1102,7 +1109,7 @@ func TestGetContacts(t *testing.T) {
 		)
 
 		// Match the query using a regex pattern that includes the EXISTS subquery with both list_id and status filters
-		mock.ExpectQuery(`SELECT `+contactColumnsPattern+` FROM contacts c WHERE EXISTS \(SELECT 1 FROM contact_lists cl WHERE cl\.email = c\.email AND cl\.deleted_at IS NULL AND cl\.list_id = \$1 AND cl\.status = \$2\) ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+` FROM contacts c WHERE EXISTS \(SELECT 1 FROM contact_lists cl WHERE \(\(cl\.customer_id IS NOT NULL.*cl\.list_id = \$1 AND cl\.status = \$2\) ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
 			WithArgs("list123", string(domain.ContactListStatusActive)).
 			WillReturnRows(rows)
 
@@ -1113,7 +1120,7 @@ func TestGetContacts(t *testing.T) {
 			AddRow("test@example.com", "list123", "active", time.Now(), time.Now(), "Marketing List").
 			AddRow("test@example.com", "list456", "pending", time.Now(), time.Now(), "Sales List")
 
-		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`).
+		mock.ExpectQuery(bulkContactListsByCustomerPattern).
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
@@ -1121,7 +1128,7 @@ func TestGetContacts(t *testing.T) {
 		segmentRows := sqlmock.NewRows([]string{
 			"email", "segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
 		})
-		mock.ExpectQuery(`SELECT cs\.email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email IN \(\$1\)`).
+		mock.ExpectQuery(bulkContactSegmentsByCustomerPattern).
 			WithArgs("test@example.com").
 			WillReturnRows(segmentRows)
 
@@ -1181,7 +1188,7 @@ func TestGetContacts(t *testing.T) {
 		)
 
 		// Match the query using a regex pattern that includes the EXISTS subquery for segments
-		mock.ExpectQuery(`SELECT `+contactColumnsPattern+` FROM contacts c WHERE EXISTS \(SELECT 1 FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email = c\.email AND cs\.segment_id IN \(\$1,\$2\)\) ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+` FROM contacts c WHERE EXISTS \(SELECT 1 FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE \(\(cs\.customer_id IS NOT NULL.*cs\.segment_id IN \(\$1,\$2\)\) ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
 			WithArgs("segment123", "segment456").
 			WillReturnRows(rows)
 
@@ -1192,7 +1199,7 @@ func TestGetContacts(t *testing.T) {
 			"test@example.com", "list1", "active", time.Now(), time.Now(), "Marketing List",
 		)
 
-		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`).
+		mock.ExpectQuery(bulkContactListsByCustomerPattern).
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
@@ -1204,7 +1211,7 @@ func TestGetContacts(t *testing.T) {
 			AddRow("test@example.com", "segment456", int64(1), time.Now(), time.Now(), "Premium Users", "#00FF00").
 			AddRow("test@example.com", "segment789", int64(1), time.Now(), time.Now(), "New Users", "#0000FF")
 
-		mock.ExpectQuery(`SELECT cs\.email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email IN \(\$1\)`).
+		mock.ExpectQuery(bulkContactSegmentsByCustomerPattern).
 			WithArgs("test@example.com").
 			WillReturnRows(segmentRows)
 
@@ -1272,7 +1279,7 @@ func TestGetContacts(t *testing.T) {
 
 		// Match the query using a regex pattern that includes the EXISTS subquery for a single segment
 		// Note: Squirrel generates IN ($1) even for single values
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE EXISTS \(SELECT 1 FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email = c\.email AND cs\.segment_id IN \(\$1\)\) ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
+		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE EXISTS \(SELECT 1 FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE \(\(cs\.customer_id IS NOT NULL.*cs\.segment_id IN \(\$1\)\) ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
 			WithArgs("segment123").
 			WillReturnRows(rows)
 
@@ -1281,7 +1288,7 @@ func TestGetContacts(t *testing.T) {
 			"email", "list_id", "status", "created_at", "updated_at", "list_name",
 		})
 
-		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`).
+		mock.ExpectQuery(bulkContactListsByCustomerPattern).
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
@@ -1290,7 +1297,7 @@ func TestGetContacts(t *testing.T) {
 			"email", "segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
 		}).AddRow("test@example.com", "segment123", int64(1), time.Now(), time.Now(), "Active Users", "#FF5733")
 
-		mock.ExpectQuery(`SELECT cs\.email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email IN \(\$1\)`).
+		mock.ExpectQuery(bulkContactSegmentsByCustomerPattern).
 			WithArgs("test@example.com").
 			WillReturnRows(segmentRows)
 
@@ -1370,7 +1377,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 			)
 
 			// Expect query with JOINS for list filtering, excludeUnsubscribed, and double opt-in guard (cursor-based pagination)
-		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) ORDER BY c\.email ASC LIMIT 10`).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c `+contactListCustomerJoinPattern+` JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) ORDER BY c\.email ASC LIMIT 10`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
@@ -1519,7 +1526,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 		}
 
 		// Expect query with error (cursor-based pagination, includes double opt-in guard)
-		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) ORDER BY c\.email ASC LIMIT 10`).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c `+contactListCustomerJoinPattern+` JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) ORDER BY c\.email ASC LIMIT 10`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
@@ -1578,7 +1585,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 				nil, nil, nil, nil, nil, createdAt2, createdAt2, createdAt2, createdAt2)
 
 		// Expect the query to join contacts with contact_segments (cursor-based pagination)
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c JOIN contact_segments cs ON c\.email = cs\.email WHERE cs\.segment_id IN \(\$1\) ORDER BY c\.email ASC LIMIT 10`).
+		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c ` + contactSegmentCustomerJoinPattern + ` WHERE cs\.segment_id IN \(\$1\) ORDER BY c\.email ASC LIMIT 10`).
 			WithArgs("segment1").
 			WillReturnRows(rows)
 
@@ -1642,7 +1649,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 		// (l.is_double_optin = $2 OR cl.status <> $3)
 		// This predicate, when evaluated by the DB, keeps only rows where either the list does
 		// NOT use double opt-in, or the contact's status is not 'pending'.
-		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND \(l\.is_double_optin = \$2 OR cl\.status <> \$3\) ORDER BY c\.email ASC LIMIT 10`).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c `+contactListCustomerJoinPattern+` JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND \(l\.is_double_optin = \$2 OR cl\.status <> \$3\) ORDER BY c\.email ASC LIMIT 10`).
 			WithArgs("list-doi", false, domain.ContactListStatusPending).
 			WillReturnRows(rows)
 
@@ -1681,7 +1688,7 @@ func TestCountContactsForBroadcast(t *testing.T) {
 
 		// Expect query with JOINS for list filtering, soft-deleted lists filtering, excludeUnsubscribed,
 		// and the double opt-in guard (l.is_double_optin = $5 OR cl.status <> $6).
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\)`).
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c `+contactListCustomerJoinPattern+` JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\)`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
@@ -1820,7 +1827,7 @@ func TestCountContactsForBroadcast(t *testing.T) {
 		rows := sqlmock.NewRows([]string{"count"}).AddRow(42)
 
 		// Expect query with JOIN for segment filtering
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_segments cs ON c\.email = cs\.email WHERE cs\.segment_id IN \(\$1,\$2\)`).
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c `+contactSegmentCustomerJoinPattern+` WHERE cs\.segment_id IN \(\$1,\$2\)`).
 			WithArgs("segment1", "segment2").
 			WillReturnRows(rows)
 
@@ -1858,7 +1865,7 @@ func TestCountContactsForBroadcast(t *testing.T) {
 
 		// Expect query with JOINs for both list, lists table (for soft-delete filter), segment filtering,
 		// and the double opt-in guard (l.is_double_optin = $5 OR cl.status <> $6).
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id JOIN contact_segments cs ON c\.email = cs\.email WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) AND cs\.segment_id IN \(\$7\)`).
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c `+contactListCustomerJoinPattern+` JOIN lists l ON cl\.list_id = l\.id `+contactSegmentCustomerJoinPattern+` WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) AND cs\.segment_id IN \(\$7\)`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
@@ -1898,7 +1905,7 @@ func TestCountContactsForBroadcast(t *testing.T) {
 		rows := sqlmock.NewRows([]string{"count"}).AddRow(3)
 
 		// Only confirmed contacts (status != 'pending') from a double opt-in list are counted.
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND \(l\.is_double_optin = \$2 OR cl\.status <> \$3\)`).
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c `+contactListCustomerJoinPattern+` JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND \(l\.is_double_optin = \$2 OR cl\.status <> \$3\)`).
 			WithArgs("list-doi", false, domain.ContactListStatusPending).
 			WillReturnRows(rows)
 

@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/golang/mock/gomock"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -171,6 +171,21 @@ func TestCustomEventRepository_Upsert(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to upsert custom event")
 	})
+}
+
+func TestCustomEventRepositoryCustomerAuthorityWritesResolvedCustomerID(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupCustomEventTest(t)
+	defer cleanup()
+	ctx := context.Background()
+	mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(db, nil)
+	mock.ExpectExec(`(?s)INSERT INTO custom_events \(.*customer_id.*SELECT customer_id FROM contacts WHERE email`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err := repo.Upsert(ctx, "workspace123", &domain.CustomEvent{
+		ExternalID: "event-1", Email: "user@example.com", EventName: "order.created",
+		Properties: map[string]interface{}{}, OccurredAt: time.Now(), Source: "api",
+	})
+	require.NoError(t, err)
 }
 
 func TestCustomEventRepository_BatchUpsert(t *testing.T) {
@@ -419,7 +434,7 @@ func TestCustomEventRepository_ListByEmail(t *testing.T) {
 			AddRow("orders/fulfilled", "order_1", email, json1, now, "api", nil, nil, nil, nil, nil, now, now).
 			AddRow("payment.succeeded", "payment_1", email, json2, now, "integration", nil, nil, nil, nil, nil, now, now)
 
-		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE email = \$1 AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
+		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE \(customer_id = (.+)AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
 			WithArgs(email, limit, offset).
 			WillReturnRows(rows)
 
@@ -443,7 +458,7 @@ func TestCustomEventRepository_ListByEmail(t *testing.T) {
 			"created_at", "updated_at",
 		})
 
-		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE email = \$1 AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
+		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE \(customer_id = (.+)AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
 			WithArgs(email, limit, offset).
 			WillReturnRows(rows)
 
@@ -469,7 +484,7 @@ func TestCustomEventRepository_ListByEmail(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
 
-		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE email = \$1 AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
+		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE \(customer_id = (.+)AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
 			WithArgs(email, limit, offset).
 			WillReturnError(errors.New("query error"))
 
@@ -547,7 +562,7 @@ func TestCustomEventRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`DELETE FROM custom_events WHERE email = \$1`).
+		mock.ExpectExec(`DELETE FROM custom_events WHERE customer_id =`).
 			WithArgs(email).
 			WillReturnResult(sqlmock.NewResult(0, 3))
 
@@ -571,7 +586,7 @@ func TestCustomEventRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`DELETE FROM custom_events WHERE email = \$1`).
+		mock.ExpectExec(`DELETE FROM custom_events WHERE customer_id =`).
 			WithArgs(email).
 			WillReturnError(errors.New("delete error"))
 
@@ -790,6 +805,7 @@ func TestCustomEventRepository_UpsertQuery_ConflictLeavesTheStoredOriginAlone(t 
 		"goal_type",
 		"goal_value",
 		"deleted_at",
+		"customer_id",
 		"updated_at",
 	}, conflictAssignedColumns(t, upsertCustomEventQuery))
 

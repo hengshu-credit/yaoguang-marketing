@@ -14,6 +14,7 @@ import (
 // ContactTimelineEntry represents a timeline entry for a contact
 type ContactTimelineEntry struct {
 	ID          string                 `json:"id"`
+	CustomerID  string                 `json:"customer_id,omitempty"`
 	Email       string                 `json:"email"`
 	Operation   string                 `json:"operation"`   // 'insert', 'update', 'delete'
 	EntityType  string                 `json:"entity_type"` // 'contact', 'contact_list', 'message_history'

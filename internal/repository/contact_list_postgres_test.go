@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/golang/mock/gomock"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -82,6 +82,21 @@ func TestContactListRepository_AddContactToList(t *testing.T) {
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to add contact to list")
 	})
+}
+
+func TestContactListRepositoryCustomerAuthorityWritesResolvedCustomerID(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupContactListTest(t)
+	defer cleanup()
+	ctx := context.Background()
+	mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(db, nil)
+	mock.ExpectExec(`(?s)INSERT INTO contact_lists \(.*customer_id.*SELECT customer_id FROM contacts WHERE email`).
+		WithArgs("user@example.com", "news", domain.ContactListStatusActive, sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err := repo.AddContactToList(ctx, "workspace123", &domain.ContactList{
+		Email: "user@example.com", ListID: "news", Status: domain.ContactListStatusActive,
+	})
+	require.NoError(t, err)
 }
 
 func TestContactListRepository_GetContactListByIDs(t *testing.T) {
@@ -421,7 +436,7 @@ func TestContactListRepository_RemoveContactFromList(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`UPDATE contact_lists SET deleted_at = (.+) WHERE email = (.+) AND list_id = (.+)`).
+		mock.ExpectExec(`(?s)UPDATE contact_lists SET deleted_at = (.+)WHERE \(customer_id = (.+)AND list_id = (.+)`).
 			WithArgs(sqlmock.AnyArg(), email, listID).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -434,7 +449,7 @@ func TestContactListRepository_RemoveContactFromList(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`UPDATE contact_lists SET deleted_at = (.+) WHERE email = (.+) AND list_id = (.+)`).
+		mock.ExpectExec(`(?s)UPDATE contact_lists SET deleted_at = (.+)WHERE \(customer_id = (.+)AND list_id = (.+)`).
 			WithArgs(sqlmock.AnyArg(), email, listID).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -458,7 +473,7 @@ func TestContactListRepository_RemoveContactFromList(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`UPDATE contact_lists SET deleted_at = (.+) WHERE email = (.+) AND list_id = (.+)`).
+		mock.ExpectExec(`(?s)UPDATE contact_lists SET deleted_at = (.+)WHERE \(customer_id = (.+)AND list_id = (.+)`).
 			WithArgs(sqlmock.AnyArg(), email, listID).
 			WillReturnError(errors.New("execution error"))
 
@@ -473,7 +488,7 @@ func TestContactListRepository_RemoveContactFromList(t *testing.T) {
 			Return(db, nil)
 
 		result := sqlmock.NewErrorResult(errors.New("rows affected error"))
-		mock.ExpectExec(`UPDATE contact_lists SET deleted_at = (.+) WHERE email = (.+) AND list_id = (.+)`).
+		mock.ExpectExec(`(?s)UPDATE contact_lists SET deleted_at = (.+)WHERE \(customer_id = (.+)AND list_id = (.+)`).
 			WithArgs(sqlmock.AnyArg(), email, listID).
 			WillReturnResult(result)
 
@@ -496,7 +511,7 @@ func TestContactListRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`DELETE FROM contact_lists WHERE email = \$1`).
+		mock.ExpectExec(`DELETE FROM contact_lists WHERE customer_id =`).
 			WithArgs(email).
 			WillReturnResult(sqlmock.NewResult(0, 2))
 
@@ -509,7 +524,7 @@ func TestContactListRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`DELETE FROM contact_lists WHERE email = \$1`).
+		mock.ExpectExec(`DELETE FROM contact_lists WHERE customer_id =`).
 			WithArgs(email).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -532,7 +547,7 @@ func TestContactListRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`DELETE FROM contact_lists WHERE email = \$1`).
+		mock.ExpectExec(`DELETE FROM contact_lists WHERE customer_id =`).
 			WithArgs(email).
 			WillReturnError(errors.New("execution error"))
 
@@ -546,7 +561,7 @@ func TestContactListRepository_DeleteForEmail(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`DELETE FROM contact_lists WHERE email = \$1`).
+		mock.ExpectExec(`DELETE FROM contact_lists WHERE customer_id =`).
 			WithArgs(email).
 			WillReturnResult(sqlmock.NewErrorResult(errors.New("rows affected error")))
 
@@ -574,7 +589,7 @@ func TestContactListRepository_BulkAddContactsToLists(t *testing.T) {
 
 		// Expect INSERT with cross-product (2 emails * 2 lists = 4 rows)
 		// Note: deleted_at is NULL in SQL, not a parameter, so only 5 args per row
-		mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO contact_lists (email, list_id, status, created_at, updated_at, deleted_at) VALUES`)).
+		mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO contact_lists (email, list_id, status, created_at, updated_at, deleted_at, customer_id) VALUES`)).
 			WithArgs(
 				emails[0], listIDs[0], status, sqlmock.AnyArg(), sqlmock.AnyArg(),
 				emails[0], listIDs[1], status, sqlmock.AnyArg(), sqlmock.AnyArg(),

@@ -167,7 +167,7 @@ func (r *contactRepository) fetchContact(ctx context.Context, workspaceID string
 	listsQuery, listsArgs, err := psql.Select("cl.list_id", "cl.status", "cl.created_at", "cl.updated_at", "cl.deleted_at", "l.name as list_name").
 		From("contact_lists cl").
 		Join("lists l ON cl.list_id = l.id").
-		Where(sq.Eq{"cl.email": contact.Email}).
+		Where("cl.customer_id = (SELECT customer_id FROM contacts WHERE email = ?) OR (cl.customer_id IS NULL AND cl.email = ?)", contact.Email, contact.Email).
 		Where(sq.Eq{"l.deleted_at": nil}).
 		ToSql()
 	if err != nil {
@@ -210,7 +210,7 @@ func (r *contactRepository) fetchContact(ctx context.Context, workspaceID string
 	segmentsQuery, segmentsArgs, err := psql.Select("cs.segment_id", "cs.version", "cs.matched_at", "cs.computed_at", "s.name as segment_name", "s.color as segment_color").
 		From("contact_segments cs").
 		Join("segments s ON cs.segment_id = s.id").
-		Where(sq.Eq{"cs.email": contact.Email}).
+		Where("cs.customer_id = (SELECT customer_id FROM contacts WHERE email = ?) OR (cs.customer_id IS NULL AND cs.email = ?)", contact.Email, contact.Email).
 		ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build contact segments query: %w", err)
@@ -294,15 +294,15 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 
 		if req.ListID != "" && req.ContactListStatus != "" {
 			// Both list_id and status
-			existsClause = "EXISTS (SELECT 1 FROM contact_lists cl WHERE cl.email = c.email AND cl.deleted_at IS NULL AND cl.list_id = ? AND cl.status = ?)"
+			existsClause = "EXISTS (SELECT 1 FROM contact_lists cl WHERE ((cl.customer_id IS NOT NULL AND cl.customer_id = c.customer_id) OR (cl.customer_id IS NULL AND cl.email = c.email)) AND cl.deleted_at IS NULL AND cl.list_id = ? AND cl.status = ?)"
 			args = []interface{}{req.ListID, req.ContactListStatus}
 		} else if req.ListID != "" {
 			// Just list_id
-			existsClause = "EXISTS (SELECT 1 FROM contact_lists cl WHERE cl.email = c.email AND cl.deleted_at IS NULL AND cl.list_id = ?)"
+			existsClause = "EXISTS (SELECT 1 FROM contact_lists cl WHERE ((cl.customer_id IS NOT NULL AND cl.customer_id = c.customer_id) OR (cl.customer_id IS NULL AND cl.email = c.email)) AND cl.deleted_at IS NULL AND cl.list_id = ?)"
 			args = []interface{}{req.ListID}
 		} else if req.ContactListStatus != "" {
 			// Just status
-			existsClause = "EXISTS (SELECT 1 FROM contact_lists cl WHERE cl.email = c.email AND cl.deleted_at IS NULL AND cl.status = ?)"
+			existsClause = "EXISTS (SELECT 1 FROM contact_lists cl WHERE ((cl.customer_id IS NOT NULL AND cl.customer_id = c.customer_id) OR (cl.customer_id IS NULL AND cl.email = c.email)) AND cl.deleted_at IS NULL AND cl.status = ?)"
 			args = []interface{}{req.ContactListStatus}
 		}
 
@@ -320,7 +320,7 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 		placeholdersStr := strings.Join(placeholders, ",")
 
 		// Build the EXISTS clause with ? placeholders
-		existsClause := fmt.Sprintf("EXISTS (SELECT 1 FROM contact_segments cs JOIN segments s ON cs.segment_id = s.id WHERE cs.email = c.email AND cs.segment_id IN (%s))", placeholdersStr)
+		existsClause := fmt.Sprintf("EXISTS (SELECT 1 FROM contact_segments cs JOIN segments s ON cs.segment_id = s.id WHERE ((cs.customer_id IS NOT NULL AND cs.customer_id = c.customer_id) OR (cs.customer_id IS NULL AND cs.email = c.email)) AND cs.segment_id IN (%s))", placeholdersStr)
 
 		// Convert []string to []interface{} for sq.Expr
 		args := make([]interface{}, len(req.Segments))
@@ -421,10 +421,11 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 		}
 
 		// Query for ALL contact lists for these contacts, regardless of filter criteria
-		listQueryBuilder := psql.Select("cl.email, cl.list_id, cl.status, cl.created_at, cl.updated_at, l.name as list_name").
+		contactListEmailExpression := "COALESCE((SELECT current_contact.email FROM contacts current_contact WHERE current_contact.customer_id = cl.customer_id), cl.email)"
+		listQueryBuilder := psql.Select(contactListEmailExpression+" AS email", "cl.list_id", "cl.status", "cl.created_at", "cl.updated_at", "l.name as list_name").
 			From("contact_lists cl").
 			Join("lists l ON cl.list_id = l.id").
-			Where(sq.Eq{"cl.email": emails}).   // squirrel handles IN clauses automatically
+			Where(sq.Eq{contactListEmailExpression: emails}).
 			Where(sq.Eq{"cl.deleted_at": nil}). // Filter out deleted contact_list entries
 			Where(sq.Eq{"l.deleted_at": nil})   // Filter out deleted lists
 
@@ -481,10 +482,11 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 		}
 
 		// Query for ALL contact segments for these contacts
-		segmentQueryBuilder := psql.Select("cs.email", "cs.segment_id", "cs.version", "cs.matched_at", "cs.computed_at", "s.name as segment_name", "s.color as segment_color").
+		contactSegmentEmailExpression := "COALESCE((SELECT current_contact.email FROM contacts current_contact WHERE current_contact.customer_id = cs.customer_id), cs.email)"
+		segmentQueryBuilder := psql.Select(contactSegmentEmailExpression+" AS email", "cs.segment_id", "cs.version", "cs.matched_at", "cs.computed_at", "s.name as segment_name", "s.color as segment_color").
 			From("contact_segments cs").
 			Join("segments s ON cs.segment_id = s.id").
-			Where(sq.Eq{"cs.email": emails}) // squirrel handles IN clauses automatically
+			Where(sq.Eq{contactSegmentEmailExpression: emails})
 
 		segmentQuery, segmentArgs, err := segmentQueryBuilder.ToSql()
 		if err != nil {
@@ -1442,7 +1444,7 @@ func (r *contactRepository) GetContactsForBroadcast(
 		selectCols := append(contactColumnsWithPrefix("c"), "cl.list_id", "l.name as list_name")
 		query = psql.Select(selectCols...).
 			From("contacts c").
-			Join("contact_lists cl ON c.email = cl.email").
+			Join("contact_lists cl ON ((cl.customer_id IS NOT NULL AND cl.customer_id = c.customer_id) OR (cl.customer_id IS NULL AND c.email = cl.email))").
 			Join("lists l ON cl.list_id = l.id"). // Join with lists table to get the name
 			Where(sq.Eq{"cl.list_id": audience.List}).
 			Where(sq.Eq{"l.deleted_at": nil}). // Filter out deleted lists
@@ -1489,7 +1491,7 @@ func (r *contactRepository) GetContactsForBroadcast(
 		// This means contacts must be in BOTH the specified list AND segments
 		if audience.List != "" {
 			// Join with contact_segments table in addition to the existing list joins
-			query = query.Join("contact_segments cs ON c.email = cs.email")
+			query = query.Join("contact_segments cs ON ((cs.customer_id IS NOT NULL AND cs.customer_id = c.customer_id) OR (cs.customer_id IS NULL AND c.email = cs.email))")
 			query = query.Where(sq.Eq{"cs.segment_id": audience.Segments})
 		} else {
 			// No list filtering, so we're filtering by segments only
@@ -1497,7 +1499,7 @@ func (r *contactRepository) GetContactsForBroadcast(
 			includeListID = false
 			query = psql.Select(contactColumnsWithPrefix("c")...).
 				From("contacts c").
-				Join("contact_segments cs ON c.email = cs.email").
+				Join("contact_segments cs ON ((cs.customer_id IS NOT NULL AND cs.customer_id = c.customer_id) OR (cs.customer_id IS NULL AND c.email = cs.email))").
 				Where(sq.Eq{"cs.segment_id": audience.Segments}).
 				Limit(uint64(limit)).
 				OrderBy("c.email ASC") // Sort by email only (unique, deterministic)
@@ -1729,7 +1731,7 @@ func (r *contactRepository) CountContactsForBroadcast(
 	// Handle list filtering
 	if audience.List != "" {
 		// Join with contact_lists table to filter by list membership and status
-		query = query.Join("contact_lists cl ON c.email = cl.email")
+		query = query.Join("contact_lists cl ON ((cl.customer_id IS NOT NULL AND cl.customer_id = c.customer_id) OR (cl.customer_id IS NULL AND c.email = cl.email))")
 		// Join with lists table to filter by list deletion status (matches GetContactsForBroadcast)
 		query = query.Join("lists l ON cl.list_id = l.id")
 
@@ -1761,13 +1763,13 @@ func (r *contactRepository) CountContactsForBroadcast(
 		// This means contacts must be in BOTH the specified list AND segments
 		if audience.List != "" {
 			// Join with contact_segments table in addition to the existing list joins
-			query = query.Join("contact_segments cs ON c.email = cs.email")
+			query = query.Join("contact_segments cs ON ((cs.customer_id IS NOT NULL AND cs.customer_id = c.customer_id) OR (cs.customer_id IS NULL AND c.email = cs.email))")
 			query = query.Where(sq.Eq{"cs.segment_id": audience.Segments})
 		} else {
 			// No list filtering, so we're filtering by segments only
 			query = psql.Select("COUNT(*)").
 				From("contacts c").
-				Join("contact_segments cs ON c.email = cs.email").
+				Join("contact_segments cs ON ((cs.customer_id IS NOT NULL AND cs.customer_id = c.customer_id) OR (cs.customer_id IS NULL AND c.email = cs.email))").
 				Where(sq.Eq{"cs.segment_id": audience.Segments})
 		}
 	}

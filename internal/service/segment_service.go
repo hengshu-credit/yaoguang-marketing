@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
-	"github.com/google/uuid"
 )
 
 // SegmentService handles segment operations
@@ -580,10 +580,11 @@ func (s *SegmentService) GetSegmentContacts(ctx context.Context, workspaceID, se
 	// Query contact_segments table. Order by matched_at (when the contact joined the
 	// segment) — contact_segments has no created_at column, so ordering by it errored.
 	query := `
-		SELECT email
-		FROM contact_segments
-		WHERE segment_id = $1
-		ORDER BY matched_at DESC
+		SELECT COALESCE(c.email, cs.email)
+		FROM contact_segments cs
+		LEFT JOIN contacts c ON cs.customer_id IS NOT NULL AND c.customer_id = cs.customer_id
+		WHERE cs.segment_id = $1
+		ORDER BY cs.matched_at DESC
 		LIMIT $2 OFFSET $3
 	`
 

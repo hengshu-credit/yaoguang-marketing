@@ -9,11 +9,30 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
 	"github.com/golang/mock/gomock"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestContactTimelineRepositoryCustomerAuthorityWritesResolvedCustomerID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+	ctx := context.Background()
+	mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(db, nil)
+	mock.ExpectExec(`(?s)INSERT INTO contact_timeline \(.*customer_id.*SELECT customer_id FROM contacts WHERE email`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	repo := NewContactTimelineRepository(mockWorkspaceRepo)
+
+	err = repo.Create(ctx, "workspace123", &domain.ContactTimelineEntry{
+		Email: "user@example.com", Operation: "insert", EntityType: "contact", Kind: "contact.created", CreatedAt: time.Now(),
+	})
+	require.NoError(t, err)
+}
 
 func TestContactTimelineRepository_List(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -488,7 +507,7 @@ func TestContactTimelineRepository_DeleteForEmail(t *testing.T) {
 			Return(db, nil)
 
 		mock.ExpectExec("DELETE FROM contact_timeline").
-			WithArgs(email).
+			WithArgs(email, email).
 			WillReturnResult(sqlmock.NewResult(0, 5)) // 5 rows deleted
 
 		err = repo.DeleteForEmail(ctx, workspaceID, email)
@@ -507,7 +526,7 @@ func TestContactTimelineRepository_DeleteForEmail(t *testing.T) {
 			Return(db, nil)
 
 		mock.ExpectExec("DELETE FROM contact_timeline").
-			WithArgs(email).
+			WithArgs(email, email).
 			WillReturnResult(sqlmock.NewResult(0, 0)) // 0 rows deleted
 
 		err = repo.DeleteForEmail(ctx, workspaceID, email)
@@ -537,7 +556,7 @@ func TestContactTimelineRepository_DeleteForEmail(t *testing.T) {
 			Return(db, nil)
 
 		mock.ExpectExec("DELETE FROM contact_timeline").
-			WithArgs(email).
+			WithArgs(email, email).
 			WillReturnError(sql.ErrConnDone)
 
 		err = repo.DeleteForEmail(ctx, workspaceID, email)

@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/golang/mock/gomock"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -525,12 +525,7 @@ func TestSegmentRepository_AddContactToSegment(t *testing.T) {
 		AnyTimes()
 
 	t.Run("successful addition", func(t *testing.T) {
-		sqlMock.ExpectExec(regexp.QuoteMeta(`
-		INSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)
-		VALUES ($1, $2, $3, $4, $5)
-		ON CONFLICT (email, segment_id)
-		DO UPDATE SET version = $3, computed_at = $5
-	`)).WithArgs(
+		sqlMock.ExpectExec(`(?s)INSERT INTO contact_segments \(.*customer_id.*SELECT customer_id FROM contacts WHERE email`).WithArgs(
 			"test@example.com",
 			"seg123",
 			int64(1),
@@ -553,6 +548,20 @@ func TestSegmentRepository_AddContactToSegment(t *testing.T) {
 	})
 }
 
+func TestSegmentRepositoryCustomerAuthorityWritesResolvedCustomerID(t *testing.T) {
+	repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+	db, sqlMock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(db, nil)
+	sqlMock.ExpectExec(`(?s)INSERT INTO contact_segments \(.*customer_id.*SELECT customer_id FROM contacts WHERE email`).
+		WithArgs("user@example.com", "seg123", int64(1), sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = repo.AddContactToSegment(context.Background(), "workspace123", "user@example.com", "seg123", 1)
+	require.NoError(t, err)
+}
+
 func TestSegmentRepository_RemoveContactFromSegment(t *testing.T) {
 	repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
 
@@ -567,7 +576,7 @@ func TestSegmentRepository_RemoveContactFromSegment(t *testing.T) {
 		AnyTimes()
 
 	t.Run("successful removal", func(t *testing.T) {
-		sqlMock.ExpectExec(regexp.QuoteMeta(`DELETE FROM contact_segments WHERE email = $1 AND segment_id = $2`)).
+		sqlMock.ExpectExec(`DELETE FROM contact_segments WHERE \(customer_id =`).
 			WithArgs("test@example.com", "seg123").
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -652,16 +661,8 @@ func TestSegmentRepository_GetContactSegments(t *testing.T) {
 			0,
 		)
 
-		sqlMock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT 
-			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
-			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
-			0 as users_count
-		FROM segments s
-		INNER JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
-		WHERE cs.email = $1 AND s.status = 'active'
-		ORDER BY s.name ASC
-	`)).WithArgs("test@example.com").WillReturnRows(rows)
+		sqlMock.ExpectQuery(`(?s)SELECT.*FROM segments s.*WHERE \(cs.customer_id =.*s.status = 'active'`).
+			WithArgs("test@example.com").WillReturnRows(rows)
 
 		segments, err := repo.GetContactSegments(context.Background(), "workspace123", "test@example.com")
 		require.NoError(t, err)
@@ -676,16 +677,7 @@ func TestSegmentRepository_GetContactSegments(t *testing.T) {
 			"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at", "users_count",
 		})
 
-		sqlMock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT 
-			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
-			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
-			0 as users_count
-		FROM segments s
-		INNER JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
-		WHERE cs.email = $1 AND s.status = 'active'
-		ORDER BY s.name ASC
-	`)).WillReturnRows(rows)
+		sqlMock.ExpectQuery(`(?s)SELECT.*FROM segments s.*WHERE \(cs.customer_id =.*s.status = 'active'`).WillReturnRows(rows)
 
 		segments, err := repo.GetContactSegments(context.Background(), "workspace123", "test@example.com")
 		require.NoError(t, err)
@@ -1134,9 +1126,7 @@ func TestSegmentRepository_GetSegmentContactDetails(t *testing.T) {
 		rows := newRows()
 		segmentContactDetailRow(rows, "joined@example.com", now, now)
 
-		sqlMock.ExpectQuery(regexp.QuoteMeta(`FROM contact_segments cs
-		JOIN contacts c ON c.email = cs.email
-		WHERE cs.segment_id = $1`)).
+		sqlMock.ExpectQuery(`(?s)FROM contact_segments cs.*JOIN contacts c ON \(cs.customer_id IS NOT NULL.*WHERE cs.segment_id = \$1`).
 			WithArgs("seg123", 50, 0).
 			WillReturnRows(rows)
 

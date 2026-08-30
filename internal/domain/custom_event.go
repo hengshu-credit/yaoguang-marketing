@@ -42,6 +42,7 @@ var GoalTypesRequiringValue = []string{
 // Note: ExternalID is the primary key and represents the unique identifier
 // from the external system (e.g., "shopify_order_12345", "stripe_pi_abc123")
 type CustomEvent struct {
+	CustomerID    string                 `json:"customer_id,omitempty"`
 	ExternalID    string                 `json:"external_id"` // Primary key: external system's unique ID
 	Email         string                 `json:"email"`
 	EventName     string                 `json:"event_name"`               // Generic: "shopify.order", "stripe.payment"
