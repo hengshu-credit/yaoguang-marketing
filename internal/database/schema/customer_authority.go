@@ -22,7 +22,7 @@ func CustomerAuthorityTableDefinitions() []string {
 		{table: "email_queue", index: "customer_id, status, priority, created_at"},
 	}
 
-	statements := make([]string, 0, len(references)*3+5)
+	statements := make([]string, 0, len(references)*3+10)
 	for _, reference := range references {
 		statements = append(statements,
 			fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS customer_id UUID", reference.table),
@@ -67,6 +67,23 @@ func CustomerAuthorityTableDefinitions() []string {
 			last_error TEXT,
 			updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`CREATE TABLE IF NOT EXISTS customer_reconciliation_runs (
+			id UUID PRIMARY KEY,
+			job_type VARCHAR(16) NOT NULL CHECK (job_type IN ('scan', 'repair')),
+			status VARCHAR(16) NOT NULL CHECK (status IN ('running', 'completed', 'failed')),
+			batch_size INTEGER NOT NULL CHECK (batch_size > 0),
+			checkpoint JSONB NOT NULL DEFAULT '{}'::jsonb,
+			summary JSONB NOT NULL DEFAULT '{}'::jsonb,
+			last_error TEXT,
+			started_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			completed_at TIMESTAMPTZ
+		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS uq_customer_reconciliation_running_job
+			ON customer_reconciliation_runs (job_type) WHERE status = 'running'`,
+		`CREATE INDEX IF NOT EXISTS idx_customer_reconciliation_runs_recent
+			ON customer_reconciliation_runs (started_at DESC, id DESC)`,
+		`ALTER TABLE customer_projection_reconciliation ADD COLUMN IF NOT EXISTS run_id UUID`,
 		`CREATE INDEX IF NOT EXISTS idx_customer_projection_reconciliation_attention
 			ON customer_projection_reconciliation (updated_at DESC, entity_name)
 			WHERE missing_customer_id_count > 0 OR conflict_count > 0 OR last_error IS NOT NULL`,

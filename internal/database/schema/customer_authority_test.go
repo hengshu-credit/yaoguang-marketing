@@ -47,3 +47,14 @@ func TestCustomerAuthorityTableDefinitionsPopulateTimelineCustomerReference(t *t
 	assert.Contains(t, ddl, "SELECT customer_id INTO NEW.customer_id FROM contacts WHERE email = NEW.email")
 	assert.Contains(t, ddl, "BEFORE INSERT OR UPDATE OF email ON contact_timeline")
 }
+
+func TestCustomerAuthorityTableDefinitionsCreateResumableReconciliationRuns(t *testing.T) {
+	ddl := strings.Join(CustomerAuthorityTableDefinitions(), ";\n")
+
+	assert.Contains(t, ddl, "CREATE TABLE IF NOT EXISTS customer_reconciliation_runs")
+	assert.Contains(t, ddl, "checkpoint JSONB NOT NULL DEFAULT '{}'::jsonb")
+	assert.Contains(t, ddl, "summary JSONB NOT NULL DEFAULT '{}'::jsonb")
+	assert.Contains(t, ddl, "CREATE UNIQUE INDEX IF NOT EXISTS uq_customer_reconciliation_running_job")
+	assert.Contains(t, ddl, "WHERE status = 'running'")
+	assert.Contains(t, ddl, "ALTER TABLE customer_projection_reconciliation ADD COLUMN IF NOT EXISTS run_id UUID")
+}

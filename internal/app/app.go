@@ -109,6 +109,7 @@ type App struct {
 	settingRepo                   domain.SettingRepository
 	contactRepo                   domain.ContactRepository
 	customerRepo                  domain.CustomerRepository
+	customerReconciliationRepo    domain.CustomerReconciliationRepository
 	listRepo                      domain.ListRepository
 	contactListRepo               domain.ContactListRepository
 	templateRepo                  domain.TemplateRepository
@@ -144,6 +145,7 @@ type App struct {
 	workspaceService                 *service.WorkspaceService
 	contactService                   *service.ContactService
 	customerService                  *service.CustomerService
+	customerReconciliationService    *service.CustomerReconciliationService
 	listService                      *service.ListService
 	contactListService               *service.ContactListService
 	templateService                  *service.TemplateService
@@ -456,6 +458,7 @@ func (a *App) InitRepositories() error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize customer repository: %w", err)
 	}
+	a.customerReconciliationRepo = repository.NewCustomerReconciliationRepository(a.workspaceRepo)
 	a.listRepo = repository.NewListRepository(a.workspaceRepo)
 	a.contactListRepo = repository.NewContactListRepository(a.workspaceRepo)
 	a.templateRepo = repository.NewTemplateRepository(a.workspaceRepo)
@@ -671,6 +674,10 @@ func (a *App) InitServices() error {
 	})
 	if err != nil {
 		return fmt.Errorf("failed to initialize customer service: %w", err)
+	}
+	a.customerReconciliationService, err = service.NewCustomerReconciliationService(a.customerReconciliationRepo, a.authService)
+	if err != nil {
+		return fmt.Errorf("failed to initialize customer reconciliation service: %w", err)
 	}
 	legacyContactAdapter, err := service.NewLegacyContactAdapter(a.customerService, customerSyncMaxBatchSize)
 	if err != nil {
@@ -1431,6 +1438,7 @@ func (a *App) InitHandlers() error {
 	).WithWebAnalyticsCacheInvalidator(a.webAnalyticsService.InvalidateWorkspaceCache)
 	contactHandler := httpHandler.NewContactHandler(a.contactService, getJWTSecret, a.logger)
 	customerHandler := httpHandler.NewCustomerHandler(a.customerService, getJWTSecret, a.logger)
+	customerReconciliationHandler := httpHandler.NewCustomerReconciliationHandler(a.customerReconciliationService, getJWTSecret, a.logger)
 	listHandler := httpHandler.NewListHandler(a.listService, getJWTSecret, a.logger)
 	contactListHandler := httpHandler.NewContactListHandler(a.contactListService, getJWTSecret, a.logger)
 	templateHandler := httpHandler.NewTemplateHandler(a.templateService, getJWTSecret, a.logger)
@@ -1554,6 +1562,7 @@ func (a *App) InitHandlers() error {
 	rootHandler.RegisterRoutes(a.mux)
 	contactHandler.RegisterRoutes(a.mux)
 	customerHandler.RegisterRoutes(a.mux)
+	customerReconciliationHandler.RegisterRoutes(a.mux)
 	listHandler.RegisterRoutes(a.mux)
 	contactListHandler.RegisterRoutes(a.mux)
 	templateHandler.RegisterRoutes(a.mux)

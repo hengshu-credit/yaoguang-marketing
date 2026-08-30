@@ -265,6 +265,18 @@ export const PERMISSION_DESCRIPTORS: Record<
           endpoint: "/api/customers.merge",
           action: msg`Explicitly merge an anonymous Customer into a known Customer and retain an audit redirect`,
         },
+        {
+          endpoint: "/api/customers.reconciliation.scan",
+          action: msg`Scan Customer compatibility projections for missing or conflicting stable references`,
+        },
+        {
+          endpoint: "/api/customers.reconciliation.get",
+          action: msg`Read a Customer projection reconciliation run and its Workspace-local findings`,
+        },
+        {
+          endpoint: "/api/customers.reconciliation.repair",
+          action: msg`Repair missing Customer references in bounded resumable batches without overwriting conflicts`,
+        },
       ],
     },
     caveat: msg`Customer write can replace tags and list memberships and can explicitly merge an anonymous Customer into a known Customer. Merge is intentionally limited to that direction; known-to-known automatic merging is not allowed. Raw identity values are encrypted and responses expose only masked hints.`,
