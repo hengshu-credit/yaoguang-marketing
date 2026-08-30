@@ -183,6 +183,26 @@ type DeliveryAttempt struct {
 	ErrorDetail       string         `json:"error_detail,omitempty"`
 	CreatedAt         time.Time      `json:"created_at"`
 	UpdatedAt         time.Time      `json:"updated_at"`
+	// EffectKey is populated when an attempt starts so the worker can pass the
+	// same logical idempotency key to providers without another unlocked read.
+	EffectKey string `json:"effect_key,omitempty"`
+}
+
+type DeliveryAttemptStart struct {
+	IntentID       string
+	Provider       string
+	ClaimToken     string
+	LeaseExpiresAt time.Time
+}
+
+type DeliveryAttemptOutcome struct {
+	Status            DeliveryStatus
+	ProviderMessageID string
+	ErrorCategory     string
+	ErrorCode         string
+	ErrorDetail       string
+	NextRetryAt       *time.Time
+	OccurredAt        time.Time
 }
 
 type DeliveryReceiptLink struct {
@@ -227,4 +247,6 @@ type DeliveryRepository interface {
 	ResolveCustomerID(context.Context, string, string) (string, error)
 	GetIntentByEffectKey(context.Context, string, string) (*DeliveryIntent, error)
 	TransitionIntent(context.Context, string, string, DeliveryStatus, DeliveryStatus, time.Time) (bool, error)
+	StartAttempt(context.Context, string, DeliveryAttemptStart) (DeliveryAttempt, error)
+	RecordAttemptOutcome(context.Context, string, string, string, DeliveryAttemptOutcome) error
 }

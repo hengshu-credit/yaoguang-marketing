@@ -198,3 +198,94 @@ func TestDeliveryRepositoryResolvesAuthorityCustomerID(t *testing.T) {
 	assert.Equal(t, "22222222-2222-4222-8222-222222222222", customerID)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestDeliveryRepositoryStartAttemptPersistsSubmittingBeforeProviderCall(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	repo := NewDeliveryRepositoryWithDB(db)
+	intent := testDeliveryIntent()
+	intent.Status = domain.DeliveryStatusQueued
+	claimToken := "33333333-3333-4333-8333-333333333333"
+	lease := time.Now().UTC().Add(time.Minute)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`SELECT effect_key, request_hash, status.*delivery_intents.*FOR UPDATE`).
+		WithArgs(intent.ID).WillReturnRows(sqlmock.NewRows([]string{"effect_key", "request_hash", "status"}).
+		AddRow(intent.EffectKey, intent.RequestHash, intent.Status))
+	mock.ExpectQuery(`SELECT EXISTS.*delivery_attempts`).WithArgs(intent.ID).
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
+	mock.ExpectQuery(`SELECT COALESCE\(MAX\(attempt_no\), 0\) \+ 1`).WithArgs(intent.ID).
+		WillReturnRows(sqlmock.NewRows([]string{"attempt_no"}).AddRow(1))
+	mock.ExpectExec(`INSERT INTO delivery_attempts`).
+		WithArgs(sqlmock.AnyArg(), intent.ID, 1, "smtp", intent.RequestHash, claimToken, sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE delivery_intents SET status = 'submitting'`).
+		WithArgs(intent.ID, sqlmock.AnyArg()).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	attempt, err := repo.StartAttempt(context.Background(), "workspace-1", domain.DeliveryAttemptStart{
+		IntentID: intent.ID, Provider: "smtp", ClaimToken: claimToken, LeaseExpiresAt: lease,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, domain.DeliveryStatusSubmitting, attempt.Status)
+	assert.Equal(t, intent.EffectKey, attempt.EffectKey)
+	assert.Equal(t, 1, attempt.AttemptNo)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestDeliveryRepositoryUnknownOutcomeBlocksRetryAndCreatesReconciliation(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	repo := NewDeliveryRepositoryWithDB(db)
+	intentID := "11111111-1111-4111-8111-111111111111"
+	attemptID := "44444444-4444-4444-8444-444444444444"
+	claimToken := "33333333-3333-4333-8333-333333333333"
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`SELECT intent_id, status FROM delivery_attempts`).WithArgs(attemptID, claimToken).
+		WillReturnRows(sqlmock.NewRows([]string{"intent_id", "status"}).AddRow(intentID, domain.DeliveryStatusSubmitting))
+	mock.ExpectQuery(`SELECT status FROM delivery_intents`).WithArgs(intentID).
+		WillReturnRows(sqlmock.NewRows([]string{"status"}).AddRow(domain.DeliveryStatusSubmitting))
+	mock.ExpectExec(`UPDATE delivery_attempts SET`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE delivery_intents SET status`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE email_queue SET status = 'failed'.*next_retry_at = NULL`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`INSERT INTO delivery_reconciliations`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	err = repo.RecordAttemptOutcome(context.Background(), "workspace-1", attemptID, claimToken, domain.DeliveryAttemptOutcome{
+		Status: domain.DeliveryStatusUnknown, ErrorCategory: "transport",
+		ErrorDetail: "connection reset after submit", OccurredAt: time.Now().UTC(),
+	})
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestDeliveryRepositoryConfirmedOutcomeCompletesQueueWithoutDeleting(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	repo := NewDeliveryRepositoryWithDB(db)
+	intentID := "11111111-1111-4111-8111-111111111111"
+	attemptID := "44444444-4444-4444-8444-444444444444"
+	claimToken := "33333333-3333-4333-8333-333333333333"
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`SELECT intent_id, status FROM delivery_attempts`).WithArgs(attemptID, claimToken).
+		WillReturnRows(sqlmock.NewRows([]string{"intent_id", "status"}).AddRow(intentID, domain.DeliveryStatusProviderAccepted))
+	mock.ExpectQuery(`SELECT status FROM delivery_intents`).WithArgs(intentID).
+		WillReturnRows(sqlmock.NewRows([]string{"status"}).AddRow(domain.DeliveryStatusProviderAccepted))
+	mock.ExpectExec(`UPDATE delivery_attempts SET`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE delivery_intents SET status`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE email_queue SET status = 'confirmed'.*completed_at`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	err = repo.RecordAttemptOutcome(context.Background(), "workspace-1", attemptID, claimToken, domain.DeliveryAttemptOutcome{
+		Status: domain.DeliveryStatusConfirmed, ProviderMessageID: "provider-1", OccurredAt: time.Now().UTC(),
+	})
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}

@@ -263,3 +263,186 @@ func (r *DeliveryPostgresRepository) TransitionIntent(ctx context.Context, works
 	}
 	return rows == 1, nil
 }
+
+func (r *DeliveryPostgresRepository) StartAttempt(ctx context.Context, workspaceID string, start domain.DeliveryAttemptStart) (domain.DeliveryAttempt, error) {
+	var attempt domain.DeliveryAttempt
+	if start.IntentID == "" || start.Provider == "" || start.ClaimToken == "" {
+		return attempt, errors.New("intent, provider and claim token are required to start a delivery attempt")
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return attempt, fmt.Errorf("get workspace database: %w", err)
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return attempt, fmt.Errorf("begin delivery attempt: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var effectKey, requestHash string
+	var intentStatus domain.DeliveryStatus
+	if err := tx.QueryRowContext(ctx, `SELECT effect_key, request_hash, status
+		FROM delivery_intents WHERE id = $1 FOR UPDATE`, start.IntentID).
+		Scan(&effectKey, &requestHash, &intentStatus); err != nil {
+		return attempt, fmt.Errorf("lock delivery intent for attempt: %w", err)
+	}
+	if intentStatus == domain.DeliveryStatusTransientFailed {
+		if _, err := tx.ExecContext(ctx, `UPDATE delivery_intents SET status = 'queued', updated_at = CURRENT_TIMESTAMP
+			WHERE id = $1 AND status = 'transient_failed'`, start.IntentID); err != nil {
+			return attempt, fmt.Errorf("requeue transient delivery intent: %w", err)
+		}
+		intentStatus = domain.DeliveryStatusQueued
+	}
+	if intentStatus != domain.DeliveryStatusQueued {
+		return attempt, fmt.Errorf("delivery intent %s cannot start from %s", start.IntentID, intentStatus)
+	}
+
+	var blocked bool
+	if err := tx.QueryRowContext(ctx, `SELECT EXISTS (
+		SELECT 1 FROM delivery_attempts WHERE intent_id = $1
+		AND status IN ('submitting', 'provider_accepted', 'unknown')
+	)`, start.IntentID).Scan(&blocked); err != nil {
+		return attempt, fmt.Errorf("inspect active delivery attempt: %w", err)
+	}
+	if blocked {
+		return attempt, fmt.Errorf("delivery intent %s already has an unresolved attempt", start.IntentID)
+	}
+
+	var attemptNo int
+	if err := tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(attempt_no), 0) + 1
+		FROM delivery_attempts WHERE intent_id = $1`, start.IntentID).Scan(&attemptNo); err != nil {
+		return attempt, fmt.Errorf("allocate delivery attempt number: %w", err)
+	}
+	now := time.Now().UTC()
+	attempt = domain.DeliveryAttempt{
+		ID: uuid.New().String(), IntentID: start.IntentID, AttemptNo: attemptNo,
+		Provider: start.Provider, RequestHash: requestHash, Status: domain.DeliveryStatusSubmitting,
+		ClaimToken: start.ClaimToken, EffectKey: effectKey, SubmittedAt: &now,
+		CreatedAt: now, UpdatedAt: now,
+	}
+	if !start.LeaseExpiresAt.IsZero() {
+		lease := start.LeaseExpiresAt.UTC()
+		attempt.LeaseExpiresAt = &lease
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO delivery_attempts (
+		id, intent_id, attempt_no, provider, request_hash, status, claim_token,
+		lease_expires_at, submitted_at, created_at, updated_at
+	) VALUES ($1, $2, $3, $4, $5, 'submitting', NULLIF($6, '')::uuid, $7, $8, $8, $8)`,
+		attempt.ID, attempt.IntentID, attempt.AttemptNo, attempt.Provider, attempt.RequestHash,
+		attempt.ClaimToken, attempt.LeaseExpiresAt, now); err != nil {
+		return domain.DeliveryAttempt{}, fmt.Errorf("insert delivery attempt: %w", err)
+	}
+	result, err := tx.ExecContext(ctx, `UPDATE delivery_intents SET status = 'submitting', updated_at = $2
+		WHERE id = $1 AND status = 'queued'`, start.IntentID, now)
+	if err != nil {
+		return domain.DeliveryAttempt{}, fmt.Errorf("mark delivery intent submitting: %w", err)
+	}
+	if rows, rowsErr := result.RowsAffected(); rowsErr != nil || rows != 1 {
+		if rowsErr != nil {
+			return domain.DeliveryAttempt{}, fmt.Errorf("inspect submitting transition: %w", rowsErr)
+		}
+		return domain.DeliveryAttempt{}, errors.New("delivery intent submitting transition was rejected")
+	}
+	if err := tx.Commit(); err != nil {
+		return domain.DeliveryAttempt{}, fmt.Errorf("commit delivery attempt: %w", err)
+	}
+	return attempt, nil
+}
+
+func (r *DeliveryPostgresRepository) RecordAttemptOutcome(ctx context.Context, workspaceID, attemptID, claimToken string, outcome domain.DeliveryAttemptOutcome) error {
+	if attemptID == "" || claimToken == "" {
+		return errors.New("attempt and claim token are required")
+	}
+	switch outcome.Status {
+	case domain.DeliveryStatusProviderAccepted, domain.DeliveryStatusConfirmed,
+		domain.DeliveryStatusTransientFailed, domain.DeliveryStatusTerminalFailed, domain.DeliveryStatusUnknown:
+	default:
+		return fmt.Errorf("unsupported delivery attempt outcome: %s", outcome.Status)
+	}
+	when := outcome.OccurredAt.UTC()
+	if outcome.OccurredAt.IsZero() {
+		when = time.Now().UTC()
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("get workspace database: %w", err)
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin delivery outcome: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var intentID string
+	var attemptStatus domain.DeliveryStatus
+	if err := tx.QueryRowContext(ctx, `SELECT intent_id, status FROM delivery_attempts
+		WHERE id = $1 AND claim_token = NULLIF($2, '')::uuid FOR UPDATE`, attemptID, claimToken).
+		Scan(&intentID, &attemptStatus); err != nil {
+		return fmt.Errorf("lock delivery attempt outcome: %w", err)
+	}
+	if !attemptStatus.CanTransitionTo(outcome.Status) {
+		return fmt.Errorf("delivery attempt transition %s to %s is not allowed", attemptStatus, outcome.Status)
+	}
+	var intentStatus domain.DeliveryStatus
+	if err := tx.QueryRowContext(ctx, `SELECT status FROM delivery_intents WHERE id = $1 FOR UPDATE`, intentID).
+		Scan(&intentStatus); err != nil {
+		return fmt.Errorf("lock delivery intent outcome: %w", err)
+	}
+	if !intentStatus.CanTransitionTo(outcome.Status) {
+		return fmt.Errorf("delivery intent transition %s to %s is not allowed", intentStatus, outcome.Status)
+	}
+
+	if _, err := tx.ExecContext(ctx, `UPDATE delivery_attempts SET
+		status = $3, provider_message_id = NULLIF($4, ''),
+		accepted_at = CASE WHEN $3 = 'provider_accepted' THEN $5 ELSE accepted_at END,
+		completed_at = CASE WHEN $3 = 'confirmed' THEN $5 ELSE completed_at END,
+		error_category = NULLIF($6, ''), error_code = NULLIF($7, ''), error_detail = NULLIF($8, ''),
+		updated_at = $5
+		WHERE id = $1 AND claim_token = NULLIF($2, '')::uuid`,
+		attemptID, claimToken, outcome.Status, outcome.ProviderMessageID, when,
+		outcome.ErrorCategory, outcome.ErrorCode, outcome.ErrorDetail); err != nil {
+		return fmt.Errorf("update delivery attempt outcome: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE delivery_intents SET status = $2, updated_at = $3 WHERE id = $1`, intentID, outcome.Status, when); err != nil {
+		return fmt.Errorf("update delivery intent outcome: %w", err)
+	}
+
+	var queueResult sql.Result
+	switch outcome.Status {
+	case domain.DeliveryStatusConfirmed:
+		queueResult, err = tx.ExecContext(ctx, `UPDATE email_queue SET status = 'confirmed', completed_at = $3,
+			processed_at = $3, claim_token = NULL, lease_expires_at = NULL, updated_at = $3
+			WHERE delivery_intent_id = $1 AND claim_token = NULLIF($2, '')::uuid`, intentID, claimToken, when)
+	case domain.DeliveryStatusTransientFailed:
+		queueResult, err = tx.ExecContext(ctx, `UPDATE email_queue SET status = 'failed', last_error = $3,
+			next_retry_at = $4, claim_token = NULL, lease_expires_at = NULL, updated_at = $5
+			WHERE delivery_intent_id = $1 AND claim_token = NULLIF($2, '')::uuid`, intentID, claimToken, outcome.ErrorDetail, outcome.NextRetryAt, when)
+	case domain.DeliveryStatusTerminalFailed, domain.DeliveryStatusUnknown:
+		queueResult, err = tx.ExecContext(ctx, `UPDATE email_queue SET status = 'failed', last_error = $3,
+			next_retry_at = NULL, claim_token = NULL, lease_expires_at = NULL, updated_at = $4
+			WHERE delivery_intent_id = $1 AND claim_token = NULLIF($2, '')::uuid`, intentID, claimToken, outcome.ErrorDetail, when)
+	}
+	if err != nil {
+		return fmt.Errorf("update delivery queue outcome: %w", err)
+	}
+	if queueResult != nil {
+		rows, rowsErr := queueResult.RowsAffected()
+		if rowsErr != nil {
+			return fmt.Errorf("inspect delivery queue outcome: %w", rowsErr)
+		}
+		if rows != 1 {
+			return errors.New("delivery queue claim was lost before outcome")
+		}
+	}
+	if outcome.Status == domain.DeliveryStatusUnknown {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO delivery_reconciliations (
+			intent_id, attempt_id, status, reason, next_query_at
+		) VALUES ($1, $2, 'pending', $3, $4)`, intentID, attemptID, outcome.ErrorDetail, when); err != nil {
+			return fmt.Errorf("enqueue unknown delivery reconciliation: %w", err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit delivery outcome: %w", err)
+	}
+	return nil
+}

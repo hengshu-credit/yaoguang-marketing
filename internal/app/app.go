@@ -1251,6 +1251,7 @@ func (a *App) InitServices() error {
 	)
 	// Enable the stop-on-reply just-in-time guard for automation sends.
 	a.emailQueueWorker.SetAutomationRepo(a.automationRepo)
+	a.emailQueueWorker.SetDeliveryRepository(a.deliveryRepo)
 
 	// Initialize Firecrawl service
 	firecrawlService := service.NewFirecrawlService(a.logger)

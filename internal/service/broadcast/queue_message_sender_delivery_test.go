@@ -71,6 +71,14 @@ func (r *captureBroadcastDeliveryRepository) TransitionIntent(context.Context, s
 	return true, nil
 }
 
+func (r *captureBroadcastDeliveryRepository) StartAttempt(context.Context, string, domain.DeliveryAttemptStart) (domain.DeliveryAttempt, error) {
+	return domain.DeliveryAttempt{}, nil
+}
+
+func (r *captureBroadcastDeliveryRepository) RecordAttemptOutcome(context.Context, string, string, string, domain.DeliveryAttemptOutcome) error {
+	return nil
+}
+
 func deliveryQueueSenderFixture(t *testing.T, deliveryRepo domain.DeliveryRepository) (MessageSender, []*domain.ContactWithList, map[string]*domain.Template, *domain.EmailProvider) {
 	t.Helper()
 	ctrl := gomock.NewController(t)

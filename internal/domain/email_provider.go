@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
-	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
 	"github.com/asaskevich/govalidator"
 	"github.com/google/uuid"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
 )
 
 //go:generate mockgen -destination mocks/mock_email_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain EmailServiceInterface
@@ -371,6 +372,10 @@ type SendEmailProviderRequest struct {
 	Content       string         `validate:"required"`
 	Provider      *EmailProvider `validate:"required"`
 	EmailOptions  EmailOptions
+	// IdempotencyKey identifies the logical delivery, not this process attempt.
+	// Adapters must forward it only when the provider has a documented native
+	// idempotency facility; otherwise the delivery ledger remains authoritative.
+	IdempotencyKey string
 
 	// CapturedMessageID, when non-nil, is written by providers that OVERWRITE the RFC
 	// Message-ID at send time (e.g. Amazon SES) with the provider-returned MessageId, so
@@ -379,6 +384,27 @@ type SendEmailProviderRequest struct {
 	// chain. nil for providers/callers that don't need it.
 	CapturedMessageID *string
 }
+
+// ProviderSubmissionResult separates a provider response from local
+// confirmation. Accepted means the provider explicitly acknowledged the
+// request; an error without DefinitiveFailure may have an uncertain outcome.
+type ProviderSubmissionResult struct {
+	Accepted          bool
+	ProviderMessageID string
+	DefinitiveFailure bool
+	RetryAfter        *time.Duration
+}
+
+// EmailSubmissionService is the richer provider boundary used by the delivery
+// worker. EmailServiceInterface remains source compatible for existing callers.
+type EmailSubmissionService interface {
+	SubmitEmail(context.Context, SendEmailProviderRequest, bool) (ProviderSubmissionResult, error)
+}
+
+// EmailProviderSupportsIdempotency documents current adapter capabilities.
+// None of the currently bundled email APIs exposes a native operation-level
+// idempotency key with the semantics required by the delivery ledger.
+func EmailProviderSupportsIdempotency(EmailProviderKind) bool { return false }
 
 // Validate ensures all required fields are present and valid
 func (r *SendEmailProviderRequest) Validate() error {

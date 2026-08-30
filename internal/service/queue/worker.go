@@ -2,7 +2,10 @@ package queue
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,10 +16,11 @@ import (
 
 // EmailQueueWorkerConfig holds configuration for the worker pool
 type EmailQueueWorkerConfig struct {
-	WorkerCount  int           // Number of concurrent workers per workspace (default: 5)
-	PollInterval time.Duration // How often to poll for new work (default: 1s)
-	BatchSize    int           // How many emails to fetch per poll (default: 50)
-	MaxRetries   int           // Max retry attempts before permanent failure (default: 3)
+	WorkerCount   int           // Number of concurrent workers per workspace (default: 5)
+	PollInterval  time.Duration // How often to poll for new work (default: 1s)
+	BatchSize     int           // How many emails to fetch per poll (default: 50)
+	MaxRetries    int           // Max retry attempts before permanent failure (default: 3)
+	LeaseDuration time.Duration // Ownership lease for an atomically claimed batch
 
 	// Circuit breaker settings
 	CircuitBreakerThreshold int           // Provider errors before opening circuit (default: 5)
@@ -30,6 +34,7 @@ func DefaultWorkerConfig() *EmailQueueWorkerConfig {
 		PollInterval:            1 * time.Second,
 		BatchSize:               50,
 		MaxRetries:              3,
+		LeaseDuration:           2 * time.Minute,
 		CircuitBreakerThreshold: 5,
 		CircuitBreakerCooldown:  getCircuitBreakerCooldown(),
 	}
@@ -47,6 +52,7 @@ type EmailQueueWorker struct {
 	workspaceRepo      domain.WorkspaceRepository
 	emailService       domain.EmailServiceInterface
 	messageHistoryRepo domain.MessageHistoryRepository
+	deliveryRepo       domain.DeliveryRepository
 	// automationRepo is optional; when set, the worker performs the stop-on-reply
 	// just-in-time guard before sending automation emails flagged with a
 	// contact_automation_id. Injected via SetAutomationRepo (kept out of the
@@ -225,8 +231,19 @@ func (w *EmailQueueWorker) processWorkspace(workspace *domain.Workspace) {
 		effectiveBatchSize = w.config.BatchSize
 	}
 
-	// Fetch pending emails
-	entries, err := w.queueRepo.FetchPending(w.ctx, workspace.ID, effectiveBatchSize)
+	// Delivery-aware workers claim and lease in one statement. The legacy fetch
+	// path remains available to embedders that have not enabled the ledger yet.
+	var entries []*domain.EmailQueueEntry
+	var err error
+	if w.deliveryRepo != nil {
+		lease := w.config.LeaseDuration
+		if lease <= 0 {
+			lease = 2 * time.Minute
+		}
+		entries, err = w.queueRepo.ClaimPending(w.ctx, workspace.ID, effectiveBatchSize, lease)
+	} else {
+		entries, err = w.queueRepo.FetchPending(w.ctx, workspace.ID, effectiveBatchSize)
+	}
 	if err != nil {
 		w.logger.WithFields(map[string]interface{}{
 			"workspace_id": workspace.ID,
@@ -263,47 +280,65 @@ func (w *EmailQueueWorker) SetAutomationRepo(repo domain.AutomationRepository) {
 	w.automationRepo = repo
 }
 
+// SetDeliveryRepository enables the durable Delivery Intent worker path. It is
+// a setter to keep existing embedders source compatible during the rollout.
+func (w *EmailQueueWorker) SetDeliveryRepository(repo domain.DeliveryRepository) {
+	w.deliveryRepo = repo
+}
+
 func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *domain.EmailQueueEntry) {
+	claimed := entry.ClaimToken != ""
+	deliveryEnabled := claimed && w.deliveryRepo != nil && entry.DeliveryIntentID != ""
 	// Get the integration to retrieve the email provider (needed for circuit breaker check)
 	integration := workspace.GetIntegrationByID(entry.IntegrationID)
 	if integration == nil {
 		// Mark as processing first to increment attempts, then handle error
-		if err := w.queueRepo.MarkAsProcessing(w.ctx, workspace.ID, entry.ID); err != nil {
-			w.logger.WithFields(map[string]interface{}{
-				"entry_id": entry.ID,
-				"error":    err.Error(),
-			}).Warn("Failed to mark entry as processing")
-			return
+		if !claimed {
+			if err := w.queueRepo.MarkAsProcessing(w.ctx, workspace.ID, entry.ID); err != nil {
+				w.logger.WithFields(map[string]interface{}{
+					"entry_id": entry.ID,
+					"error":    err.Error(),
+				}).Warn("Failed to mark entry as processing")
+				return
+			}
 		}
 		w.handleError(workspace, entry, fmt.Errorf("integration not found: %s", entry.IntegrationID), nil)
 		return
 	}
 
-	// Check circuit breaker BEFORE MarkAsProcessing to avoid incrementing attempts
+	// Check circuit breaker before starting a provider attempt. A claimed row is
+	// released through its ownership token so another worker cannot race it.
 	if w.circuitBreaker.IsOpen(entry.IntegrationID) {
 		w.logger.WithFields(map[string]interface{}{
 			"entry_id":       entry.ID,
 			"integration_id": entry.IntegrationID,
-		}).Debug("Circuit breaker open, scheduling retry without incrementing attempts")
+		}).Debug("Circuit breaker open, scheduling retry without provider submission")
 
-		// Schedule for retry after cooldown WITHOUT incrementing attempts
 		nextRetry := time.Now().Add(w.circuitBreaker.GetConfig().CooldownPeriod)
-		if err := w.queueRepo.SetNextRetry(w.ctx, workspace.ID, entry.ID, nextRetry); err != nil {
+		var retryErr error
+		if claimed {
+			retryErr = w.queueRepo.FailClaim(w.ctx, workspace.ID, entry.ID, entry.ClaimToken, "provider circuit breaker is open", &nextRetry)
+		} else {
+			retryErr = w.queueRepo.SetNextRetry(w.ctx, workspace.ID, entry.ID, nextRetry)
+		}
+		if retryErr != nil {
 			w.logger.WithFields(map[string]interface{}{
 				"entry_id": entry.ID,
-				"error":    err.Error(),
-			}).Warn("Failed to set next retry for circuit breaker skip")
+				"error":    retryErr.Error(),
+			}).Warn("Failed to defer entry for open circuit breaker")
 		}
 		return
 	}
 
 	// Mark as processing (this increments attempts)
-	if err := w.queueRepo.MarkAsProcessing(w.ctx, workspace.ID, entry.ID); err != nil {
-		w.logger.WithFields(map[string]interface{}{
-			"entry_id": entry.ID,
-			"error":    err.Error(),
-		}).Warn("Failed to mark entry as processing, may be processed by another worker")
-		return
+	if !claimed {
+		if err := w.queueRepo.MarkAsProcessing(w.ctx, workspace.ID, entry.ID); err != nil {
+			w.logger.WithFields(map[string]interface{}{
+				"entry_id": entry.ID,
+				"error":    err.Error(),
+			}).Warn("Failed to mark entry as processing, may be processed by another worker")
+			return
+		}
 	}
 
 	// Wait for rate limiter - always use current integration rate limit (not stale payload value)
@@ -367,15 +402,46 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 				"contact_automation_id": *entry.Payload.ContactAutomationID,
 				"status":                string(ca.Status),
 			}).Info("Skipping automation email: journey no longer active (stop-on-reply)")
-			// Remove the entry from the queue without sending.
-			if delErr := w.queueRepo.MarkAsSent(w.ctx, workspace.ID, entry.ID); delErr != nil {
+			// Complete the owned row without sending. Delivery-backed automation
+			// entries also move their logical intent to cancelled.
+			if deliveryEnabled {
+				_, _ = w.deliveryRepo.TransitionIntent(w.ctx, workspace.ID, entry.DeliveryIntentID, domain.DeliveryStatusQueued, domain.DeliveryStatusCancelled, time.Now().UTC())
+			}
+			var delErr error
+			if claimed {
+				delErr = w.queueRepo.CompleteClaim(w.ctx, workspace.ID, entry.ID, entry.ClaimToken, time.Now().UTC())
+			} else {
+				delErr = w.queueRepo.MarkAsSent(w.ctx, workspace.ID, entry.ID)
+			}
+			if delErr != nil {
 				w.logger.WithFields(map[string]interface{}{
 					"entry_id": entry.ID,
 					"error":    delErr.Error(),
-				}).Warn("Failed to remove cancelled (stop-on-reply) entry")
+				}).Warn("Failed to complete cancelled (stop-on-reply) entry")
 			}
 			return
 		}
+	}
+
+	var deliveryAttempt *domain.DeliveryAttempt
+	if deliveryEnabled {
+		leaseExpiresAt := time.Time{}
+		if entry.LeaseExpiresAt != nil {
+			leaseExpiresAt = *entry.LeaseExpiresAt
+		}
+		attempt, startErr := w.deliveryRepo.StartAttempt(w.ctx, workspace.ID, domain.DeliveryAttemptStart{
+			IntentID: entry.DeliveryIntentID, Provider: string(integration.EmailProvider.Kind),
+			ClaimToken: entry.ClaimToken, LeaseExpiresAt: leaseExpiresAt,
+		})
+		if startErr != nil {
+			w.logger.WithFields(map[string]interface{}{
+				"entry_id": entry.ID,
+				"error":    startErr.Error(),
+			}).Error("Failed to persist submitting state; provider was not called")
+			return
+		}
+		deliveryAttempt = &attempt
+		request.IdempotencyKey = attempt.EffectKey
 	}
 
 	// Stop-on-reply: persist the matchable message_history row (carrying smtp_message_id)
@@ -384,11 +450,24 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 	// window before the post-send upsert. The post-send upsert below preserves the value
 	// (ON CONFLICT COALESCE). Only matters for automation sends where we set the Message-ID.
 	if entry.SourceType == domain.EmailQueueSourceAutomation && domain.ProviderSetsOwnMessageID(entry.ProviderKind) {
-		w.upsertMessageHistory(w.ctx, workspace.ID, workspace.Settings.SecretKey, entry, "", nil)
+		if historyErr := w.upsertMessageHistory(w.ctx, workspace.ID, workspace.Settings.SecretKey, entry, "", nil); historyErr != nil && deliveryAttempt != nil {
+			w.recordDeliveryFailure(workspace, entry, *deliveryAttempt, historyErr, nil, false)
+			return
+		}
 	}
 
-	// Send the email
-	err := w.emailService.SendEmail(w.ctx, *request, true) // isMarketing = true
+	// Send the email through the richer submission boundary when available.
+	var submission domain.ProviderSubmissionResult
+	var err error
+	if submitter, ok := w.emailService.(domain.EmailSubmissionService); ok {
+		submission, err = submitter.SubmitEmail(w.ctx, *request, true)
+	} else {
+		err = w.emailService.SendEmail(w.ctx, *request, true)
+		if err == nil {
+			submission.Accepted = true
+			submission.ProviderMessageID = capturedMessageID
+		}
+	}
 	if err != nil {
 		// Classify the error
 		classifiedErr := w.errorClassifier.Classify(err, integration.EmailProvider.Kind)
@@ -406,18 +485,68 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 		// Record failure to circuit breaker (only counts provider errors)
 		w.circuitBreaker.RecordFailure(entry.IntegrationID, classifiedErr)
 
-		w.handleError(workspace, entry, err, classifiedErr)
+		if deliveryAttempt != nil {
+			w.recordDeliveryFailure(workspace, entry, *deliveryAttempt, err, classifiedErr, isUncertainProviderError(err))
+		} else {
+			w.handleError(workspace, entry, err, classifiedErr)
+		}
+		return
+	}
+	if deliveryAttempt != nil && !submission.Accepted {
+		providerErr := errors.New("provider returned without an explicit acceptance")
+		w.recordDeliveryFailure(workspace, entry, *deliveryAttempt, providerErr, nil, true)
 		return
 	}
 
 	// Record success to reset circuit breaker
 	w.circuitBreaker.RecordSuccess(entry.IntegrationID)
+	if deliveryAttempt != nil {
+		providerMessageID := submission.ProviderMessageID
+		if providerMessageID == "" {
+			providerMessageID = capturedMessageID
+		}
+		acceptedAt := time.Now().UTC()
+		if outcomeErr := w.deliveryRepo.RecordAttemptOutcome(w.ctx, workspace.ID, deliveryAttempt.ID, entry.ClaimToken, domain.DeliveryAttemptOutcome{
+			Status: domain.DeliveryStatusProviderAccepted, ProviderMessageID: providerMessageID, OccurredAt: acceptedAt,
+		}); outcomeErr != nil {
+			w.logger.WithFields(map[string]interface{}{
+				"entry_id": entry.ID,
+				"error":    outcomeErr.Error(),
+			}).Error("Provider accepted email but local accepted state was not persisted; retry is blocked by submitting attempt")
+			return
+		}
+		if historyErr := w.upsertMessageHistory(w.ctx, workspace.ID, workspace.Settings.SecretKey, entry, providerMessageID, nil); historyErr != nil {
+			w.logger.WithFields(map[string]interface{}{
+				"entry_id": entry.ID,
+				"error":    historyErr.Error(),
+			}).Error("Provider accepted email but message history confirmation failed; leaving provider_accepted for reconciliation")
+			return
+		}
+		if outcomeErr := w.deliveryRepo.RecordAttemptOutcome(w.ctx, workspace.ID, deliveryAttempt.ID, entry.ClaimToken, domain.DeliveryAttemptOutcome{
+			Status: domain.DeliveryStatusConfirmed, ProviderMessageID: providerMessageID, OccurredAt: time.Now().UTC(),
+		}); outcomeErr != nil {
+			w.logger.WithFields(map[string]interface{}{
+				"entry_id": entry.ID,
+				"error":    outcomeErr.Error(),
+			}).Error("Provider accepted email but final confirmation failed; leaving provider_accepted for reconciliation")
+			return
+		}
+		w.logDeliverySuccess(workspace, entry)
+		return
+	}
 
-	// Mark as sent
-	if err := w.queueRepo.MarkAsSent(w.ctx, workspace.ID, entry.ID); err != nil {
+	// Complete legacy claimed rows without deleting them; old non-claim callers
+	// retain the historical deletion behavior.
+	var completeErr error
+	if claimed {
+		completeErr = w.queueRepo.CompleteClaim(w.ctx, workspace.ID, entry.ID, entry.ClaimToken, time.Now().UTC())
+	} else {
+		completeErr = w.queueRepo.MarkAsSent(w.ctx, workspace.ID, entry.ID)
+	}
+	if completeErr != nil {
 		w.logger.WithFields(map[string]interface{}{
 			"entry_id": entry.ID,
-			"error":    err.Error(),
+			"error":    completeErr.Error(),
 		}).Error("Failed to mark email as sent")
 		return
 	}
@@ -444,7 +573,10 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 // handleError handles a send error, scheduling retry or deleting permanently failed entries
 // classifiedErr may be nil for internal errors (e.g., integration not found)
 func (w *EmailQueueWorker) handleError(workspace *domain.Workspace, entry *domain.EmailQueueEntry, sendErr error, classifiedErr *emailerror.ClassifiedError) {
-	entry.Attempts++ // Increment since MarkAsProcessing already did this
+	claimed := entry.ClaimToken != ""
+	if !claimed {
+		entry.Attempts++ // MarkAsProcessing increments the stored value on the legacy path.
+	}
 
 	// Determine if this is a permanent failure (non-retryable recipient error or max attempts)
 	isPermanent := entry.Attempts >= entry.MaxAttempts
@@ -478,11 +610,17 @@ func (w *EmailQueueWorker) handleError(workspace *domain.Workspace, entry *domai
 			"attempts":   entry.Attempts,
 		}).Warn("Email permanently failed")
 
-		if err := w.queueRepo.Delete(w.ctx, workspace.ID, entry.ID); err != nil {
+		var terminalErr error
+		if claimed {
+			terminalErr = w.queueRepo.FailClaim(w.ctx, workspace.ID, entry.ID, entry.ClaimToken, sendErr.Error(), nil)
+		} else {
+			terminalErr = w.queueRepo.Delete(w.ctx, workspace.ID, entry.ID)
+		}
+		if terminalErr != nil {
 			w.logger.WithFields(map[string]interface{}{
 				"entry_id": entry.ID,
-				"error":    err.Error(),
-			}).Error("Failed to delete permanently failed queue entry")
+				"error":    terminalErr.Error(),
+			}).Error("Failed to persist permanently failed queue entry")
 		}
 
 		// Call failure callback (isPermanent = true)
@@ -494,16 +632,91 @@ func (w *EmailQueueWorker) handleError(workspace *domain.Workspace, entry *domai
 
 	// Schedule retry with exponential backoff
 	nextRetry := domain.CalculateNextRetryTime(entry.Attempts)
-	if err := w.queueRepo.MarkAsFailed(w.ctx, workspace.ID, entry.ID, sendErr.Error(), &nextRetry); err != nil {
+	var retryErr error
+	if claimed {
+		retryErr = w.queueRepo.FailClaim(w.ctx, workspace.ID, entry.ID, entry.ClaimToken, sendErr.Error(), &nextRetry)
+	} else {
+		retryErr = w.queueRepo.MarkAsFailed(w.ctx, workspace.ID, entry.ID, sendErr.Error(), &nextRetry)
+	}
+	if retryErr != nil {
 		w.logger.WithFields(map[string]interface{}{
 			"entry_id": entry.ID,
-			"error":    err.Error(),
+			"error":    retryErr.Error(),
 		}).Error("Failed to mark as failed for retry")
 	}
 
 	// Call failure callback (isPermanent = false, will retry)
 	if w.onEmailFailed != nil {
 		w.onEmailFailed(workspace.ID, entry.SourceType, entry.SourceID, entry.MessageID, sendErr, false)
+	}
+}
+
+func (w *EmailQueueWorker) recordDeliveryFailure(workspace *domain.Workspace, entry *domain.EmailQueueEntry, attempt domain.DeliveryAttempt, sendErr error, classifiedErr *emailerror.ClassifiedError, uncertain bool) {
+	status := domain.DeliveryStatusTransientFailed
+	if uncertain {
+		status = domain.DeliveryStatusUnknown
+	} else if entry.Attempts >= entry.MaxAttempts || (classifiedErr != nil && !classifiedErr.Retryable) {
+		status = domain.DeliveryStatusTerminalFailed
+	}
+	var nextRetryAt *time.Time
+	if status == domain.DeliveryStatusTransientFailed {
+		next := domain.CalculateNextRetryTime(entry.Attempts)
+		nextRetryAt = &next
+	}
+	category, code := "internal", ""
+	if classifiedErr != nil {
+		category = string(classifiedErr.Type)
+		if classifiedErr.HTTPStatus != 0 {
+			code = fmt.Sprintf("http_%d", classifiedErr.HTTPStatus)
+		}
+	}
+	outcomeErr := w.deliveryRepo.RecordAttemptOutcome(w.ctx, workspace.ID, attempt.ID, entry.ClaimToken, domain.DeliveryAttemptOutcome{
+		Status: status, ErrorCategory: category, ErrorCode: code,
+		ErrorDetail: sendErr.Error(), NextRetryAt: nextRetryAt, OccurredAt: time.Now().UTC(),
+	})
+	if outcomeErr != nil {
+		w.logger.WithFields(map[string]interface{}{
+			"entry_id": entry.ID,
+			"status":   status,
+			"error":    outcomeErr.Error(),
+		}).Error("Failed to persist delivery attempt outcome; unresolved attempt blocks retry")
+		return
+	}
+	_ = w.upsertMessageHistory(w.ctx, workspace.ID, workspace.Settings.SecretKey, entry, "", sendErr)
+	if w.onEmailFailed != nil {
+		w.onEmailFailed(workspace.ID, entry.SourceType, entry.SourceID, entry.MessageID, sendErr, status != domain.DeliveryStatusTransientFailed)
+	}
+}
+
+func isUncertainProviderError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		return true
+	}
+	var networkErr net.Error
+	if errors.As(err, &networkErr) && networkErr.Timeout() {
+		return true
+	}
+	message := strings.ToLower(err.Error())
+	for _, marker := range []string{"connection reset", "unexpected eof", "broken pipe", "timeout awaiting response", "stream error"} {
+		if strings.Contains(message, marker) {
+			return true
+		}
+	}
+	return false
+}
+
+func (w *EmailQueueWorker) logDeliverySuccess(workspace *domain.Workspace, entry *domain.EmailQueueEntry) {
+	w.logger.WithFields(map[string]interface{}{
+		"entry_id": entry.ID, "delivery_intent_id": entry.DeliveryIntentID,
+		"message_id": entry.MessageID, "recipient": entry.ContactEmail,
+		"source_type": entry.SourceType, "source_id": entry.SourceID,
+		"workspace_id": workspace.ID,
+	}).Debug("Email delivery confirmed")
+	if w.onEmailSent != nil {
+		w.onEmailSent(workspace.ID, entry.SourceType, entry.SourceID, entry.MessageID)
 	}
 }
 
@@ -517,7 +730,7 @@ func (w *EmailQueueWorker) upsertMessageHistory(
 	entry *domain.EmailQueueEntry,
 	capturedMessageID string,
 	sendErr error,
-) {
+) error {
 	now := time.Now().UTC()
 
 	message := &domain.MessageHistory{
@@ -577,7 +790,9 @@ func (w *EmailQueueWorker) upsertMessageHistory(
 			"message_id": entry.MessageID,
 			"error":      err.Error(),
 		}).Warn("Failed to upsert message history")
+		return err
 	}
+	return nil
 }
 
 // GetStats returns statistics about the rate limiters

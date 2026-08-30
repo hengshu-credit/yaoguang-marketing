@@ -204,6 +204,22 @@ func (s *EmailService) SendEmail(ctx context.Context, request domain.SendEmailPr
 	return providerService.SendEmail(ctx, request)
 }
 
+// SubmitEmail exposes the provider acknowledgement separately from local
+// delivery confirmation. Provider adapters that capture a message id write it
+// through CapturedMessageID; other adapters still return an explicit accepted
+// result when their SendEmail call completes successfully.
+func (s *EmailService) SubmitEmail(ctx context.Context, request domain.SendEmailProviderRequest, isMarketing bool) (domain.ProviderSubmissionResult, error) {
+	err := s.SendEmail(ctx, request, isMarketing)
+	if err != nil {
+		return domain.ProviderSubmissionResult{}, err
+	}
+	result := domain.ProviderSubmissionResult{Accepted: true}
+	if request.CapturedMessageID != nil {
+		result.ProviderMessageID = *request.CapturedMessageID
+	}
+	return result, nil
+}
+
 // getProviderService returns the appropriate email provider service based on provider kind
 func (s *EmailService) getProviderService(providerKind domain.EmailProviderKind) (domain.EmailProviderService, error) {
 	switch providerKind {
