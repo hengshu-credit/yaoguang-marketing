@@ -64,12 +64,12 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
   const { withData = false } = config
 
   // Mock config.js to provide app configuration
-  await page.route('**/config.js', (route: Route) =>
+  await page.route('**/config.js*', (route: Route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/javascript',
       body: `
-        window.API_URL = "https://localapi.notifuse.com:4000";
+        window.API_ENDPOINT = "https://localapi.notifuse.com:4000";
         window.ROOT_EMAIL = "test@example.com";
         window.IS_INSTALLED = true;
       `

@@ -160,6 +160,7 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
                 <Button
                   type="text"
                   size="small"
+                  aria-label={t`Delete Automation`}
                   icon={<FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />}
                   disabled={!permissions?.automations?.write}
                 />
@@ -179,6 +180,7 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
               <Button
                 type="text"
                 size="small"
+                aria-label={t`Edit Automation`}
                 icon={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
                 onClick={() => onEdit(automation)}
                 disabled={!permissions?.automations?.write}
@@ -191,6 +193,7 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
             <Button
               type="text"
               size="small"
+              aria-label={t`View Flow Stats`}
               icon={<PieChart size={14} style={{ opacity: 0.7 }} />}
               onClick={handleOpenDrawer}
             />
@@ -236,6 +239,7 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
                 <Button
                   type="text"
                   size="small"
+                  aria-label={t`Pause Automation`}
                   icon={<FontAwesomeIcon icon={faCirclePause} style={{ opacity: 0.7 }} />}
                   disabled={!permissions?.automations?.write}
                 />

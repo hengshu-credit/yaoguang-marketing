@@ -196,12 +196,30 @@ th.ant-table-cell.translations-fixed-col {
 }
 
 @media (max-width: 767px) {
+  .workspace-mobile-nav-mask {
+    left: 250px;
+    width: auto;
+  }
+
   .workspace-sider:not(.ant-layout-sider-collapsed) {
     box-shadow: 8px 0 24px rgba(15, 23, 42, 0.16);
   }
 
   .workspace-header-actions {
     flex: 0 0 auto;
+  }
+
+  .workspace-header .ant-btn,
+  .workspace-main-layout .ant-btn,
+  .workspace-sider .ant-btn {
+    min-width: 44px;
+    min-height: 44px;
+    height: auto;
+  }
+
+  .workspace-sider-nav .ant-menu-item {
+    min-height: 44px;
+    line-height: 44px;
   }
 }
 
