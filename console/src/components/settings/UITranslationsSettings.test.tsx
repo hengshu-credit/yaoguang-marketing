@@ -180,6 +180,20 @@ describe('UITranslationsSettings', () => {
     expect(firstDataRow?.querySelectorAll('td.translations-fixed-col')).toHaveLength(2)
   })
 
+  it('keeps the declared frozen-column widths during horizontal scrolling', async () => {
+    renderSettings()
+
+    const region = await screen.findByRole('region', { name: 'Workspace UI translations' })
+    const bodyTable = region.querySelector<HTMLTableElement>('.ant-table-body table')
+    const columns = bodyTable?.querySelectorAll('col')
+
+    expect(bodyTable).not.toBeNull()
+    expect(bodyTable?.getAttribute('style')).toContain('table-layout: fixed')
+    expect(
+      [...(columns ?? [])].slice(0, 2).map((column) => column.getAttribute('style'))
+    ).toEqual(['width: 260px;', 'width: 290px;'])
+  })
+
   it('expands and collapses hierarchy rows when their content is clicked', async () => {
     renderSettings()
 

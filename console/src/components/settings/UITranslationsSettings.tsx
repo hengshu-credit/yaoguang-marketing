@@ -36,6 +36,9 @@ interface TranslationTreeNode {
 type RestoreScope = Pick<TranslationItem, 'id' | 'menuKey' | 'pageKey'>
 
 const EMPTY_TRANSLATIONS: UITranslations = {}
+const ITEM_COLUMN_WIDTH = 260
+const TRANSLATION_COLUMN_WIDTH = 290
+const TRANSLATION_TABLE_WIDTH = ITEM_COLUMN_WIDTH + locales.length * TRANSLATION_COLUMN_WIDTH
 
 export function UITranslationsSettings({
   workspace,
@@ -187,7 +190,7 @@ export function UITranslationsSettings({
         title: t`Item`,
         key: 'item',
         fixed: 'left',
-        width: 260,
+        width: ITEM_COLUMN_WIDTH,
         onHeaderCell: () => ({ className: 'translations-fixed-col' }),
         onCell: () => ({ className: 'translations-fixed-col' }),
         render: (_, record) => {
@@ -232,7 +235,7 @@ export function UITranslationsSettings({
           </Space>
         ),
         key: locale,
-        width: 290,
+        width: TRANSLATION_COLUMN_WIDTH,
         fixed: index === 0 ? ('left' as const) : undefined,
         onHeaderCell: () => ({
           className: index === 0 ? 'translations-fixed-col' : ''
@@ -358,7 +361,7 @@ export function UITranslationsSettings({
             loading={loading}
             pagination={false}
             size="small"
-            scroll={{ x: 'max-content', y: 'calc(100vh - 360px)' }}
+            scroll={{ x: TRANSLATION_TABLE_WIDTH, y: 'calc(100vh - 360px)' }}
             expandable={{
               expandedRowKeys: searchExpandedKeys,
               onExpandedRowsChange: (keys) => setExpandedKeys([...keys]),
