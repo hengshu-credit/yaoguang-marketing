@@ -5,15 +5,12 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useLingui } from '@lingui/react/macro'
 import md5 from 'blueimp-md5'
 import {
-  faPaperPlane,
   faFileLines,
   faQuestionCircle
 } from '@fortawesome/free-regular-svg-icons'
 import {
   faPlus,
   faPowerOff,
-  faTerminal,
-  faBarsStaggered,
   faAngleLeft,
   faAngleRight
 } from '@fortawesome/free-solid-svg-icons'
@@ -31,27 +28,20 @@ import { createEmptyPermissions, createFullPermissions } from '../services/api/p
 import { isRootUser } from '../services/api/auth'
 import {
   AppstoreOutlined,
-  FolderOpenOutlined,
-  LineChartOutlined,
+  BarChartOutlined,
+  FileTextOutlined,
+  RocketOutlined,
+  SendOutlined,
   SettingOutlined,
+  ThunderboltOutlined,
   WarningOutlined,
   DownOutlined,
   MenuOutlined,
-  TeamOutlined
+  TeamOutlined,
+  UsergroupAddOutlined
 } from '@ant-design/icons'
 
 const { Content, Sider, Header } = Layout
-
-/** Web analytics sub-entries, mirroring the routes under /web-analytics. */
-const WEB_ANALYTICS_SECTIONS = ['dashboard', 'live', 'explore', 'goals', 'filters', 'annotations']
-
-/** Collapsible sidebar groups, and the path fragments living inside each. */
-const MENU_GROUPS: Record<string, string[]> = {
-  'web-analytics': ['/web-analytics'],
-  content: ['/templates', '/blog', '/file-manager']
-}
-
-type MenuItem = NonNullable<MenuProps['items']>[number]
 
 // Helper function to generate Gravatar URL from email
 const getGravatarUrl = (email: string | undefined, size: number = 32): string => {
@@ -66,7 +56,9 @@ export function WorkspaceLayout() {
   const { signout, workspaces, user, refreshWorkspaces } = useAuth()
   const workspaceTranslations = workspaces.find((workspace) => workspace.id === workspaceId)?.settings.ui_translations
   const navigate = useNavigate()
-  const [narrow, setNarrow] = useState(() => window.innerWidth < 768)
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth)
+  const narrow = viewportWidth < 768
+  const compactHeader = viewportWidth < 1024
   const [collapsed, setCollapsed] = useState(() => window.innerWidth < 768)
   const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null)
   const [loadingPermissions, setLoadingPermissions] = useState(true)
@@ -78,8 +70,9 @@ export function WorkspaceLayout() {
 
   useEffect(() => {
     const updateViewport = () => {
-      const nextNarrow = window.innerWidth < 768
-      setNarrow(nextNarrow)
+      const nextWidth = window.innerWidth
+      const nextNarrow = nextWidth < 768
+      setViewportWidth(nextWidth)
       setCollapsed(nextNarrow)
     }
     window.addEventListener('resize', updateViewport)
@@ -89,27 +82,6 @@ export function WorkspaceLayout() {
   useEffect(() => {
     if (narrow) setCollapsed(true)
   }, [currentPath, narrow])
-
-  // The web analytics settings live at /settings/web-analytics and belong to
-  // the settings entry, so a settings path belongs to no group.
-  const activeGroup = currentPath.includes('/settings')
-    ? null
-    : (Object.entries(MENU_GROUPS).find(([, fragments]) =>
-        fragments.some((fragment) => currentPath.includes(fragment))
-      )?.[0] ?? null)
-  const inWebAnalytics = activeGroup === 'web-analytics'
-
-  const [openKeys, setOpenKeys] = useState<string[]>(activeGroup ? [activeGroup] : [])
-
-  // Entering a group reveals it and leaving reclaims the rows it costs, so the
-  // sidebar only pays for the group you are actually in. One group at a time,
-  // and depending on the two flags rather than the path leaves a manual toggle
-  // alone for as long as you stay put. While collapsed the rail shows flyouts
-  // and rc-menu drives openKeys itself; this restores them on expanding back.
-  useEffect(() => {
-    if (collapsed) return
-    setOpenKeys(activeGroup ? [activeGroup] : [])
-  }, [activeGroup, collapsed])
 
   useEffect(() => {
     void setWorkspaceCatalog(workspaceId, workspaceTranslations ?? {}).catch((error) => {
@@ -170,62 +142,31 @@ export function WorkspaceLayout() {
     return permissions?.read || permissions?.write || false
   }
 
-  // Group titles are plain text, so a click on one only toggles it. Opening a
-  // group also lands on its first entry, which is what the click was reaching
-  // for; closing it goes nowhere, so the caret keeps its meaning. The collapsed
-  // rail opens these submenus on hover, where navigating would follow the mouse.
-  const handleOpenChange: MenuProps['onOpenChange'] = (keys) => {
-    const opened = keys.find((key) => !openKeys.includes(key))
-    setOpenKeys(keys)
-    if (collapsed || !opened) return
-    if (opened === 'web-analytics') {
-      navigate({
-        to: '/console/workspace/$workspaceId/web-analytics/$tab',
-        params: { workspaceId, tab: 'dashboard' }
-      })
-    } else if (opened === 'content') {
-      // Mirrors the first child the group actually renders.
-      if (hasAccess('templates')) {
-        navigate({ to: '/console/workspace/$workspaceId/templates', params: { workspaceId } })
-      } else {
-        navigate({ to: '/console/workspace/$workspaceId/blog', params: { workspaceId } })
-      }
-    }
-  }
-
   // Determine which key should be selected based on the current path
-  let selectedKey = 'analytics' // Default to analytics/dashboard
+  let selectedKey = 'dashboard'
   if (currentPath.includes('/settings')) {
-    // Must be checked before '/web-analytics': the web analytics settings live
-    // at /settings/web-analytics and belong to the settings entry.
     selectedKey = 'settings'
-  } else if (inWebAnalytics) {
-    // /web-analytics alone redirects to the dashboard, so an unrecognized
-    // trailing segment lands on the same entry the user ends up looking at.
-    const section = currentPath.split('/web-analytics/')[1]?.split('/')[0] ?? ''
-    selectedKey = WEB_ANALYTICS_SECTIONS.includes(section)
-      ? `web-analytics-${section}`
-      : 'web-analytics-dashboard'
-  } else if (currentPath.includes('/lists') || currentPath.includes('/audiences')) {
-    selectedKey = 'lists'
-  } else if (currentPath.includes('/templates')) {
-    selectedKey = 'templates'
-  } else if (currentPath.includes('/blog')) {
-    selectedKey = 'blog'
-  } else if (currentPath.includes('/customers')) {
+  } else if (currentPath.includes('/customers') || currentPath.includes('/contacts')) {
     selectedKey = 'customers'
-  } else if (currentPath.includes('/contacts')) {
-    selectedKey = 'contacts'
-  } else if (currentPath.includes('/file-manager')) {
-    selectedKey = 'file-manager'
-  } else if (currentPath.includes('/transactional-notifications')) {
-    selectedKey = 'transactional-notifications'
-  } else if (currentPath.includes('/logs')) {
-    selectedKey = 'logs'
+  } else if (currentPath.includes('/lists') || currentPath.includes('/audiences')) {
+    selectedKey = 'audiences'
   } else if (currentPath.includes('/broadcasts')) {
-    selectedKey = 'broadcasts'
+    selectedKey = 'campaigns'
   } else if (currentPath.includes('/automations')) {
-    selectedKey = 'automations'
+    selectedKey = 'journeys'
+  } else if (
+    currentPath.includes('/templates') ||
+    currentPath.includes('/blog') ||
+    currentPath.includes('/file-manager')
+  ) {
+    selectedKey = 'content'
+  } else if (currentPath.includes('/web-analytics') || currentPath.includes('/analytics')) {
+    selectedKey = 'data'
+  } else if (
+    currentPath.includes('/logs') ||
+    currentPath.includes('/transactional-notifications')
+  ) {
+    selectedKey = 'delivery'
   }
 
   const handleWorkspaceChange = (workspaceId: string) => {
@@ -271,46 +212,9 @@ export function WorkspaceLayout() {
     }
   }
 
-  // Templates, Blog and File Manager are the material you author and reuse.
-  // Built here rather than inline so the group can be dropped entirely when a
-  // member can reach none of it, instead of showing an empty expandable row.
-  // Children carry no icons, matching the Web Analytics submenu.
-  const contentChildren: MenuItem[] = []
-  if (hasAccess('templates')) {
-    contentChildren.push({
-      key: 'templates',
-      label: (
-        <Link to="/console/workspace/$workspaceId/templates" params={{ workspaceId }}>
-          {t`Templates`}
-        </Link>
-      )
-    })
-  }
-  if (hasAccess('workspace')) {
-    contentChildren.push(
-      {
-        key: 'blog',
-        label: (
-          <Link to="/console/workspace/$workspaceId/blog" params={{ workspaceId }}>
-            {t`Blog`}
-          </Link>
-        )
-      },
-      {
-        key: 'file-manager',
-        label: (
-          <Link to="/console/workspace/$workspaceId/file-manager" params={{ workspaceId }}>
-            {t`File Manager`}
-          </Link>
-        )
-      }
-    )
-  }
-
   const menuItems = [
     hasAccess('message_history') && {
-      key: 'analytics',
-      // icon: <FontAwesomeIcon icon={faChartLine} size="sm" style={{ opacity: 0.7 }} />,
+      key: 'dashboard',
       icon: <AppstoreOutlined />,
       label: (
         <Link to="/console/workspace/$workspaceId" params={{ workspaceId }}>
@@ -318,118 +222,25 @@ export function WorkspaceLayout() {
         </Link>
       )
     },
-    hasAccess('web_analytics') && {
-      key: 'web-analytics',
-      icon: <LineChartOutlined />,
-      // A submenu rather than a link: the caret on the right toggles the
-      // section, and handleOpenChange lands on the dashboard when it opens.
-      label: t`Web Analytics`,
-      children: [
-        {
-          key: 'web-analytics-dashboard',
-          label: (
-            <Link
-              to="/console/workspace/$workspaceId/web-analytics/$tab"
-              params={{ workspaceId, tab: 'dashboard' }}
-            >
-              {t`Dashboard`}
-            </Link>
-          )
-        },
-        {
-          key: 'web-analytics-live',
-          label: (
-            <Link to="/console/workspace/$workspaceId/web-analytics/live" params={{ workspaceId }}>
-              {t`Live`}
-            </Link>
-          )
-        },
-        {
-          key: 'web-analytics-explore',
-          label: (
-            <Link
-              to="/console/workspace/$workspaceId/web-analytics/$tab"
-              params={{ workspaceId, tab: 'explore' }}
-            >
-              {t`Explore`}
-            </Link>
-          )
-        },
-        {
-          key: 'web-analytics-goals',
-          label: (
-            <Link
-              to="/console/workspace/$workspaceId/web-analytics/$tab"
-              params={{ workspaceId, tab: 'goals' }}
-            >
-              {t`Goals`}
-            </Link>
-          )
-        },
-        {
-          key: 'web-analytics-filters',
-          label: (
-            <Link
-              to="/console/workspace/$workspaceId/web-analytics/$tab"
-              params={{ workspaceId, tab: 'filters' }}
-            >
-              {t`Filters`}
-            </Link>
-          )
-        },
-        {
-          key: 'web-analytics-annotations',
-          label: (
-            <Link
-              to="/console/workspace/$workspaceId/web-analytics/$tab"
-              params={{ workspaceId, tab: 'annotations' }}
-            >
-              {t`Annotations`}
-            </Link>
-          )
-        }
-      ]
-    },
-    hasAccess('customers') && {
+    (hasAccess('customers') || hasAccess('contacts')) && {
       key: 'customers',
       icon: <TeamOutlined />,
       label: (
-        <Link to="/console/workspace/$workspaceId/customers" params={{ workspaceId }}>
+        <Link
+          to={
+            hasAccess('customers')
+              ? '/console/workspace/$workspaceId/customers'
+              : '/console/workspace/$workspaceId/contacts'
+          }
+          params={{ workspaceId }}
+        >
           {t`Customers`}
         </Link>
       )
     },
-    hasAccess('contacts') && {
-      key: 'contacts',
-      // icon: <ContactsOutlined />,
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="lucide lucide-square-user-round-icon lucide-square-user-round opacity-70"
-        >
-          <path d="M18 21a6 6 0 0 0-12 0" />
-          <circle cx="12" cy="11" r="4" />
-          <rect width="18" height="18" x="3" y="3" rx="2" />
-        </svg>
-      ),
-      label: (
-        <Link to="/console/workspace/$workspaceId/contacts" params={{ workspaceId }}>
-          {t`Contacts`}
-        </Link>
-      )
-    },
     hasAccess('lists') && {
-      key: 'lists',
-      // icon: <FontAwesomeIcon icon={faFolderOpen} size="sm" style={{ opacity: 0.7 }} />,
-      icon: <FolderOpenOutlined />,
+      key: 'audiences',
+      icon: <UsergroupAddOutlined />,
       label: (
         <Link to="/console/workspace/$workspaceId/audiences" params={{ workspaceId }}>
           {t`Audiences`}
@@ -437,81 +248,64 @@ export function WorkspaceLayout() {
       )
     },
     hasAccess('broadcasts') && {
-      key: 'broadcasts',
-      icon: <FontAwesomeIcon icon={faPaperPlane} size="sm" style={{ opacity: 0.7 }} />,
+      key: 'campaigns',
+      icon: <RocketOutlined />,
       label: (
         <Link to="/console/workspace/$workspaceId/broadcasts" params={{ workspaceId }}>
-          {t`Broadcasts`}
+          {t`Marketing Campaigns`}
         </Link>
       )
     },
     hasAccess('automations') && {
-      key: 'automations',
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="lucide lucide-workflow-icon lucide-workflow opacity-70"
-        >
-          <rect width="8" height="8" x="3" y="3" rx="2" />
-          <path d="M7 11v4a2 2 0 0 0 2 2h4" />
-          <rect width="8" height="8" x="13" y="13" rx="2" />
-        </svg>
-      ),
+      key: 'journeys',
+      icon: <ThunderboltOutlined />,
       label: (
         <Link to="/console/workspace/$workspaceId/automations" params={{ workspaceId }}>
-          {t`Automations`}
+          {t`Automation Journeys`}
         </Link>
       )
     },
-    hasAccess('transactional') && {
-      key: 'transactional-notifications',
-      icon: <FontAwesomeIcon icon={faTerminal} size="sm" style={{ opacity: 0.7 }} />,
+    (hasAccess('templates') || hasAccess('workspace')) && {
+      key: 'content',
+      icon: <FileTextOutlined />,
       label: (
         <Link
-          to="/console/workspace/$workspaceId/transactional-notifications"
+          to={
+            hasAccess('templates')
+              ? '/console/workspace/$workspaceId/templates'
+              : '/console/workspace/$workspaceId/blog'
+          }
           params={{ workspaceId }}
         >
-          {t`Transactional`}
+          {t`Content Center`}
         </Link>
       )
     },
-    contentChildren.length > 0 && {
-      key: 'content',
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="lucide lucide-files-icon lucide-files opacity-70"
-        >
-          <path d="M20 7h-3a2 2 0 0 1-2-2V2" />
-          <path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z" />
-          <path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8" />
-        </svg>
-      ),
-      label: t`Content`,
-      children: contentChildren
-    },
-    hasAccess('message_history') && {
-      key: 'logs',
-      icon: <FontAwesomeIcon icon={faBarsStaggered} size="sm" style={{ opacity: 0.7 }} />,
+    hasAccess('web_analytics') && {
+      key: 'data',
+      icon: <BarChartOutlined />,
       label: (
-        <Link to="/console/workspace/$workspaceId/logs" params={{ workspaceId }}>
-          {t`Logs`}
+        <Link
+          to="/console/workspace/$workspaceId/web-analytics/$tab"
+          params={{ workspaceId, tab: 'dashboard' }}
+        >
+          {t`Data Analytics`}
+        </Link>
+      )
+    },
+    (hasAccess('message_history') || hasAccess('transactional')) && {
+      key: 'delivery',
+      icon: <SendOutlined />,
+      label: (
+        <Link
+          to={
+            hasAccess('message_history')
+              ? '/console/workspace/$workspaceId/logs'
+              : '/console/workspace/$workspaceId/transactional-notifications'
+          }
+          params={{ workspaceId }}
+        >
+          {t`Delivery Center`}
         </Link>
       )
     },
@@ -524,12 +318,21 @@ export function WorkspaceLayout() {
         </Link>
       )
     }
-  ].filter((item) => Boolean(item)) as Array<{ key: string; icon: React.ReactNode; label: React.ReactNode }>
+  ].filter((item) => Boolean(item)) as MenuProps['items']
 
   return (
     <ContactsCsvUploadProvider>
       <Layout style={{ minHeight: '100vh', backgroundColor: '#F9F9F9' }}>
         <Layout>
+          {narrow && !collapsed && (
+            <button
+              type="button"
+              className="workspace-mobile-nav-mask"
+              data-testid="workspace-mobile-nav-mask"
+              aria-label={t`Collapse`}
+              onClick={() => setCollapsed(true)}
+            />
+          )}
           <Sider
             width={250}
             collapsedWidth={narrow ? 0 : 80}
@@ -542,7 +345,7 @@ export function WorkspaceLayout() {
               // The nav inside owns the scrolling; the panel must not also
               // scroll, or the logo and the collapse button travel with it.
               overflow: 'hidden',
-              zIndex: 10,
+              zIndex: 12,
               backgroundColor: '#F9F9F9'
             }}
             collapsible
@@ -563,8 +366,6 @@ export function WorkspaceLayout() {
               <Menu
                 mode="inline"
                 selectedKeys={[selectedKey]}
-                openKeys={openKeys}
-                onOpenChange={handleOpenChange}
                 style={{
                   borderRight: 0,
                   backgroundColor: '#F9F9F9',
@@ -608,6 +409,7 @@ export function WorkspaceLayout() {
             </div>
           </Sider>
           <Header
+            className="workspace-header"
             style={{
               position: 'fixed',
               top: 0,
@@ -620,7 +422,7 @@ export function WorkspaceLayout() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              zIndex: 9,
+              zIndex: 10,
               transition: 'width 0.2s'
             }}
           >
@@ -679,8 +481,8 @@ export function WorkspaceLayout() {
                 ]}
               />
             </Space>
-            <Space size="middle">
-              {!narrow && (
+            <Space size="middle" className="workspace-header-actions">
+              {!compactHeader && (
                 <Dropdown
                   trigger={['click']}
                   menu={{
@@ -724,7 +526,7 @@ export function WorkspaceLayout() {
                   </Button>
                 </Dropdown>
               )}
-              {!narrow && <LanguageSwitcher />}
+              {!compactHeader && <LanguageSwitcher />}
               <Dropdown
                 menu={{
                   items: [
@@ -746,8 +548,8 @@ export function WorkspaceLayout() {
                 <Button type="text">
                   <Space size="small">
                     <Avatar src={getGravatarUrl(user?.email)} size={24} />
-                    {!narrow && user?.email}
-                    {!narrow && <DownOutlined style={{ fontSize: '10px' }} />}
+                    {!compactHeader && user?.email}
+                    {!compactHeader && <DownOutlined style={{ fontSize: '10px' }} />}
                   </Space>
                 </Button>
               </Dropdown>

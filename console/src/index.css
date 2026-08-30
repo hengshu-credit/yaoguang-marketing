@@ -69,6 +69,15 @@ th.ant-table-cell.contacts-fixed-col {
   background-color: var(--ant-control-item-bg-active, rgb(244, 240, 255));
 }
 
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
 /* Translation grid: the item and current-language columns stay fixed while
  * the other language columns scroll beneath them. Their cells must be opaque,
  * otherwise input text from a scrolled column remains visible through the
@@ -154,6 +163,46 @@ th.ant-table-cell.translations-fixed-col {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+
+.workspace-mobile-nav-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 11;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: rgba(15, 23, 42, 0.38);
+  cursor: default;
+}
+
+.workspace-header,
+.workspace-header-actions,
+.workspace-main-layout,
+.workspace-main-layout .ant-layout-content {
+  min-width: 0;
+}
+
+.workspace-header-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.workspace-main-layout .ant-table-wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+@media (max-width: 767px) {
+  .workspace-sider:not(.ant-layout-sider-collapsed) {
+    box-shadow: 8px 0 24px rgba(15, 23, 42, 0.16);
+  }
+
+  .workspace-header-actions {
+    flex: 0 0 auto;
+  }
 }
 
 @property --nav-fade-top {

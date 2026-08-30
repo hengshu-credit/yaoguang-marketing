@@ -1,4 +1,5 @@
 import { ConfigProvider, App as AntApp, ThemeConfig } from 'antd'
+import { useEffect } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from '@tanstack/react-router'
 import { I18nProvider } from '@lingui/react'
@@ -18,6 +19,7 @@ import itIT from 'antd/locale/it_IT'
 import zhCN from 'antd/locale/zh_CN'
 import type { Locale as AntdLocale } from 'antd/es/locale'
 import type { Locale } from './i18n'
+import { BRAND } from './constants/brand'
 
 // Every locale in the app's supported set needs an entry: a missing key leaves
 // ConfigProvider without a locale and antd's own strings fall back to English.
@@ -110,6 +112,10 @@ initializeAnalytics()
 // Inner component that uses LocaleContext
 function AppContent() {
   const { locale } = useLocale()
+
+  useEffect(() => {
+    document.title = BRAND.appName
+  }, [])
 
   return (
     // key={locale} forces I18nProvider and all children to remount when locale changes,

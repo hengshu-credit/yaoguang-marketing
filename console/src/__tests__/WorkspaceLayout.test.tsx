@@ -18,12 +18,16 @@ vi.mock('../i18n/locales/zh-CN.po', () => ({
   messages: { Dashboard: ['工作台'] }
 }))
 
+vi.mock('../i18n/locales/en.po', () => ({
+  messages: {}
+}))
+
 // Read at render time, so a test can put the layout on any route before rendering.
 let currentPathname = '/console/workspace/ws1'
 
 vi.mock('@tanstack/react-router', () => ({
   Outlet: () => <div data-testid="outlet" />,
-  Link: ({ children }: { children: ReactNode }) => <a>{children}</a>,
+  Link: ({ children, to }: { children: ReactNode; to: string }) => <a data-to={to}>{children}</a>,
   useParams: () => ({ workspaceId: 'ws1' }),
   useMatches: () => [{ pathname: currentPathname }],
   useNavigate: vi.fn()
@@ -133,8 +137,11 @@ describe('WorkspaceLayout workspace catalog scope', () => {
   })
 })
 
-describe('WorkspaceLayout sidebar groups', () => {
-  beforeEach(signInAsRoot)
+describe('WorkspaceLayout product navigation', () => {
+  beforeEach(() => {
+    i18n.activate('en')
+    signInAsRoot()
+  })
 
   it('shows the approved Yaoguang brand lockup', () => {
     render(<WorkspaceLayout />)
@@ -144,12 +151,51 @@ describe('WorkspaceLayout sidebar groups', () => {
     expect(screen.getByText('观心知意，循光达客')).toBeInTheDocument()
   })
 
-  it('shows and highlights the Customer authority entry', async () => {
-    currentPathname = '/console/workspace/ws1/customers'
+  it('renders the nine approved flat first-level entries', async () => {
     render(<WorkspaceLayout />)
 
-    await screen.findByText('Customers')
-    expect(document.querySelector('.ant-menu-item-selected')?.textContent).toBe('Customers')
+    const expectedEntries = [
+      'Dashboard',
+      'Customers',
+      'Audiences',
+      'Marketing Campaigns',
+      'Automation Journeys',
+      'Content Center',
+      'Data Analytics',
+      'Delivery Center',
+      'Settings'
+    ]
+
+    for (const entry of expectedEntries) {
+      expect(await screen.findByText(entry)).toBeInTheDocument()
+    }
+    expect(document.querySelectorAll('.workspace-sider-nav .ant-menu-item')).toHaveLength(9)
+    expect(document.querySelector('.workspace-sider-nav .ant-menu-submenu')).not.toBeInTheDocument()
+  })
+
+  const selectedLabel = () => document.querySelector('.ant-menu-item-selected')?.textContent ?? null
+
+  it.each([
+    ['/customers', 'Customers'],
+    ['/contacts', 'Customers'],
+    ['/audiences', 'Audiences'],
+    ['/lists', 'Audiences'],
+    ['/broadcasts', 'Marketing Campaigns'],
+    ['/automations', 'Automation Journeys'],
+    ['/templates', 'Content Center'],
+    ['/blog', 'Content Center'],
+    ['/file-manager', 'Content Center'],
+    ['/analytics', 'Data Analytics'],
+    ['/web-analytics/annotations', 'Data Analytics'],
+    ['/logs', 'Delivery Center'],
+    ['/transactional-notifications', 'Delivery Center'],
+    ['/settings/team', 'Settings']
+  ])('maps the legacy %s route to %s', async (path, label) => {
+    currentPathname = `/console/workspace/ws1${path}`
+    render(<WorkspaceLayout />)
+
+    await screen.findByText(label)
+    expect(selectedLabel()).toBe(label)
   })
 
   it('collapses navigation without shifting content on a narrow viewport', async () => {
@@ -170,43 +216,13 @@ describe('WorkspaceLayout sidebar groups', () => {
     await userEvent.click(toggle)
     expect(document.querySelector('.workspace-sider')).not.toHaveClass('ant-layout-sider-collapsed')
     expect((pageLayout as HTMLElement).style.marginLeft).toBe('0px')
+    expect(screen.getByTestId('workspace-mobile-nav-mask')).toBeVisible()
+
+    await userEvent.click(screen.getByTestId('workspace-mobile-nav-mask'))
+    expect(document.querySelector('.workspace-sider')).toHaveClass('ant-layout-sider-collapsed')
   })
 
-  const openGroup = async (label: string) => {
-    render(<WorkspaceLayout />)
-    const title = await screen.findByText(label)
-    await userEvent.click(title)
-    return title
-  }
-
-  it('opens the web analytics dashboard when the collapsed group is clicked', async () => {
-    await openGroup('Web Analytics')
-
-    expect(mockNavigate).toHaveBeenCalledWith({
-      to: '/console/workspace/$workspaceId/web-analytics/$tab',
-      params: { workspaceId: 'ws1', tab: 'dashboard' }
-    })
-  })
-
-  it('does not navigate when the open web analytics group is clicked shut', async () => {
-    const title = await openGroup('Web Analytics')
-    mockNavigate.mockClear()
-
-    await userEvent.click(title)
-
-    expect(mockNavigate).not.toHaveBeenCalled()
-  })
-
-  it('opens templates when the collapsed content group is clicked', async () => {
-    await openGroup('Content')
-
-    expect(mockNavigate).toHaveBeenCalledWith({
-      to: '/console/workspace/$workspaceId/templates',
-      params: { workspaceId: 'ws1' }
-    })
-  })
-
-  it('falls back to the blog when the member cannot read templates', async () => {
+  it('uses the content fallback route when the member cannot read templates', async () => {
     vi.mocked(isRootUser).mockReturnValue(false)
     vi.mocked(workspaceService.getMembers).mockResolvedValue({
       members: [
@@ -217,45 +233,12 @@ describe('WorkspaceLayout sidebar groups', () => {
       ]
     } as never)
 
-    await openGroup('Content')
-
-    expect(mockNavigate).toHaveBeenCalledWith({
-      to: '/console/workspace/$workspaceId/blog',
-      params: { workspaceId: 'ws1' }
-    })
-  })
-})
-
-describe('WorkspaceLayout web analytics entries', () => {
-  beforeEach(signInAsRoot)
-
-  const selectedLabel = () => document.querySelector('.ant-menu-item-selected')?.textContent ?? null
-
-  it('lists Annotations under the Web Analytics group', async () => {
     render(<WorkspaceLayout />)
-    await userEvent.click(await screen.findByText('Web Analytics'))
+    const contentEntry = await screen.findByText('Content Center')
 
-    expect(screen.getByText('Annotations')).toBeInTheDocument()
-  })
-
-  it('highlights the annotations entry on the annotations route', async () => {
-    // WEB_ANALYTICS_SECTIONS is the one registration TypeScript cannot catch:
-    // a section missing from it falls through to the dashboard entry, so the
-    // sidebar says you are somewhere you are not.
-    currentPathname = '/console/workspace/ws1/web-analytics/annotations'
-
-    render(<WorkspaceLayout />)
-    await screen.findByText('Annotations')
-
-    expect(selectedLabel()).toBe('Annotations')
-  })
-
-  it('still highlights the filters entry on the filters route', async () => {
-    currentPathname = '/console/workspace/ws1/web-analytics/filters'
-
-    render(<WorkspaceLayout />)
-    await screen.findByText('Filters')
-
-    expect(selectedLabel()).toBe('Filters')
+    expect(contentEntry.closest('a')).toHaveAttribute(
+      'data-to',
+      '/console/workspace/$workspaceId/blog'
+    )
   })
 })
