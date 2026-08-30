@@ -33,6 +33,7 @@ type BroadcastService struct {
 	dataFeedFetcher      broadcast.DataFeedFetcher
 	apiEndpoint          string
 	deliveryProgressRepo domain.DeliveryManagementRepository
+	marketingPreflight   domain.MarketingPreflightEvaluator
 }
 
 // NewBroadcastService creates a new broadcast service
@@ -81,6 +82,10 @@ func (s *BroadcastService) SetDeliveryProgressRepository(repository domain.Deliv
 	s.deliveryProgressRepo = repository
 }
 
+func (s *BroadcastService) SetMarketingPreflight(evaluator domain.MarketingPreflightEvaluator) {
+	s.marketingPreflight = evaluator
+}
+
 func broadcastProgressSourceVersion(item *domain.Broadcast) string {
 	if item != nil && item.Metadata != nil {
 		if version, ok := item.Metadata["source_version"].(string); ok && strings.TrimSpace(version) != "" {
@@ -123,7 +128,6 @@ func (s *BroadcastService) CreateBroadcast(ctx context.Context, request *domain.
 			"Insufficient permissions: write access to broadcasts required",
 		)
 	}
-
 	// Validate the request
 	broadcast, err := request.Validate()
 	if err != nil {
@@ -323,6 +327,14 @@ func (s *BroadcastService) ScheduleBroadcast(ctx context.Context, request *domai
 			domain.PermissionTypeWrite,
 			"Insufficient permissions: write access to broadcasts required",
 		)
+	}
+	if s.marketingPreflight != nil {
+		if err := s.marketingPreflight.ValidateBroadcastPreflight(ctx, domain.MarketingPreflightRequest{
+			WorkspaceID: request.WorkspaceID,
+			BroadcastID: request.ID,
+		}, request.PreflightHash); err != nil {
+			return err
+		}
 	}
 
 	// Validate the request

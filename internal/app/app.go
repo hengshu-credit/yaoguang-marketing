@@ -172,6 +172,7 @@ type App struct {
 	campaignSnapshotService          *service.CampaignSnapshotService
 	importJobService                 *service.ImportJobService
 	frequencyPolicyService           *service.FrequencyPolicyService
+	marketingPreflightService        *service.MarketingPreflightService
 	channelMessageService            *service.ChannelMessageService
 	notificationCenterService        *service.NotificationCenterService
 	demoService                      *service.DemoService
@@ -978,6 +979,15 @@ func (a *App) InitServices() error {
 	if progressRepository, ok := a.deliveryRepo.(domain.DeliveryManagementRepository); ok {
 		a.broadcastService.SetDeliveryProgressRepository(progressRepository)
 	}
+	preflightSource, err := service.NewBroadcastMarketingPreflightSource(a.broadcastRepo, a.workspaceRepo, a.templateService)
+	if err != nil {
+		return fmt.Errorf("failed to initialize marketing preflight source: %w", err)
+	}
+	a.marketingPreflightService, err = service.NewMarketingPreflightService(preflightSource, a.authService, time.Now)
+	if err != nil {
+		return fmt.Errorf("failed to initialize marketing preflight service: %w", err)
+	}
+	a.broadcastService.SetMarketingPreflight(a.marketingPreflightService)
 
 	// Create broadcast factory with refactored components
 	broadcastConfig := broadcast.DefaultConfig()
@@ -1522,6 +1532,7 @@ func (a *App) InitHandlers() error {
 	templateBlockHandler := httpHandler.NewTemplateBlockHandler(a.templateBlockService, getJWTSecret, a.logger)
 	emailHandler := httpHandler.NewEmailHandler(a.emailService, getJWTSecret, a.logger, a.config.Security.SecretKey)
 	broadcastHandler := httpHandler.NewBroadcastHandler(a.broadcastService, a.templateService, getJWTSecret, a.logger, a.config.IsDemo())
+	broadcastHandler.SetMarketingPreflight(a.marketingPreflightService)
 	blogHandler := httpHandler.NewBlogHandler(a.blogService, getJWTSecret, a.logger, a.config.IsDemo())
 	blogThemeHandler := httpHandler.NewBlogThemeHandler(a.blogService, getJWTSecret, a.logger)
 	taskHandler := httpHandler.NewTaskHandler(

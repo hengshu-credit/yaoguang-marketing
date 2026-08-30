@@ -382,6 +382,8 @@ ScheduleBroadcastRequest:
   required:
     - workspace_id
     - id
+    - send_now
+    - preflight_hash
   properties:
     workspace_id:
       type: string
@@ -395,6 +397,9 @@ ScheduleBroadcastRequest:
       type: boolean
       description: Send immediately instead of scheduling
       example: false
+    preflight_hash:
+      type: string
+      description: Opaque, short-lived summary hash returned by broadcasts.preflight. The server recalculates it before scheduling.
     scheduled_date:
       type: string
       pattern: '^\d{4}-\d{2}-\d{2}$'
@@ -413,6 +418,57 @@ ScheduleBroadcastRequest:
       type: boolean
       description: Send at scheduled time in each recipient's timezone
       example: false
+
+MarketingPreflightRequest:
+  type: object
+  required: [workspace_id, broadcast_id]
+  properties:
+    workspace_id:
+      type: string
+    broadcast_id:
+      type: string
+
+MarketingPreflightCounts:
+  type: object
+  required: [target_total, reachable, missing_identity, missing_consent, suppressed, frequency_deny, variable_failures]
+  properties:
+    target_total: { type: integer, format: int64 }
+    reachable: { type: integer, format: int64 }
+    missing_identity: { type: integer, format: int64 }
+    missing_consent: { type: integer, format: int64 }
+    suppressed: { type: integer, format: int64 }
+    frequency_deny: { type: integer, format: int64 }
+    variable_failures: { type: integer, format: int64 }
+
+MarketingPreflightIssue:
+  type: object
+  required: [code, severity, title, description]
+  properties:
+    code: { type: string }
+    severity:
+      type: string
+      enum: [blocking, warning]
+    title: { type: string }
+    description: { type: string }
+    fix_path: { type: string }
+
+MarketingPreflightResult:
+  type: object
+  required: [workspace_id, broadcast_id, counts, issues, blocking_count, warning_count, summary_hash, generated_at, expires_at]
+  properties:
+    workspace_id: { type: string }
+    broadcast_id: { type: string }
+    counts:
+      $ref: '#/MarketingPreflightCounts'
+    issues:
+      type: array
+      items:
+        $ref: '#/MarketingPreflightIssue'
+    blocking_count: { type: integer }
+    warning_count: { type: integer }
+    summary_hash: { type: string }
+    generated_at: { type: string, format: date-time }
+    expires_at: { type: string, format: date-time }
 
 PauseBroadcastRequest:
   type: object

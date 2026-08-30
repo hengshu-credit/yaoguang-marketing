@@ -10,14 +10,17 @@ import {
   Col,
   message,
   Space,
-  Alert
+  Alert,
+  Checkbox,
+  Spin
 } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import { Broadcast } from '../../services/api/broadcast'
+import { Broadcast, type MarketingPreflightResult } from '../../services/api/broadcast'
 import { broadcastApi } from '../../services/api/broadcast'
 import type { Workspace } from '../../services/api/types'
 import dayjs from '../../lib/dayjs'
 import { TIMEZONE_OPTIONS } from '../../lib/timezones'
+import { PreflightSummary } from './PreflightSummary'
 
 // Feature flag for recipient timezone functionality
 const ENABLE_RECIPIENT_TIMEZONE = false
@@ -43,6 +46,9 @@ export function SendOrScheduleModal({
   const [form] = Form.useForm()
   const [isScheduled, setIsScheduled] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [preflightLoading, setPreflightLoading] = useState(false)
+  const [preflight, setPreflight] = useState<MarketingPreflightResult>()
+  const [warningsConfirmed, setWarningsConfirmed] = useState(false)
 
   const hasMarketingEmailProvider = workspace?.settings?.marketing_email_provider_id
 
@@ -68,6 +74,20 @@ export function SendOrScheduleModal({
   }
 
   // Reset form when modal opens
+  const runPreflight = async () => {
+    if (!broadcast) return
+    setPreflightLoading(true)
+    setWarningsConfirmed(false)
+    try {
+      setPreflight(await broadcastApi.preflight(workspaceId, broadcast.id))
+    } catch (error) {
+      setPreflight(undefined)
+      message.error(getErrorMessage(error, '发送前检查失败，请重试'))
+    } finally {
+      setPreflightLoading(false)
+    }
+  }
+
   const handleOpen = () => {
     // Get the default timezone from broadcast or workspace or fall back to UTC
     const defaultTimezone = broadcast?.schedule?.timezone || 'UTC'
@@ -80,6 +100,9 @@ export function SendOrScheduleModal({
       use_recipient_timezone: false
     })
     setIsScheduled(false)
+    setPreflight(undefined)
+    setWarningsConfirmed(false)
+    void runPreflight()
   }
 
   // Send broadcast immediately
@@ -91,7 +114,8 @@ export function SendOrScheduleModal({
       await broadcastApi.schedule({
         workspace_id: workspaceId,
         id: broadcast.id,
-        send_now: true
+        send_now: true,
+        preflight_hash: preflight?.summary_hash ?? ''
       })
       message.success(t`Broadcast "${broadcast.name}" sending started`)
       onSuccess()
@@ -135,6 +159,7 @@ export function SendOrScheduleModal({
           workspace_id: workspaceId,
           id: broadcast.id,
           send_now: false,
+          preflight_hash: preflight?.summary_hash ?? '',
           scheduled_date: scheduledDate,
           scheduled_time: scheduledTime,
           timezone: values.timezone,
@@ -193,6 +218,14 @@ export function SendOrScheduleModal({
         <div className="mb-4">
           <p>{t`Do you want to send "${broadcast.name}" immediately or schedule it for later?`}</p>
         </div>
+
+        {preflightLoading && <div className="py-6 text-center"><Spin tip="正在执行发送前检查" /></div>}
+        {preflight && <PreflightSummary result={preflight} workspaceId={workspaceId} onRefresh={() => { void runPreflight() }} refreshing={preflightLoading} />}
+        {preflight && preflight.warning_count > 0 && preflight.blocking_count === 0 && (
+          <Checkbox className="my-4" checked={warningsConfirmed} onChange={(event) => setWarningsConfirmed(event.target.checked)}>
+            我已了解上述影响范围，确认继续
+          </Checkbox>
+        )}
 
         <Form.Item name="is_scheduled" valuePropName="checked" label={t`Schedule for later delivery`}>
           <Switch onChange={(checked) => setIsScheduled(checked)} />
@@ -303,7 +336,7 @@ export function SendOrScheduleModal({
               type="primary"
               loading={loading}
               htmlType="submit"
-              disabled={!hasMarketingEmailProvider}
+              disabled={!hasMarketingEmailProvider || !preflight || preflight.blocking_count > 0 || (preflight.warning_count > 0 && !warningsConfirmed)}
             >
               {isScheduled ? t`Schedule` : t`Send Now`}
             </Button>

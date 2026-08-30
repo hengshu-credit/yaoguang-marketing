@@ -660,6 +660,7 @@ type ScheduleBroadcastRequest struct {
 	WorkspaceID          string `json:"workspace_id"`
 	ID                   string `json:"id"`
 	SendNow              bool   `json:"send_now"`
+	PreflightHash        string `json:"preflight_hash,omitempty"`
 	ScheduledDate        string `json:"scheduled_date,omitempty"`
 	ScheduledTime        string `json:"scheduled_time,omitempty"`
 	Timezone             string `json:"timezone,omitempty"`

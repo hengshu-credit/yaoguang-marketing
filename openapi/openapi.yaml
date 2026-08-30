@@ -100,6 +100,8 @@ paths:
     $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.update'
   /api/broadcasts.schedule:
     $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.schedule'
+  /api/broadcasts.preflight:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.preflight'
   /api/broadcasts.pause:
     $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.pause'
   /api/broadcasts.resume:
@@ -247,6 +249,14 @@ components:
       $ref: './components/schemas/broadcast.yaml#/UpdateBroadcastRequest'
     ScheduleBroadcastRequest:
       $ref: './components/schemas/broadcast.yaml#/ScheduleBroadcastRequest'
+    MarketingPreflightRequest:
+      $ref: './components/schemas/broadcast.yaml#/MarketingPreflightRequest'
+    MarketingPreflightCounts:
+      $ref: './components/schemas/broadcast.yaml#/MarketingPreflightCounts'
+    MarketingPreflightIssue:
+      $ref: './components/schemas/broadcast.yaml#/MarketingPreflightIssue'
+    MarketingPreflightResult:
+      $ref: './components/schemas/broadcast.yaml#/MarketingPreflightResult'
     PauseBroadcastRequest:
       $ref: './components/schemas/broadcast.yaml#/PauseBroadcastRequest'
     ResumeBroadcastRequest:

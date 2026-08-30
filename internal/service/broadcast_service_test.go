@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	domainmocks "github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
 	broadcastmocks "github.com/hengshu-credit/yaoguang-marketing/internal/service/broadcast/mocks"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 	notifusemjml "github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
-	"github.com/golang/mock/gomock"
 	"github.com/preslavrachev/gomjml/mjml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -202,6 +202,27 @@ func TestBroadcastService_ScheduleBroadcast_SendNow_Success(t *testing.T) {
 	require.NoError(t, err)
 }
 
+type rejectingMarketingPreflight struct{ err error }
+
+func (r rejectingMarketingPreflight) PreflightBroadcast(context.Context, domain.MarketingPreflightRequest) (*domain.MarketingPreflightResult, error) {
+	return nil, r.err
+}
+
+func (r rejectingMarketingPreflight) ValidateBroadcastPreflight(context.Context, domain.MarketingPreflightRequest, string) error {
+	return r.err
+}
+
+func TestBroadcastService_ScheduleRequiresCurrentPreflight(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+	ctx := context.Background()
+	req := &domain.ScheduleBroadcastRequest{WorkspaceID: "w1", ID: "b1", SendNow: true}
+	authOK(d.authService, ctx, req.WorkspaceID)
+	d.svc.SetMarketingPreflight(rejectingMarketingPreflight{err: domain.ErrMarketingPreflightRequired})
+	err := d.svc.ScheduleBroadcast(ctx, req)
+	assert.ErrorIs(t, err, domain.ErrMarketingPreflightRequired)
+}
+
 func TestBroadcastService_PauseBroadcast_Success(t *testing.T) {
 	d := setupBroadcastSvc(t)
 	defer d.ctrl.Finish()
@@ -333,8 +354,8 @@ func TestBroadcastService_SendToIndividual_NeverMintsIdentityToken(t *testing.T)
 	// token is actually mintable from them. Without it an empty token below could
 	// equally mean a mint that failed, which pins nothing.
 	webAnalytics := &domain.WebAnalyticsSettings{
-		Enabled:              true,
-		AllowedDomains:       []string{"example.com", "*.example.com"},
+		Enabled:        true,
+		AllowedDomains: []string{"example.com", "*.example.com"},
 	}
 	probe, err := domain.BuildWebIdentifyToken(recipient, secretKey, domain.WebIdentifyTokenTTL, time.Now().UTC())
 	require.NoError(t, err, "these settings must be able to mint, or this test pins nothing")

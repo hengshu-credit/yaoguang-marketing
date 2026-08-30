@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -26,6 +27,11 @@ type BroadcastHandler struct {
 	logger       logger.Logger
 	getJWTSecret func() ([]byte, error)
 	isDemo       bool
+	preflight    domain.MarketingPreflightEvaluator
+}
+
+func (h *BroadcastHandler) SetMarketingPreflight(evaluator domain.MarketingPreflightEvaluator) {
+	h.preflight = evaluator
 }
 
 func NewBroadcastHandler(service domain.BroadcastService, templateSvc domain.TemplateService, getJWTSecret func() ([]byte, error), logger logger.Logger, isDemo bool) *BroadcastHandler {
@@ -51,6 +57,7 @@ func (h *BroadcastHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/broadcasts.create", requireAuth(http.HandlerFunc(h.HandleCreate)))
 	mux.Handle("/api/broadcasts.update", requireAuth(http.HandlerFunc(h.HandleUpdate)))
 	mux.Handle("/api/broadcasts.schedule", restrictedInDemo(requireAuth(http.HandlerFunc(h.HandleSchedule))))
+	mux.Handle("/api/broadcasts.preflight", requireAuth(http.HandlerFunc(h.HandlePreflight)))
 	mux.Handle("/api/broadcasts.pause", requireAuth(http.HandlerFunc(h.HandlePause)))
 	mux.Handle("/api/broadcasts.resume", requireAuth(http.HandlerFunc(h.HandleResume)))
 	mux.Handle("/api/broadcasts.cancel", requireAuth(http.HandlerFunc(h.HandleCancel)))
@@ -63,6 +70,32 @@ func (h *BroadcastHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/broadcasts.refreshGlobalFeed", requireAuth(http.HandlerFunc(h.HandleRefreshGlobalFeed)))
 	// Recipient feed endpoints
 	mux.Handle("/api/broadcasts.testRecipientFeed", requireAuth(http.HandlerFunc(h.HandleTestRecipientFeed)))
+}
+
+func (h *BroadcastHandler) HandlePreflight(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if h.preflight == nil {
+		WriteJSONError(w, "Marketing preflight is unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	var req domain.MarketingPreflightRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	result, err := h.preflight.PreflightBroadcast(r.Context(), req)
+	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
+		h.logger.WithField("error", err.Error()).Error("Failed to preflight broadcast")
+		WriteJSONError(w, "Failed to preflight broadcast", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }
 
 // HandleList handles the broadcast list request
@@ -278,6 +311,12 @@ func (h *BroadcastHandler) HandleSchedule(w http.ResponseWriter, r *http.Request
 		}
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
 			WriteJSONError(w, "Broadcast not found", http.StatusNotFound)
+			return
+		}
+		if errors.Is(err, domain.ErrMarketingPreflightRequired) ||
+			errors.Is(err, domain.ErrMarketingPreflightChanged) ||
+			errors.Is(err, domain.ErrMarketingPreflightBlocked) {
+			WriteJSONError(w, err.Error(), http.StatusPreconditionFailed)
 			return
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to schedule broadcast")

@@ -263,6 +263,45 @@
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
 
+/api/broadcasts.preflight:
+  post:
+    summary: Preflight a broadcast before sending
+    description: Computes aggregate reachability, consent, suppression, template, provider, audience, and frequency checks on the server. No approval workflow is added.
+    operationId: preflightBroadcast
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/broadcast.yaml#/MarketingPreflightRequest'
+    responses:
+      '200':
+        description: Current preflight result and short-lived summary hash
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/broadcast.yaml#/MarketingPreflightResult'
+      '400':
+        description: Invalid request
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Preflight failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
 /api/broadcasts.schedule:
   post:
     summary: Schedule a broadcast
@@ -305,6 +344,12 @@
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
       '404':
         description: Broadcast not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '412':
+        description: Preflight is missing, blocked, expired, or changed
         content:
           application/json:
             schema:

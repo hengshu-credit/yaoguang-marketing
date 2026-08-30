@@ -250,10 +250,41 @@ export interface ScheduleBroadcastRequest {
   workspace_id: string
   id: string
   send_now: boolean
+  preflight_hash: string
   scheduled_date?: string
   scheduled_time?: string
   timezone?: string
   use_recipient_timezone?: boolean
+}
+
+export interface MarketingPreflightCounts {
+  target_total: number
+  reachable: number
+  missing_identity: number
+  missing_consent: number
+  suppressed: number
+  frequency_deny: number
+  variable_failures: number
+}
+
+export interface MarketingPreflightIssue {
+  code: string
+  severity: 'blocking' | 'warning'
+  title: string
+  description: string
+  fix_path?: string
+}
+
+export interface MarketingPreflightResult {
+  workspace_id: string
+  broadcast_id: string
+  counts: MarketingPreflightCounts
+  issues: MarketingPreflightIssue[]
+  blocking_count: number
+  warning_count: number
+  summary_hash: string
+  generated_at: string
+  expires_at: string
 }
 
 export interface PauseBroadcastRequest {
@@ -380,6 +411,13 @@ export const broadcastApi = {
 
   schedule: async (params: ScheduleBroadcastRequest): Promise<{ success: boolean }> => {
     return api.post<{ success: boolean }>('/api/broadcasts.schedule', params)
+  },
+
+  preflight: async (workspaceId: string, broadcastId: string): Promise<MarketingPreflightResult> => {
+    return api.post<MarketingPreflightResult>('/api/broadcasts.preflight', {
+      workspace_id: workspaceId,
+      broadcast_id: broadcastId
+    })
   },
 
   pause: async (params: PauseBroadcastRequest): Promise<{ success: boolean }> => {

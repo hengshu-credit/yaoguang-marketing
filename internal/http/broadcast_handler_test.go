@@ -775,6 +775,34 @@ func TestHandleSchedule(t *testing.T) {
 	})
 }
 
+type broadcastPreflightStub struct {
+	result *domain.MarketingPreflightResult
+	err    error
+}
+
+func (s broadcastPreflightStub) PreflightBroadcast(context.Context, domain.MarketingPreflightRequest) (*domain.MarketingPreflightResult, error) {
+	return s.result, s.err
+}
+
+func (s broadcastPreflightStub) ValidateBroadcastPreflight(context.Context, domain.MarketingPreflightRequest, string) error {
+	return s.err
+}
+
+func TestHandleBroadcastPreflight(t *testing.T) {
+	handler, _, _, _, ctrl := setupBroadcastHandler(t)
+	defer ctrl.Finish()
+	handler.SetMarketingPreflight(broadcastPreflightStub{result: &domain.MarketingPreflightResult{
+		WorkspaceID: "workspace123", BroadcastID: "broadcast123", SummaryHash: "summary",
+		Counts: domain.MarketingPreflightCounts{TargetTotal: 10, Reachable: 8}, Issues: []domain.MarketingPreflightIssue{},
+	}})
+	body := bytes.NewBufferString(`{"workspace_id":"workspace123","broadcast_id":"broadcast123"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/broadcasts.preflight", body)
+	w := httptest.NewRecorder()
+	handler.HandlePreflight(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), `"summary_hash":"summary"`)
+}
+
 // TestHandleCancel tests the handleCancel function
 func TestHandleCancel(t *testing.T) {
 	handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
