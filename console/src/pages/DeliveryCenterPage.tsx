@@ -1,32 +1,18 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from '@tanstack/react-router'
 import { Alert, Button, Card, Descriptions, Drawer, Empty, Form, Input, Modal, Pagination, Select, Space, Table, Tag, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useLingui } from '@lingui/react/macro'
 import { deliveryApi, type DeliveryDetail, type DeliveryIntent, type DeliveryListRequest, type DeliveryStatus } from '../services/api/delivery'
-import { deliveryExplanation, deliveryStatusLabels } from '../components/delivery/deliveryPresentation'
+import { deliveryExplanation } from '../components/delivery/deliveryPresentation'
+import { DeliveryFiltersBar } from '../components/delivery/DeliveryFiltersBar'
+import { deliveryStatusOptions, type DeliveryFilters } from '../components/delivery/deliveryFilters'
 import { CustomerDrawer } from '../components/customers/CustomerDrawer'
 import { ActionableError } from '../components/errors/ActionableError'
 import { useWorkspacePermissions } from '../contexts/AuthContext'
 
 const PAGE_SIZE = 50
-const statusOptions: DeliveryStatus[] = [
-  'unknown', 'terminal_failed', 'transient_failed', 'suppressed', 'deferred', 'submitting',
-  'provider_accepted', 'confirmed', 'queued', 'planned', 'reserved', 'cancelled'
-]
-
-interface DeliveryFilters {
-  status?: DeliveryStatus
-  channel?: string
-  source_type?: string
-  source_id?: string
-  provider?: string
-  customer_id?: string
-  from?: string
-  to?: string
-}
-
 interface ResolutionForm {
   action: 'mark_confirmed' | 'mark_terminal_failed' | 'retry_after_verified_not_accepted'
   reason: string
@@ -38,20 +24,75 @@ export function DeliveryCenterPage() {
   const { permissions } = useWorkspacePermissions(workspaceId)
   const canWrite = Boolean(permissions?.message_history?.write)
   const queryClient = useQueryClient()
-  const [draft, setDraft] = useState<DeliveryFilters>({ status: 'unknown' })
-  const [filters, setFilters] = useState<DeliveryFilters>({ status: 'unknown' })
+  const [filters, setFilters] = useState<DeliveryFilters>(() => {
+    const search = new URLSearchParams(window.location.search)
+    const status = search.get('status')
+    const initial: DeliveryFilters = status === 'all'
+      ? {}
+      : { status: deliveryStatusOptions.includes(status as DeliveryStatus) ? status as DeliveryStatus : 'unknown' }
+
+    for (const key of ['channel', 'source_type', 'source_id', 'provider', 'customer_id', 'from', 'to'] as const) {
+      const value = search.get(key)?.trim()
+      if (value) initial[key] = value
+    }
+    return initial
+  })
   const [page, setPage] = useState(1)
   const [selectedIntentId, setSelectedIntentId] = useState<string>()
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
   const [resolutionOpen, setResolutionOpen] = useState(false)
   const [resolutionForm] = Form.useForm<ResolutionForm>()
 
-  const request = useMemo<DeliveryListRequest>(() => ({
-    workspace_id: workspaceId,
-    ...filters,
-    limit: PAGE_SIZE,
-    offset: (page - 1) * PAGE_SIZE
-  }), [workspaceId, filters, page])
+  const statusLabels = useMemo<Record<DeliveryStatus, string>>(() => ({
+    planned: t`Planned`,
+    reserved: t`Reserved`,
+    queued: t`Queued`,
+    submitting: t`Submitting to provider`,
+    provider_accepted: t`Accepted by provider`,
+    confirmed: t`Confirmed`,
+    suppressed: t`Suppressed`,
+    deferred: t`Deferred`,
+    transient_failed: t`Will retry`,
+    terminal_failed: t`Failed permanently`,
+    unknown: t`Needs confirmation`,
+    cancelled: t`Cancelled`
+  }), [t])
+
+  useEffect(() => {
+    const search = new URLSearchParams(window.location.search)
+    for (const key of ['status', 'channel', 'source_type', 'source_id', 'provider', 'customer_id', 'from', 'to']) {
+      search.delete(key)
+    }
+
+    search.set('status', filters.status ?? 'all')
+    for (const key of ['channel', 'source_type', 'source_id', 'provider', 'customer_id', 'from', 'to'] as const) {
+      if (filters[key]) search.set(key, filters[key]!)
+    }
+
+    const query = search.toString()
+    const url = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`
+    window.history.replaceState(window.history.state, '', url)
+  }, [filters])
+
+  const request = useMemo<DeliveryListRequest>(() => {
+    const toISOString = (value?: string) => {
+      if (!value) return undefined
+      const date = new Date(value)
+      return Number.isNaN(date.getTime()) ? undefined : date.toISOString()
+    }
+
+    return {
+      workspace_id: workspaceId,
+      ...filters,
+      provider: filters.provider?.trim() || undefined,
+      customer_id: filters.customer_id?.trim() || undefined,
+      source_id: filters.source_id?.trim() || undefined,
+      from: toISOString(filters.from),
+      to: toISOString(filters.to),
+      limit: PAGE_SIZE,
+      offset: (page - 1) * PAGE_SIZE
+    }
+  }, [workspaceId, filters, page])
   const listQuery = useQuery({
     queryKey: ['delivery-center', request],
     queryFn: () => deliveryApi.list(request)
@@ -76,7 +117,7 @@ export function DeliveryCenterPage() {
   })
 
   const columns: ColumnsType<DeliveryIntent> = [
-    { title: t`Status`, dataIndex: 'status', width: 150, render: (status: DeliveryStatus) => <Tag color={status === 'unknown' ? 'orange' : status === 'terminal_failed' ? 'red' : undefined}>{deliveryStatusLabels[status]}</Tag> },
+    { title: t`Status`, dataIndex: 'status', width: 150, render: (status: DeliveryStatus) => <Tag color={status === 'unknown' ? 'orange' : status === 'terminal_failed' ? 'red' : undefined}>{statusLabels[status]}</Tag> },
     { title: t`Channel`, dataIndex: 'channel', width: 100, render: (channel: string) => channel.toUpperCase() },
     { title: t`Source`, width: 190, render: (_, intent) => <Typography.Text>{intent.source_type} / {intent.source_id}</Typography.Text> },
     { title: t`Why`, render: (_, intent) => deliveryExplanation(intent) },
@@ -85,17 +126,6 @@ export function DeliveryCenterPage() {
   ]
 
   const detail: DeliveryDetail | undefined = detailQuery.data
-  const applyFilters = () => {
-    setFilters({
-      ...draft,
-      provider: draft.provider?.trim() || undefined,
-      customer_id: draft.customer_id?.trim() || undefined,
-      source_id: draft.source_id?.trim() || undefined,
-      from: draft.from ? new Date(draft.from).toISOString() : undefined,
-      to: draft.to ? new Date(draft.to).toISOString() : undefined
-    })
-    setPage(1)
-  }
 
   return (
     <Space orientation="vertical" size="large" style={{ width: '100%', minWidth: 0 }}>
@@ -104,19 +134,7 @@ export function DeliveryCenterPage() {
         <Typography.Text type="secondary">{t`Track every send decision, provider attempt and uncertain outcome in one place.`}</Typography.Text>
       </div>
       <Alert type="warning" showIcon title={t`Uncertain and permanently failed deliveries need attention`} description={t`An uncertain provider result is never retried automatically. Verify it first to avoid duplicate customer contact.`} />
-      <Card size="small" title={t`Filters`}>
-        <Space wrap align="end">
-          <label><Typography.Text>{t`Status`}</Typography.Text><Select allowClear value={draft.status} onChange={(status) => setDraft((current) => ({ ...current, status }))} options={statusOptions.map((status) => ({ value: status, label: deliveryStatusLabels[status] }))} style={{ display: 'block', width: 190 }} /></label>
-          <label><Typography.Text>{t`Channel`}</Typography.Text><Select allowClear value={draft.channel} onChange={(channel) => setDraft((current) => ({ ...current, channel }))} options={['email', 'sms', 'push', 'whatsapp', 'telegram', 'in_app', 'webhook'].map((channel) => ({ value: channel, label: channel.toUpperCase() }))} style={{ display: 'block', width: 150 }} /></label>
-          <label><Typography.Text>{t`Source type`}</Typography.Text><Select allowClear value={draft.source_type} onChange={(source_type) => setDraft((current) => ({ ...current, source_type }))} options={['automation', 'campaign', 'broadcast', 'api', 'legacy'].map((source) => ({ value: source, label: source }))} style={{ display: 'block', width: 160 }} /></label>
-          <label><Typography.Text>{t`Source ID`}</Typography.Text><Input value={draft.source_id} onChange={(event) => setDraft((current) => ({ ...current, source_id: event.target.value }))} style={{ width: 190 }} /></label>
-          <label><Typography.Text>{t`Customer`}</Typography.Text><Input value={draft.customer_id} onChange={(event) => setDraft((current) => ({ ...current, customer_id: event.target.value }))} placeholder={t`Customer ID or number`} style={{ width: 210 }} /></label>
-          <label><Typography.Text>{t`Provider`}</Typography.Text><Input value={draft.provider} onChange={(event) => setDraft((current) => ({ ...current, provider: event.target.value }))} placeholder={t`Provider`} style={{ width: 160 }} /></label>
-          <label><Typography.Text>{t`From`}</Typography.Text><Input type="datetime-local" value={draft.from} onChange={(event) => setDraft((current) => ({ ...current, from: event.target.value || undefined }))} /></label>
-          <label><Typography.Text>{t`To`}</Typography.Text><Input type="datetime-local" value={draft.to} onChange={(event) => setDraft((current) => ({ ...current, to: event.target.value || undefined }))} /></label>
-          <Button type="primary" onClick={applyFilters}>{t`Apply filters`}</Button>
-        </Space>
-      </Card>
+      <DeliveryFiltersBar filters={filters} statusLabels={statusLabels} onChange={(nextFilters) => { setFilters(nextFilters); setPage(1) }} />
 
       {listQuery.isError && <ActionableError error={listQuery.error} onRetry={() => void listQuery.refetch()} retrying={listQuery.isFetching} />}
       <Table<DeliveryIntent>
@@ -137,7 +155,7 @@ export function DeliveryCenterPage() {
         {resolveMutation.isError && <ActionableError error={resolveMutation.error} />}
         {detail && <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           <Descriptions bordered size="small" column={1}>
-            <Descriptions.Item label={t`Status`}><Tag>{deliveryStatusLabels[detail.intent.status]}</Tag></Descriptions.Item>
+            <Descriptions.Item label={t`Status`}><Tag>{statusLabels[detail.intent.status]}</Tag></Descriptions.Item>
             <Descriptions.Item label={t`Explanation`}>{deliveryExplanation(detail.intent)}</Descriptions.Item>
             <Descriptions.Item label={t`Delivery ID`}><Typography.Text copyable>{detail.intent.id}</Typography.Text></Descriptions.Item>
             <Descriptions.Item label={t`Customer`}>{detail.intent.customer_id ? <Button type="link" style={{ padding: 0 }} onClick={() => setSelectedCustomerId(detail.intent.customer_id!)}>{detail.intent.customer_id}</Button> : '—'}</Descriptions.Item>

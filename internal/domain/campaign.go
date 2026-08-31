@@ -40,6 +40,7 @@ type CampaignVersion struct {
 	Version         int               `json:"version"`
 	AudienceID      string            `json:"audience_id"`
 	AudienceVersion int               `json:"audience_version"`
+	ListID          string            `json:"list_id,omitempty"`
 	Channel         string            `json:"channel"`
 	Variants        []CampaignVariant `json:"variants"`
 	ActivatedAt     *time.Time        `json:"activated_at,omitempty"`
@@ -79,15 +80,26 @@ type CampaignRepository interface {
 	GetCampaignVersion(context.Context, string, string, int) (*CampaignVersion, error)
 	CreateCampaignRun(context.Context, string, CampaignRun) error
 	GetCampaignRun(context.Context, string, string) (*CampaignRun, error)
-	ListAudienceMembers(context.Context, string, string, int, string, int) ([]CampaignAudienceMember, string, error)
+	ListCampaignMembers(context.Context, string, CampaignVersion, string, int) ([]CampaignAudienceMember, string, error)
 	AppendCampaignSnapshots(context.Context, string, string, []CampaignRecipientSnapshot) (int64, error)
 	CompleteCampaignSnapshot(context.Context, string, string, int64) error
 	ListCampaignSnapshots(context.Context, string, string, int64, int) ([]CampaignRecipientSnapshot, int64, error)
 }
 
 func (v CampaignVersion) Validate() error {
-	if strings.TrimSpace(v.CampaignID) == "" || v.Version <= 0 || strings.TrimSpace(v.AudienceID) == "" || v.AudienceVersion <= 0 {
-		return errors.New("campaign, version and audience version are required")
+	if strings.TrimSpace(v.CampaignID) == "" || v.Version <= 0 {
+		return errors.New("campaign and version are required")
+	}
+	v.AudienceID = strings.TrimSpace(v.AudienceID)
+	v.ListID = strings.TrimSpace(v.ListID)
+	audienceFieldsPresent := v.AudienceID != "" || v.AudienceVersion != 0
+	audienceSource := v.AudienceID != "" && v.AudienceVersion > 0
+	listSource := v.ListID != ""
+	if (audienceFieldsPresent && !audienceSource) || audienceSource == listSource {
+		return errors.New("campaign version requires exactly one recipient source: a versioned audience or a list")
+	}
+	if len(v.ListID) > 32 {
+		return errors.New("campaign list id must contain at most 32 characters")
 	}
 	if strings.TrimSpace(v.Channel) == "" || len(v.Variants) == 0 {
 		return errors.New("campaign channel and variants are required")

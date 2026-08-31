@@ -251,6 +251,11 @@ CustomerUpsertInput:
       items:
         $ref: '#/CustomerListMembershipInput'
       description: When present, replaces all list memberships. An empty array clears them; omission leaves them unchanged.
+    list_memberships_add:
+      type: array
+      items:
+        $ref: '#/CustomerListMembershipInput'
+      description: Additive-only membership binding. Existing memberships and suppression states are preserved. It cannot be sent together with list_memberships.
 
 Customer:
   type: object

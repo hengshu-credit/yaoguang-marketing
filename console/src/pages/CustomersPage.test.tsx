@@ -40,6 +40,10 @@ vi.mock('../components/customers/CustomerDrawer', () => ({
     open ? <div>drawer:{customerId}</div> : null
 }))
 
+vi.mock('../contexts/AuthContext', () => ({
+  useWorkspacePermissions: () => ({ permissions: { customers: { read: true, write: true } } })
+}))
+
 function wrapper({ children }: { children: React.ReactNode }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
   return (

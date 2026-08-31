@@ -70,7 +70,7 @@ func (s *ImportJobService) authorize(ctx context.Context, workspaceID string, pe
 
 // StageCSV persists every physical data row before a worker may process it.
 // Malformed rows are persisted as explicit failures instead of disappearing.
-func (s *ImportJobService) StageCSV(ctx context.Context, workspaceID, filename string, source io.Reader) (*domain.ImportJob, error) {
+func (s *ImportJobService) StageCSV(ctx context.Context, workspaceID, filename string, listIDs []string, source io.Reader) (*domain.ImportJob, error) {
 	if strings.TrimSpace(workspaceID) == "" || strings.TrimSpace(filename) == "" || source == nil {
 		return nil, errors.New("workspace, filename and source are required")
 	}
@@ -79,9 +79,13 @@ func (s *ImportJobService) StageCSV(ctx context.Context, workspaceID, filename s
 		return nil, err
 	}
 	ctx = authorized
+	normalizedListIDs, err := normalizeImportListIDs(listIDs)
+	if err != nil {
+		return nil, err
+	}
 	now := s.now().UTC()
 	job := domain.ImportJob{ID: uuid.New().String(), Status: domain.ImportJobUploading, Filename: filename,
-		Counters: domain.ImportCounters{}, CreatedAt: now, UpdatedAt: now}
+		ListIDs: normalizedListIDs, Counters: domain.ImportCounters{}, CreatedAt: now, UpdatedAt: now}
 	if err := s.repository.CreateImportJob(ctx, workspaceID, job); err != nil {
 		return nil, err
 	}
@@ -169,6 +173,32 @@ func (s *ImportJobService) StageCSV(ctx context.Context, workspaceID, filename s
 	return s.repository.GetImportJob(ctx, workspaceID, job.ID)
 }
 
+func normalizeImportListIDs(listIDs []string) ([]string, error) {
+	if len(listIDs) == 0 {
+		return nil, nil
+	}
+	memberships := make([]domain.CustomerListMembershipInput, 0, len(listIDs))
+	seen := make(map[string]struct{}, len(listIDs))
+	for _, rawListID := range listIDs {
+		listID := strings.TrimSpace(rawListID)
+		if _, exists := seen[listID]; exists {
+			continue
+		}
+		seen[listID] = struct{}{}
+		memberships = append(memberships, domain.CustomerListMembershipInput{ListID: listID, Status: "active"})
+	}
+	placeholder := "import-list-validation"
+	input := domain.CustomerUpsertInput{ExternalUserID: &placeholder, ListMembershipsAdd: &memberships}
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid import list selection: %w", err)
+	}
+	result := make([]string, len(memberships))
+	for index, membership := range memberships {
+		result[index] = membership.ListID
+	}
+	return result, nil
+}
+
 func parseCSVLine(line []byte) []string {
 	reader := csv.NewReader(strings.NewReader(string(line)))
 	reader.TrimLeadingSpace = true
@@ -223,6 +253,10 @@ func (s *ImportJobService) processNextChunk(ctx context.Context, workspaceID, jo
 		}
 		ctx = authorized
 	}
+	job, err := s.repository.GetImportJob(ctx, workspaceID, jobID)
+	if err != nil {
+		return 0, err
+	}
 	rows, claimToken, err := s.repository.ClaimImportRows(ctx, workspaceID, jobID, s.chunkSize, 2*time.Minute)
 	if err != nil || len(rows) == 0 {
 		return len(rows), err
@@ -230,7 +264,7 @@ func (s *ImportJobService) processNextChunk(ctx context.Context, workspaceID, jo
 	items := make([]domain.CustomerBatchUpsertItem, 0, len(rows))
 	validRows := make([]domain.ImportJobRow, 0, len(rows))
 	for _, row := range rows {
-		item, parseErr := importRowToCustomer(row)
+		item, parseErr := importRowToCustomer(row, job.ListIDs)
 		if parseErr != nil {
 			if completeErr := s.repository.CompleteImportRow(ctx, workspaceID, jobID, row.Ordinal, claimToken, domain.ImportRowFailed, "", "", "mapping_error"); completeErr != nil {
 				return 0, completeErr
@@ -349,7 +383,7 @@ func maskedImportIdentity(values map[string]string) string {
 	return ""
 }
 
-func importRowToCustomer(row domain.ImportJobRow) (domain.CustomerBatchUpsertItem, error) {
+func importRowToCustomer(row domain.ImportJobRow, listIDs []string) (domain.CustomerBatchUpsertItem, error) {
 	values := map[string]string{}
 	if err := json.Unmarshal(row.RawPayload, &values); err != nil {
 		return domain.CustomerBatchUpsertItem{}, err
@@ -363,6 +397,13 @@ func importRowToCustomer(row domain.ImportJobRow) (domain.CustomerBatchUpsertIte
 	}
 	if phone := strings.TrimSpace(values["phone"]); phone != "" {
 		input.Identities = append(input.Identities, domain.CustomerIdentityInput{Type: domain.CustomerIdentityPhone, Value: phone, Primary: true})
+	}
+	if len(listIDs) > 0 {
+		memberships := make([]domain.CustomerListMembershipInput, len(listIDs))
+		for index, listID := range listIDs {
+			memberships[index] = domain.CustomerListMembershipInput{ListID: listID, Status: "active"}
+		}
+		input.ListMembershipsAdd = &memberships
 	}
 	if err := input.Validate(); err != nil {
 		return domain.CustomerBatchUpsertItem{}, err

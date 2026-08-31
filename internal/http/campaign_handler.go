@@ -40,6 +40,7 @@ func (h *CampaignHandler) create(w http.ResponseWriter, r *http.Request) {
 		Name            string                   `json:"name"`
 		AudienceID      string                   `json:"audience_id"`
 		AudienceVersion int                      `json:"audience_version"`
+		ListID          string                   `json:"list_id"`
 		Channel         string                   `json:"channel"`
 		Variants        []domain.CampaignVariant `json:"variants"`
 	}{}
@@ -51,7 +52,7 @@ func (h *CampaignHandler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	item, err := h.service.Create(r.Context(), service.CreateCampaignRequest{WorkspaceID: request.WorkspaceID, Name: request.Name,
-		AudienceID: request.AudienceID, AudienceVersion: request.AudienceVersion, Channel: request.Channel, Variants: request.Variants})
+		AudienceID: request.AudienceID, AudienceVersion: request.AudienceVersion, ListID: request.ListID, Channel: request.Channel, Variants: request.Variants})
 	if err != nil {
 		h.writeError(w, r, err)
 		return

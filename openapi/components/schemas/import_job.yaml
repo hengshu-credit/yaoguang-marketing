@@ -15,6 +15,10 @@ ImportJob:
     id: { type: string, format: uuid }
     status: { type: string, enum: [uploading, staged, processing, completed, rejected, cancelled] }
     filename: { type: string }
+    list_ids:
+      type: array
+      description: Lists selected when the import was staged.
+      items: { type: string, minLength: 1, maxLength: 32 }
     file_checksum: { type: string, minLength: 64, maxLength: 64 }
     counters: { $ref: '#/ImportCounters' }
     created_at: { type: string, format: date-time }

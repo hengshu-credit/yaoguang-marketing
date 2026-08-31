@@ -339,12 +339,13 @@ type CustomerListMembershipInput struct {
 }
 
 type CustomerUpsertInput struct {
-	Locator         *CustomerLocator               `json:"locator,omitempty"`
-	ExternalUserID  *string                        `json:"external_user_id,omitempty"`
-	Profile         *CustomerProfilePatch          `json:"profile,omitempty"`
-	Identities      []CustomerIdentityInput        `json:"identities,omitempty"`
-	Tags            *[]string                      `json:"tags,omitempty"`
-	ListMemberships *[]CustomerListMembershipInput `json:"list_memberships,omitempty"`
+	Locator            *CustomerLocator               `json:"locator,omitempty"`
+	ExternalUserID     *string                        `json:"external_user_id,omitempty"`
+	Profile            *CustomerProfilePatch          `json:"profile,omitempty"`
+	Identities         []CustomerIdentityInput        `json:"identities,omitempty"`
+	Tags               *[]string                      `json:"tags,omitempty"`
+	ListMemberships    *[]CustomerListMembershipInput `json:"list_memberships,omitempty"`
+	ListMembershipsAdd *[]CustomerListMembershipInput `json:"list_memberships_add,omitempty"`
 }
 
 func (input *CustomerUpsertInput) Validate() error {
@@ -417,16 +418,24 @@ func (input *CustomerUpsertInput) Validate() error {
 		*input.Tags = normalizedTags
 	}
 
-	if input.ListMemberships != nil {
-		seenLists := make(map[string]struct{}, len(*input.ListMemberships))
-		for index := range *input.ListMemberships {
-			membership := &(*input.ListMemberships)[index]
+	if input.ListMemberships != nil && input.ListMembershipsAdd != nil {
+		return fmt.Errorf("list_memberships and list_memberships_add cannot be used together")
+	}
+	for fieldName, memberships := range map[string]*[]CustomerListMembershipInput{
+		"list_memberships": input.ListMemberships, "list_memberships_add": input.ListMembershipsAdd,
+	} {
+		if memberships == nil {
+			continue
+		}
+		seenLists := make(map[string]struct{}, len(*memberships))
+		for index := range *memberships {
+			membership := &(*memberships)[index]
 			membership.ListID = trimUnicodeSpace(membership.ListID)
 			if membership.ListID == "" || utf8.RuneCountInString(membership.ListID) > 32 || !govalidator.IsAlphanumeric(membership.ListID) {
-				return fmt.Errorf("list_id must be alphanumeric and contain 1 to 32 characters")
+				return fmt.Errorf("%s list_id must be alphanumeric and contain 1 to 32 characters", fieldName)
 			}
 			if _, exists := seenLists[membership.ListID]; exists {
-				return fmt.Errorf("duplicate list membership %s", membership.ListID)
+				return fmt.Errorf("duplicate %s membership %s", fieldName, membership.ListID)
 			}
 			seenLists[membership.ListID] = struct{}{}
 			membership.Status = strings.ToLower(trimUnicodeSpace(membership.Status))
@@ -463,6 +472,11 @@ func (input CustomerUpsertInput) CanonicalPayloadHash() (string, error) {
 	if canonical.ListMemberships != nil {
 		sort.Slice(*canonical.ListMemberships, func(i, j int) bool {
 			return (*canonical.ListMemberships)[i].ListID < (*canonical.ListMemberships)[j].ListID
+		})
+	}
+	if canonical.ListMembershipsAdd != nil {
+		sort.Slice(*canonical.ListMembershipsAdd, func(i, j int) bool {
+			return (*canonical.ListMembershipsAdd)[i].ListID < (*canonical.ListMembershipsAdd)[j].ListID
 		})
 	}
 	encoded, err = json.Marshal(canonical)

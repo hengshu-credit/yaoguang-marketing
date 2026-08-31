@@ -6,6 +6,12 @@
     parameters:
       - { name: workspace_id, in: query, required: true, schema: { type: string } }
       - { name: filename, in: query, required: true, schema: { type: string } }
+      - name: list_id
+        in: query
+        description: Optional target List ID. Repeat the parameter to bind every imported Customer to multiple Lists without replacing existing memberships.
+        schema: { type: array, items: { type: string, minLength: 1, maxLength: 32 } }
+        style: form
+        explode: true
     requestBody:
       required: true
       content:

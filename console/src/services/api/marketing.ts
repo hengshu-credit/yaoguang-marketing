@@ -32,6 +32,7 @@ export interface ImportJob {
   id: string
   status: 'uploading' | 'staged' | 'processing' | 'completed' | 'rejected' | 'cancelled'
   filename: string
+  list_ids?: string[]
   counters: { total: number; pending: number; processing: number; succeeded: number; failed: number }
   created_at?: string
   updated_at?: string
@@ -88,8 +89,9 @@ export const audienceApi = {
 }
 
 export const importJobApi = {
-  upload: (workspaceId: string, file: File) => {
+  upload: (workspaceId: string, file: File, listIds: string[] = []) => {
     const params = new URLSearchParams({ workspace_id: workspaceId, filename: file.name })
+    listIds.forEach((listId) => params.append('list_id', listId))
     return api.postRaw<ImportJob>(`/api/imports.upload?${params}`, file, 'text/csv')
   },
   get: (workspaceId: string, jobId: string) => {

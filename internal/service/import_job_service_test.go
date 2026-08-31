@@ -17,6 +17,20 @@ type importJobRepositoryMemory struct {
 	rows map[int64]domain.ImportJobRow
 }
 
+type importCustomerServiceStub struct {
+	domain.CustomerService
+	requests []*domain.CustomerBatchUpsertRequest
+}
+
+func (s *importCustomerServiceStub) UpsertCustomerBatch(_ context.Context, request *domain.CustomerBatchUpsertRequest) (*domain.CustomerBatchUpsertResponse, error) {
+	s.requests = append(s.requests, request)
+	response := &domain.CustomerBatchUpsertResponse{Accepted: len(request.Items), Results: make([]domain.CustomerBatchItemResult, len(request.Items))}
+	for index := range request.Items {
+		response.Results[index] = domain.CustomerBatchItemResult{Index: index, Status: "accepted", Customer: &domain.CustomerMutationResult{CustomerID: fmt.Sprintf("customer-%d", index), Action: "created"}}
+	}
+	return response, nil
+}
+
 type importTaskSchedulerMemory struct{ tasks []*domain.Task }
 
 func (s *importTaskSchedulerMemory) CreateTask(_ context.Context, _ string, task *domain.Task) error {
@@ -67,10 +81,37 @@ func (r *importJobRepositoryMemory) RejectImportJob(_ context.Context, _, _, _ s
 	r.job.Status = domain.ImportJobRejected
 	return nil
 }
-func (r *importJobRepositoryMemory) ClaimImportRows(context.Context, string, string, int, time.Duration) ([]domain.ImportJobRow, string, error) {
-	return nil, "", nil
+func (r *importJobRepositoryMemory) ClaimImportRows(_ context.Context, _, _ string, limit int, _ time.Duration) ([]domain.ImportJobRow, string, error) {
+	claimed := make([]domain.ImportJobRow, 0, limit)
+	for ordinal := int64(1); len(claimed) < limit; ordinal++ {
+		row, exists := r.rows[ordinal]
+		if !exists {
+			if ordinal > r.job.Counters.Total {
+				break
+			}
+			continue
+		}
+		if row.Status != domain.ImportRowPending {
+			continue
+		}
+		row.Status = domain.ImportRowProcessing
+		r.rows[ordinal] = row
+		r.job.Counters.Pending--
+		r.job.Counters.Processing++
+		claimed = append(claimed, row)
+	}
+	return claimed, "claim-token", nil
 }
-func (r *importJobRepositoryMemory) CompleteImportRow(context.Context, string, string, int64, string, domain.ImportRowStatus, string, string, string) error {
+func (r *importJobRepositoryMemory) CompleteImportRow(_ context.Context, _, _ string, ordinal int64, _ string, status domain.ImportRowStatus, customerID, action, errorCode string) error {
+	row := r.rows[ordinal]
+	row.Status, row.CustomerID, row.Action, row.ErrorCode = status, customerID, action, errorCode
+	r.rows[ordinal] = row
+	r.job.Counters.Processing--
+	if status == domain.ImportRowSucceeded {
+		r.job.Counters.Succeeded++
+	} else {
+		r.job.Counters.Failed++
+	}
 	return nil
 }
 func (r *importJobRepositoryMemory) GetImportJob(context.Context, string, string) (*domain.ImportJob, error) {
@@ -111,7 +152,7 @@ func TestImportJobStagesEveryRowBeforeRejectingConfiguredLimit(t *testing.T) {
 	for index := 1; index <= 10_001; index++ {
 		_, _ = fmt.Fprintf(&csv, "user-%d,user-%d@example.com\n", index, index)
 	}
-	job, err := service.StageCSV(context.Background(), "workspace1", "customers.csv", strings.NewReader(csv.String()))
+	job, err := service.StageCSV(context.Background(), "workspace1", "customers.csv", nil, strings.NewReader(csv.String()))
 	require.NoError(t, err)
 	assert.Equal(t, domain.ImportJobRejected, job.Status)
 	assert.Len(t, repository.rows, 10_001, "no accepted upload row may disappear")
@@ -124,7 +165,7 @@ func TestImportJobPersistsMalformedRowsAsExplicitFailures(t *testing.T) {
 	repository := &importJobRepositoryMemory{}
 	service, err := NewImportJobService(ImportJobServiceDependencies{Repository: repository, MaxRows: 100, ChunkSize: 2, MaxFileBytes: 1 << 20})
 	require.NoError(t, err)
-	job, err := service.StageCSV(context.Background(), "workspace1", "customers.csv", strings.NewReader("external_user_id,email\na,a@example.com\nbad-row\nc,c@example.com\n"))
+	job, err := service.StageCSV(context.Background(), "workspace1", "customers.csv", nil, strings.NewReader("external_user_id,email\na,a@example.com\nbad-row\nc,c@example.com\n"))
 	require.NoError(t, err)
 	assert.Equal(t, domain.ImportJobStaged, job.Status)
 	assert.Len(t, repository.rows, 3)
@@ -139,7 +180,7 @@ func TestImportJobCommitCreatesDurableBackgroundTask(t *testing.T) {
 	scheduler := &importTaskSchedulerMemory{}
 	service, err := NewImportJobService(ImportJobServiceDependencies{Repository: repository, Tasks: scheduler, MaxRows: 100, ChunkSize: 20, MaxFileBytes: 1 << 20})
 	require.NoError(t, err)
-	job, err := service.StageCSV(context.Background(), "workspace1", "customers.csv", strings.NewReader("external_user_id\ncustomer-1\n"))
+	job, err := service.StageCSV(context.Background(), "workspace1", "customers.csv", nil, strings.NewReader("external_user_id\ncustomer-1\n"))
 	require.NoError(t, err)
 	require.Equal(t, domain.ImportJobStaged, job.Status)
 	require.Len(t, scheduler.tasks, 1)
@@ -149,4 +190,27 @@ func TestImportJobCommitCreatesDurableBackgroundTask(t *testing.T) {
 	require.NotNil(t, task.State.ImportCustomers)
 	assert.Equal(t, job.ID, task.State.ImportCustomers.JobID)
 	assert.Equal(t, int64(1), task.State.ImportCustomers.TotalRows)
+}
+
+func TestImportJobAddsCustomersToSelectedListsWithoutReplacementSemantics(t *testing.T) {
+	repository := &importJobRepositoryMemory{}
+	customers := &importCustomerServiceStub{}
+	service, err := NewImportJobService(ImportJobServiceDependencies{Repository: repository, Customers: customers, MaxRows: 100, ChunkSize: 20, MaxFileBytes: 1 << 20})
+	require.NoError(t, err)
+
+	job, err := service.StageCSV(context.Background(), "workspace1", "customers.csv", []string{" listB ", "listA", "listB"}, strings.NewReader("external_user_id\ncustomer-1\n"))
+	require.NoError(t, err)
+	assert.Equal(t, []string{"listB", "listA"}, job.ListIDs)
+
+	processed, err := service.ProcessNextChunk(context.Background(), "workspace1", job.ID)
+	require.NoError(t, err)
+	assert.Equal(t, 1, processed)
+	require.Len(t, customers.requests, 1)
+	additions := customers.requests[0].Items[0].Customer.ListMembershipsAdd
+	require.NotNil(t, additions)
+	assert.Equal(t, []domain.CustomerListMembershipInput{
+		{ListID: "listB", Status: "active"},
+		{ListID: "listA", Status: "active"},
+	}, *additions)
+	assert.Nil(t, customers.requests[0].Items[0].Customer.ListMemberships)
 }

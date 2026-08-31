@@ -386,7 +386,7 @@ func (s *BroadcastService) ScheduleBroadcast(ctx context.Context, request *domai
 			s.logger.Error("Cannot schedule broadcast with non-draft status")
 			return err
 		}
-		if bcast.Audience.AudienceID != "" && bcast.Audience.CampaignRunID == "" {
+		if (bcast.Audience.List != "" || bcast.Audience.AudienceID != "") && bcast.Audience.CampaignRunID == "" {
 			if s.campaigns == nil {
 				return errors.New("campaign snapshot service is unavailable")
 			}

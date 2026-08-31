@@ -18,7 +18,7 @@ import { FilterBuilder } from '../components/web_analytics/FilterBuilder'
 import { DashboardTab } from '../components/web_analytics/tabs/DashboardTab'
 import { FiltersTab } from '../components/web_analytics/tabs/FiltersTab'
 import { LiveButton } from '../components/web_analytics/LiveButton'
-import { DataAnalyticsTabs } from '../components/navigation/WorkspaceSectionTabs'
+import { DataAnalyticsPageShell } from '../components/navigation/DataAnalyticsPageShell'
 
 // Explore and Goals pull in the drill-down table and the goal drawer, neither
 // of which the landing section needs.
@@ -88,17 +88,6 @@ function WebAnalyticsSection(props: { workspaceId: string; tab: WebAnalyticsTab 
   const isExplore = activeTab === 'explore'
   const [csvOpen, setCsvOpen] = useState(false)
 
-  // The dashboard is the feature's landing page and keeps its name; the other
-  // sections title themselves, since the sidebar entry is all that says where
-  // you are now that the tab strip is gone.
-  const titles: Record<WebAnalyticsTab, string> = {
-    dashboard: t`Web Analytics`,
-    explore: t`Explore`,
-    goals: t`Goals`,
-    filters: t`Filters`,
-    annotations: t`Annotations`
-  }
-
   const panes: Record<WebAnalyticsTab, ReactNode> = {
     dashboard: <DashboardTab />,
     explore: (
@@ -138,7 +127,7 @@ function WebAnalyticsSection(props: { workspaceId: string; tab: WebAnalyticsTab 
 
   // Everything the period applies to sits inside the gate, so an install
   // problem covers the controls that would only produce more empty reports.
-  const body = (
+  const toolbar = (
     <>
       {/* Dimensions above filters: the dimensions are the report, the filters
           only narrow it, so they read in the order they are applied. */}
@@ -162,24 +151,21 @@ function WebAnalyticsSection(props: { workspaceId: string; tab: WebAnalyticsTab 
         </div>
       ) : null}
 
-      {panes[activeTab]}
     </>
   )
 
   return (
-    <div className="p-4 md:p-6">
-      <DataAnalyticsTabs workspaceId={props.workspaceId} activeKey={activeTab} />
-
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="text-2xl font-medium">{titles[activeTab]}</div>
-          {/* The dashboard is the section's landing page, so the live count
-              belongs there; on the other tabs it is a second, unrelated period
-              sitting next to a title about the one you chose. */}
+    <DataAnalyticsPageShell
+      workspaceId={props.workspaceId}
+      activeKey={activeTab}
+      actions={
+        <>
           {activeTab === 'dashboard' && settings?.enabled ? <LiveButton /> : null}
-        </div>
-        {showToolbar && settings && isExplore ? periodControls : null}
-      </div>
+          {showToolbar && settings && isExplore ? periodControls : null}
+        </>
+      }
+      toolbar={showToolbar && settings ? toolbar : undefined}
+    >
 
       {/* The filters tab configures attribution rather than reading it, so a
           quiet day must not stand between the operator and their rules.
@@ -189,10 +175,10 @@ function WebAnalyticsSection(props: { workspaceId: string; tab: WebAnalyticsTab 
           sends broadcasts would otherwise be locked out of the very rows the
           broadcast subscriber writes for it. */}
       {activeTab === 'annotations' ? (
-        body
+        panes[activeTab]
       ) : (
         <WebAnalyticsGate mode={DATA_SECTIONS.includes(activeTab) ? 'data' : 'config'}>
-          {body}
+          {panes[activeTab]}
         </WebAnalyticsGate>
       )}
 
@@ -211,6 +197,6 @@ function WebAnalyticsSection(props: { workspaceId: string; tab: WebAnalyticsTab 
           <WebAnalyticsAIAssistant workspace={workspace} tab={activeTab} />
         </Suspense>
       ) : null}
-    </div>
+    </DataAnalyticsPageShell>
   )
 }

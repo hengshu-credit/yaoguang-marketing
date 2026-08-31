@@ -78,6 +78,7 @@ type ImportJob struct {
 	Filename     string          `json:"filename"`
 	ObjectKey    string          `json:"object_key,omitempty"`
 	FileChecksum string          `json:"file_checksum,omitempty"`
+	ListIDs      []string        `json:"list_ids,omitempty"`
 	Counters     ImportCounters  `json:"counters"`
 	CreatedAt    time.Time       `json:"created_at"`
 	UpdatedAt    time.Time       `json:"updated_at"`

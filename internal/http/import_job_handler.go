@@ -96,7 +96,7 @@ func (h *ImportJobHandler) upload(w http.ResponseWriter, r *http.Request) {
 	if filename == "" {
 		filename = "customers.csv"
 	}
-	job, err := h.service.StageCSV(r.Context(), workspaceID, filename, r.Body)
+	job, err := h.service.StageCSV(r.Context(), workspaceID, filename, r.URL.Query()["list_id"], r.Body)
 	if err != nil {
 		h.error(w, r, err)
 		return

@@ -29,10 +29,9 @@ import TemplateSelectorInput from '../templates/TemplateSelectorInput'
 import { DeleteOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import React from 'react'
 import extractTLD from '../../lib/tld'
-import type { List } from '../../services/api/list'
+import { listsApi, type List } from '../../services/api/list'
 import { DataFeedSettings } from './DataFeedSettings'
 import type { GlobalFeedSettings, RecipientFeedSettings } from '../../services/api/broadcast'
-import { audienceApi } from '../../services/api/marketing'
 
 // Custom component to handle A/B testing configuration
 const ABTestingConfig = ({ form }: { form: ReturnType<typeof Form.useForm>[0] }) => {
@@ -85,7 +84,8 @@ export function UpsertBroadcastDrawer({
   broadcast,
   buttonProps = {},
   buttonContent,
-  onClose
+  onClose,
+  lists
 }: UpsertBroadcastDrawerProps) {
   const { t } = useLingui()
   const [isOpen, setIsOpen] = useState(false)
@@ -105,11 +105,12 @@ export function UpsertBroadcastDrawer({
     url: '',
     headers: []
   })
-  const audiencesQuery = useQuery({
-    queryKey: ['audiences', workspace.id],
-    queryFn: () => audienceApi.list(workspace.id),
-    enabled: isOpen
+  const listsQuery = useQuery({
+    queryKey: ['lists', workspace.id],
+    queryFn: () => listsApi.list({ workspace_id: workspace.id }),
+    enabled: isOpen && !lists
   })
+  const availableLists = lists ?? listsQuery.data?.lists ?? []
 
   // Watch campaign name changes using Form.useWatch
   const campaignName = Form.useWatch('name', form)
@@ -194,6 +195,7 @@ export function UpsertBroadcastDrawer({
       form.setFieldsValue({
         name: '',
         audience: {
+          list: undefined,
           audience_id: undefined,
           audience_version: undefined,
           audience_build_id: undefined,
@@ -266,7 +268,7 @@ export function UpsertBroadcastDrawer({
     const fieldsToValidate: string[][] = []
 
     if (currentTab === 'audience') {
-      fieldsToValidate.push(['name'], ['audience', 'audience_id'])
+      fieldsToValidate.push(['name'], ['audience', 'list'])
     } else if (currentTab === 'email') {
       // Add email tab validation if needed in the future
     }
@@ -439,6 +441,14 @@ export function UpsertBroadcastDrawer({
               if (payload.audience?.list && Array.isArray(payload.audience.list)) {
                 payload.audience.list = payload.audience.list[0]
               }
+              if (payload.audience?.list) {
+                payload.audience = {
+                  ...payload.audience,
+                  audience_id: undefined,
+                  audience_version: undefined,
+                  audience_build_id: undefined
+                }
+              }
 
               upsertBroadcastMutation.mutate(payload)
             }}
@@ -514,35 +524,33 @@ export function UpsertBroadcastDrawer({
                     </Form.Item>
 
                     <Form.Item
-                      name={['audience', 'audience_id']}
-                      label="目标客群"
+                      name={['audience', 'list']}
+                      label={t`Target list`}
                       rules={[
                         {
                           required: true,
                           type: 'string',
-                          message: '请选择已完成构建的客群'
+                          message: t`Please select a list`
                         }
                       ]}
                     >
                       <Select
-                        placeholder="选择活动启动时要冻结的客群"
-                        loading={audiencesQuery.isLoading}
-                        options={(audiencesQuery.data?.items ?? []).map((item) => ({
+                        placeholder={t`Select the list to snapshot when the campaign starts`}
+                        loading={listsQuery.isLoading}
+                        options={availableLists.map((item) => ({
                           value: item.id,
-                          label: item.active_build_id ? item.name : `${item.name}（尚未生成）`,
-                          disabled: !item.active_build_id
+                          label: item.name
                         }))}
-                        onChange={(audienceId) => {
-                          const selected = audiencesQuery.data?.items.find((item) => item.id === audienceId)
-                          form.setFieldValue(['audience', 'audience_version'], selected?.active_version)
-                          form.setFieldValue(['audience', 'audience_build_id'], selected?.active_build_id)
-                          form.setFieldValue(['audience', 'list'], undefined)
+                        onChange={() => {
+                          form.setFieldValue(['audience', 'audience_id'], undefined)
+                          form.setFieldValue(['audience', 'audience_version'], undefined)
+                          form.setFieldValue(['audience', 'audience_build_id'], undefined)
                           form.setFieldValue(['audience', 'segments'], [])
                         }}
                       />
                     </Form.Item>
 
-                    <Alert className="mb-4" type="info" showIcon title="活动开始后收件人不会随名单变化" description="系统会按当前客群版本生成不可变快照；发送时仍实时检查身份、同意、抑制和频控。" />
+                    <Alert className="mb-4" type="info" showIcon title={t`Recipients do not change after the campaign starts`} description={t`The current active list members are frozen into an immutable snapshot. Identity, consent, suppression and frequency policies are still checked at send time.`} />
 
                     <Form.Item
                       name={['audience', 'exclude_unsubscribed']}

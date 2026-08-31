@@ -323,6 +323,33 @@ func TestCustomerUpsertInputValidateAllowsExternalIDWithoutEmailAndCanonicalizes
 	assert.Equal(t, "active", (*input.ListMemberships)[0].Status)
 }
 
+func TestCustomerUpsertInputValidateCanonicalizesAdditiveListMemberships(t *testing.T) {
+	memberships := []CustomerListMembershipInput{{ListID: " list123 ", Status: ""}}
+	input := CustomerUpsertInput{
+		ExternalUserID:     stringPointer("user-1"),
+		ListMembershipsAdd: &memberships,
+	}
+
+	require.NoError(t, input.Validate())
+	require.Len(t, *input.ListMembershipsAdd, 1)
+	assert.Equal(t, "list123", (*input.ListMembershipsAdd)[0].ListID)
+	assert.Equal(t, "active", (*input.ListMembershipsAdd)[0].Status)
+}
+
+func TestCustomerUpsertInputValidateRejectsReplaceAndAddMembershipsTogether(t *testing.T) {
+	replacement := []CustomerListMembershipInput{{ListID: "list123"}}
+	addition := []CustomerListMembershipInput{{ListID: "list456"}}
+	input := CustomerUpsertInput{
+		ExternalUserID:     stringPointer("user-1"),
+		ListMemberships:    &replacement,
+		ListMembershipsAdd: &addition,
+	}
+
+	err := input.Validate()
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "cannot be used together")
+}
+
 func TestCustomerUpsertInputValidateRequiresResolvableIdentityAndRejectsNormalizedDuplicates(t *testing.T) {
 	tests := []struct {
 		name    string

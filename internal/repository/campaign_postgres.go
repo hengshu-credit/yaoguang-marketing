@@ -53,16 +53,16 @@ func (r *CampaignPostgresRepository) CreateCampaign(ctx context.Context, workspa
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, `INSERT INTO campaign_versions (
-		campaign_id, version, audience_id, audience_version, channel, variants, created_at
-	) VALUES (NULLIF($1, '')::uuid, $2, NULLIF($3, '')::uuid, $4, $5, $6, $7)`,
-		version.CampaignID, version.Version, version.AudienceID, version.AudienceVersion, version.Channel, variants, version.CreatedAt); err != nil {
+		campaign_id, version, audience_id, audience_version, list_id, channel, variants, created_at
+	) VALUES (NULLIF($1, '')::uuid, $2, NULLIF($3, '')::uuid, NULLIF($4, 0), NULLIF($5, ''), $6, $7, $8)`,
+		version.CampaignID, version.Version, version.AudienceID, version.AudienceVersion, version.ListID, version.Channel, variants, version.CreatedAt); err != nil {
 		return err
 	}
 	return tx.Commit()
 }
 
 func (r *CampaignPostgresRepository) EnsureBroadcastCampaign(ctx context.Context, workspaceID, broadcastID, name string,
-	audienceID string, audienceVersion int, channel string, variants []domain.CampaignVariant) (*domain.CampaignVersion, error) {
+	audienceID string, audienceVersion int, listID, channel string, variants []domain.CampaignVariant) (*domain.CampaignVersion, error) {
 	now := time.Now().UTC()
 	db, err := r.getDB(ctx, workspaceID)
 	if err != nil {
@@ -89,7 +89,7 @@ func (r *CampaignPostgresRepository) EnsureBroadcastCampaign(ctx context.Context
 		return nil, err
 	}
 	version := &domain.CampaignVersion{CampaignID: campaignID, Version: versionNumber,
-		AudienceID: audienceID, AudienceVersion: audienceVersion, Channel: channel, Variants: variants, CreatedAt: now}
+		AudienceID: audienceID, AudienceVersion: audienceVersion, ListID: listID, Channel: channel, Variants: variants, CreatedAt: now}
 	if err := version.Validate(); err != nil {
 		return nil, err
 	}
@@ -98,9 +98,9 @@ func (r *CampaignPostgresRepository) EnsureBroadcastCampaign(ctx context.Context
 		return nil, err
 	}
 	if _, err := tx.ExecContext(ctx, `INSERT INTO campaign_versions (
-		campaign_id, version, audience_id, audience_version, channel, variants, config, created_at
-	) VALUES ($1, $2, $3, $4, $5, $6, jsonb_build_object('broadcast_id', $7::text), $8)`,
-		campaignID, versionNumber, audienceID, audienceVersion, channel, variantJSON, broadcastID, now); err != nil {
+		campaign_id, version, audience_id, audience_version, list_id, channel, variants, config, created_at
+	) VALUES ($1, $2, NULLIF($3, '')::uuid, NULLIF($4, 0), NULLIF($5, ''), $6, $7, jsonb_build_object('broadcast_id', $8::text), $9)`,
+		campaignID, versionNumber, audienceID, audienceVersion, listID, channel, variantJSON, broadcastID, now); err != nil {
 		return nil, err
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE campaigns SET name = $2, draft_version = $3,
@@ -120,15 +120,18 @@ func (r *CampaignPostgresRepository) GetCampaignVersion(ctx context.Context, wor
 	}
 	item := &domain.CampaignVersion{}
 	var variants []byte
-	err = db.QueryRowContext(ctx, `SELECT campaign_id, version, audience_id, audience_version, channel, variants, activated_at, created_at
+	var audienceID, listID sql.NullString
+	var audienceVersion sql.NullInt64
+	err = db.QueryRowContext(ctx, `SELECT campaign_id, version, audience_id, audience_version, list_id, channel, variants, activated_at, created_at
 		FROM campaign_versions WHERE campaign_id = NULLIF($1, '')::uuid AND version = $2`, campaignID, version).
-		Scan(&item.CampaignID, &item.Version, &item.AudienceID, &item.AudienceVersion, &item.Channel, &variants, &item.ActivatedAt, &item.CreatedAt)
+		Scan(&item.CampaignID, &item.Version, &audienceID, &audienceVersion, &listID, &item.Channel, &variants, &item.ActivatedAt, &item.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
 	if err := json.Unmarshal(variants, &item.Variants); err != nil {
 		return nil, err
 	}
+	item.AudienceID, item.AudienceVersion, item.ListID = audienceID.String, int(audienceVersion.Int64), listID.String
 	return item, nil
 }
 
@@ -229,20 +232,28 @@ func (r *CampaignPostgresRepository) GetCampaignRun(ctx context.Context, workspa
 	return item, err
 }
 
-func (r *CampaignPostgresRepository) ListAudienceMembers(ctx context.Context, workspaceID, audienceID string, version int, after string, limit int) ([]domain.CampaignAudienceMember, string, error) {
+func (r *CampaignPostgresRepository) ListCampaignMembers(ctx context.Context, workspaceID string, version domain.CampaignVersion, after string, limit int) ([]domain.CampaignAudienceMember, string, error) {
 	db, err := r.getDB(ctx, workspaceID)
 	if err != nil {
 		return nil, "", err
 	}
-	rows, err := db.QueryContext(ctx, `WITH source_build AS (
-		SELECT id FROM audience_builds WHERE audience_id = NULLIF($1, '')::uuid
-			AND audience_version = $2 AND status = 'completed'
-		ORDER BY completed_at DESC, id DESC LIMIT 1
-	) SELECT membership.customer_id, membership.build_id FROM audience_memberships membership
-		JOIN source_build ON source_build.id = membership.build_id
-		WHERE 1 = 1
-			AND membership.customer_id > COALESCE(NULLIF($3, '')::uuid, '00000000-0000-0000-0000-000000000000'::uuid)
-		ORDER BY membership.customer_id LIMIT $4`, audienceID, version, after, limit)
+	var rows *sql.Rows
+	if version.ListID != "" {
+		rows, err = db.QueryContext(ctx, `SELECT membership.customer_id, ''
+			FROM customer_list_memberships membership
+			WHERE membership.list_id = $1 AND membership.status = 'active'
+				AND membership.customer_id > COALESCE(NULLIF($2, '')::uuid, '00000000-0000-0000-0000-000000000000'::uuid)
+			ORDER BY membership.customer_id LIMIT $3`, version.ListID, after, limit)
+	} else {
+		rows, err = db.QueryContext(ctx, `WITH source_build AS (
+			SELECT id FROM audience_builds WHERE audience_id = NULLIF($1, '')::uuid
+				AND audience_version = $2 AND status = 'completed'
+			ORDER BY completed_at DESC, id DESC LIMIT 1
+		) SELECT membership.customer_id, membership.build_id FROM audience_memberships membership
+			JOIN source_build ON source_build.id = membership.build_id
+			WHERE membership.customer_id > COALESCE(NULLIF($3, '')::uuid, '00000000-0000-0000-0000-000000000000'::uuid)
+			ORDER BY membership.customer_id LIMIT $4`, version.AudienceID, version.AudienceVersion, after, limit)
+	}
 	if err != nil {
 		return nil, "", err
 	}

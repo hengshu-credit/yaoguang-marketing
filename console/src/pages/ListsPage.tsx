@@ -28,7 +28,6 @@ import { CreateTemplateDrawer } from '../components/templates/CreateTemplateDraw
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { ImportContactsToListButton } from '../components/lists/ImportContactsToListButton'
 import { ListStats } from '../components/lists/ListStats'
 import { useLingui } from '@lingui/react/macro'
 
@@ -140,6 +139,7 @@ export function ListsPage() {
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['lists', workspaceId] })
+    queryClient.invalidateQueries({ queryKey: ['list-stats', workspaceId] })
     message.success(t`Lists refreshed`)
   }
 
@@ -152,7 +152,12 @@ export function ListsPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">{t`Lists`}</div>
+        <div>
+          <div className="text-2xl font-medium">{t`Lists`}</div>
+          <Paragraph type="secondary" className="mb-0 mt-1">
+            {t`Create reusable customer groups and monitor their live membership counts.`}
+          </Paragraph>
+        </div>
         {(isLoading || hasLists) && (
           <Space>
             <Tooltip title={t`Refresh`}>
@@ -236,22 +241,6 @@ export function ListsPage() {
                           ),
                           disabled: !permissions?.lists?.write
                         }}
-                      />
-                    </div>
-                  </Tooltip>
-                  <Tooltip
-                    title={
-                      !permissions?.lists?.write
-                        ? t`You don't have write permission for lists`
-                        : undefined
-                    }
-                  >
-                    <div>
-                      <ImportContactsToListButton
-                        list={list}
-                        workspaceId={workspaceId}
-                        lists={data.lists}
-                        disabled={!permissions?.lists?.write}
                       />
                     </div>
                   </Tooltip>

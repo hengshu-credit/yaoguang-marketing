@@ -40,10 +40,10 @@ func (r *ImportJobPostgresRepository) CreateImportJob(ctx context.Context, works
 		return err
 	}
 	_, err = db.ExecContext(ctx, `INSERT INTO import_jobs (
-		id, status, filename, object_key, file_checksum, total_count, pending_count, processing_count,
+		id, status, filename, object_key, file_checksum, list_ids, total_count, pending_count, processing_count,
 		succeeded_count, failed_count, created_at, updated_at
-	) VALUES (NULLIF($1, '')::uuid, $2, $3, NULLIF($4, ''), NULLIF($5, ''), $6, $7, $8, $9, $10, $11, $11)`,
-		job.ID, job.Status, job.Filename, job.ObjectKey, job.FileChecksum, job.Counters.Total, job.Counters.Pending,
+	) VALUES (NULLIF($1, '')::uuid, $2, $3, NULLIF($4, ''), NULLIF($5, ''), $6, $7, $8, $9, $10, $11, $12, $12)`,
+		job.ID, job.Status, job.Filename, job.ObjectKey, job.FileChecksum, pq.Array(job.ListIDs), job.Counters.Total, job.Counters.Pending,
 		job.Counters.Processing, job.Counters.Succeeded, job.Counters.Failed, job.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("create import job: %w", err)
@@ -246,9 +246,10 @@ func (r *ImportJobPostgresRepository) GetImportJob(ctx context.Context, workspac
 	}
 	job := &domain.ImportJob{}
 	var objectKey, checksum sql.NullString
-	err = db.QueryRowContext(ctx, `SELECT id, status, filename, object_key, file_checksum,
+	err = db.QueryRowContext(ctx, `SELECT id, status, filename, object_key, file_checksum, list_ids,
 		total_count, pending_count, processing_count, succeeded_count, failed_count, created_at, updated_at
 		FROM import_jobs WHERE id = NULLIF($1, '')::uuid`, jobID).Scan(&job.ID, &job.Status, &job.Filename, &objectKey, &checksum,
+		pq.Array(&job.ListIDs),
 		&job.Counters.Total, &job.Counters.Pending, &job.Counters.Processing, &job.Counters.Succeeded, &job.Counters.Failed, &job.CreatedAt, &job.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -272,7 +273,7 @@ func (r *ImportJobPostgresRepository) ListImportJobs(ctx context.Context, worksp
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM import_jobs`).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-	rows, err := db.QueryContext(ctx, `SELECT id, status, filename, object_key, file_checksum,
+	rows, err := db.QueryContext(ctx, `SELECT id, status, filename, object_key, file_checksum, list_ids,
 		total_count, pending_count, processing_count, succeeded_count, failed_count, created_at, updated_at
 		FROM import_jobs ORDER BY created_at DESC, id DESC LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
@@ -283,7 +284,7 @@ func (r *ImportJobPostgresRepository) ListImportJobs(ctx context.Context, worksp
 	for rows.Next() {
 		var item domain.ImportJob
 		var objectKey, checksum sql.NullString
-		if err := rows.Scan(&item.ID, &item.Status, &item.Filename, &objectKey, &checksum,
+		if err := rows.Scan(&item.ID, &item.Status, &item.Filename, &objectKey, &checksum, pq.Array(&item.ListIDs),
 			&item.Counters.Total, &item.Counters.Pending, &item.Counters.Processing,
 			&item.Counters.Succeeded, &item.Counters.Failed, &item.CreatedAt, &item.UpdatedAt); err != nil {
 			return nil, 0, err

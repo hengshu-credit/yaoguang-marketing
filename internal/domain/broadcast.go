@@ -403,6 +403,9 @@ func (b *Broadcast) Validate() error {
 	if b.Audience.List == "" && b.Audience.AudienceID == "" {
 		return fmt.Errorf("list is required when no audience is selected")
 	}
+	if b.Audience.List != "" && b.Audience.AudienceID != "" {
+		return fmt.Errorf("list and audience cannot both be selected")
+	}
 	if b.Audience.AudienceID != "" && b.Audience.AudienceVersion <= 0 {
 		return fmt.Errorf("audience version is required")
 	}
@@ -594,7 +597,15 @@ func (r *UpdateBroadcastRequest) Validate(existingBroadcast *Broadcast) (*Broadc
 	// array widens back to the whole list, and an explicit false switches the
 	// unsubscribed exclusion off.
 	if !r.audienceListOmitted {
+		if existingBroadcast.Audience.List != r.Audience.List {
+			existingBroadcast.Audience.CampaignRunID = ""
+		}
 		existingBroadcast.Audience.List = r.Audience.List
+		if r.Audience.List != "" {
+			existingBroadcast.Audience.AudienceID = ""
+			existingBroadcast.Audience.AudienceVersion = 0
+			existingBroadcast.Audience.AudienceBuildID = ""
+		}
 	}
 	if !r.audienceSegmentsOmitted {
 		existingBroadcast.Audience.Segments = r.Audience.Segments
@@ -604,6 +615,9 @@ func (r *UpdateBroadcastRequest) Validate(existingBroadcast *Broadcast) (*Broadc
 	}
 	if !r.audienceIDOmitted {
 		existingBroadcast.Audience.AudienceID = r.Audience.AudienceID
+		if r.Audience.AudienceID != "" {
+			existingBroadcast.Audience.List = ""
+		}
 		// Retargeting invalidates the snapshot from any earlier run.
 		existingBroadcast.Audience.CampaignRunID = ""
 	}

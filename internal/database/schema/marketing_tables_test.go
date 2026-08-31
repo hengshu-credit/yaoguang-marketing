@@ -23,3 +23,12 @@ func TestMarketingWorkspaceLocalKeysDoNotPretendWorkspaceColumnExists(t *testing
 	assert.Contains(t, ddl, "PRIMARY KEY (audience_id, version)")
 	assert.Contains(t, ddl, "PRIMARY KEY (job_id, ordinal)")
 }
+
+func TestMarketingTablesSupportListCampaignSourcesAndImportBindings(t *testing.T) {
+	ddl := strings.Join(MarketingTableDefinitions(), ";\n")
+	assert.Contains(t, ddl, "list_id VARCHAR(32)")
+	assert.Contains(t, ddl, "list_ids TEXT[] NOT NULL DEFAULT '{}'::text[]")
+	assert.Contains(t, ddl, "CONSTRAINT campaign_versions_source_check CHECK")
+	assert.Contains(t, ddl, "audience_id IS NOT NULL AND audience_version IS NOT NULL AND list_id IS NULL")
+	assert.Contains(t, ddl, "audience_id IS NULL AND audience_version IS NULL AND list_id IS NOT NULL")
+}

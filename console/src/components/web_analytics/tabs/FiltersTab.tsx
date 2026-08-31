@@ -119,9 +119,7 @@ export function FiltersTab() {
 
   return (
     <div>
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-medium text-gray-800">{t`Attribution rules`}</h2>
+      <div className="mb-4 flex justify-end">
           <Space>
             <Button type="text" icon={<ExperimentOutlined />} onClick={() => setTestModalOpen(true)}>
               {t`Test`}
@@ -130,10 +128,6 @@ export function FiltersTab() {
               {t`Add`}
             </Button>
           </Space>
-        </div>
-        <p className="mt-3 text-gray-500 md:mt-1">
-          {t`Map traffic to channels, fill custom dimensions and rewrite traffic source fields as sessions come in.`}
-        </p>
       </div>
 
       <BackfillStatus

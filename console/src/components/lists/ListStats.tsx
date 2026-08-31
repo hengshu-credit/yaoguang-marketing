@@ -26,8 +26,8 @@ export function ListStats({ workspaceId, listId }: ListStatsProps) {
         list_id: listId
       })
     },
-    // Refetch every minute to keep stats up to date
-    refetchInterval: 60000
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true
   })
 
   const stats = data?.stats || {

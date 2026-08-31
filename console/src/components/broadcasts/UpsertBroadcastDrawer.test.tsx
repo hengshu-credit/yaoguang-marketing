@@ -64,7 +64,7 @@ const makeBroadcast = (overrides: Partial<Broadcast> = {}): Broadcast =>
     name: 'Weekly Newsletter',
     channel_type: 'email',
     status: 'draft',
-    audience: { audience_id: 'audience1', audience_version: 3, audience_build_id: 'build1', exclude_unsubscribed: true },
+    audience: { list: 'list1', exclude_unsubscribed: true },
     schedule: { is_scheduled: false, use_recipient_timezone: false },
     test_settings: {
       enabled: false,
@@ -151,7 +151,7 @@ describe('UpsertBroadcastDrawer data feeds', () => {
       'Weekly Newsletter'
     )
     await userEvent.click(screen.getAllByRole('combobox')[0])
-    await userEvent.click(await screen.findByText('高意向客户'))
+    await userEvent.click(await screen.findByText('Newsletter'))
 
     await goToTab('4. Content')
     await userEvent.type(screen.getByTestId('template-selector'), 'tmpl1')
@@ -161,6 +161,13 @@ describe('UpsertBroadcastDrawer data feeds', () => {
     const payload = (broadcastApi.create as ReturnType<typeof vi.fn>).mock.calls[0][0]
     expect(payload.data_feed.global_feed.enabled).toBe(false)
     expect(payload.data_feed.recipient_feed.enabled).toBe(false)
+    expect(payload.audience).toEqual(expect.objectContaining({
+      list: 'list1',
+      audience_id: undefined,
+      audience_version: undefined,
+      audience_build_id: undefined,
+      exclude_unsubscribed: true
+    }))
   })
 
   it('keeps the feed the user left on while turning the other one off', async () => {
@@ -232,7 +239,7 @@ describe('UpsertBroadcastDrawer schedule', () => {
       'Weekly Newsletter'
     )
     await userEvent.click(screen.getAllByRole('combobox')[0])
-    await userEvent.click(await screen.findByText('高意向客户'))
+    await userEvent.click(await screen.findByText('Newsletter'))
 
     await goToTab('4. Content')
     await userEvent.type(screen.getByTestId('template-selector'), 'tmpl1')

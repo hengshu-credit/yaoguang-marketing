@@ -7,7 +7,7 @@ import { AnalyticsDashboard } from '../components/analytics/AnalyticsDashboard'
 import { TIMEZONE_OPTIONS } from '../lib/timezones'
 import { getBrowserTimezone } from '../lib/timezoneNormalizer'
 import { useLingui } from '@lingui/react/macro'
-import { DataAnalyticsTabs } from '../components/navigation/WorkspaceSectionTabs'
+import { DataAnalyticsPageShell } from '../components/navigation/DataAnalyticsPageShell'
 
 type TimePeriod = '7D' | '14D' | '30D' | '90D'
 
@@ -73,10 +73,11 @@ export function AnalyticsPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">{t`Data Analytics`}</div>
-        <Space>
+    <DataAnalyticsPageShell
+      workspaceId={workspaceId}
+      activeKey="marketing"
+      actions={
+        <Space wrap>
           <Select
             value={selectedTimezone}
             onChange={handleTimezoneChange}
@@ -101,11 +102,9 @@ export function AnalyticsPage() {
             ]}
           />
         </Space>
-      </div>
-
-      <DataAnalyticsTabs workspaceId={workspaceId} activeKey="marketing" />
-
+      }
+    >
       <AnalyticsDashboard workspace={workspace} timeRange={timeRange} timezone={selectedTimezone} />
-    </div>
+    </DataAnalyticsPageShell>
   )
 }

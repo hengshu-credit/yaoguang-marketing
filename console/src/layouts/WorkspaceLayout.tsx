@@ -213,6 +213,26 @@ export function WorkspaceLayout() {
   }
 
   const menuItems = [
+    (hasAccess('message_history') || hasAccess('web_analytics')) && {
+      key: 'data',
+      icon: <BarChartOutlined />,
+      label: (
+        <Link
+          to={
+            hasAccess('message_history')
+              ? '/console/workspace/$workspaceId/analytics'
+              : '/console/workspace/$workspaceId/web-analytics/$tab'
+          }
+          params={
+            hasAccess('message_history')
+              ? { workspaceId }
+              : { workspaceId, tab: 'dashboard' }
+          }
+        >
+          {t`Data Analytics`}
+        </Link>
+      )
+    },
     (hasAccess('customers') || hasAccess('contacts')) && {
       key: 'customers',
       icon: <TeamOutlined />,
@@ -233,7 +253,7 @@ export function WorkspaceLayout() {
       key: 'audiences',
       icon: <UsergroupAddOutlined />,
       label: (
-        <Link to="/console/workspace/$workspaceId/audiences" params={{ workspaceId }}>
+        <Link to="/console/workspace/$workspaceId/lists" params={{ workspaceId }}>
           {t`Audiences`}
         </Link>
       )
@@ -269,26 +289,6 @@ export function WorkspaceLayout() {
           params={{ workspaceId }}
         >
           {t`Content Center`}
-        </Link>
-      )
-    },
-    (hasAccess('message_history') || hasAccess('web_analytics')) && {
-      key: 'data',
-      icon: <BarChartOutlined />,
-      label: (
-        <Link
-          to={
-            hasAccess('message_history')
-              ? '/console/workspace/$workspaceId/analytics'
-              : '/console/workspace/$workspaceId/web-analytics/$tab'
-          }
-          params={
-            hasAccess('message_history')
-              ? { workspaceId }
-              : { workspaceId, tab: 'dashboard' }
-          }
-        >
-          {t`Data Analytics`}
         </Link>
       )
     },

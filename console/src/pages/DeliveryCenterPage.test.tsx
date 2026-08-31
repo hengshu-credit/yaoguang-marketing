@@ -55,6 +55,7 @@ function wrapper({ children }: { children: React.ReactNode }) {
 describe('DeliveryCenterPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    window.history.replaceState({}, '', '/console/workspace/ws1/deliveries')
     vi.mocked(deliveryApi.list).mockResolvedValue({ deliveries: [unknownDelivery], total: 1 })
     vi.mocked(deliveryApi.get).mockResolvedValue({
       intent: unknownDelivery,
@@ -64,21 +65,34 @@ describe('DeliveryCenterPage', () => {
     vi.mocked(deliveryApi.resolveUnknown).mockResolvedValue({ status: 'resolved' })
   })
 
-  it('focuses unresolved deliveries and passes business filters to the API', async () => {
+  it('restores compact popover filters and persists applied business filters in the URL', async () => {
     render(<DeliveryCenterPage />, { wrapper })
 
     expect(await screen.findByRole('button', { name: 'Review' })).toBeInTheDocument()
     expect(screen.getAllByText('Needs confirmation').length).toBeGreaterThan(0)
     expect(deliveryApi.list).toHaveBeenCalledWith(expect.objectContaining({ workspace_id: 'ws1', status: 'unknown' }))
+    expect(screen.queryByPlaceholderText('Customer ID or number')).not.toBeInTheDocument()
 
-    fireEvent.change(screen.getByPlaceholderText('Customer ID or number'), { target: { value: 'customer-1' } })
-    fireEvent.change(screen.getByPlaceholderText('Provider'), { target: { value: 'aliyun' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Apply filters' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Customer' }))
+    fireEvent.change(await screen.findByPlaceholderText('Customer ID or number'), { target: { value: ' customer-1 ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
+
     await waitFor(() => {
       expect(deliveryApi.list).toHaveBeenLastCalledWith(
-        expect.objectContaining({ workspace_id: 'ws1', customer_id: 'customer-1', provider: 'aliyun' })
+        expect.objectContaining({ workspace_id: 'ws1', customer_id: 'customer-1' })
       )
     })
+    expect(screen.getByRole('button', { name: 'Customer: customer-1' })).toBeInTheDocument()
+    expect(new URLSearchParams(window.location.search).get('customer_id')).toBe('customer-1')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Customer: customer-1' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+    await waitFor(() => {
+      expect(deliveryApi.list).toHaveBeenLastCalledWith(
+        expect.not.objectContaining({ customer_id: expect.anything() })
+      )
+    })
+    expect(new URLSearchParams(window.location.search).has('customer_id')).toBe(false)
   })
 
   it('requires a reason before an unknown delivery can be resolved', async () => {
@@ -95,5 +109,31 @@ describe('DeliveryCenterPage', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Confirm resolution' }))
     await waitFor(() => expect(deliveryApi.resolveUnknown).toHaveBeenCalled())
+  })
+
+  it('keeps an invalid delivery time range out of the API request', async () => {
+    render(<DeliveryCenterPage />, { wrapper })
+    await screen.findByRole('button', { name: 'Review' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delivery time' }))
+    fireEvent.change(await screen.findByLabelText('From'), { target: { value: '2026-08-30T12:00' } })
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: '2026-08-30T11:00' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
+
+    expect(await screen.findByText('End time must be after start time')).toBeInTheDocument()
+    expect(deliveryApi.list).toHaveBeenLastCalledWith(
+      expect.not.objectContaining({ from: expect.anything(), to: expect.anything() })
+    )
+  })
+
+  it('ignores a malformed delivery time restored from the URL', async () => {
+    window.history.replaceState({}, '', '/console/workspace/ws1/deliveries?from=not-a-date')
+
+    render(<DeliveryCenterPage />, { wrapper })
+
+    expect(await screen.findByRole('button', { name: 'Review' })).toBeInTheDocument()
+    expect(deliveryApi.list).toHaveBeenLastCalledWith(
+      expect.not.objectContaining({ from: expect.anything() })
+    )
   })
 })

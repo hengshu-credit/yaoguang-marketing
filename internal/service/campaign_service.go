@@ -19,7 +19,7 @@ type CampaignService struct {
 }
 
 type broadcastCampaignRepository interface {
-	EnsureBroadcastCampaign(context.Context, string, string, string, string, int, string, []domain.CampaignVariant) (*domain.CampaignVersion, error)
+	EnsureBroadcastCampaign(context.Context, string, string, string, string, int, string, string, []domain.CampaignVariant) (*domain.CampaignVersion, error)
 }
 
 func NewCampaignService(repository domain.CampaignRepository, snapshots *CampaignSnapshotService) (*CampaignService, error) {
@@ -64,6 +64,7 @@ type CreateCampaignRequest struct {
 	Name            string
 	AudienceID      string
 	AudienceVersion int
+	ListID          string
 	Channel         string
 	Variants        []domain.CampaignVariant
 }
@@ -80,7 +81,7 @@ func (s *CampaignService) Create(ctx context.Context, request CreateCampaignRequ
 	campaign := domain.Campaign{ID: uuid.New().String(), Name: strings.TrimSpace(request.Name), Status: domain.CampaignStatusDraft,
 		DraftVersion: 1, CreatedAt: now, UpdatedAt: now}
 	version := domain.CampaignVersion{CampaignID: campaign.ID, Version: 1, AudienceID: request.AudienceID,
-		AudienceVersion: request.AudienceVersion, Channel: request.Channel, Variants: request.Variants, CreatedAt: now}
+		AudienceVersion: request.AudienceVersion, ListID: request.ListID, Channel: request.Channel, Variants: request.Variants, CreatedAt: now}
 	if err := version.Validate(); err != nil {
 		return nil, err
 	}
@@ -127,8 +128,15 @@ func (s *CampaignService) Recipients(ctx context.Context, workspaceID, runID str
 // immediately afterwards, but its orchestrator waits for this run to become
 // dispatching before it reads any recipient.
 func (s *CampaignService) PrepareBroadcast(ctx context.Context, workspaceID string, broadcast *domain.Broadcast) (*domain.CampaignRun, error) {
-	if broadcast == nil || strings.TrimSpace(broadcast.Audience.AudienceID) == "" || broadcast.Audience.AudienceVersion <= 0 {
-		return nil, errors.New("broadcast requires a versioned audience")
+	if broadcast == nil {
+		return nil, errors.New("broadcast is required")
+	}
+	listID := strings.TrimSpace(broadcast.Audience.List)
+	audienceID := strings.TrimSpace(broadcast.Audience.AudienceID)
+	hasList := listID != ""
+	hasAudience := audienceID != "" && broadcast.Audience.AudienceVersion > 0
+	if (audienceID != "" && !hasAudience) || hasList == hasAudience {
+		return nil, errors.New("broadcast requires exactly one recipient source: a list or a versioned audience")
 	}
 	repository, ok := s.repository.(broadcastCampaignRepository)
 	if !ok {
@@ -139,7 +147,7 @@ func (s *CampaignService) PrepareBroadcast(ctx context.Context, workspaceID stri
 	}
 	variants := broadcastCampaignVariants(broadcast)
 	version, err := repository.EnsureBroadcastCampaign(ctx, workspaceID, broadcast.ID, broadcast.Name,
-		broadcast.Audience.AudienceID, broadcast.Audience.AudienceVersion, broadcast.ChannelType, variants)
+		audienceID, broadcast.Audience.AudienceVersion, listID, broadcast.ChannelType, variants)
 	if err != nil {
 		return nil, err
 	}

@@ -51,4 +51,24 @@ describe('customerApi', () => {
       customerQueryKeys.detail('ws2', 'customer-1')
     )
   })
+
+  it('updates one customer through the upsert patch contract', async () => {
+    vi.mocked(api.post).mockResolvedValue({ customer: { customer_id: 'customer-1', action: 'updated' } })
+
+    await customerApi.update(
+      'ws1',
+      'customer-1',
+      { profile: { status: 'active' } },
+      'edit-1'
+    )
+
+    expect(api.post).toHaveBeenCalledWith('/api/customers.upsert', {
+      workspace_id: 'ws1',
+      idempotency_key: 'edit-1',
+      customer: {
+        locator: { customer_id: 'customer-1' },
+        profile: { status: 'active' }
+      }
+    })
+  })
 })

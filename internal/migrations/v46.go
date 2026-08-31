@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -82,7 +83,7 @@ func (m *V46Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 		)
 		UPDATE contacts c SET customer_id = seeds.customer_id
 		FROM customer_seeds seeds
-		WHERE c.email = seeds.email AND c.customer_id IS NULL`, args: []interface{}{workspace.Sequence}},
+		WHERE c.email = seeds.email AND c.customer_id IS NULL`, args: []interface{}{strconv.FormatUint(uint64(workspace.Sequence), 10)}},
 		{query: `INSERT INTO customer_profiles (
 			customer_id, status, language, timezone, attributes, version, created_at, updated_at
 		)
@@ -163,26 +164,37 @@ func backfillV46CustomerIdentities(ctx context.Context, secretKey, workspaceID s
 	}
 	defer rows.Close()
 
+	type legacyIdentity struct {
+		customerID string
+		email      string
+		phone      sql.NullString
+	}
+	identities := make([]legacyIdentity, 0)
 	for rows.Next() {
-		var customerID string
-		var email string
-		var phone sql.NullString
-		if err := rows.Scan(&customerID, &email, &phone); err != nil {
+		var identity legacyIdentity
+		if err := rows.Scan(&identity.customerID, &identity.email, &identity.phone); err != nil {
 			return fmt.Errorf("v46: scan legacy identities for workspace %s: %w", workspaceID, err)
 		}
-		if err := insertV46Identity(ctx, db, secretKey, workspaceID, customerID, domain.CustomerIdentityEmail, email, true); err != nil {
+		identities = append(identities, identity)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("v46: iterate legacy identities for workspace %s: %w", workspaceID, err)
+	}
+	if err := rows.Close(); err != nil {
+		return fmt.Errorf("v46: close legacy identities for workspace %s: %w", workspaceID, err)
+	}
+
+	for _, identity := range identities {
+		if err := insertV46Identity(ctx, db, secretKey, workspaceID, identity.customerID, domain.CustomerIdentityEmail, identity.email, true); err != nil {
 			return fmt.Errorf("v46: migrate email identity for workspace %s: %w", workspaceID, err)
 		}
-		if phone.Valid && strings.TrimSpace(phone.String) != "" {
-			if _, err := domain.NormalizeCustomerIdentity(domain.CustomerIdentityInput{Type: domain.CustomerIdentityPhone, Value: phone.String}); err == nil {
-				if err := insertV46Identity(ctx, db, secretKey, workspaceID, customerID, domain.CustomerIdentityPhone, phone.String, true); err != nil {
+		if identity.phone.Valid && strings.TrimSpace(identity.phone.String) != "" {
+			if _, err := domain.NormalizeCustomerIdentity(domain.CustomerIdentityInput{Type: domain.CustomerIdentityPhone, Value: identity.phone.String}); err == nil {
+				if err := insertV46Identity(ctx, db, secretKey, workspaceID, identity.customerID, domain.CustomerIdentityPhone, identity.phone.String, true); err != nil {
 					return fmt.Errorf("v46: migrate phone identity for workspace %s: %w", workspaceID, err)
 				}
 			}
 		}
-	}
-	if err := rows.Err(); err != nil {
-		return fmt.Errorf("v46: iterate legacy identities for workspace %s: %w", workspaceID, err)
 	}
 	return nil
 }

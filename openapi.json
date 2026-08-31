@@ -826,6 +826,21 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "list_id",
+            "in": "query",
+            "description": "Optional target List ID. Repeat the parameter to bind every imported Customer to multiple Lists without replacing existing memberships.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 32
+              }
+            },
+            "style": "form",
+            "explode": true
           }
         ],
         "requestBody": {
@@ -1134,10 +1149,21 @@
                 "required": [
                   "workspace_id",
                   "name",
-                  "audience_id",
-                  "audience_version",
                   "channel",
                   "variants"
+                ],
+                "oneOf": [
+                  {
+                    "required": [
+                      "audience_id",
+                      "audience_version"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "list_id"
+                    ]
+                  }
                 ],
                 "properties": {
                   "workspace_id": {
@@ -1153,6 +1179,11 @@
                   "audience_version": {
                     "type": "integer",
                     "minimum": 1
+                  },
+                  "list_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32
                   },
                   "channel": {
                     "type": "string"
@@ -11937,6 +11968,15 @@
           "filename": {
             "type": "string"
           },
+          "list_ids": {
+            "type": "array",
+            "description": "Lists selected when the import was staged.",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            }
+          },
           "file_checksum": {
             "type": "string",
             "minLength": 64,
@@ -13297,6 +13337,13 @@
               "$ref": "#/components/schemas/CustomerListMembershipInput"
             },
             "description": "When present, replaces all list memberships. An empty array clears them; omission leaves them unchanged."
+          },
+          "list_memberships_add": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerListMembershipInput"
+            },
+            "description": "Additive-only membership binding. Existing memberships and suppression states are preserved. It cannot be sent together with list_memberships."
           }
         }
       },

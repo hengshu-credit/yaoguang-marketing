@@ -426,10 +426,16 @@ func (r *CustomerPostgresRepository) Upsert(ctx context.Context, command domain.
 		if err := replaceCustomerListMemberships(ctx, tx, customer.ID, command.Input.ListMemberships, now); err != nil {
 			return err
 		}
+		if err := addCustomerListMemberships(ctx, tx, customer.ID, command.Input.ListMembershipsAdd, now); err != nil {
+			return err
+		}
 		if err := projectCustomerContact(ctx, tx, customer, profile, command.Input.Identities, action == "created", now); err != nil {
 			return err
 		}
 		if err := syncCustomerListProjection(ctx, tx, customer.ID, command.Input.ListMemberships, now); err != nil {
+			return err
+		}
+		if err := addCustomerListProjection(ctx, tx, customer.ID, command.Input.ListMembershipsAdd, now); err != nil {
 			return err
 		}
 
@@ -928,6 +934,20 @@ func replaceCustomerListMemberships(ctx context.Context, tx *sql.Tx, customerID 
 	return nil
 }
 
+func addCustomerListMemberships(ctx context.Context, tx *sql.Tx, customerID string, memberships *[]domain.CustomerListMembershipInput, now time.Time) error {
+	if memberships == nil {
+		return nil
+	}
+	for _, membership := range *memberships {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO customer_list_memberships (customer_id, list_id, status, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $4) ON CONFLICT (customer_id, list_id) DO NOTHING`,
+			customerID, membership.ListID, membership.Status, now); err != nil {
+			return fmt.Errorf("add customer list membership: %w", err)
+		}
+	}
+	return nil
+}
+
 func syncCustomerListProjection(ctx context.Context, tx *sql.Tx, customerID string, memberships *[]domain.CustomerListMembershipInput, now time.Time) error {
 	if memberships == nil {
 		return nil
@@ -950,6 +970,29 @@ func syncCustomerListProjection(ctx context.Context, tx *sql.Tx, customerID stri
 			email, list_id, status, created_at, updated_at, deleted_at, customer_id
 		) VALUES ($1, $2, $3, $4, $4, NULL, $5)`, email, membership.ListID, membership.Status, now, customerID); err != nil {
 			return fmt.Errorf("insert customer contact-list projection: %w", err)
+		}
+	}
+	return nil
+}
+
+func addCustomerListProjection(ctx context.Context, tx *sql.Tx, customerID string, memberships *[]domain.CustomerListMembershipInput, now time.Time) error {
+	if memberships == nil || len(*memberships) == 0 {
+		return nil
+	}
+	var email string
+	if err := tx.QueryRowContext(ctx, `SELECT email FROM contacts WHERE customer_id = $1`, customerID).Scan(&email); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		return fmt.Errorf("resolve additive customer contact-list projection email: %w", err)
+	}
+	for _, membership := range *memberships {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO contact_lists (
+			email, list_id, status, created_at, updated_at, deleted_at, customer_id
+		) VALUES ($1, $2, $3, $4, $4, NULL, $5)
+		ON CONFLICT (email, list_id) DO UPDATE SET customer_id = EXCLUDED.customer_id
+		WHERE contact_lists.customer_id IS NULL`, email, membership.ListID, membership.Status, now, customerID); err != nil {
+			return fmt.Errorf("add customer contact-list projection: %w", err)
 		}
 	}
 	return nil

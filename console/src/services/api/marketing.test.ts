@@ -19,13 +19,13 @@ describe('marketing APIs', () => {
   it('uploads the original file as a stream with workspace and filename', async () => {
     vi.mocked(api.postRaw).mockResolvedValue({ id: 'job-1' } as never)
     const file = new File(['external_user_id,email\n1,a@example.com\n'], 'customers.csv', { type: 'text/csv' })
-    await importJobApi.upload('workspace-1', file)
+    await importJobApi.upload('workspace-1', file, ['news', 'vip'])
     const [url, body, contentType] = vi.mocked(api.postRaw).mock.calls[0]
     const params = new URLSearchParams(url.split('?')[1])
     expect(params.get('workspace_id')).toBe('workspace-1')
     expect(params.get('filename')).toBe('customers.csv')
+    expect(params.getAll('list_id')).toEqual(['news', 'vip'])
     expect(body).toBe(file)
     expect(contentType).toBe('text/csv')
   })
 })
-

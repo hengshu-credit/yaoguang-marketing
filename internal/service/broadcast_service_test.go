@@ -107,6 +107,13 @@ func setupBroadcastSvc(t *testing.T) *broadcastSvcDeps {
 		dataFeedFetcher,
 		"https://api.example.test",
 	)
+	campaignRepository := &campaignRepositoryStub{}
+	snapshotService, err := NewCampaignSnapshotService(campaignRepository, 100)
+	require.NoError(t, err)
+	campaignService, err := NewCampaignService(campaignRepository, snapshotService)
+	require.NoError(t, err)
+	campaignService.SetTaskScheduler(&importTaskSchedulerMemory{})
+	svc.SetCampaignService(campaignService)
 
 	return &broadcastSvcDeps{
 		ctrl:               ctrl,

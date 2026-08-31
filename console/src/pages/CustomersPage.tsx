@@ -11,6 +11,7 @@ import {
   Space,
   Table,
   Tag,
+  Tabs,
   Typography
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
@@ -22,6 +23,8 @@ import {
   type CustomerSummary
 } from '../services/api/customer'
 import { CustomerDrawer } from '../components/customers/CustomerDrawer'
+import { CustomerImportPanel } from '../components/customers/CustomerImportPanel'
+import { useWorkspacePermissions } from '../contexts/AuthContext'
 
 function useNarrowCustomerLayout() {
   const [narrow, setNarrow] = useState(() => window.innerWidth < 768)
@@ -37,6 +40,8 @@ export function CustomersPage() {
   const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/customers' })
   const narrow = useNarrowCustomerLayout()
+  const { permissions } = useWorkspacePermissions(workspaceId)
+  const [activeSection, setActiveSection] = useState('directory')
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [includeMerged, setIncludeMerged] = useState(false)
@@ -138,6 +143,17 @@ export function CustomersPage() {
         </Typography.Text>
       </div>
 
+      <Tabs
+        activeKey={activeSection}
+        onChange={setActiveSection}
+        items={[
+          { key: 'directory', label: t`Customer directory` },
+          { key: 'import', label: t`Batch import` }
+        ]}
+      />
+
+      {activeSection === 'directory' ? (
+        <>
       <Space wrap style={{ width: '100%', justifyContent: 'space-between' }}>
         <Input.Search
           value={searchInput}
@@ -222,7 +238,16 @@ export function CustomersPage() {
         customerId={selectedCustomerID}
         open={Boolean(selectedCustomerID)}
         onClose={() => setSelectedCustomerID(null)}
+        canWrite={Boolean(permissions?.customers?.write)}
       />
+        </>
+      ) : (
+        <CustomerImportPanel
+          workspaceId={workspaceId}
+          canWrite={Boolean(permissions?.customers?.write)}
+          canBindLists={Boolean(permissions?.lists?.read || permissions?.lists?.write)}
+        />
+      )}
     </Space>
   )
 }

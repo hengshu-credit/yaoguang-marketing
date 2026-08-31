@@ -60,6 +60,10 @@ vi.mock('../../services/api/customer', async () => {
   }
 })
 
+vi.mock('../../services/api/list', () => ({
+  listsApi: { list: vi.fn(async () => ({ lists: [{ id: 'newsletter', name: 'Newsletter' }] })) }
+}))
+
 vi.mock('../../services/api/contact_timeline', () => ({
   contactTimelineApi: { list: timelineList }
 }))
@@ -151,15 +155,14 @@ describe('CustomerDrawer', () => {
       { wrapper }
     )
 
-    expect(await screen.findByText('crm-42')).toBeInTheDocument()
+    expect((await screen.findAllByText('crm-42')).length).toBeGreaterThan(0)
     expect(screen.getByText('vip')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('tab', { name: 'Identities & Consent' }))
-    expect(screen.getByText(/a\*\*\*@example\.com/)).toBeInTheDocument()
+    expect(screen.getAllByText(/a\*\*\*@example\.com/)).toHaveLength(2)
     expect(screen.getByText(/marketing \/ email/)).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('tab', { name: 'Audiences' }))
-    expect(screen.getByText(/newsletter/)).toBeInTheDocument()
+    expect(await screen.findByText(/Newsletter · active/)).toBeInTheDocument()
     expect(screen.getByText(/High value customers · v4/)).toBeInTheDocument()
     expect(screen.queryByText('must-never-render')).not.toBeInTheDocument()
+    expect(screen.getByTestId('customer-360-layout')).toHaveClass('md:flex-row')
   })
 
   it('loads timeline, journeys and deliveries only when their Customer 360 tabs are opened', async () => {
@@ -168,7 +171,7 @@ describe('CustomerDrawer', () => {
       { wrapper }
     )
 
-    await screen.findByText('crm-42')
+    await screen.findAllByText('crm-42')
     expect(timelineList).not.toHaveBeenCalled()
     expect(journeyList).not.toHaveBeenCalled()
     expect(deliveryList).not.toHaveBeenCalled()

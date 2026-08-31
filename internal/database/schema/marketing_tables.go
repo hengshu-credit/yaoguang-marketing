@@ -44,10 +44,14 @@ func MarketingTableDefinitions() []string {
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_campaigns_source ON campaigns(source_type, source_id) WHERE source_type IS NOT NULL AND source_id IS NOT NULL`,
 		`CREATE TABLE IF NOT EXISTS campaign_versions (
 			campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE RESTRICT, version INTEGER NOT NULL CHECK (version > 0),
-			audience_id UUID NOT NULL, audience_version INTEGER NOT NULL, channel VARCHAR(20) NOT NULL,
+			audience_id UUID, audience_version INTEGER, list_id VARCHAR(32), channel VARCHAR(20) NOT NULL,
 			variants JSONB NOT NULL, config JSONB NOT NULL DEFAULT '{}'::jsonb, activated_at TIMESTAMPTZ,
 			created_by VARCHAR(255), created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY (campaign_id, version),
+			CONSTRAINT campaign_versions_source_check CHECK (
+				(audience_id IS NOT NULL AND audience_version IS NOT NULL AND list_id IS NULL)
+				OR (audience_id IS NULL AND audience_version IS NULL AND list_id IS NOT NULL)
+			),
 			FOREIGN KEY (audience_id, audience_version) REFERENCES audience_versions(audience_id, version) ON DELETE RESTRICT
 		)`,
 		`CREATE TABLE IF NOT EXISTS campaign_runs (
@@ -89,7 +93,7 @@ func MarketingTableDefinitions() []string {
 		`CREATE INDEX IF NOT EXISTS idx_frequency_decisions_customer ON frequency_decisions(customer_id, channel, decided_at DESC)`,
 		`CREATE TABLE IF NOT EXISTS import_jobs (
 			id UUID PRIMARY KEY, status VARCHAR(20) NOT NULL CHECK (status IN ('uploading', 'staged', 'processing', 'completed', 'rejected', 'cancelled')),
-			filename VARCHAR(512) NOT NULL, object_key VARCHAR(1024), file_checksum CHAR(64),
+			filename VARCHAR(512) NOT NULL, object_key VARCHAR(1024), file_checksum CHAR(64), list_ids TEXT[] NOT NULL DEFAULT '{}'::text[],
 			total_count BIGINT NOT NULL DEFAULT 0, pending_count BIGINT NOT NULL DEFAULT 0, processing_count BIGINT NOT NULL DEFAULT 0,
 			succeeded_count BIGINT NOT NULL DEFAULT 0, failed_count BIGINT NOT NULL DEFAULT 0, rejection_reason TEXT, created_by VARCHAR(255),
 			committed_at TIMESTAMPTZ, completed_at TIMESTAMPTZ,

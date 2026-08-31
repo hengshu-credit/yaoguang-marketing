@@ -17,6 +17,13 @@ type campaignRepositoryStub struct {
 	run       domain.CampaignRun
 }
 
+func (s *campaignRepositoryStub) EnsureBroadcastCampaign(_ context.Context, _, broadcastID, _ string,
+	audienceID string, audienceVersion int, listID, channel string, variants []domain.CampaignVariant) (*domain.CampaignVersion, error) {
+	s.version = domain.CampaignVersion{CampaignID: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", Version: 1,
+		AudienceID: audienceID, AudienceVersion: audienceVersion, ListID: listID, Channel: channel, Variants: variants}
+	return &s.version, nil
+}
+
 func (s *campaignRepositoryStub) CreateCampaign(context.Context, string, domain.Campaign, domain.CampaignVersion) error {
 	return nil
 }
@@ -39,7 +46,7 @@ func (s *campaignRepositoryStub) GetCampaignRun(context.Context, string, string)
 	copy := s.run
 	return &copy, nil
 }
-func (s *campaignRepositoryStub) ListAudienceMembers(_ context.Context, _, _ string, _ int, after string, limit int) ([]domain.CampaignAudienceMember, string, error) {
+func (s *campaignRepositoryStub) ListCampaignMembers(_ context.Context, _ string, _ domain.CampaignVersion, after string, limit int) ([]domain.CampaignAudienceMember, string, error) {
 	start := 0
 	if after != "" {
 		for index, member := range s.members {
@@ -97,4 +104,18 @@ func TestCampaignSnapshotFreezesUniqueMembersAndStableVariants(t *testing.T) {
 	assert.Equal(t, int64(3), repository.snapshots[2].Ordinal)
 	assert.NotEmpty(t, repository.snapshots[0].Variant)
 	assert.Equal(t, "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", repository.snapshots[0].SourceBuildID)
+}
+
+func TestCampaignSnapshotSupportsActiveListMembersWithoutAudienceBuild(t *testing.T) {
+	repository := &campaignRepositoryStub{version: domain.CampaignVersion{CampaignID: "campaign-1", Version: 1,
+		ListID: "news", Channel: "email", Variants: []domain.CampaignVariant{{ID: "default", WeightBP: 10_000}}},
+		members: []domain.CampaignAudienceMember{{CustomerID: "11111111-1111-4111-8111-111111111111"}}}
+	service, err := NewCampaignSnapshotService(repository, 100)
+	require.NoError(t, err)
+
+	run, err := service.Start(context.Background(), "workspace-1", "campaign-1", 1)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), run.SnapshotCount)
+	require.Len(t, repository.snapshots, 1)
+	assert.Empty(t, repository.snapshots[0].SourceBuildID)
 }

@@ -155,12 +155,12 @@ describe('WorkspaceLayout product navigation', () => {
     render(<WorkspaceLayout />)
 
     const expectedEntries = [
+      'Data Analytics',
       'Customers',
       'Audiences',
       'Marketing Campaigns',
       'Automation Journeys',
       'Content Center',
-      'Data Analytics',
       'Delivery Center',
       'Settings'
     ]
@@ -171,6 +171,17 @@ describe('WorkspaceLayout product navigation', () => {
     expect(screen.queryByText('Dashboard')).not.toBeInTheDocument()
     expect(document.querySelectorAll('.workspace-sider-nav .ant-menu-item')).toHaveLength(8)
     expect(document.querySelector('.workspace-sider-nav .ant-menu-submenu')).not.toBeInTheDocument()
+    expect(document.querySelector('.workspace-sider-nav .ant-menu-item')?.textContent).toBe('Data Analytics')
+  })
+
+  it('links the audiences navigation item directly to lists', async () => {
+    render(<WorkspaceLayout />)
+
+    const audienceEntry = await screen.findByText('Audiences')
+    expect(audienceEntry.closest('a')).toHaveAttribute(
+      'data-to',
+      '/console/workspace/$workspaceId/lists'
+    )
   })
 
   const selectedLabel = () => document.querySelector('.ant-menu-item-selected')?.textContent ?? null

@@ -1,6 +1,5 @@
-import { Link, useParams } from '@tanstack/react-router'
+import { useParams } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
-import { ArrowLeft } from 'lucide-react'
 import { Dayjs } from 'dayjs'
 import { WebAnalyticsProvider } from '../components/web_analytics/context'
 import { useWebAnalytics } from '../components/web_analytics/useWebAnalytics'
@@ -22,7 +21,7 @@ import {
 } from '../components/web_analytics/lib/query'
 import { useMinuteTick } from '../components/web_analytics/lib/useMinuteTick'
 import { ResolvedRange } from '../components/web_analytics/lib/types'
-import { DataAnalyticsTabs } from '../components/navigation/WorkspaceSectionTabs'
+import { DataAnalyticsPageShell } from '../components/navigation/DataAnalyticsPageShell'
 
 const REFRESH_MS = 10_000
 const WINDOW_MINUTES = 30
@@ -117,18 +116,10 @@ function LiveView(props: { workspaceId: string }) {
   ]
 
   return (
-    <div className="p-4 md:p-6">
-      <DataAnalyticsTabs workspaceId={props.workspaceId} activeKey="live" />
-
-      <div className="mb-6 flex items-center justify-between">
-        <Link
-          to="/console/workspace/$workspaceId/web-analytics/$tab"
-          params={{ workspaceId: props.workspaceId, tab: 'dashboard' }}
-          className="flex items-center gap-1 text-gray-500 transition-colors hover:text-gray-700"
-        >
-          <ArrowLeft size={16} />
-          <span className="text-sm">{t`Website Overview`}</span>
-        </Link>
+    <DataAnalyticsPageShell
+      workspaceId={props.workspaceId}
+      activeKey="live"
+      actions={
         <div className="flex items-center gap-3">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
@@ -138,8 +129,8 @@ function LiveView(props: { workspaceId: string }) {
             {t`${liveSessions} live now`}
           </span>
         </div>
-      </div>
-
+      }
+    >
       <WebAnalyticsGate>
         <LiveSessionMap data={locations} loading={mapResult.isLoading} />
 
@@ -226,6 +217,6 @@ function LiveView(props: { workspaceId: string }) {
           />
         </div>
       </WebAnalyticsGate>
-    </div>
+    </DataAnalyticsPageShell>
   )
 }

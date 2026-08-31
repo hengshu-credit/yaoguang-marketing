@@ -67,7 +67,7 @@ func (s *CampaignSnapshotService) ProcessNextPage(ctx context.Context, workspace
 	if err != nil {
 		return false, err
 	}
-	members, _, err := s.repository.ListAudienceMembers(ctx, workspaceID, version.AudienceID, version.AudienceVersion, run.SnapshotLastCustomerID, s.pageSize)
+	members, _, err := s.repository.ListCampaignMembers(ctx, workspaceID, *version, run.SnapshotLastCustomerID, s.pageSize)
 	if err != nil {
 		return false, err
 	}

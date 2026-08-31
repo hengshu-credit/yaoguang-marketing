@@ -84,6 +84,32 @@ export interface CustomerListResponse {
   next_cursor?: string
 }
 
+export interface CustomerAttributesPatchInput {
+  merge?: Record<string, unknown>
+  unset?: string[]
+}
+
+export interface CustomerProfilePatchInput {
+  status?: string
+  language?: string
+  timezone?: string
+  attributes?: CustomerAttributesPatchInput
+}
+
+export interface CustomerUpdatePatch {
+  external_user_id?: string
+  profile?: CustomerProfilePatchInput
+  tags?: string[]
+}
+
+export interface CustomerMutationResult {
+  customer_id: string
+  customer_no?: string
+  external_user_id?: string
+  action: 'created' | 'updated' | string
+  version?: number
+}
+
 export const customerQueryKeys = {
   all: (workspaceId: string) => ['customers', workspaceId] as const,
   list: (
@@ -109,6 +135,20 @@ export const customerApi = {
     const response = await api.post<{ customer: Customer }>('/api/customers.get', {
       workspace_id: workspaceId,
       locator: { customer_id: customerId }
+    })
+    return response.customer
+  },
+
+  update: async (
+    workspaceId: string,
+    customerId: string,
+    patch: CustomerUpdatePatch,
+    idempotencyKey: string
+  ): Promise<CustomerMutationResult> => {
+    const response = await api.post<{ customer: CustomerMutationResult }>('/api/customers.upsert', {
+      workspace_id: workspaceId,
+      idempotency_key: idempotencyKey,
+      customer: { locator: { customer_id: customerId }, ...patch }
     })
     return response.customer
   }

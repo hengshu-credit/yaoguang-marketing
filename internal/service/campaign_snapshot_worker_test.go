@@ -47,7 +47,7 @@ func (s *campaignSnapshotWorkerRepository) GetCampaignRun(context.Context, strin
 	copy := s.run
 	return &copy, nil
 }
-func (s *campaignSnapshotWorkerRepository) ListAudienceMembers(context.Context, string, string, int, string, int) ([]domain.CampaignAudienceMember, string, error) {
+func (s *campaignSnapshotWorkerRepository) ListCampaignMembers(context.Context, string, domain.CampaignVersion, string, int) ([]domain.CampaignAudienceMember, string, error) {
 	s.calls++
 	if s.calls == 1 {
 		return []domain.CampaignAudienceMember{{CustomerID: "customer-1", BuildID: "build-1"}}, "customer-1", nil

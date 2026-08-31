@@ -848,6 +848,16 @@ func TestUpdateBroadcastRequest_Validate_AudienceIsPatchedKeyByKey(t *testing.T)
 		assert.False(t, updated.Audience.ExcludeUnsubscribed)
 	})
 
+	t.Run("a versioned audience replaces the stored list source", func(t *testing.T) {
+		stored := storedBroadcastWithOmittableFields()
+
+		updated, err := decode(t, body(`, "audience": {"audience_id": "audience-1", "audience_version": 2}`)).Validate(stored)
+		require.NoError(t, err)
+		assert.Empty(t, updated.Audience.List)
+		assert.Equal(t, "audience-1", updated.Audience.AudienceID)
+		assert.Equal(t, 2, updated.Audience.AudienceVersion)
+	})
+
 	// A stored broadcast with no list is not made valid by an omission: the list is still
 	// required, it is just the merged one that has to carry it.
 	t.Run("an absent audience over a stored broadcast with no list is still rejected", func(t *testing.T) {

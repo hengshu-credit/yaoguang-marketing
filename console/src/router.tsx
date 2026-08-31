@@ -10,7 +10,6 @@ import { DashboardPage } from './pages/DashboardPage'
 import { WorkspaceSettingsPage } from './pages/WorkspaceSettingsPage'
 import { ContactsPage } from './pages/ContactsPage'
 import { CustomersPage } from './pages/CustomersPage'
-import { AudiencesPage } from './pages/AudiencesPage'
 import { ListsPage } from './pages/ListsPage'
 import { FileManagerPage } from './pages/FileManagerPage'
 import { TemplatesPage } from './pages/TemplatesPage'
@@ -240,7 +239,13 @@ export const workspaceDeliveriesRoute = createRoute({
 const workspaceAudiencesRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: '/audiences',
-  component: AudiencesPage
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: '/console/workspace/$workspaceId/lists',
+      params: { workspaceId: params.workspaceId },
+      replace: true
+    })
+  }
 })
 
 export const workspaceCustomersRoute = createRoute({

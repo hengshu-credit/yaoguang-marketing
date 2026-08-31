@@ -2,16 +2,33 @@ package migrations
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/hengshu-credit/yaoguang-marketing/config"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/database/schema"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type pgxTextArgumentCheckingExecutor struct {
+	DBExecutor
+}
+
+func (e pgxTextArgumentCheckingExecutor) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	if strings.Contains(query, "WITH customer_seeds AS") && len(args) > 0 {
+		if _, err := pgtype.NewMap().Encode(pgtype.TextOID, pgtype.TextFormatCode, args[0], nil); err != nil {
+			return nil, err
+		}
+	}
+	return e.DBExecutor.ExecContext(ctx, query, args...)
+}
 
 func TestV46MigrationMetadataAndRegistration(t *testing.T) {
 	migration := &V46Migration{}
@@ -19,7 +36,7 @@ func TestV46MigrationMetadataAndRegistration(t *testing.T) {
 	assert.True(t, migration.HasSystemUpdate())
 	assert.True(t, migration.HasWorkspaceUpdate())
 	assert.False(t, migration.ShouldRestartServer())
-	assert.Equal(t, "51.0", config.VERSION)
+	assert.Equal(t, "52.0", config.VERSION)
 	registered, ok := GetRegisteredMigration(46.0)
 	require.True(t, ok)
 	assert.IsType(t, &V46Migration{}, registered)
@@ -56,7 +73,7 @@ func TestV46UpdateWorkspaceBackfillsCustomerProfileAndEncryptedIdentities(t *tes
 	mock.ExpectQuery("SELECT LOWER.*email.*HAVING COUNT").
 		WillReturnRows(sqlmock.NewRows([]string{"normalized_email"}))
 	mock.ExpectExec("WITH customer_seeds AS.*INSERT INTO customers.*UPDATE contacts").
-		WithArgs(uint16(42)).WillReturnResult(sqlmock.NewResult(0, 1))
+		WithArgs("42").WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec("INSERT INTO customer_profiles").WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec("INSERT INTO customer_tags").WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec("INSERT INTO customer_list_memberships").WillReturnResult(sqlmock.NewResult(0, 1))
@@ -75,7 +92,7 @@ func TestV46UpdateWorkspaceBackfillsCustomerProfileAndEncryptedIdentities(t *tes
 		context.Background(),
 		&config.Config{Security: config.SecurityConfig{SecretKey: "workspace-secret"}},
 		&domain.Workspace{ID: "workspace-1", Sequence: 42},
-		db,
+		pgxTextArgumentCheckingExecutor{DBExecutor: db},
 	)
 	require.NoError(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -103,6 +120,24 @@ func TestInsertV46IdentityRejectsConflictInsteadOfSilentlyDroppingIdentity(t *te
 		"11111111-1111-4111-8111-111111111111", domain.CustomerIdentityPhone, "+8613800138000", true,
 	)
 	assert.ErrorContains(t, err, "already belongs to another customer")
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestBackfillV46CustomerIdentitiesReadsAllRowsBeforeInserting(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	iterationErr := errors.New("driver: bad connection")
+	mock.ExpectQuery("SELECT c.customer_id, c.email, c.phone.*FROM contacts c").
+		WillReturnRows(sqlmock.NewRows([]string{"customer_id", "email", "phone"}).
+			AddRow("11111111-1111-4111-8111-111111111111", "alice@example.com", nil).
+			AddRow("22222222-2222-4222-8222-222222222222", "bob@example.com", nil).
+			RowError(1, iterationErr))
+
+	err = backfillV46CustomerIdentities(context.Background(), "workspace-secret", "workspace-1", db)
+	assert.ErrorContains(t, err, "iterate legacy identities")
+	assert.ErrorIs(t, err, iterationErr)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
