@@ -56,8 +56,12 @@ func (r *SendChannelMessageRequest) Validate() error {
 	if r.EffectKey == "" || utf8.RuneCountInString(r.EffectKey) > 255 {
 		return fmt.Errorf("effect_key must contain 1 to 255 characters")
 	}
-	if r.Channel != ChannelSMS && r.Channel != ChannelPush {
-		return fmt.Errorf("channel must be sms or push")
+	definition, registered := FindChannelDefinition(r.Channel)
+	if !registered {
+		return fmt.Errorf("unknown channel %s", r.Channel)
+	}
+	if r.Channel != ChannelSMS && r.Channel != ChannelPush && !containsString(definition.DeliveryModes, ChannelDeliveryModeSignedWebhook) {
+		return fmt.Errorf("channel %s is not sendable through channelMessages.send", r.Channel)
 	}
 	if r.IntegrationID == "" || utf8.RuneCountInString(r.IntegrationID) > 255 {
 		return fmt.Errorf("integration_id must contain 1 to 255 characters")

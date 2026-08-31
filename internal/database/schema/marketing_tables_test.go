@@ -32,3 +32,11 @@ func TestMarketingTablesSupportListCampaignSourcesAndImportBindings(t *testing.T
 	assert.Contains(t, ddl, "audience_id IS NOT NULL AND audience_version IS NOT NULL AND list_id IS NULL")
 	assert.Contains(t, ddl, "audience_id IS NULL AND audience_version IS NULL AND list_id IS NOT NULL")
 }
+
+func TestMarketingTablesPersistResolvedAudienceSourceOnCampaignRuns(t *testing.T) {
+	ddl := strings.Join(MarketingTableDefinitions(), ";\n")
+	assert.Contains(t, ddl, "audience_id UUID")
+	assert.Contains(t, ddl, "audience_version INTEGER")
+	assert.Contains(t, ddl, "audience_build_id UUID")
+	assert.Contains(t, ddl, "idx_campaign_runs_audience_build")
+}

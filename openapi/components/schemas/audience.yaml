@@ -8,6 +8,32 @@ AudienceExpression:
     children:
       type: array
       items: { $ref: '#/AudienceExpression' }
+    condition: { $ref: '#/AudienceConditionTree' }
+
+AudienceConditionTree:
+  type: object
+  description: A validated AND/OR condition tree over customer attributes, profile status, list state, timeline activity, and goals. Clients cannot provide SQL.
+  additionalProperties: false
+  required: [kind]
+  properties:
+    kind: { type: string, enum: [branch, leaf] }
+    branch:
+      type: object
+      additionalProperties: false
+      required: [operator, leaves]
+      properties:
+        operator: { type: string, enum: [and, or] }
+        leaves:
+          type: array
+          minItems: 1
+          items: { $ref: '#/AudienceConditionTree' }
+    leaf:
+      type: object
+      description: The leaf shape is source-tagged and validated against server-side field and operator allowlists.
+      additionalProperties: true
+      required: [source]
+      properties:
+        source: { type: string, enum: [contacts, contact_lists, contact_timeline, custom_events_goals] }
 
 Audience:
   type: object

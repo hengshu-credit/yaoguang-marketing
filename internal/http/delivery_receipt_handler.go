@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
@@ -16,8 +17,9 @@ import (
 )
 
 const (
-	deliveryReceiptMaxBodyBytes int64 = 4 << 20
-	twilioCallbackMaxBodyBytes  int64 = 64 << 10
+	deliveryReceiptMaxBodyBytes       int64 = 4 << 20
+	twilioCallbackMaxBodyBytes        int64 = 64 << 10
+	channelWebhookReceiptMaxBodyBytes int64 = 256 << 10
 )
 
 type DeliveryReceiptHandler struct {
@@ -49,6 +51,75 @@ func (h *DeliveryReceiptHandler) RegisterRoutes(mux *http.ServeMux) {
 	authMiddleware := middleware.NewAuthMiddleware(h.getJWTSecret)
 	mux.Handle("/api/deliveryReceipts.ingest", authMiddleware.RequireAuth()(http.HandlerFunc(h.handleIngest)))
 	mux.HandleFunc("/webhooks/delivery/twilio", h.handleTwilio)
+	mux.HandleFunc("/webhooks/delivery/channel", h.handleChannelWebhook)
+}
+
+func (h *DeliveryReceiptHandler) handleChannelWebhook(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	workspaceID := r.URL.Query().Get("workspace_id")
+	integrationID := r.URL.Query().Get("integration_id")
+	if workspaceID == "" || integrationID == "" {
+		WriteJSONError(w, "workspace_id and integration_id are required", http.StatusBadRequest)
+		return
+	}
+	if h.rateLimiter != nil {
+		if !h.rateLimiter.Allow("delivery_receipt:channel:ip", getClientIP(r)) ||
+			!h.rateLimiter.Allow("delivery_receipt:channel:workspace", workspaceID) {
+			w.Header().Set("Retry-After", "60")
+			WriteJSONError(w, "Too many requests", http.StatusTooManyRequests)
+			return
+		}
+	}
+	timestamp, err := strconv.ParseInt(r.Header.Get("X-Yaoguang-Timestamp"), 10, 64)
+	if err != nil {
+		WriteJSONError(w, "Invalid X-Yaoguang-Timestamp", http.StatusBadRequest)
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, channelWebhookReceiptMaxBodyBytes)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			WriteJSONError(w, "Channel Webhook receipt body is too large", http.StatusRequestEntityTooLarge)
+			return
+		}
+		WriteJSONError(w, "Invalid Channel Webhook receipt body", http.StatusBadRequest)
+		return
+	}
+	processor, ok := h.service.(domain.ChannelWebhookReceiptProcessor)
+	if !ok {
+		WriteJSONError(w, "Channel Webhook receipts are not configured", http.StatusNotImplemented)
+		return
+	}
+	result, err := processor.ProcessChannelWebhookCallback(r.Context(), domain.ChannelWebhookReceiptCallback{
+		WorkspaceID: workspaceID, IntegrationID: integrationID, Timestamp: timestamp,
+		Nonce: r.Header.Get("X-Yaoguang-Nonce"), Signature: r.Header.Get("X-Yaoguang-Signature"), Body: body,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrInvalidChannelWebhookSignature):
+			WriteJSONError(w, "Invalid Channel Webhook signature", http.StatusUnauthorized)
+		case errors.Is(err, service.ErrChannelWebhookReplay):
+			WriteJSONError(w, "Channel Webhook receipt was already processed", http.StatusConflict)
+		case errors.Is(err, service.ErrChannelWebhookIntegration):
+			WriteJSONError(w, "Channel Webhook integration not found", http.StatusNotFound)
+		case errors.Is(err, domain.ErrDeliveryReceiptPayloadConflict):
+			WriteJSONError(w, err.Error(), http.StatusConflict)
+		default:
+			var validationError domain.ValidationError
+			if errors.As(err, &validationError) {
+				WriteJSONError(w, validationError.Error(), http.StatusBadRequest)
+				return
+			}
+			h.logger.WithField("error", err.Error()).Error("Failed to process Channel Webhook receipt")
+			WriteJSONError(w, "Failed to process Channel Webhook receipt", http.StatusInternalServerError)
+		}
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"receipt": result})
 }
 
 func (h *DeliveryReceiptHandler) handleIngest(w http.ResponseWriter, r *http.Request) {

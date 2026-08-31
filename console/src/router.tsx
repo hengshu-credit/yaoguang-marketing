@@ -11,6 +11,7 @@ import { WorkspaceSettingsPage } from './pages/WorkspaceSettingsPage'
 import { ContactsPage } from './pages/ContactsPage'
 import { CustomersPage } from './pages/CustomersPage'
 import { ListsPage } from './pages/ListsPage'
+import { AudiencesPage } from './pages/AudiencesPage'
 import { FileManagerPage } from './pages/FileManagerPage'
 import { TemplatesPage } from './pages/TemplatesPage'
 import { BroadcastsPage } from './pages/BroadcastsPage'
@@ -80,6 +81,7 @@ export interface AutomationsSearch {
 export interface TemplatesSearch {
   category?: string
   q?: string
+  create_channel?: string
 }
 
 // Create the root route
@@ -239,13 +241,7 @@ export const workspaceDeliveriesRoute = createRoute({
 const workspaceAudiencesRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: '/audiences',
-  beforeLoad: ({ params }) => {
-    throw redirect({
-      to: '/console/workspace/$workspaceId/lists',
-      params: { workspaceId: params.workspaceId },
-      replace: true
-    })
-  }
+  component: AudiencesPage
 })
 
 export const workspaceCustomersRoute = createRoute({
@@ -297,7 +293,7 @@ const workspaceTemplatesRoute = createRoute({
       const trimmed = single.trim()
       return trimmed === '' ? undefined : trimmed
     }
-    return { category: normalize(search.category), q: normalize(search.q) }
+    return { category: normalize(search.category), q: normalize(search.q), create_channel: normalize(search.create_channel) }
   }
 })
 

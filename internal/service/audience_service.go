@@ -16,11 +16,17 @@ type AudienceService struct {
 	auth       *AuthService
 	tasks      ImportTaskScheduler
 	builds     AudienceBuildRunner
+	runtime    AudienceRuntimeRepository
 }
 
 type AudienceBuildRunner interface {
 	StartAudienceBuild(context.Context, string, string, int) (*domain.AudienceBuild, error)
 	ProcessAudienceBuildChunk(context.Context, string, string, int) (*domain.AudienceBuild, bool, error)
+}
+
+type AudienceRuntimeRepository interface {
+	BuildAudienceSnapshot(context.Context, string, string, int) (*domain.AudienceBuild, error)
+	MatchesAudienceCustomer(context.Context, string, string, int, string) (bool, error)
 }
 
 func NewAudienceService(repository domain.AudienceRepository) (*AudienceService, error) {
@@ -30,6 +36,9 @@ func NewAudienceService(repository domain.AudienceRepository) (*AudienceService,
 	result := &AudienceService{repository: repository}
 	if builds, ok := repository.(AudienceBuildRunner); ok {
 		result.builds = builds
+	}
+	if runtime, ok := repository.(AudienceRuntimeRepository); ok {
+		result.runtime = runtime
 	}
 	return result, nil
 }
@@ -60,6 +69,23 @@ func (s *AudienceService) authorize(ctx context.Context, workspaceID string, per
 	}
 	if membership == nil || !membership.HasPermission(domain.PermissionResourceSegments, permission) {
 		return ctx, domain.NewPermissionError(domain.PermissionResourceSegments, permission, "Insufficient permissions")
+	}
+	return authorized, nil
+}
+
+func (s *AudienceService) authorizeContactRead(ctx context.Context, workspaceID string) (context.Context, error) {
+	if s.auth == nil {
+		return ctx, nil
+	}
+	authorized, _, membership, err := s.auth.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return ctx, err
+	}
+	if membership == nil || !membership.HasPermission(domain.PermissionResourceSegments, domain.PermissionTypeRead) {
+		return ctx, domain.NewPermissionError(domain.PermissionResourceSegments, domain.PermissionTypeRead, "Insufficient permissions")
+	}
+	if !membership.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeRead) {
+		return ctx, domain.NewPermissionError(domain.PermissionResourceContacts, domain.PermissionTypeRead, "Insufficient permissions")
 	}
 	return authorized, nil
 }
@@ -115,7 +141,7 @@ func (s *AudienceService) UpdateDefinition(ctx context.Context, workspaceID, aud
 }
 
 func (s *AudienceService) Preview(ctx context.Context, workspaceID string, expression domain.AudienceExpression) ([]domain.CustomerSummary, int64, error) {
-	authorized, err := s.authorize(ctx, workspaceID, domain.PermissionTypeRead)
+	authorized, err := s.authorizeContactRead(ctx, workspaceID)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -141,6 +167,74 @@ func (s *AudienceService) Build(ctx context.Context, workspaceID, audienceID str
 		return "", 0, fmt.Errorf("create audience build task: %w", err)
 	}
 	return build.ID, 0, nil
+}
+
+// ResolveLatestAndBuild resolves active_version at execution time and creates a
+// run-scoped candidate snapshot. Scheduled marketing configuration must call
+// this only when the task actually starts, never while it is being scheduled.
+func (s *AudienceService) ResolveLatestAndBuild(ctx context.Context, workspaceID, audienceID string) (*domain.AudienceBuild, error) {
+	if strings.TrimSpace(workspaceID) == "" || strings.TrimSpace(audienceID) == "" {
+		return nil, errors.New("workspace and audience are required")
+	}
+	authorized, err := s.authorize(ctx, workspaceID, domain.PermissionTypeWrite)
+	if err != nil {
+		return nil, err
+	}
+	return s.resolveLatestAndBuild(authorized, workspaceID, audienceID)
+}
+
+// ResolveLatestAndBuildInternal is the task-runtime entry point. The marketing
+// task was authorized when it was created; background execution has no user JWT
+// to authenticate again.
+func (s *AudienceService) ResolveLatestAndBuildInternal(ctx context.Context, workspaceID, audienceID string) (*domain.AudienceBuild, error) {
+	if strings.TrimSpace(workspaceID) == "" || strings.TrimSpace(audienceID) == "" {
+		return nil, errors.New("workspace and audience are required")
+	}
+	return s.resolveLatestAndBuild(ctx, workspaceID, audienceID)
+}
+
+func (s *AudienceService) resolveLatestAndBuild(ctx context.Context, workspaceID, audienceID string) (*domain.AudienceBuild, error) {
+	if s.runtime == nil {
+		return nil, errors.New("audience runtime repository is required")
+	}
+	audience, err := s.repository.GetAudience(ctx, workspaceID, audienceID)
+	if err != nil {
+		return nil, err
+	}
+	if audience.ActiveVersion <= 0 {
+		return nil, errors.New("audience has no active version")
+	}
+	return s.runtime.BuildAudienceSnapshot(ctx, workspaceID, audience.ID, audience.ActiveVersion)
+}
+
+// MatchesCustomer checks current facts against the exact Audience version
+// recorded by a running marketing task.
+func (s *AudienceService) MatchesCustomer(ctx context.Context, workspaceID, audienceID string, version int, customerID string) (bool, error) {
+	if strings.TrimSpace(workspaceID) == "" || strings.TrimSpace(audienceID) == "" ||
+		strings.TrimSpace(customerID) == "" || version <= 0 {
+		return false, errors.New("workspace, audience, positive version, and customer are required")
+	}
+	authorized, err := s.authorizeContactRead(ctx, workspaceID)
+	if err != nil {
+		return false, err
+	}
+	if s.runtime == nil {
+		return false, errors.New("audience runtime repository is required")
+	}
+	return s.runtime.MatchesAudienceCustomer(authorized, workspaceID, audienceID, version, customerID)
+}
+
+// MatchesCustomerInternal is used by already-authorized background marketing
+// tasks immediately before a touch.
+func (s *AudienceService) MatchesCustomerInternal(ctx context.Context, workspaceID, audienceID string, version int, customerID string) (bool, error) {
+	if strings.TrimSpace(workspaceID) == "" || strings.TrimSpace(audienceID) == "" ||
+		strings.TrimSpace(customerID) == "" || version <= 0 {
+		return false, errors.New("workspace, audience, positive version, and customer are required")
+	}
+	if s.runtime == nil {
+		return false, errors.New("audience runtime repository is required")
+	}
+	return s.runtime.MatchesAudienceCustomer(ctx, workspaceID, audienceID, version, customerID)
 }
 
 func (s *AudienceService) Get(ctx context.Context, workspaceID, audienceID string) (*domain.Audience, error) {

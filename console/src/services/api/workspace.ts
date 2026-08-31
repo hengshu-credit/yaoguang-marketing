@@ -176,6 +176,7 @@ export type IntegrationType =
   | 'email'
   | 'sms'
   | 'push'
+  | 'channel_webhook'
   | 'whatsapp'
   | 'supabase'
   | 'llm'
@@ -284,6 +285,7 @@ export interface Integration {
   email_provider?: EmailProvider
   sms_provider?: SMSProvider
   push_provider?: PushProvider
+  channel_webhook_settings?: ChannelWebhookSettings
   supabase_settings?: SupabaseIntegrationSettings
   llm_provider?: LLMProvider
   firecrawl_settings?: FirecrawlSettings
@@ -296,6 +298,15 @@ export interface Integration {
   credential_hints?: Record<string, string>
   created_at: string
   updated_at: string
+}
+
+export interface ChannelWebhookSettings {
+  endpoint_url: string
+  secret?: string
+  encrypted_secret?: string
+  channels: string[]
+  timeout_seconds: number
+  headers?: Record<string, string>
 }
 
 export interface CreateWorkspaceRequest {
@@ -379,6 +390,7 @@ export interface CreateIntegrationRequest {
   provider?: EmailProvider
   sms_provider?: SMSProvider
   push_provider?: PushProvider
+  channel_webhook_settings?: ChannelWebhookSettings
   supabase_settings?: SupabaseIntegrationSettings
   llm_provider?: LLMProvider
   firecrawl_settings?: FirecrawlSettings
@@ -391,6 +403,7 @@ export interface UpdateIntegrationRequest {
   provider?: EmailProvider
   sms_provider?: SMSProvider
   push_provider?: PushProvider
+  channel_webhook_settings?: ChannelWebhookSettings
   supabase_settings?: SupabaseIntegrationSettings
   llm_provider?: LLMProvider
   firecrawl_settings?: FirecrawlSettings

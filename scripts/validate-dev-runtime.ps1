@@ -30,6 +30,8 @@ Assert-Contains 'Dockerfile.dev' 'AS frontend-dev' 'Dockerfile.dev must define f
 Assert-Contains 'Dockerfile.dev' 'ARG FRONTEND_BASE_IMAGE=node:22-alpine' 'frontend base image must remain overridable'
 Assert-Contains 'Dockerfile.dev' 'air@v[0-9]+\.[0-9]+\.[0-9]+' 'Air must use a pinned version'
 Assert-Contains '.air.toml' '(?m)^\s*poll\s*=\s*true\s*$' 'Air polling must be enabled'
+Assert-Contains '.air.toml' '(?m)^\s*rerun\s*=\s*true\s*$' 'Air must rerun a backend process that exits for configuration reload'
+Assert-Contains '.air.toml' '(?m)^\s*stop_on_error\s*=\s*false\s*$' 'Air must keep the last healthy backend running when a rebuild fails'
 Assert-Contains 'deploy/dev/backend-entrypoint.sh' 'DEV_HOT_RELOAD must be true or false' 'backend switch validation is required'
 Assert-Contains 'deploy/dev/backend-entrypoint.sh' 'exec air -c \.air\.toml' 'backend hot mode must run Air'
 Assert-Contains 'deploy/dev/backend-entrypoint.sh' 'exec go run ./cmd/api' 'backend restart-only mode must compile once'

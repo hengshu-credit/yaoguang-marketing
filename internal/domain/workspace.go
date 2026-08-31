@@ -147,13 +147,14 @@ func (up *UserPermissions) Scan(value interface{}) error {
 type IntegrationType string
 
 const (
-	IntegrationTypeEmail     IntegrationType = "email"
-	IntegrationTypeSMS       IntegrationType = "sms"
-	IntegrationTypePush      IntegrationType = "push"
-	IntegrationTypeSupabase  IntegrationType = "supabase"
-	IntegrationTypeLLM       IntegrationType = "llm"
-	IntegrationTypeFirecrawl IntegrationType = "firecrawl"
-	IntegrationTypeZapier    IntegrationType = "zapier"
+	IntegrationTypeEmail          IntegrationType = "email"
+	IntegrationTypeSMS            IntegrationType = "sms"
+	IntegrationTypePush           IntegrationType = "push"
+	IntegrationTypeChannelWebhook IntegrationType = "channel_webhook"
+	IntegrationTypeSupabase       IntegrationType = "supabase"
+	IntegrationTypeLLM            IntegrationType = "llm"
+	IntegrationTypeFirecrawl      IntegrationType = "firecrawl"
+	IntegrationTypeZapier         IntegrationType = "zapier"
 )
 
 // Integrations is a slice of Integration with database serialization methods
@@ -185,16 +186,17 @@ func (i *Integrations) Scan(value interface{}) error {
 
 // Integration represents a third-party service integration that's embedded in workspace settings
 type Integration struct {
-	ID                string                       `json:"id"`
-	Name              string                       `json:"name"`
-	Type              IntegrationType              `json:"type"`
-	EmailProvider     EmailProvider                `json:"email_provider,omitempty"`
-	SMSProvider       *SMSProvider                 `json:"sms_provider,omitempty"`
-	PushProvider      *PushProvider                `json:"push_provider,omitempty"`
-	SupabaseSettings  *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"`
-	LLMProvider       *LLMProvider                 `json:"llm_provider,omitempty"`
-	FirecrawlSettings *FirecrawlSettings           `json:"firecrawl_settings,omitempty"`
-	ZapierSettings    *ZapierSettings              `json:"zapier_settings,omitempty"`
+	ID                     string                       `json:"id"`
+	Name                   string                       `json:"name"`
+	Type                   IntegrationType              `json:"type"`
+	EmailProvider          EmailProvider                `json:"email_provider,omitempty"`
+	SMSProvider            *SMSProvider                 `json:"sms_provider,omitempty"`
+	PushProvider           *PushProvider                `json:"push_provider,omitempty"`
+	ChannelWebhookSettings *ChannelWebhookSettings      `json:"channel_webhook_settings,omitempty"`
+	SupabaseSettings       *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"`
+	LLMProvider            *LLMProvider                 `json:"llm_provider,omitempty"`
+	FirecrawlSettings      *FirecrawlSettings           `json:"firecrawl_settings,omitempty"`
+	ZapierSettings         *ZapierSettings              `json:"zapier_settings,omitempty"`
 	// CredentialHints maps a credential to its last few characters, so an owner
 	// can tell which key is configured without the key being served. Computed by
 	// Redact at the API boundary and cleared by BeforeSave — never stored.
@@ -237,6 +239,13 @@ func (i *Integration) Validate(passphrase string) error {
 		}
 		if err := i.PushProvider.Validate(passphrase); err != nil {
 			return fmt.Errorf("invalid push provider configuration: %w", err)
+		}
+	case IntegrationTypeChannelWebhook:
+		if i.ChannelWebhookSettings == nil {
+			return fmt.Errorf("channel Webhook settings are required for channel_webhook integration")
+		}
+		if err := i.ChannelWebhookSettings.Validate(passphrase); err != nil {
+			return fmt.Errorf("invalid channel Webhook settings: %w", err)
 		}
 	case IntegrationTypeSupabase:
 		// Validate Supabase settings
@@ -301,6 +310,10 @@ func (i *Integration) BeforeSave(secretkey string) error {
 		if err := i.PushProvider.EncryptSecretKeys(secretkey); err != nil {
 			return fmt.Errorf("failed to encrypt push provider secrets: %w", err)
 		}
+	case IntegrationTypeChannelWebhook:
+		if err := i.ChannelWebhookSettings.EncryptSecretKeys(secretkey); err != nil {
+			return fmt.Errorf("failed to encrypt channel Webhook secret: %w", err)
+		}
 	case IntegrationTypeSupabase:
 		if i.SupabaseSettings != nil {
 			if err := i.SupabaseSettings.EncryptSignatureKeys(secretkey); err != nil {
@@ -339,6 +352,10 @@ func (i *Integration) AfterLoad(secretkey string) error {
 	case IntegrationTypePush:
 		if err := i.PushProvider.DecryptSecretKeys(secretkey); err != nil {
 			return fmt.Errorf("failed to decrypt push provider secrets: %w", err)
+		}
+	case IntegrationTypeChannelWebhook:
+		if err := i.ChannelWebhookSettings.DecryptSecretKeys(secretkey); err != nil {
+			return fmt.Errorf("failed to decrypt channel Webhook secret: %w", err)
 		}
 	case IntegrationTypeSupabase:
 		if i.SupabaseSettings != nil {
@@ -1318,15 +1335,16 @@ func (r *CreateAPIKeyRequest) Validate() error {
 // client could send would fill it. Zapier connections are made through ConnectZapier instead,
 // which is why Validate below rejects the type outright.
 type CreateIntegrationRequest struct {
-	WorkspaceID       string                       `json:"workspace_id"`
-	Name              string                       `json:"name"`
-	Type              IntegrationType              `json:"type"`
-	Provider          EmailProvider                `json:"provider,omitempty"` // For email integrations
-	SMSProvider       *SMSProvider                 `json:"sms_provider,omitempty"`
-	PushProvider      *PushProvider                `json:"push_provider,omitempty"`
-	SupabaseSettings  *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"`  // For Supabase integrations
-	LLMProvider       *LLMProvider                 `json:"llm_provider,omitempty"`       // For LLM integrations
-	FirecrawlSettings *FirecrawlSettings           `json:"firecrawl_settings,omitempty"` // For Firecrawl integrations
+	WorkspaceID            string                       `json:"workspace_id"`
+	Name                   string                       `json:"name"`
+	Type                   IntegrationType              `json:"type"`
+	Provider               EmailProvider                `json:"provider,omitempty"` // For email integrations
+	SMSProvider            *SMSProvider                 `json:"sms_provider,omitempty"`
+	PushProvider           *PushProvider                `json:"push_provider,omitempty"`
+	ChannelWebhookSettings *ChannelWebhookSettings      `json:"channel_webhook_settings,omitempty"`
+	SupabaseSettings       *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"`  // For Supabase integrations
+	LLMProvider            *LLMProvider                 `json:"llm_provider,omitempty"`       // For LLM integrations
+	FirecrawlSettings      *FirecrawlSettings           `json:"firecrawl_settings,omitempty"` // For Firecrawl integrations
 }
 
 func (r *CreateIntegrationRequest) Validate(passphrase string) error {
@@ -1361,6 +1379,13 @@ func (r *CreateIntegrationRequest) Validate(passphrase string) error {
 		}
 		if err := r.PushProvider.Validate(passphrase); err != nil {
 			return fmt.Errorf("invalid push provider configuration: %w", err)
+		}
+	case IntegrationTypeChannelWebhook:
+		if r.ChannelWebhookSettings == nil {
+			return fmt.Errorf("channel Webhook settings are required for channel_webhook integration")
+		}
+		if err := r.ChannelWebhookSettings.Validate(passphrase); err != nil {
+			return fmt.Errorf("invalid channel Webhook settings: %w", err)
 		}
 	case IntegrationTypeSupabase:
 		if r.SupabaseSettings == nil {
@@ -1402,15 +1427,16 @@ func (r *CreateIntegrationRequest) Validate(passphrase string) error {
 // its settings from a switch on the stored type; a field here would let a rename arrive with a
 // blank address and overwrite the minted key's. With no field, no payload can express that.
 type UpdateIntegrationRequest struct {
-	WorkspaceID       string                       `json:"workspace_id"`
-	IntegrationID     string                       `json:"integration_id"`
-	Name              string                       `json:"name"`
-	Provider          EmailProvider                `json:"provider,omitempty"` // For email integrations
-	SMSProvider       *SMSProvider                 `json:"sms_provider,omitempty"`
-	PushProvider      *PushProvider                `json:"push_provider,omitempty"`
-	SupabaseSettings  *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"`  // For Supabase integrations
-	LLMProvider       *LLMProvider                 `json:"llm_provider,omitempty"`       // For LLM integrations
-	FirecrawlSettings *FirecrawlSettings           `json:"firecrawl_settings,omitempty"` // For Firecrawl integrations
+	WorkspaceID            string                       `json:"workspace_id"`
+	IntegrationID          string                       `json:"integration_id"`
+	Name                   string                       `json:"name"`
+	Provider               EmailProvider                `json:"provider,omitempty"` // For email integrations
+	SMSProvider            *SMSProvider                 `json:"sms_provider,omitempty"`
+	PushProvider           *PushProvider                `json:"push_provider,omitempty"`
+	ChannelWebhookSettings *ChannelWebhookSettings      `json:"channel_webhook_settings,omitempty"`
+	SupabaseSettings       *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"`  // For Supabase integrations
+	LLMProvider            *LLMProvider                 `json:"llm_provider,omitempty"`       // For LLM integrations
+	FirecrawlSettings      *FirecrawlSettings           `json:"firecrawl_settings,omitempty"` // For Firecrawl integrations
 
 	// providerOmitted records that the body named no provider. The three settings
 	// above are pointers, so nil already says that for them; Provider is a value,
@@ -1478,6 +1504,10 @@ func (r *UpdateIntegrationRequest) Validate(passphrase string) error {
 	} else if r.PushProvider != nil {
 		if err := r.PushProvider.ValidateForUpdate(passphrase); err != nil {
 			return fmt.Errorf("invalid push provider configuration: %w", err)
+		}
+	} else if r.ChannelWebhookSettings != nil {
+		if err := r.ChannelWebhookSettings.ValidateForUpdate(passphrase); err != nil {
+			return fmt.Errorf("invalid channel Webhook settings: %w", err)
 		}
 	} else if r.SupabaseSettings != nil {
 		if err := r.SupabaseSettings.Validate(passphrase); err != nil {

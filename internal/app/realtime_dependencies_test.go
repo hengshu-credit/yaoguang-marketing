@@ -45,6 +45,39 @@ type fakeRealtimeFactory struct {
 	started  map[config.RuntimeCapability]chan struct{}
 }
 
+type closeGatedRealtimeComponent struct {
+	started   chan struct{}
+	closed    chan struct{}
+	closeOnce sync.Once
+}
+
+type blockingCloseRealtimeComponent struct {
+	started chan struct{}
+}
+
+func (c *blockingCloseRealtimeComponent) Name() string { return "blocking-close" }
+func (c *blockingCloseRealtimeComponent) Run(ctx context.Context) error {
+	close(c.started)
+	<-ctx.Done()
+	return ctx.Err()
+}
+func (c *blockingCloseRealtimeComponent) Ready(context.Context) error { return nil }
+func (c *blockingCloseRealtimeComponent) Close() error {
+	select {}
+}
+
+func (c *closeGatedRealtimeComponent) Name() string { return "close-gated" }
+func (c *closeGatedRealtimeComponent) Run(context.Context) error {
+	close(c.started)
+	<-c.closed
+	return nil
+}
+func (c *closeGatedRealtimeComponent) Ready(context.Context) error { return nil }
+func (c *closeGatedRealtimeComponent) Close() error {
+	c.closeOnce.Do(func() { close(c.closed) })
+	return nil
+}
+
 func (f *fakeRealtimeFactory) Build(capability config.RuntimeCapability) (RealtimeComponent, error) {
 	f.built = append(f.built, capability)
 	return &fakeRealtimeComponent{
@@ -122,7 +155,54 @@ func TestRealtimeShutdownStopsComponentsInReverseOrder(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	require.NoError(t, dependencies.Shutdown(ctx))
-	assert.Equal(t, []string{"consumer", "client"}, closeOrder)
+	require.Eventually(t, func() bool {
+		mu.Lock()
+		defer mu.Unlock()
+		return assert.ObjectsAreEqual([]string{"consumer", "client"}, closeOrder)
+	}, time.Second, 10*time.Millisecond)
+}
+
+func TestRealtimeShutdownClosesComponentsBeforeWaitingForRun(t *testing.T) {
+	component := &closeGatedRealtimeComponent{
+		started: make(chan struct{}),
+		closed:  make(chan struct{}),
+	}
+	dependencies := &RealtimeDependencies{components: []RealtimeComponent{component}}
+	require.NoError(t, dependencies.Start(context.Background()))
+
+	select {
+	case <-component.started:
+	case <-time.After(time.Second):
+		t.Fatal("component did not start")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	require.NoError(t, dependencies.Shutdown(ctx))
+}
+
+func TestRealtimeShutdownDoesNotWaitForBlockedCloseAfterWorkersStop(t *testing.T) {
+	component := &blockingCloseRealtimeComponent{started: make(chan struct{})}
+	dependencies := &RealtimeDependencies{components: []RealtimeComponent{component}}
+	require.NoError(t, dependencies.Start(context.Background()))
+
+	select {
+	case <-component.started:
+	case <-time.After(time.Second):
+		t.Fatal("component did not start")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	result := make(chan error, 1)
+	go func() { result <- dependencies.Shutdown(ctx) }()
+
+	select {
+	case err := <-result:
+		require.NoError(t, err)
+	case <-time.After(250 * time.Millisecond):
+		t.Fatal("shutdown waited for a blocked resource close after all workers stopped")
+	}
 }
 
 func TestWorkerRoleStartRunsOwnedComponentWithoutCreatingHTTPServer(t *testing.T) {

@@ -253,7 +253,7 @@ export function WorkspaceLayout() {
       key: 'audiences',
       icon: <UsergroupAddOutlined />,
       label: (
-        <Link to="/console/workspace/$workspaceId/lists" params={{ workspaceId }}>
+        <Link to="/console/workspace/$workspaceId/audiences" params={{ workspaceId }}>
           {t`Audiences`}
         </Link>
       )

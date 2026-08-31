@@ -15,6 +15,10 @@ type CampaignSnapshotService struct {
 	now        func() time.Time
 }
 
+type campaignAudienceBuildResolver interface {
+	GetCompletedAudienceBuildID(context.Context, string, string, int) (string, error)
+}
+
 func NewCampaignSnapshotService(repository domain.CampaignRepository, pageSize int) (*CampaignSnapshotService, error) {
 	if repository == nil || pageSize <= 0 {
 		return nil, errors.New("campaign repository and positive page size are required")
@@ -39,13 +43,38 @@ func (s *CampaignSnapshotService) Start(ctx context.Context, workspaceID, campai
 }
 
 func (s *CampaignSnapshotService) StartAsync(ctx context.Context, workspaceID, campaignID string, version int) (*domain.CampaignRun, error) {
-	_, err := s.repository.GetCampaignVersion(ctx, workspaceID, campaignID, version)
+	return s.startAsync(ctx, workspaceID, campaignID, version, "", false)
+}
+
+func (s *CampaignSnapshotService) StartAsyncResolved(ctx context.Context, workspaceID, campaignID string, version int, audienceBuildID string) (*domain.CampaignRun, error) {
+	return s.startAsync(ctx, workspaceID, campaignID, version, audienceBuildID, true)
+}
+
+func (s *CampaignSnapshotService) startAsync(ctx context.Context, workspaceID, campaignID string, version int, audienceBuildID string, requireResolvedBuild bool) (*domain.CampaignRun, error) {
+	campaignVersion, err := s.repository.GetCampaignVersion(ctx, workspaceID, campaignID, version)
 	if err != nil {
 		return nil, err
 	}
+	if requireResolvedBuild && campaignVersion.AudienceID != "" && audienceBuildID == "" {
+		return nil, errors.New("resolved audience build id is required")
+	}
+	if !requireResolvedBuild && campaignVersion.AudienceID != "" && audienceBuildID == "" {
+		resolver, ok := s.repository.(campaignAudienceBuildResolver)
+		if !ok {
+			return nil, errors.New("campaign repository cannot resolve an audience build")
+		}
+		audienceBuildID, err = resolver.GetCompletedAudienceBuildID(
+			ctx, workspaceID, campaignVersion.AudienceID, campaignVersion.AudienceVersion,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
 	now := s.now().UTC()
 	run := &domain.CampaignRun{ID: uuid.New().String(), CampaignID: campaignID, CampaignVersion: version,
-		Status: "snapshotting", RunSeed: uuid.New().String(), NextOrdinal: 1, CreatedAt: now}
+		AudienceID: campaignVersion.AudienceID, AudienceVersion: campaignVersion.AudienceVersion,
+		AudienceBuildID: audienceBuildID,
+		Status:          "snapshotting", RunSeed: uuid.New().String(), NextOrdinal: 1, CreatedAt: now}
 	if err := s.repository.CreateCampaignRun(ctx, workspaceID, *run); err != nil {
 		return nil, err
 	}
@@ -67,7 +96,7 @@ func (s *CampaignSnapshotService) ProcessNextPage(ctx context.Context, workspace
 	if err != nil {
 		return false, err
 	}
-	members, _, err := s.repository.ListCampaignMembers(ctx, workspaceID, *version, run.SnapshotLastCustomerID, s.pageSize)
+	members, _, err := s.repository.ListCampaignMembers(ctx, workspaceID, *version, run.AudienceBuildID, run.SnapshotLastCustomerID, s.pageSize)
 	if err != nil {
 		return false, err
 	}

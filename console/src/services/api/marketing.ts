@@ -1,4 +1,5 @@
 import { api } from './client'
+import type { TreeNode } from './segment'
 
 export type AudienceLeafType = 'list' | 'segment' | 'audience'
 export type AudienceOperator = 'union' | 'intersection' | 'exclusion'
@@ -8,6 +9,7 @@ export interface AudienceExpression {
   ref_id?: string
   operator?: AudienceOperator
   children?: AudienceExpression[]
+  condition?: TreeNode
 }
 
 export interface Audience {
@@ -55,7 +57,7 @@ export const audienceApi = {
     const params = new URLSearchParams({ workspace_id: workspaceId, audience_id: audienceId })
     return api.get<Audience>(`/api/audiences.get?${params}`)
   },
-  create: (workspaceId: string, name: string, description: string, definition: AudienceExpression, kind: Audience['kind'] = 'static') =>
+  create: (workspaceId: string, name: string, description: string, definition: AudienceExpression, kind: Audience['kind'] = 'dynamic') =>
     api.post<Audience>('/api/audiences.create', {
       workspace_id: workspaceId,
       name,

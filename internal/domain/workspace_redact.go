@@ -171,6 +171,9 @@ func (i *Integration) Redact() {
 	if i.PushProvider != nil && i.PushProvider.FCM != nil {
 		record("fcm.service_account_json", i.PushProvider.FCM.ServiceAccountJSON)
 	}
+	if i.ChannelWebhookSettings != nil {
+		record("channel_webhook.secret", i.ChannelWebhookSettings.Secret)
+	}
 
 	// nil rather than an empty map, so "no credentials configured" serialises as
 	// an absent field instead of {}.
@@ -190,6 +193,10 @@ func (i *Integration) Redact() {
 	if i.PushProvider != nil && i.PushProvider.FCM != nil {
 		i.PushProvider.FCM.ServiceAccountJSON = ""
 		i.PushProvider.FCM.EncryptedServiceAccountJSON = ""
+	}
+	if i.ChannelWebhookSettings != nil {
+		i.ChannelWebhookSettings.Secret = ""
+		i.ChannelWebhookSettings.EncryptedSecret = ""
 	}
 
 	if i.LLMProvider != nil {

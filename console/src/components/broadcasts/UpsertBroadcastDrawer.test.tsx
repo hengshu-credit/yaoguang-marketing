@@ -170,6 +170,31 @@ describe('UpsertBroadcastDrawer data feeds', () => {
     }))
   })
 
+  it('stores only the audience id so execution can resolve the latest version', async () => {
+    renderDrawer(<UpsertBroadcastDrawer workspace={workspace} lists={lists} />)
+    await userEvent.click(screen.getByRole('button', { name: /Create Broadcast/i }))
+    await userEvent.type(
+      screen.getByPlaceholderText('E.g. Weekly Newsletter - May 2023'),
+      'Repayment reminder'
+    )
+    await userEvent.click(screen.getByRole('radio', { name: 'Dynamic audience' }))
+    await userEvent.click(screen.getByRole('combobox', { name: 'Dynamic audience' }))
+    await userEvent.click(await screen.findByText('高意向客户'))
+
+    await goToTab('4. Content')
+    await userEvent.type(screen.getByTestId('template-selector'), 'tmpl1')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(broadcastApi.create).toHaveBeenCalled())
+    const payload = (broadcastApi.create as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    expect(payload.audience).toEqual(expect.objectContaining({
+      list: undefined,
+      audience_id: 'audience1',
+      audience_version: undefined,
+      audience_build_id: undefined
+    }))
+  })
+
   it('keeps the feed the user left on while turning the other one off', async () => {
     await openEditDrawer(makeBroadcast())
 

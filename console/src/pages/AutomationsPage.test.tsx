@@ -60,6 +60,9 @@ vi.mock('../components/automations/JourneyPreflightPanel', () => ({
     </section>
   )
 }))
+vi.mock('../components/automations/AutomationAudienceRunModal', () => ({
+  AutomationAudienceRunModal: () => null
+}))
 
 const templatesList = vi.fn().mockResolvedValue({ templates: [] })
 const automationsList = vi.fn().mockResolvedValue({ automations: [], total: 0 })
@@ -75,6 +78,9 @@ vi.mock('../services/api/list', () => ({
 }))
 vi.mock('../services/api/segment', () => ({
   listSegments: vi.fn().mockResolvedValue({ segments: [] })
+}))
+vi.mock('../services/api/marketing', () => ({
+  audienceApi: { list: vi.fn().mockResolvedValue({ items: [], total: 0 }) }
 }))
 
 import { AutomationsPage } from './AutomationsPage'

@@ -136,6 +136,7 @@ export function RecipientFeedSettings({
             value={settings.headers}
             onChange={(headers) => handleChange('headers', headers)}
             disabled={disabled}
+            valuePlaceholder="Bearer {{ contact.custom_string_1 }}"
           />
 
           <Modal

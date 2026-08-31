@@ -68,7 +68,9 @@ type ClickHouseConfig struct {
 }
 
 type ObjectStoreConfig struct {
+	Provider       string
 	Endpoint       string
+	PublicEndpoint string
 	Bucket         string
 	Region         string
 	AccessKey      string

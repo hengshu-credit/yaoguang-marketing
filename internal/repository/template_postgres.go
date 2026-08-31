@@ -24,6 +24,24 @@ func NewTemplateRepository(workspaceRepo domain.WorkspaceRepository) domain.Temp
 	}
 }
 
+func marshalChannelTemplateContent(content *domain.ChannelTemplateContent) (interface{}, error) {
+	if content == nil {
+		return nil, nil
+	}
+	encoded, err := json.Marshal(content)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal channel template content: %w", err)
+	}
+	return encoded, nil
+}
+
+func nullableContentSchemaVersion(version int) interface{} {
+	if version == 0 {
+		return nil
+	}
+	return version
+}
+
 func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID string, template *domain.Template) error {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
@@ -51,6 +69,10 @@ func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID str
 	if err != nil {
 		return fmt.Errorf("failed to marshal translations: %w", err)
 	}
+	contentJSON, err := marshalChannelTemplateContent(template.Content)
+	if err != nil {
+		return err
+	}
 
 	query := `
 		INSERT INTO templates (
@@ -62,6 +84,8 @@ func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID str
 			web,
 			sms,
 			push,
+			content,
+			content_schema_version,
 			category,
 			template_macro_id,
 			integration_id,
@@ -71,7 +95,7 @@ func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID str
 			created_at,
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
 	`
 	_, err = workspaceDB.ExecContext(ctx, query,
 		template.ID,
@@ -82,6 +106,8 @@ func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID str
 		template.Web,
 		template.SMS,
 		template.Push,
+		contentJSON,
+		nullableContentSchemaVersion(template.ContentSchemaVersion),
 		template.Category,
 		template.TemplateMacroID,
 		template.IntegrationID,
@@ -129,6 +155,8 @@ func (r *templateRepository) GetTemplateByID(ctx context.Context, workspaceID st
 				web,
 				sms,
 				push,
+				content,
+				content_schema_version,
 				category,
 				template_macro_id,
 				integration_id,
@@ -153,6 +181,8 @@ func (r *templateRepository) GetTemplateByID(ctx context.Context, workspaceID st
 				web,
 				sms,
 				push,
+				content,
+				content_schema_version,
 				category,
 				template_macro_id,
 				integration_id,
@@ -234,6 +264,8 @@ func (r *templateRepository) GetTemplates(ctx context.Context, workspaceID strin
 		"t.web",
 		"t.sms",
 		"t.push",
+		"t.content",
+		"t.content_schema_version",
 		"t.category",
 		"t.template_macro_id",
 		"t.integration_id",
@@ -303,10 +335,14 @@ func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID str
 	if err != nil {
 		return fmt.Errorf("failed to marshal translations: %w", err)
 	}
+	contentJSON, err := marshalChannelTemplateContent(template.Content)
+	if err != nil {
+		return err
+	}
 
 	// Append-only versioning with atomic optimistic concurrency. The new version is
 	// computed as MAX(version)+1 inside the statement, and the row is only inserted when
-	// the caller's base_version still matches the latest ($16 = 0 skips the check for
+	// the caller's base_version still matches the latest ($18 = 0 skips the check for
 	// legacy last-writer-wins callers). This closes the read-then-write race two ways:
 	//   - base already stale before the statement ran → WHERE yields no row → ErrNoRows
 	//   - a concurrent writer with the same base committed first → the PRIMARY KEY
@@ -319,16 +355,16 @@ func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID str
 			WHERE id = $1
 		)
 		INSERT INTO templates (
-			id, name, version, channel, email, web, sms, push, category,
+			id, name, version, channel, email, web, sms, push, content, content_schema_version, category,
 			template_macro_id, integration_id, test_data, settings, translations,
 			created_at, updated_at
 		)
 		SELECT
-			$1, $2, curr.max_v + 1, $3, $4, $5, $6, $7, $8,
-			$9, $10, $11, $12, $13,
-			$14, $15
+			$1, $2, curr.max_v + 1, $3, $4, $5, $6, $7, $8, $9, $10,
+			$11, $12, $13, $14, $15,
+			$16, $17
 		FROM curr
-		WHERE $16 = 0 OR curr.max_v = $16
+		WHERE $18 = 0 OR curr.max_v = $18
 		RETURNING version
 	`
 	err = workspaceDB.QueryRowContext(ctx, query,
@@ -339,6 +375,8 @@ func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID str
 		template.Web,
 		template.SMS,
 		template.Push,
+		contentJSON,
+		nullableContentSchemaVersion(template.ContentSchemaVersion),
 		template.Category,
 		template.TemplateMacroID,
 		template.IntegrationID,
@@ -405,10 +443,12 @@ func scanTemplate(scanner interface {
 	Scan(dest ...interface{}) error
 }) (*domain.Template, error) {
 	var (
-		template         domain.Template
-		templateMacroID  sql.NullString
-		integrationID    sql.NullString
-		translationsJSON []byte
+		template             domain.Template
+		templateMacroID      sql.NullString
+		integrationID        sql.NullString
+		contentJSON          []byte
+		contentSchemaVersion sql.NullInt64
+		translationsJSON     []byte
 	)
 
 	err := scanner.Scan(
@@ -420,6 +460,8 @@ func scanTemplate(scanner interface {
 		&template.Web,
 		&template.SMS,
 		&template.Push,
+		&contentJSON,
+		&contentSchemaVersion,
 		&template.Category,
 		&templateMacroID,
 		&integrationID,
@@ -439,6 +481,16 @@ func scanTemplate(scanner interface {
 	}
 	if integrationID.Valid {
 		template.IntegrationID = &integrationID.String
+	}
+	if len(contentJSON) > 0 {
+		var content domain.ChannelTemplateContent
+		if err := json.Unmarshal(contentJSON, &content); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal channel template content: %w", err)
+		}
+		template.Content = &content
+	}
+	if contentSchemaVersion.Valid {
+		template.ContentSchemaVersion = int(contentSchemaVersion.Int64)
 	}
 
 	// Unmarshal translations JSON, always initialize to empty map for consistency

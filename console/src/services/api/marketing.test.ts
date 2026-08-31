@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from './client'
 import { audienceApi, importJobApi } from './marketing'
+import { automationApi } from './automation'
+import type { TreeNode } from './segment'
 
 vi.mock('./client', () => ({ api: { get: vi.fn(), post: vi.fn(), postRaw: vi.fn() } }))
 
@@ -14,6 +16,36 @@ describe('marketing APIs', () => {
       workspace_id: 'workspace-1',
       definition: { leaf_type: 'list', ref_id: 'list-1' }
     }))
+  })
+
+  it('creates a dynamic audience from a structured condition tree without building members', async () => {
+    vi.mocked(api.post).mockResolvedValue({ id: 'audience-1' } as never)
+    const condition: TreeNode = {
+      kind: 'leaf',
+      leaf: {
+        source: 'contacts',
+        contact: {
+          filters: [{
+            field_name: 'profile_status', field_type: 'string', operator: 'equals',
+            string_values: ['unpaid']
+          }]
+        }
+      }
+    }
+    await audienceApi.create('workspace-1', '待还款客户', '', { condition })
+    expect(api.post).toHaveBeenCalledWith('/api/audiences.create', {
+      workspace_id: 'workspace-1', name: '待还款客户', description: '', kind: 'dynamic',
+      definition: { condition }
+    })
+    expect(api.post).toHaveBeenCalledTimes(1)
+  })
+
+  it('starts a live automation from an audience without choosing a client-side version', async () => {
+    vi.mocked(api.post).mockResolvedValue({ run: { build_id: 'build-7' } } as never)
+    await automationApi.startAudience('workspace-1', 'automation-1', 'audience-1')
+    expect(api.post).toHaveBeenCalledWith('/api/automations.startAudience', {
+      workspace_id: 'workspace-1', automation_id: 'automation-1', audience_id: 'audience-1'
+    })
   })
 
   it('uploads the original file as a stream with workspace and filename', async () => {

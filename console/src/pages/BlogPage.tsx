@@ -11,7 +11,7 @@ import { DeleteCategoryModal } from '../components/blog/DeleteCategoryModal'
 import { PostDrawer } from '../components/blog/PostDrawer'
 import { blogCategoriesApi, blogPostsApi, BlogCategory } from '../services/api/blog'
 import { useAuth } from '../contexts/AuthContext'
-import { ContentCenterTabs } from '../components/navigation/WorkspaceSectionTabs'
+import BlogPageHeader from '../components/blog/BlogPageHeader'
 
 const { Sider, Content } = Layout
 
@@ -116,9 +116,7 @@ export function BlogPage() {
 
   return (
     <>
-      <div className="px-6 pt-6">
-        <ContentCenterTabs workspaceId={workspaceId} activeKey="blog" />
-      </div>
+      <BlogPageHeader workspaceId={workspaceId} />
 
       <Layout style={{ minHeight: 'calc(100vh - 48px)' }}>
         <Sider

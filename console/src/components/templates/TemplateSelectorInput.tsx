@@ -6,7 +6,6 @@ import { useQuery } from '@tanstack/react-query'
 import { templatesApi } from '../../services/api/template'
 import type { Template, TemplateChannel, Workspace } from '../../services/api/types'
 import TemplatePreviewPopover from './TemplatePreviewDrawer'
-import { CreateTemplateDrawer } from './CreateTemplateDrawer'
 import { useAuth } from '../../contexts/AuthContext'
 
 interface TemplateSelectorInputProps {
@@ -54,7 +53,6 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
   const {
     data: templatesResponse,
     isLoading,
-    refetch
   } = useQuery({
     queryKey: ['templates', workspaceId, category, channel],
     queryFn: async () => {
@@ -131,20 +129,9 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
     setSearchQuery('')
   }
 
-  // Handle template creation complete - refetch templates and select the new one
-  const handleTemplateCreated = async (template?: Template) => {
-    await refetch()
-    if (template?.channel === channel) {
-      handleSelect(template)
-    }
-  }
-
-  // Handle clone template complete - same as handleTemplateCreated
-  const handleTemplateCloned = async (template?: Template) => {
-    await refetch()
-    if (template?.channel === channel) {
-      handleSelect(template)
-    }
+  const openTemplateManager = () => {
+    const url = `/console/workspace/${encodeURIComponent(workspaceId)}/templates?create_channel=${encodeURIComponent(channel)}`
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   if (!currentWorkspace) {
@@ -192,19 +179,9 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ flex: 1 }}
           />
-          {currentWorkspace && (
-            <CreateTemplateDrawer
-              workspace={currentWorkspace}
-              forceCategory={category}
-              forceChannel={channel}
-              buttonProps={{
-                type: 'primary',
-                icon: <PlusOutlined />,
-                children: null
-              }}
-              onClose={handleTemplateCreated}
-            />
-          )}
+          <Button type="primary" icon={<PlusOutlined />} onClick={openTemplateManager}>
+            {t`Create new ${channel.toUpperCase()} template`}
+          </Button>
         </div>
 
         {isLoading ? (
@@ -227,21 +204,6 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
                   >
                     <Button type="text" icon={<EyeOutlined />} />
                   </TemplatePreviewPopover>,
-                  currentWorkspace && (
-                    <CreateTemplateDrawer
-                      key="clone"
-                      workspace={currentWorkspace}
-                      fromTemplate={template}
-                      forceCategory={category}
-                      forceChannel={channel}
-                      buttonProps={{
-                        type: 'link',
-                        title: t`Clone`
-                      }}
-                      buttonContent={t`Clone`}
-                      onClose={handleTemplateCloned}
-                    />
-                  ),
                   <Button key="select" type="link" onClick={() => handleSelect(template)}>
                     {t`Select`}
                   </Button>
@@ -267,21 +229,9 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
             }
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           >
-            {currentWorkspace && (
-              <CreateTemplateDrawer
-                workspace={currentWorkspace}
-                forceCategory={category}
-                forceChannel={channel}
-                buttonProps={{
-                  type: 'primary',
-                  icon: <PlusOutlined />,
-                  children: category
-                    ? t`Create New ${category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')} Template`
-                    : t`Create New Template`
-                }}
-                onClose={handleTemplateCreated}
-              />
-            )}
+            <Button type="primary" icon={<PlusOutlined />} onClick={openTemplateManager}>
+              {t`Create new ${channel.toUpperCase()} template`}
+            </Button>
           </Empty>
         )}
       </Drawer>

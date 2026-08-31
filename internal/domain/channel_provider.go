@@ -252,12 +252,18 @@ func (p *PushProvider) DecryptSecretKeys(passphrase string) error {
 }
 
 type ChannelDeliveryRequest struct {
-	Channel        string
-	Recipient      string
-	SMS            *SMSTemplate
-	Push           *PushTemplate
-	StatusCallback string
-	EffectKey      string
+	Channel         string
+	Recipient       string
+	SMS             *SMSTemplate
+	Push            *PushTemplate
+	StatusCallback  string
+	EffectKey       string
+	Platform        string
+	Locale          string
+	TemplateID      string
+	TemplateVersion int64
+	Generic         *RenderedChannelMessage
+	Metadata        MapOfAny
 }
 
 type ChannelDeliveryResult struct {

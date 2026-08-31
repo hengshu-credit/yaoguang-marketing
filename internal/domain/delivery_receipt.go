@@ -16,15 +16,16 @@ const MaxDeliveryReceiptMetadataBytes = 16 * 1024
 type DeliveryProvider string
 
 const (
-	DeliveryProviderTwilio    DeliveryProvider = "twilio"
-	DeliveryProviderFCM       DeliveryProvider = "fcm"
-	DeliveryProviderSMTP      DeliveryProvider = "smtp"
-	DeliveryProviderSES       DeliveryProvider = "ses"
-	DeliveryProviderSparkPost DeliveryProvider = "sparkpost"
-	DeliveryProviderPostmark  DeliveryProvider = "postmark"
-	DeliveryProviderMailgun   DeliveryProvider = "mailgun"
-	DeliveryProviderMailjet   DeliveryProvider = "mailjet"
-	DeliveryProviderSendGrid  DeliveryProvider = "sendgrid"
+	DeliveryProviderTwilio         DeliveryProvider = "twilio"
+	DeliveryProviderFCM            DeliveryProvider = "fcm"
+	DeliveryProviderSMTP           DeliveryProvider = "smtp"
+	DeliveryProviderSES            DeliveryProvider = "ses"
+	DeliveryProviderSparkPost      DeliveryProvider = "sparkpost"
+	DeliveryProviderPostmark       DeliveryProvider = "postmark"
+	DeliveryProviderMailgun        DeliveryProvider = "mailgun"
+	DeliveryProviderMailjet        DeliveryProvider = "mailjet"
+	DeliveryProviderSendGrid       DeliveryProvider = "sendgrid"
+	DeliveryProviderChannelWebhook DeliveryProvider = "channel_webhook"
 )
 
 type DeliveryReceiptEvent string
@@ -62,6 +63,7 @@ func (r *DeliveryReceipt) Validate() error {
 	case DeliveryProviderTwilio, DeliveryProviderFCM, DeliveryProviderSMTP, DeliveryProviderSES,
 		DeliveryProviderSparkPost, DeliveryProviderPostmark, DeliveryProviderMailgun,
 		DeliveryProviderMailjet, DeliveryProviderSendGrid:
+	case DeliveryProviderChannelWebhook:
 	default:
 		return errors.New("provider is not supported")
 	}
@@ -175,6 +177,34 @@ var ErrDeliveryReceiptPayloadConflict = errors.New("delivery receipt id was reus
 
 type DeliveryReceiptRepository interface {
 	RecordBatch(context.Context, string, []DeliveryReceipt) ([]DeliveryReceiptRecordResult, error)
+}
+
+type ChannelWebhookNonceRepository interface {
+	Reserve(context.Context, string, string, string, time.Time) (bool, error)
+}
+
+type ChannelWebhookReceiptPayload struct {
+	ReceiptID         string                 `json:"receipt_id"`
+	ProviderMessageID string                 `json:"provider_message_id,omitempty"`
+	MessageID         string                 `json:"message_id,omitempty"`
+	EffectKey         string                 `json:"effect_key,omitempty"`
+	Event             DeliveryReceiptEvent   `json:"event"`
+	OccurredAt        time.Time              `json:"occurred_at"`
+	ErrorCode         string                 `json:"error_code,omitempty"`
+	Metadata          map[string]interface{} `json:"metadata,omitempty"`
+}
+
+type ChannelWebhookReceiptCallback struct {
+	WorkspaceID   string
+	IntegrationID string
+	Timestamp     int64
+	Nonce         string
+	Signature     string
+	Body          []byte
+}
+
+type ChannelWebhookReceiptProcessor interface {
+	ProcessChannelWebhookCallback(context.Context, ChannelWebhookReceiptCallback) (*DeliveryReceiptRecordResult, error)
 }
 
 type TwilioDeliveryCallback struct {

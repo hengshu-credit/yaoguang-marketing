@@ -24,7 +24,9 @@ export const EmailConfigForm: React.FC<EmailConfigFormProps> = ({
   const { t } = useLingui()
 
   const handleTemplateChange = (templateId: string | null) => {
-    onChange({ ...config, template_id: templateId || '' })
+    const { template_version, ...rest } = config
+    void template_version
+    onChange({ ...rest, template_id: templateId || '' })
   }
 
   const handleIntegrationChange = (value: string) => {

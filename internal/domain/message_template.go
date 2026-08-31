@@ -107,10 +107,26 @@ func scanJSONValue(value interface{}, destination interface{}) error {
 }
 
 func isTemplateChannel(channel string) bool {
+	return IsRegisteredChannel(channel)
+}
+
+func isLegacyTemplateChannel(channel string) bool {
 	return channel == ChannelEmail || channel == ChannelWeb || channel == ChannelSMS || channel == ChannelPush
 }
 
-func validateTemplateContent(channel string, email *EmailTemplate, web *WebTemplate, sms *SMSTemplate, push *PushTemplate, testData MapOfAny) error {
+func validateTemplateContent(
+	channel string,
+	email *EmailTemplate,
+	web *WebTemplate,
+	sms *SMSTemplate,
+	push *PushTemplate,
+	content *ChannelTemplateContent,
+	contentSchemaVersion int,
+	testData MapOfAny,
+) error {
+	if !IsRegisteredChannel(channel) {
+		return fmt.Errorf("unknown template channel '%s'", channel)
+	}
 	contents := []struct {
 		name    string
 		present bool
@@ -119,6 +135,26 @@ func validateTemplateContent(channel string, email *EmailTemplate, web *WebTempl
 		{name: ChannelWeb, present: web != nil},
 		{name: ChannelSMS, present: sms != nil},
 		{name: ChannelPush, present: push != nil},
+	}
+	if !isLegacyTemplateChannel(channel) {
+		if content == nil {
+			return fmt.Errorf("content is required for channel '%s'", channel)
+		}
+		for _, legacyContent := range contents {
+			if legacyContent.present {
+				return fmt.Errorf("%s must be nil for channel '%s'", legacyContent.name, channel)
+			}
+		}
+		if contentSchemaVersion != ChannelTemplateContentSchemaVersion {
+			return fmt.Errorf("content_schema_version must be %d for channel '%s'", ChannelTemplateContentSchemaVersion, channel)
+		}
+		return content.ValidateForChannel(channel)
+	}
+	if content != nil {
+		return fmt.Errorf("content must be nil for channel '%s'", channel)
+	}
+	if contentSchemaVersion != 0 {
+		return fmt.Errorf("content_schema_version must be zero for channel '%s'", channel)
 	}
 	for _, content := range contents {
 		if content.name == channel && !content.present {
@@ -138,44 +174,63 @@ func validateTemplateContent(channel string, email *EmailTemplate, web *WebTempl
 	case ChannelPush:
 		return push.Validate(testData)
 	default:
-		return fmt.Errorf("channel must be one of '%s', '%s', '%s', or '%s'", ChannelEmail, ChannelWeb, ChannelSMS, ChannelPush)
+		return fmt.Errorf("unknown legacy template channel '%s'", channel)
 	}
 }
 
 type PreviewTemplateRequest struct {
-	WorkspaceID  string                         `json:"workspace_id"`
-	Channel      string                         `json:"channel"`
-	SMS          *SMSTemplate                   `json:"sms,omitempty"`
-	Push         *PushTemplate                  `json:"push,omitempty"`
-	Translations map[string]TemplateTranslation `json:"translations,omitempty"`
-	Language     string                         `json:"language,omitempty"`
-	Platform     string                         `json:"platform,omitempty"`
-	TestData     MapOfAny                       `json:"test_data,omitempty"`
+	WorkspaceID          string                         `json:"workspace_id"`
+	Channel              string                         `json:"channel"`
+	SMS                  *SMSTemplate                   `json:"sms,omitempty"`
+	Push                 *PushTemplate                  `json:"push,omitempty"`
+	Content              *ChannelTemplateContent        `json:"content,omitempty"`
+	ContentSchemaVersion int                            `json:"content_schema_version,omitempty"`
+	Translations         map[string]TemplateTranslation `json:"translations,omitempty"`
+	Language             string                         `json:"language,omitempty"`
+	Platform             string                         `json:"platform,omitempty"`
+	Profile              string                         `json:"profile,omitempty"`
+	TestData             MapOfAny                       `json:"test_data,omitempty"`
 }
 
 func (r *PreviewTemplateRequest) Validate() error {
 	if strings.TrimSpace(r.WorkspaceID) == "" {
 		return fmt.Errorf("invalid preview template request: workspace_id is required")
 	}
-	if r.Channel != ChannelSMS && r.Channel != ChannelPush {
-		return fmt.Errorf("invalid preview template request: channel must be '%s' or '%s'", ChannelSMS, ChannelPush)
+	if !IsRegisteredChannel(r.Channel) {
+		return fmt.Errorf("invalid preview template request: unknown template channel '%s'", r.Channel)
 	}
 	if r.Language != "" && !IsValidLanguage(r.Language) {
 		return fmt.Errorf("invalid preview template request: unsupported language '%s'", r.Language)
 	}
-	if r.Platform != "" && r.Platform != EndpointPlatformAndroid && r.Platform != EndpointPlatformIOS && r.Platform != EndpointPlatformWeb {
-		return fmt.Errorf("invalid preview template request: platform must be android, ios, or web")
+	if isLegacyTemplateChannel(r.Channel) {
+		if r.Channel != ChannelSMS && r.Channel != ChannelPush {
+			return fmt.Errorf("invalid preview template request: legacy draft preview only supports '%s' or '%s'", ChannelSMS, ChannelPush)
+		}
+		if r.Platform != "" && r.Platform != EndpointPlatformAndroid && r.Platform != EndpointPlatformIOS && r.Platform != EndpointPlatformWeb {
+			return fmt.Errorf("invalid preview template request: platform must be android, ios, or web")
+		}
+		if r.Channel == ChannelSMS && r.Platform != "" {
+			return fmt.Errorf("invalid preview template request: platform is only supported for push")
+		}
+		if r.Channel == ChannelPush && r.Platform == "" {
+			r.Platform = EndpointPlatformAndroid
+		}
+	} else {
+		definition, _ := FindChannelDefinition(r.Channel)
+		if r.Profile == "" && len(definition.PreviewProfiles) > 0 {
+			r.Profile = definition.PreviewProfiles[0].ID
+		}
+		if !definitionSupportsProfile(definition, r.Profile) {
+			return fmt.Errorf("invalid preview template request: preview profile '%s' is not supported by channel '%s'", r.Profile, r.Channel)
+		}
+		if r.Platform != "" {
+			return fmt.Errorf("invalid preview template request: platform is only supported by push; use profile for channel '%s'", r.Channel)
+		}
 	}
-	if r.Channel == ChannelSMS && r.Platform != "" {
-		return fmt.Errorf("invalid preview template request: platform is only supported for push")
-	}
-	if r.Channel == ChannelPush && r.Platform == "" {
-		r.Platform = EndpointPlatformAndroid
-	}
-	if err := validateTemplateContent(r.Channel, nil, nil, r.SMS, r.Push, r.TestData); err != nil {
+	if err := validateTemplateContent(r.Channel, nil, nil, r.SMS, r.Push, r.Content, r.ContentSchemaVersion, r.TestData); err != nil {
 		return fmt.Errorf("invalid preview template request: %w", err)
 	}
-	if err := validateTranslations(r.Translations, r.Channel, r.TestData); err != nil {
+	if err := validateTranslations(r.Translations, r.Channel, r.ContentSchemaVersion, r.TestData); err != nil {
 		return fmt.Errorf("invalid preview template request: %w", err)
 	}
 	encoded, err := json.Marshal(r.TestData)
@@ -186,6 +241,15 @@ func (r *PreviewTemplateRequest) Validate() error {
 		return fmt.Errorf("invalid preview template request: test_data must not exceed %d bytes", maxPreviewDataBytes)
 	}
 	return nil
+}
+
+func definitionSupportsProfile(definition ChannelDefinition, profileID string) bool {
+	for _, profile := range definition.PreviewProfiles {
+		if profile.ID == profileID {
+			return true
+		}
+	}
+	return false
 }
 
 type PreviewWarning struct {
@@ -215,12 +279,31 @@ type PushPreview struct {
 	Warnings     []PreviewWarning `json:"warnings"`
 }
 
+type RenderedChannelMessage = ChannelTemplateContent
+
+type GenericChannelPreview struct {
+	Profile      string                 `json:"profile"`
+	Direction    string                 `json:"direction"`
+	PayloadBytes int                    `json:"payload_bytes"`
+	Message      RenderedChannelMessage `json:"message"`
+	Warnings     []PreviewWarning       `json:"warnings"`
+}
+
 type PreviewTemplateResponse struct {
-	Channel           string       `json:"channel"`
-	RequestedLanguage string       `json:"requested_language,omitempty"`
-	ResolvedLanguage  string       `json:"resolved_language"`
-	FallbackUsed      bool         `json:"fallback_used"`
-	SMS               *SMSPreview  `json:"sms,omitempty"`
-	Push              *PushPreview `json:"push,omitempty"`
-	TestData          MapOfAny     `json:"test_data,omitempty"`
+	Channel           string                 `json:"channel"`
+	RequestedLanguage string                 `json:"requested_language,omitempty"`
+	ResolvedLanguage  string                 `json:"resolved_language"`
+	FallbackUsed      bool                   `json:"fallback_used"`
+	SMS               *SMSPreview            `json:"sms,omitempty"`
+	Push              *PushPreview           `json:"push,omitempty"`
+	ChannelPreview    *GenericChannelPreview `json:"channel_preview,omitempty"`
+	TestData          MapOfAny               `json:"test_data,omitempty"`
+}
+
+func LanguageDirection(language string) string {
+	base := strings.ToLower(strings.SplitN(language, "-", 2)[0])
+	if base == "ar" || base == "he" || base == "ur" {
+		return "rtl"
+	}
+	return "ltr"
 }

@@ -24,8 +24,10 @@ tmp_dir = "/cache/notifuse-air"
   kill_delay = "5s"
   poll = true
   poll_interval = 500
+  rerun = true
+  rerun_delay = 500
   send_interrupt = true
-  stop_on_error = true
+  stop_on_error = false
 
 [log]
   main_only = false

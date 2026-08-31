@@ -8,29 +8,40 @@ import (
 	"net"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
-	"github.com/google/uuid"
 )
 
 // AutomationExecutor processes contacts through automation workflows
 type AutomationExecutor struct {
-	automationRepo  domain.AutomationRepository
-	contactRepo     domain.ContactRepository
-	workspaceRepo   domain.WorkspaceRepository
-	contactListRepo domain.ContactListRepository
-	templateRepo    domain.TemplateRepository
-	emailQueueRepo  domain.EmailQueueRepository
-	timelineRepo    domain.ContactTimelineRepository
-	nodeExecutors   map[domain.NodeType]NodeExecutor
-	logger          logger.Logger
-	apiEndpoint     string
+	automationRepo      domain.AutomationRepository
+	contactRepo         domain.ContactRepository
+	workspaceRepo       domain.WorkspaceRepository
+	contactListRepo     domain.ContactListRepository
+	templateRepo        domain.TemplateRepository
+	emailQueueRepo      domain.EmailQueueRepository
+	timelineRepo        domain.ContactTimelineRepository
+	nodeExecutors       map[domain.NodeType]NodeExecutor
+	logger              logger.Logger
+	apiEndpoint         string
+	audienceEligibility AutomationAudienceEligibilityChecker
 }
 
 const (
 	realtimeEffectKeyContext  = "realtime_effect_key"
 	realtimeOccurredAtContext = "realtime_occurred_at"
+	audienceContextAudienceID = "audience_id"
+	audienceContextVersion    = "audience_version"
+	audienceContextBuildID    = "audience_build_id"
+	audienceContextCustomerID = "audience_customer_id"
 )
+
+const automationAudienceNoLongerMatchedReason = "audience_no_longer_matched"
+
+type AutomationAudienceEligibilityChecker interface {
+	MatchesCustomerInternal(context.Context, string, string, int, string) (bool, error)
+}
 
 type journeySideEffectData struct {
 	ContactAutomationID string                 `json:"contact_automation_id"`
@@ -105,6 +116,87 @@ func WithChannelMessageService(channelService domain.ChannelMessageService) Auto
 	}
 }
 
+func WithAutomationAudienceEligibility(checker AutomationAudienceEligibilityChecker) AutomationExecutorOption {
+	return func(executor *AutomationExecutor) {
+		executor.audienceEligibility = checker
+	}
+}
+
+func isAudienceTouchNode(nodeType domain.NodeType) bool {
+	switch nodeType {
+	case domain.NodeTypeEmail, domain.NodeTypeSMS, domain.NodeTypePush:
+		return true
+	default:
+		return false
+	}
+}
+
+func audienceContextInt(value interface{}) (int, bool) {
+	switch typed := value.(type) {
+	case int:
+		return typed, true
+	case int64:
+		return int(typed), true
+	case float64:
+		return int(typed), typed == float64(int(typed))
+	case json.Number:
+		parsed, err := typed.Int64()
+		return int(parsed), err == nil
+	default:
+		return 0, false
+	}
+}
+
+func (e *AutomationExecutor) shouldSkipAudienceTouch(ctx context.Context, workspaceID string, journey *domain.ContactAutomation, node *domain.AutomationNode) (bool, error) {
+	if node == nil || !isAudienceTouchNode(node.Type) || journey == nil || journey.Context == nil {
+		return false, nil
+	}
+	audienceID, _ := journey.Context[audienceContextAudienceID].(string)
+	if audienceID == "" {
+		return false, nil
+	}
+	version, ok := audienceContextInt(journey.Context[audienceContextVersion])
+	customerID, _ := journey.Context[audienceContextCustomerID].(string)
+	buildID, _ := journey.Context[audienceContextBuildID].(string)
+	if !ok || version <= 0 || customerID == "" || buildID == "" {
+		return false, errors.New("automation audience context is incomplete")
+	}
+	if e.audienceEligibility == nil {
+		return false, errors.New("automation audience eligibility checker is unavailable")
+	}
+	matches, err := e.audienceEligibility.MatchesCustomerInternal(ctx, workspaceID, audienceID, version, customerID)
+	if err != nil {
+		return false, fmt.Errorf("evaluate automation audience eligibility: %w", err)
+	}
+	return !matches, nil
+}
+
+func audienceTouchSkipResult(node *domain.AutomationNode) *NodeExecutionResult {
+	return &NodeExecutionResult{
+		NextNodeID: node.NextNodeID,
+		Status:     domain.ContactAutomationStatusActive,
+		Output: buildNodeOutput(node.Type, map[string]interface{}{
+			"skipped": true, "skip_reason": automationAudienceNoLongerMatchedReason,
+		}),
+	}
+}
+
+func audienceEligibilityContextFromJourney(journey *domain.ContactAutomation) *domain.AudienceEligibilityContext {
+	if journey == nil || journey.Context == nil {
+		return nil
+	}
+	audienceID, _ := journey.Context[audienceContextAudienceID].(string)
+	version, ok := audienceContextInt(journey.Context[audienceContextVersion])
+	buildID, _ := journey.Context[audienceContextBuildID].(string)
+	customerID, _ := journey.Context[audienceContextCustomerID].(string)
+	if audienceID == "" || !ok || version <= 0 || buildID == "" || customerID == "" {
+		return nil
+	}
+	return &domain.AudienceEligibilityContext{
+		AudienceID: audienceID, AudienceVersion: version, AudienceBuildID: buildID, CustomerID: customerID,
+	}
+}
+
 // Execute processes a contact through their automation nodes until a delay or completion.
 // It loops through multiple nodes in a single tick for efficiency, persisting state after each node.
 func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, contactAutomation *domain.ContactAutomation) error {
@@ -160,7 +252,8 @@ func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, co
 			executionContext = make(map[string]interface{})
 		}
 
-		// Execute the node
+		// Execute the node, unless an Audience-launched journey no longer matches
+		// the immutable rule version recorded when its candidate snapshot began.
 		params := NodeExecutionParams{
 			WorkspaceID:      workspaceID,
 			Contact:          contactAutomation,
@@ -169,7 +262,16 @@ func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, co
 			ContactData:      contactData,
 			ExecutionContext: executionContext,
 		}
-		result, execErr := executor.Execute(ctx, params)
+		skipTouch, eligibilityErr := e.shouldSkipAudienceTouch(ctx, workspaceID, contactAutomation, node)
+		var result *NodeExecutionResult
+		var execErr error
+		if eligibilityErr != nil {
+			execErr = eligibilityErr
+		} else if skipTouch {
+			result = audienceTouchSkipResult(node)
+		} else {
+			result, execErr = executor.Execute(ctx, params)
+		}
 
 		// Handle execution error
 		if execErr != nil {
@@ -287,6 +389,23 @@ func (e *AutomationExecutor) PlanClaimedJourneyStep(
 		commit.ContactAutomation.Status = domain.ContactAutomationStatusExited
 		commit.ContactAutomation.ExitReason = &reason
 		commit.ContactAutomation.ScheduledAt = nil
+		return commit, nil
+	}
+
+	skipTouch, eligibilityErr := e.shouldSkipAudienceTouch(ctx, workspaceID, &next, node)
+	if eligibilityErr != nil {
+		return commit, eligibilityErr
+	}
+	if skipTouch {
+		result := audienceTouchSkipResult(node)
+		commit.ContactAutomation.CurrentNodeID = result.NextNodeID
+		commit.ContactAutomation.Status = result.Status
+		commit.ContactAutomation.ScheduledAt = nil
+		if result.NextNodeID == nil {
+			commit.ContactAutomation.Status = domain.ContactAutomationStatusCompleted
+		} else {
+			commit.ContactAutomation.ScheduledAt = journeyTimePtr(now)
+		}
 		return commit, nil
 	}
 

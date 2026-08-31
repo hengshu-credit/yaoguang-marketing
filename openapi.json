@@ -27,6 +27,127 @@
     }
   ],
   "paths": {
+    "/api/channels.catalog": {
+      "get": {
+        "summary": "List the omnichannel material catalogue",
+        "operationId": "listChannelCatalogue",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stable channel capabilities and client preview profiles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "channels"
+                  ],
+                  "properties": {
+                    "channels": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "label_key",
+                          "content_families",
+                          "preview_profiles",
+                          "delivery_modes",
+                          "limits"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "label_key": {
+                            "type": "string"
+                          },
+                          "regions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "recommended_in": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 2,
+                              "maxLength": 2
+                            }
+                          },
+                          "content_families": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "preview_profiles": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "label_key": {
+                                  "type": "string"
+                                },
+                                "surface": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "delivery_modes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "native",
+                                "signed_webhook"
+                              ]
+                            }
+                          },
+                          "limits": {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/timeline.list": {
       "get": {
         "summary": "List a Customer activity timeline",
@@ -201,6 +322,54 @@
         }
       }
     },
+    "/api/automations.startAudience": {
+      "post": {
+        "summary": "Start a live Automation from a dynamic Audience",
+        "description": "Resolves the Audience latest active version at execution time, freezes the candidate build, and stores that version on every Journey. Email, SMS, and Push nodes recheck current customer facts before each touch; a non-match skips only that node.",
+        "operationId": "startAutomationAudienceRun",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationAudienceRunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Candidate build completed and Journeys enrolled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "run"
+                  ],
+                  "properties": {
+                    "run": {
+                      "$ref": "#/components/schemas/AutomationAudienceRunResult"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid, archived, or non-live resource"
+          },
+          "403": {
+            "description": "Automations write plus Segments and Contacts read permissions required"
+          }
+        }
+      }
+    },
     "/api/journeys.instances": {
       "get": {
         "summary": "List Journey instances for one Customer",
@@ -371,6 +540,7 @@
     "/api/audiences.create": {
       "post": {
         "summary": "Create a versioned audience",
+        "description": "Saves only the structured definition. A dynamic condition audience is not materialized until a marketing run actually starts.",
         "operationId": "createAudience",
         "security": [
           {
@@ -615,6 +785,7 @@
     "/api/audiences.preview": {
       "post": {
         "summary": "Preview an audience with at most 100 masked customer summaries",
+        "description": "Evaluates current facts without persisting membership. Complete draft trees may be previewed while editing.",
         "operationId": "previewAudience",
         "security": [
           {
@@ -5769,6 +5940,102 @@
         }
       }
     },
+    "/api/templates.preview": {
+      "post": {
+        "summary": "Render an unsaved channel template",
+        "description": "Renders SMS, Push, or generic omnichannel content through the server Liquid engine and returns client-profile diagnostics without persisting the draft.",
+        "operationId": "previewTemplate",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "channel"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "channel": {
+                    "type": "string"
+                  },
+                  "sms": {
+                    "$ref": "#/components/schemas/SMSTemplate"
+                  },
+                  "push": {
+                    "$ref": "#/components/schemas/PushTemplate"
+                  },
+                  "content": {
+                    "$ref": "#/components/schemas/ChannelTemplateContent"
+                  },
+                  "content_schema_version": {
+                    "type": "integer",
+                    "enum": [
+                      1
+                    ]
+                  },
+                  "language": {
+                    "type": "string"
+                  },
+                  "platform": {
+                    "type": "string",
+                    "enum": [
+                      "android",
+                      "ios",
+                      "web"
+                    ]
+                  },
+                  "profile": {
+                    "type": "string"
+                  },
+                  "translations": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/TemplateTranslation"
+                    }
+                  },
+                  "test_data": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rendered preview and diagnostics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid channel content, profile, Liquid, or template data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/customEvents.import": {
       "post": {
         "summary": "Import custom events",
@@ -10062,7 +10329,25 @@
             "type": "string",
             "enum": [
               "email",
-              "web"
+              "web",
+              "sms",
+              "push",
+              "in_app",
+              "rcs",
+              "webhook",
+              "wechat_official_account",
+              "wechat_mini_program",
+              "wecom",
+              "dingtalk",
+              "feishu",
+              "whatsapp",
+              "telegram",
+              "line",
+              "zalo",
+              "viber",
+              "messenger",
+              "instagram",
+              "kakao"
             ],
             "description": "Communication channel",
             "example": "email"
@@ -10072,6 +10357,21 @@
           },
           "web": {
             "$ref": "#/components/schemas/WebTemplate"
+          },
+          "sms": {
+            "$ref": "#/components/schemas/SMSTemplate"
+          },
+          "push": {
+            "$ref": "#/components/schemas/PushTemplate"
+          },
+          "content": {
+            "$ref": "#/components/schemas/ChannelTemplateContent"
+          },
+          "content_schema_version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
           },
           "category": {
             "type": "string",
@@ -10255,7 +10555,25 @@
             "type": "string",
             "enum": [
               "email",
-              "web"
+              "web",
+              "sms",
+              "push",
+              "in_app",
+              "rcs",
+              "webhook",
+              "wechat_official_account",
+              "wechat_mini_program",
+              "wecom",
+              "dingtalk",
+              "feishu",
+              "whatsapp",
+              "telegram",
+              "line",
+              "zalo",
+              "viber",
+              "messenger",
+              "instagram",
+              "kakao"
             ],
             "description": "Communication channel",
             "example": "email"
@@ -10265,6 +10583,21 @@
           },
           "web": {
             "$ref": "#/components/schemas/WebTemplate"
+          },
+          "sms": {
+            "$ref": "#/components/schemas/SMSTemplate"
+          },
+          "push": {
+            "$ref": "#/components/schemas/PushTemplate"
+          },
+          "content": {
+            "$ref": "#/components/schemas/ChannelTemplateContent"
+          },
+          "content_schema_version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
           },
           "category": {
             "type": "string",
@@ -10338,7 +10671,25 @@
             "type": "string",
             "enum": [
               "email",
-              "web"
+              "web",
+              "sms",
+              "push",
+              "in_app",
+              "rcs",
+              "webhook",
+              "wechat_official_account",
+              "wechat_mini_program",
+              "wecom",
+              "dingtalk",
+              "feishu",
+              "whatsapp",
+              "telegram",
+              "line",
+              "zalo",
+              "viber",
+              "messenger",
+              "instagram",
+              "kakao"
             ],
             "description": "Communication channel",
             "example": "email"
@@ -10348,6 +10699,21 @@
           },
           "web": {
             "$ref": "#/components/schemas/WebTemplate"
+          },
+          "sms": {
+            "$ref": "#/components/schemas/SMSTemplate"
+          },
+          "push": {
+            "$ref": "#/components/schemas/PushTemplate"
+          },
+          "content": {
+            "$ref": "#/components/schemas/ChannelTemplateContent"
+          },
+          "content_schema_version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
           },
           "category": {
             "type": "string",
@@ -11646,6 +12012,65 @@
           }
         }
       },
+      "AutomationAudienceRunRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workspace_id",
+          "automation_id",
+          "audience_id"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          },
+          "automation_id": {
+            "type": "string"
+          },
+          "audience_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "AutomationAudienceRunResult": {
+        "type": "object",
+        "required": [
+          "automation_id",
+          "audience_id",
+          "audience_version",
+          "build_id",
+          "candidate_count",
+          "enrolled_count"
+        ],
+        "properties": {
+          "automation_id": {
+            "type": "string"
+          },
+          "audience_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "audience_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "build_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidate_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "enrolled_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
       "JourneyInstanceListResponse": {
         "type": "object",
         "required": [
@@ -11817,6 +12242,69 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/AudienceExpression"
+            }
+          },
+          "condition": {
+            "$ref": "#/components/schemas/AudienceConditionTree"
+          }
+        }
+      },
+      "AudienceConditionTree": {
+        "type": "object",
+        "description": "A validated AND/OR condition tree over customer attributes, profile status, list state, timeline activity, and goals. Clients cannot provide SQL.",
+        "additionalProperties": false,
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "branch",
+              "leaf"
+            ]
+          },
+          "branch": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operator",
+              "leaves"
+            ],
+            "properties": {
+              "operator": {
+                "type": "string",
+                "enum": [
+                  "and",
+                  "or"
+                ]
+              },
+              "leaves": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/components/schemas/AudienceConditionTree"
+                }
+              }
+            }
+          },
+          "leaf": {
+            "type": "object",
+            "description": "The leaf shape is source-tagged and validated against server-side field and operator allowlists.",
+            "additionalProperties": true,
+            "required": [
+              "source"
+            ],
+            "properties": {
+              "source": {
+                "type": "string",
+                "enum": [
+                  "contacts",
+                  "contact_lists",
+                  "contact_timeline",
+                  "custom_events_goals"
+                ]
+              }
             }
           }
         }
@@ -13478,6 +13966,109 @@
           }
         }
       },
+      "SMSTemplate": {
+        "type": "object",
+        "required": [
+          "body"
+        ],
+        "properties": {
+          "body": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "sender_id": {
+            "type": "string",
+            "maxLength": 32
+          }
+        }
+      },
+      "PushTemplate": {
+        "type": "object",
+        "required": [
+          "title",
+          "body"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 512
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "image_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "deep_link": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "ChannelTemplateContent": {
+        "type": "object",
+        "required": [
+          "family"
+        ],
+        "properties": {
+          "family": {
+            "type": "string",
+            "enum": [
+              "text",
+              "notification",
+              "rich_card",
+              "carousel",
+              "external_template",
+              "work_message",
+              "webhook_payload"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "footer": {
+            "type": "string"
+          },
+          "media": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "external_template": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "webhook": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
       "TemplateTranslation": {
         "type": "object",
         "description": "Content for one language. Carries the field matching the template's channel: email for an email template, web for a web template.",
@@ -13487,6 +14078,9 @@
           },
           "web": {
             "$ref": "#/components/schemas/WebTemplate"
+          },
+          "content": {
+            "$ref": "#/components/schemas/ChannelTemplateContent"
           }
         }
       }

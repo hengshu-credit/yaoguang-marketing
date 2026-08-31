@@ -18,12 +18,16 @@ servers:
         description: Your Yaoguang Marketing deployment domain
         default: marketing.example.com
 paths:
+  /api/channels.catalog:
+    $ref: './paths/channels.yaml#/~1api~1channels.catalog'
   /api/timeline.list:
     $ref: './paths/customer_timeline.yaml#/~1api~1timeline.list'
   /api/automations.preflight:
     $ref: './paths/journeys.yaml#/~1api~1automations.preflight'
   /api/automations.activate:
     $ref: './paths/journeys.yaml#/~1api~1automations.activate'
+  /api/automations.startAudience:
+    $ref: './paths/journeys.yaml#/~1api~1automations.startAudience'
   /api/journeys.instances:
     $ref: './paths/journeys.yaml#/~1api~1journeys.instances'
   /api/journeys.trace:
@@ -170,6 +174,8 @@ paths:
     $ref: './paths/templates.yaml#/~1api~1templates.delete'
   /api/templates.compile:
     $ref: './paths/templates.yaml#/~1api~1templates.compile'
+  /api/templates.preview:
+    $ref: './paths/templates.yaml#/~1api~1templates.preview'
   /api/customEvents.import:
     $ref: './paths/custom-events.yaml#/~1api~1customEvents.import'
   /api/webhookSubscriptions.create:

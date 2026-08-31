@@ -50,6 +50,31 @@ func TestLoadRuntimeRoleInvalidYaoguangValueNamesPrimaryVariable(t *testing.T) {
 	require.ErrorContains(t, err, "invalid YAOGUANG_ROLE")
 }
 
+func TestLoadObjectStoreWorkspaceDefaultsFromEnv(t *testing.T) {
+	t.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
+	t.Setenv("S3_PROVIDER", "minio")
+	t.Setenv("S3_ENDPOINT", "http://minio:9000")
+	t.Setenv("S3_PUBLIC_ENDPOINT", "http://localhost:19002")
+	t.Setenv("S3_BUCKET", "workspace-assets")
+	t.Setenv("S3_REGION", "us-east-1")
+	t.Setenv("S3_ACCESS_KEY", "minio-user")
+	t.Setenv("S3_SECRET_KEY", "minio-secret")
+	t.Setenv("S3_FORCE_PATH_STYLE", "true")
+
+	cfg, err := LoadWithOptions(LoadOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, ObjectStoreConfig{
+		Provider:       "minio",
+		Endpoint:       "http://minio:9000",
+		PublicEndpoint: "http://localhost:19002",
+		Bucket:         "workspace-assets",
+		Region:         "us-east-1",
+		AccessKey:      "minio-user",
+		SecretKey:      "minio-secret",
+		ForcePathStyle: true,
+	}, cfg.Realtime.ObjectStore)
+}
+
 func TestParseRuntimeRoleAcceptsSupportedValues(t *testing.T) {
 	tests := []struct {
 		input string

@@ -406,8 +406,8 @@ func (b *Broadcast) Validate() error {
 	if b.Audience.List != "" && b.Audience.AudienceID != "" {
 		return fmt.Errorf("list and audience cannot both be selected")
 	}
-	if b.Audience.AudienceID != "" && b.Audience.AudienceVersion <= 0 {
-		return fmt.Errorf("audience version is required")
+	if b.Audience.AudienceVersion < 0 {
+		return fmt.Errorf("audience version cannot be negative")
 	}
 
 	// Validate schedule settings

@@ -15,10 +15,11 @@ import (
 )
 
 type workerDeliveryRepository struct {
-	startErr   error
-	attempt    domain.DeliveryAttempt
-	outcomes   []domain.DeliveryAttemptOutcome
-	outcomeErr map[domain.DeliveryStatus]error
+	startErr         error
+	attempt          domain.DeliveryAttempt
+	outcomes         []domain.DeliveryAttemptOutcome
+	outcomeErr       map[domain.DeliveryStatus]error
+	suppressedReason string
 }
 
 func (r *workerDeliveryRepository) ReserveIntent(context.Context, string, domain.DeliveryIntent) (domain.DeliveryIntent, bool, error) {
@@ -45,6 +46,22 @@ func (r *workerDeliveryRepository) StartAttempt(context.Context, string, domain.
 func (r *workerDeliveryRepository) RecordAttemptOutcome(_ context.Context, _ string, _ string, _ string, outcome domain.DeliveryAttemptOutcome) error {
 	r.outcomes = append(r.outcomes, outcome)
 	return r.outcomeErr[outcome.Status]
+}
+
+func (r *workerDeliveryRepository) SuppressIntent(_ context.Context, _ string, _ string, _ domain.DeliveryStatus, reason string, _ time.Time) (bool, error) {
+	r.suppressedReason = reason
+	return true, nil
+}
+
+type workerAudienceEligibilityStub struct {
+	result bool
+	err    error
+	calls  int
+}
+
+func (s *workerAudienceEligibilityStub) MatchesCustomerInternal(context.Context, string, string, int, string) (bool, error) {
+	s.calls++
+	return s.result, s.err
 }
 
 type deliveryWorkerFixture struct {
@@ -112,6 +129,22 @@ func TestDeliveryWorkerDoesNotCallProviderWhenSubmittingPersistenceFails(t *test
 
 	fixture.worker.processEntry(fixture.workspace, fixture.entry)
 
+	assert.Empty(t, fixture.delivery.outcomes)
+}
+
+func TestDeliveryWorkerRechecksAudienceImmediatelyBeforeProviderAndSuppressesPaidCustomer(t *testing.T) {
+	fixture := newDeliveryWorkerFixture(t)
+	checker := &workerAudienceEligibilityStub{result: false}
+	fixture.worker.SetAudienceEligibilityChecker(checker)
+	fixture.entry.Payload.AudienceEligibility = &domain.AudienceEligibilityContext{
+		AudienceID: "audience-1", AudienceVersion: 7, AudienceBuildID: "build-7", CustomerID: "customer-1",
+	}
+	fixture.queue.EXPECT().CompleteClaim(gomock.Any(), "workspace-1", fixture.entry.ID, fixture.entry.ClaimToken, gomock.Any()).Return(nil)
+
+	fixture.worker.processEntry(fixture.workspace, fixture.entry)
+
+	assert.Equal(t, 1, checker.calls)
+	assert.Equal(t, "audience_no_longer_matched", fixture.delivery.suppressedReason)
 	assert.Empty(t, fixture.delivery.outcomes)
 }
 

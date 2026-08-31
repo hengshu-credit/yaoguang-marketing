@@ -25,8 +25,9 @@ import {
   faCopy
 } from '@fortawesome/free-regular-svg-icons'
 import { faTerminal } from '@fortawesome/free-solid-svg-icons'
-import { CreateTemplateDrawer } from '../components/templates/CreateTemplateDrawer'
-import { MessageTemplateDrawer, renderCategoryTag } from '../components/templates'
+import { renderCategoryTag } from '../components/templates'
+import { CreateTemplateButton, TemplateEditorButton } from '../components/templates/UnifiedTemplateActions'
+import { channelsApi } from '../services/api/channels'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import dayjs from '../lib/dayjs'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
@@ -50,6 +51,7 @@ const getIntegrationIcon = (integrationType: string) => {
 interface TemplatesSearch {
   category?: string
   q?: string
+  create_channel?: string
 }
 
 export function TemplatesPage() {
@@ -148,23 +150,17 @@ export function TemplatesPage() {
     // Use selectedCategory from search params in queryKey
     queryKey: ['templates', workspaceId, selectedCategory],
     queryFn: async () => {
-      const responses = await Promise.all(
-        (['email', 'sms', 'push'] as const).map((channel) => {
-          const params: { workspace_id: string; category?: string; channel: string } = {
-            workspace_id: workspaceId,
-            channel
-          }
-          if (selectedCategory !== 'all') params.category = selectedCategory
-          return templatesApi.list(params)
-        })
-      )
-      return {
-        templates: responses
-          .flatMap((response) => response.templates)
-          .sort((left, right) => right.updated_at.localeCompare(left.updated_at))
-      }
+      const params: { workspace_id: string; category?: string } = { workspace_id: workspaceId }
+      if (selectedCategory !== 'all') params.category = selectedCategory
+      return templatesApi.list(params)
     }
   })
+
+  const { data: channelCatalog } = useQuery({
+    queryKey: ['channel-catalog', workspaceId],
+    queryFn: () => channelsApi.list(workspaceId)
+  })
+  const channelDefinitions = channelCatalog?.channels || []
 
   const deleteMutation = useMutation({
     mutationFn: templatesApi.delete,
@@ -250,6 +246,7 @@ export function TemplatesPage() {
       render: (_: unknown, record: Template) => {
         if (record.channel === 'sms' && record.sms?.sender_id) return record.sms.sender_id
         if (record.channel === 'push') return <Text type="secondary">{t`Device notification`}</Text>
+        if (record.content) return <Tag color="purple">{t`Signed Webhook`}</Tag>
         if (workspace && record.email?.sender_id) {
           const isMarketing = record.category === 'marketing'
           const emailProvider = isMarketing ? marketingEmailProvider : transactionalEmailProvider
@@ -276,9 +273,9 @@ export function TemplatesPage() {
             ? record.sms?.body
             : record.channel === 'push'
               ? record.push?.title
-              : record.email?.subject
+              : record.content?.title || record.content?.body || record.content?.external_template?.id || record.email?.subject
         const secondary =
-          record.channel === 'push' ? record.push?.body : record.email?.subject_preview
+          record.channel === 'push' ? record.push?.body : record.content?.title ? record.content.body : record.email?.subject_preview
         return (
           <div className="max-w-md">
             <Text ellipsis={{ tooltip: primary }}>{primary}</Text>
@@ -323,29 +320,13 @@ export function TemplatesPage() {
               }
             >
               <div>
-                {record.channel === 'email' ? (
-                  <CreateTemplateDrawer
-                    template={record}
-                    workspace={workspace}
-                    buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
-                    buttonProps={{
-                      type: 'text',
-                      size: 'small',
-                      disabled: !permissions?.templates?.write
-                    }}
-                  />
-                ) : (
-                  <MessageTemplateDrawer
-                    template={record}
-                    workspace={workspace}
-                    buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
-                    buttonProps={{
-                      type: 'text',
-                      size: 'small',
-                      disabled: !permissions?.templates?.write
-                    }}
-                  />
-                )}
+                <TemplateEditorButton
+                  template={record}
+                  workspace={workspace}
+                  definitions={channelDefinitions}
+                  buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
+                  buttonProps={{ type: 'text', size: 'small', disabled: !permissions?.templates?.write }}
+                />
               </div>
             </Tooltip>
           )}
@@ -358,29 +339,13 @@ export function TemplatesPage() {
               }
             >
               <div>
-                {record.channel === 'email' ? (
-                  <CreateTemplateDrawer
-                    fromTemplate={record}
-                    workspace={workspace}
-                    buttonContent={<FontAwesomeIcon icon={faCopy} style={{ opacity: 0.7 }} />}
-                    buttonProps={{
-                      type: 'text',
-                      size: 'small',
-                      disabled: !permissions?.templates?.write
-                    }}
-                  />
-                ) : (
-                  <MessageTemplateDrawer
-                    fromTemplate={record}
-                    workspace={workspace}
-                    buttonContent={<FontAwesomeIcon icon={faCopy} style={{ opacity: 0.7 }} />}
-                    buttonProps={{
-                      type: 'text',
-                      size: 'small',
-                      disabled: !permissions?.templates?.write
-                    }}
-                  />
-                )}
+                <TemplateEditorButton
+                  fromTemplate={record}
+                  workspace={workspace}
+                  definitions={channelDefinitions}
+                  buttonContent={<FontAwesomeIcon icon={faCopy} style={{ opacity: 0.7 }} />}
+                  buttonProps={{ type: 'text', size: 'small', disabled: !permissions?.templates?.write }}
+                />
               </div>
             </Tooltip>
           )}
@@ -458,20 +423,9 @@ export function TemplatesPage() {
                 : undefined
             }
           >
-            <Space>
-              <CreateTemplateDrawer
-                workspace={workspace}
-                buttonProps={{
-                  disabled: !permissions?.templates?.write
-                }}
-              />
-              <MessageTemplateDrawer
-                workspace={workspace}
-                buttonProps={{
-                  disabled: !permissions?.templates?.write
-                }}
-              />
-            </Space>
+            <span>
+              <CreateTemplateButton workspace={workspace} definitions={channelDefinitions} autoOpenChannel={search.create_channel} buttonProps={{ disabled: !permissions?.templates?.write }} />
+            </span>
           </Tooltip>
           )}
       </div>
@@ -527,22 +481,9 @@ export function TemplatesPage() {
                         : undefined
                     }
                   >
-                    <Space>
-                      <CreateTemplateDrawer
-                        workspace={workspace}
-                        buttonProps={{
-                          size: 'large',
-                          disabled: !permissions?.templates?.write
-                        }}
-                      />
-                      <MessageTemplateDrawer
-                        workspace={workspace}
-                        buttonProps={{
-                          size: 'large',
-                          disabled: !permissions?.templates?.write
-                        }}
-                      />
-                    </Space>
+                    <span>
+                      <CreateTemplateButton workspace={workspace} definitions={channelDefinitions} autoOpenChannel={search.create_channel} buttonProps={{ size: 'large', disabled: !permissions?.templates?.write }} />
+                    </span>
                   </Tooltip>
                 )}
               </div>

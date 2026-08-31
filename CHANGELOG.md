@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [54.0] - 2026-08-31
+
+- **Feature**: Added a country-aware omnichannel material catalogue, versioned templates for WeChat, WeCom, DingTalk, Feishu, WhatsApp, Telegram, LINE, Zalo, Viber, Messenger, Instagram, Kakao, RCS, In-App and generic Webhook content, simulated multi-client live previews, and HMAC-signed generic channel delivery with replay-safe receipts.
+
+## [53.0] - 2026-08-31
+
+- **Feature**: Dynamic Audience definitions can carry structured customer, status, list, activity and goal conditions without continuously materializing membership. Marketing runs resolve the latest definition when execution starts, persist an immutable candidate snapshot, and keep the exact Audience version/build for just-in-time eligibility checks before each touch.
+
 ## [45.0] - 2026-08-29
 
 - **Improvement**: Replaced the default local Compose topology with two source-mounted application containers. One Go backend runs all realtime roles and one frontend runs both Vite applications behind Nginx; Air/Vite hot reload is enabled by default and can be switched to restart-only mode with `DEV_HOT_RELOAD=false`.

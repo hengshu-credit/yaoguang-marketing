@@ -93,6 +93,18 @@ type EmailQueuePayload struct {
 	// and records the recipient-visible Message-ID for reply matching. Absent for
 	// all other sends (the feature is free for everyone else).
 	ContactAutomationID *string `json:"contact_automation_id,omitempty"`
+
+	// AudienceEligibility carries the immutable rule version and authoritative
+	// Customer ID to the worker for the final check immediately before the
+	// provider call. It contains no client SQL or mutable definition.
+	AudienceEligibility *AudienceEligibilityContext `json:"audience_eligibility,omitempty"`
+}
+
+type AudienceEligibilityContext struct {
+	AudienceID      string `json:"audience_id"`
+	AudienceVersion int    `json:"audience_version"`
+	AudienceBuildID string `json:"audience_build_id"`
+	CustomerID      string `json:"customer_id"`
 }
 
 // ToSendEmailProviderRequest converts the payload to a SendEmailProviderRequest

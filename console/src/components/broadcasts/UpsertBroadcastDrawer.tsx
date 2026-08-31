@@ -14,7 +14,8 @@ import {
   Popconfirm,
   Alert,
   Tabs,
-  Tooltip
+  Tooltip,
+  Radio
 } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -32,6 +33,7 @@ import extractTLD from '../../lib/tld'
 import { listsApi, type List } from '../../services/api/list'
 import { DataFeedSettings } from './DataFeedSettings'
 import type { GlobalFeedSettings, RecipientFeedSettings } from '../../services/api/broadcast'
+import { audienceApi } from '../../services/api/marketing'
 
 // Custom component to handle A/B testing configuration
 const ABTestingConfig = ({ form }: { form: ReturnType<typeof Form.useForm>[0] }) => {
@@ -111,6 +113,13 @@ export function UpsertBroadcastDrawer({
     enabled: isOpen && !lists
   })
   const availableLists = lists ?? listsQuery.data?.lists ?? []
+  const audiencesQuery = useQuery({
+    queryKey: ['audiences', workspace.id],
+    queryFn: () => audienceApi.list(workspace.id),
+    enabled: isOpen
+  })
+  const availableAudiences = audiencesQuery.data?.items ?? []
+  const audienceSource = Form.useWatch(['audience', 'source_type'], form) ?? 'list'
 
   // Watch campaign name changes using Form.useWatch
   const campaignName = Form.useWatch('name', form)
@@ -164,7 +173,8 @@ export function UpsertBroadcastDrawer({
         id: broadcast.id,
         name: broadcast.name,
         audience: {
-          ...broadcast.audience
+          ...broadcast.audience,
+          source_type: broadcast.audience.audience_id ? 'audience' : 'list'
         },
         test_settings: broadcast.test_settings,
         utm_parameters: broadcast.utm_parameters || undefined
@@ -195,6 +205,7 @@ export function UpsertBroadcastDrawer({
       form.setFieldsValue({
         name: '',
         audience: {
+          source_type: 'list',
           list: undefined,
           audience_id: undefined,
           audience_version: undefined,
@@ -268,7 +279,7 @@ export function UpsertBroadcastDrawer({
     const fieldsToValidate: string[][] = []
 
     if (currentTab === 'audience') {
-      fieldsToValidate.push(['name'], ['audience', 'list'])
+      fieldsToValidate.push(['name'], ['audience', audienceSource === 'audience' ? 'audience_id' : 'list'])
     } else if (currentTab === 'email') {
       // Add email tab validation if needed in the future
     }
@@ -448,7 +459,16 @@ export function UpsertBroadcastDrawer({
                   audience_version: undefined,
                   audience_build_id: undefined
                 }
+              } else if (payload.audience?.audience_id) {
+                payload.audience = {
+                  ...payload.audience,
+                  list: undefined,
+                  audience_version: undefined,
+                  audience_build_id: undefined,
+                  segments: []
+                }
               }
+              if (payload.audience) delete (payload.audience as Record<string, unknown>).source_type
 
               upsertBroadcastMutation.mutate(payload)
             }}
@@ -523,26 +543,18 @@ export function UpsertBroadcastDrawer({
                       <Input placeholder={t`E.g. Weekly Newsletter - May 2023`} />
                     </Form.Item>
 
-                    <Form.Item
-                      name={['audience', 'list']}
-                      label={t`Target list`}
-                      rules={[
-                        {
-                          required: true,
-                          type: 'string',
-                          message: t`Please select a list`
-                        }
-                      ]}
-                    >
-                      <Select
-                        placeholder={t`Select the list to snapshot when the campaign starts`}
-                        loading={listsQuery.isLoading}
-                        options={availableLists.map((item) => ({
-                          value: item.id,
-                          label: item.name
-                        }))}
-                        onChange={() => {
-                          form.setFieldValue(['audience', 'audience_id'], undefined)
+                    <Form.Item name={['audience', 'source_type']} label={t`Audience source`}>
+                      <Radio.Group
+                        options={[
+                          { value: 'list', label: t`List` },
+                          { value: 'audience', label: t`Dynamic audience` }
+                        ]}
+                        onChange={(event) => {
+                          if (event.target.value === 'audience') {
+                            form.setFieldValue(['audience', 'list'], undefined)
+                          } else {
+                            form.setFieldValue(['audience', 'audience_id'], undefined)
+                          }
                           form.setFieldValue(['audience', 'audience_version'], undefined)
                           form.setFieldValue(['audience', 'audience_build_id'], undefined)
                           form.setFieldValue(['audience', 'segments'], [])
@@ -550,7 +562,47 @@ export function UpsertBroadcastDrawer({
                       />
                     </Form.Item>
 
-                    <Alert className="mb-4" type="info" showIcon title={t`Recipients do not change after the campaign starts`} description={t`The current active list members are frozen into an immutable snapshot. Identity, consent, suppression and frequency policies are still checked at send time.`} />
+                    {audienceSource === 'audience' ? (
+                      <Form.Item
+                        name={['audience', 'audience_id']}
+                        label={t`Dynamic audience`}
+                        rules={[{ required: true, type: 'string', message: t`Please select a dynamic audience` }]}
+                      >
+                        <Select
+                          placeholder={t`Select an audience`}
+                          loading={audiencesQuery.isLoading}
+                          options={availableAudiences.map((item) => ({ value: item.id, label: item.name }))}
+                        />
+                      </Form.Item>
+                    ) : (
+                      <Form.Item
+                        name={['audience', 'list']}
+                        label={t`Target list`}
+                        rules={[{ required: true, type: 'string', message: t`Please select a list` }]}
+                      >
+                        <Select
+                          placeholder={t`Select the list to snapshot when the campaign starts`}
+                          loading={listsQuery.isLoading}
+                          options={availableLists.map((item) => ({ value: item.id, label: item.name }))}
+                          onChange={() => {
+                            form.setFieldValue(['audience', 'audience_id'], undefined)
+                            form.setFieldValue(['audience', 'audience_version'], undefined)
+                            form.setFieldValue(['audience', 'audience_build_id'], undefined)
+                            form.setFieldValue(['audience', 'segments'], [])
+                          }}
+                        />
+                      </Form.Item>
+                    )}
+
+                    <Alert
+                      className="mb-4"
+                      type="info"
+                      showIcon
+                      title={t`Candidates do not change after the campaign starts`}
+                      description={audienceSource === 'audience'
+                        ? t`Execution uses the audience's latest rule version, freezes matching candidates, and checks each customer again immediately before sending.`
+                        : t`The current active list members are frozen into an immutable snapshot. Identity, consent, suppression and frequency policies are still checked at send time.`}
+                    />
 
                     <Form.Item
                       name={['audience', 'exclude_unsubscribed']}

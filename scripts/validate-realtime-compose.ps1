@@ -48,7 +48,7 @@ foreach ($name in $required) {
 }
 
 if ($Topology -eq 'ha') {
-    if ($rendered.services.api.environment.NOTIFUSE_ROLE -ne 'api') {
+    if ($rendered.services.api.environment.YAOGUANG_ROLE -ne 'api') {
         throw 'api role mismatch'
     }
     foreach ($name in $applicationServices) {
@@ -58,7 +58,7 @@ if ($Topology -eq 'ha') {
         }
     }
 } else {
-    if ($rendered.services.backend.environment.NOTIFUSE_ROLE -ne 'all') {
+    if ($rendered.services.backend.environment.YAOGUANG_ROLE -ne 'all') {
         throw 'development backend must run the all role'
     }
     if ($rendered.services.backend.build.target -ne 'backend-dev') {
@@ -76,6 +76,17 @@ if ($Topology -eq 'ha') {
         if ($workspaceMount.Count -ne 1) {
             throw "development service must mount source once at /workspace: $name"
         }
+    }
+}
+
+$objectStoreConsumers = if ($Topology -eq 'ha') { $applicationServices } else { @('backend') }
+foreach ($name in $objectStoreConsumers) {
+    if ($rendered.services.$name.environment.S3_PROVIDER -ne 'minio') {
+        throw "$name must default workspace object storage to the bundled MinIO service"
+    }
+    $minioPublishedPort = [string]$rendered.services.minio.ports[0].published
+    if ($rendered.services.$name.environment.S3_PUBLIC_ENDPOINT -ne "http://localhost:$minioPublishedPort") {
+        throw "$name must expose the published MinIO API endpoint to browser file-manager clients"
     }
 }
 

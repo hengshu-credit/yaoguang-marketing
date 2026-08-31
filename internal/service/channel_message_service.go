@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
-	"github.com/google/uuid"
 )
 
 type ChannelProviderResolver interface {
@@ -44,7 +44,10 @@ func (r *WorkspaceChannelProviderResolver) Resolve(workspace *domain.Workspace, 
 		}
 		return NewFCMChannelProvider(*integration.PushProvider.FCM, r.client, "", nil)
 	default:
-		return nil, fmt.Errorf("unsupported channel %s", channel)
+		if integration.Type != domain.IntegrationTypeChannelWebhook || integration.ChannelWebhookSettings == nil {
+			return nil, fmt.Errorf("integration %s is not a signed channel Webhook provider", integrationID)
+		}
+		return NewSignedWebhookChannelProvider(*integration.ChannelWebhookSettings, channel, r.client, nil, nil)
 	}
 }
 
@@ -153,13 +156,29 @@ func (s *ChannelMessageService) Send(ctx context.Context, request *domain.SendCh
 	}
 	preview, err := s.templateService.PreviewTemplate(systemContext(authenticatedCtx), domain.PreviewTemplateRequest{
 		WorkspaceID: request.WorkspaceID, Channel: request.Channel, SMS: template.SMS, Push: template.Push,
-		Translations: template.Translations, Language: request.Language, Platform: endpoint.Platform, TestData: templateData,
+		Content: template.Content, ContentSchemaVersion: template.ContentSchemaVersion,
+		Translations: template.Translations, Language: request.Language,
+		Platform: func() string {
+			if request.Channel == domain.ChannelPush {
+				return endpoint.Platform
+			}
+			return ""
+		}(),
+		Profile: func() string {
+			if request.Channel != domain.ChannelSMS && request.Channel != domain.ChannelPush {
+				return endpoint.Platform
+			}
+			return ""
+		}(),
+		TestData: templateData,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("render channel template: %w", err)
 	}
 	delivery := domain.ChannelDeliveryRequest{
 		Channel: request.Channel, Recipient: endpoint.Address, EffectKey: request.EffectKey,
+		Platform: endpoint.Platform, Locale: preview.ResolvedLanguage,
+		TemplateID: template.ID, TemplateVersion: template.Version, Metadata: request.Metadata,
 	}
 	if preview.SMS != nil {
 		delivery.SMS = &domain.SMSTemplate{Body: preview.SMS.Body, SenderID: preview.SMS.SenderID}
@@ -175,6 +194,9 @@ func (s *ChannelMessageService) Send(ctx context.Context, request *domain.SendCh
 	if preview.Push != nil {
 		delivery.Push = &domain.PushTemplate{Title: preview.Push.Title, Body: preview.Push.Body,
 			ImageURL: preview.Push.ImageURL, DeepLink: preview.Push.DeepLink, Data: preview.Push.Data}
+	}
+	if preview.ChannelPreview != nil {
+		delivery.Generic = &preview.ChannelPreview.Message
 	}
 	hash, err := request.RequestHash()
 	if err != nil {

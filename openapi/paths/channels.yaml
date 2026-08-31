@@ -1,0 +1,49 @@
+/api/channels.catalog:
+  get:
+    summary: List the omnichannel material catalogue
+    operationId: listChannelCatalogue
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Stable channel capabilities and client preview profiles
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channels]
+              properties:
+                channels:
+                  type: array
+                  items:
+                    type: object
+                    required: [id, label_key, content_families, preview_profiles, delivery_modes, limits]
+                    properties:
+                      id: { type: string }
+                      label_key: { type: string }
+                      regions: { type: array, items: { type: string } }
+                      recommended_in: { type: array, items: { type: string, minLength: 2, maxLength: 2 } }
+                      content_families: { type: array, items: { type: string } }
+                      preview_profiles:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            label_key: { type: string }
+                            surface: { type: string }
+                      delivery_modes: { type: array, items: { type: string, enum: [native, signed_webhook] } }
+                      limits: { type: object, additionalProperties: true }
+      '400':
+        description: Invalid workspace
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+

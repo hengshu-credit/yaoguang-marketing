@@ -151,6 +151,8 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			web JSONB,
 			sms JSONB,
 			push JSONB,
+			content JSONB,
+			content_schema_version INTEGER,
 			category VARCHAR(20) NOT NULL,
 			template_macro_id VARCHAR(32),
 			integration_id VARCHAR(255),
@@ -162,6 +164,13 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			deleted_at TIMESTAMP WITH TIME ZONE,
 			PRIMARY KEY (id, version)
 		)`,
+		`CREATE TABLE IF NOT EXISTS channel_webhook_nonces (
+			integration_id VARCHAR(255) NOT NULL,
+			nonce VARCHAR(128) NOT NULL,
+			expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+			PRIMARY KEY (integration_id, nonce)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_channel_webhook_nonces_expiry ON channel_webhook_nonces(expires_at)`,
 		`CREATE TABLE IF NOT EXISTS broadcasts (
 			id VARCHAR(255) NOT NULL,
 			workspace_id VARCHAR(32) NOT NULL,

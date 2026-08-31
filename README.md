@@ -17,6 +17,7 @@
 - Go + React/TypeScript 的自托管营销平台，支持独立 Workspace 隔离。
 - 联系人、列表、动态客群、Broadcast、可视化 Automation/Journey、A/B 测试。
 - Email、SMS、Push 模板与预览；Twilio SMS、FCM Push 及通用 Webhook 等触达基础。
+- 按国家推荐微信、企微、钉钉、飞书、WhatsApp、Telegram、LINE、Zalo、Viber、Messenger、Instagram、Kakao、RCS 与 In-App 等素材渠道；支持多客户端模拟实时预览，新渠道首期通过 HMAC 签名 Webhook 投递。
 - PostgreSQL 权威存储、Transactional Outbox、RabbitMQ Worker、Redis 可重建缓存与频控基础、ClickHouse 分析投影、MinIO/S3 资产存储。
 - API Key、Workspace 权限、投递回执、消息历史、Web Analytics 和通知中心。
 - 瑶光品牌壳、`zh-CN` 界面、中文系统邮件，以及 `YAOGUANG_ROLE` 运行角色配置。
@@ -91,6 +92,8 @@ docker compose ps
 - Notification Center：`http://localhost:8081/notification-center/`
 - RabbitMQ 管理台：`http://localhost:15672`
 - MinIO 管理台：`http://localhost:9001`
+
+Compose 会把内置 MinIO 自动作为未配置 Workspace 的默认文件存储，无需在文件管理器中再次填写。已有 Workspace 的显式 S3 配置保持优先；如修改 MinIO API 宿主端口或通过反向代理暴露，请同步设置 `S3_PUBLIC_ENDPOINT` 为浏览器可访问的地址。
 
 默认 Compose 适合源码开发，Go 和 React 源码均挂载并启用热更新。共享或生产部署前必须在 `.env` 中更换 `SECRET_KEY`、数据库、RabbitMQ、Redis、ClickHouse 和 MinIO 示例凭据。
 

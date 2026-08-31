@@ -58,7 +58,8 @@ func (s *TemplateService) PreviewTemplate(ctx context.Context, request domain.Pr
 	fallbackUsed := requestedLanguage != defaultLanguage
 	if translation, ok := request.Translations[requestedLanguage]; ok {
 		if (request.Channel == domain.ChannelSMS && translation.SMS != nil) ||
-			(request.Channel == domain.ChannelPush && translation.Push != nil) {
+			(request.Channel == domain.ChannelPush && translation.Push != nil) ||
+			(!isLegacyPreviewChannel(request.Channel) && translation.Content != nil) {
 			resolvedLanguage = requestedLanguage
 			fallbackUsed = false
 		}
@@ -78,7 +79,8 @@ func (s *TemplateService) PreviewTemplate(ctx context.Context, request domain.Pr
 		TestData:          templateData,
 	}
 	template := &domain.Template{
-		SMS: request.SMS, Push: request.Push, Translations: request.Translations,
+		SMS: request.SMS, Push: request.Push, Content: request.Content,
+		ContentSchemaVersion: request.ContentSchemaVersion, Translations: request.Translations,
 	}
 
 	switch request.Channel {
@@ -96,8 +98,27 @@ func (s *TemplateService) PreviewTemplate(ctx context.Context, request domain.Pr
 			return nil, err
 		}
 		response.Push = preview
+	default:
+		content, language, fallback := template.ResolveChannelContent(requestedLanguage, defaultLanguage)
+		preview, err := renderGenericChannelPreview(
+			content,
+			request.Channel,
+			request.Profile,
+			domain.LanguageDirection(language),
+			templateData,
+		)
+		if err != nil {
+			return nil, err
+		}
+		response.ResolvedLanguage = language
+		response.FallbackUsed = fallback
+		response.ChannelPreview = preview
 	}
 	return response, nil
+}
+
+func isLegacyPreviewChannel(channel string) bool {
+	return channel == domain.ChannelSMS || channel == domain.ChannelPush
 }
 
 func validatePreviewTranslationLanguages(workspace *domain.Workspace, translations map[string]domain.TemplateTranslation) error {

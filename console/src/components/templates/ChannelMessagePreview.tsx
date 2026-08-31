@@ -6,9 +6,11 @@ const { Text, Title } = Typography
 
 interface ChannelMessagePreviewProps {
   preview: PreviewTemplateResponse
-  platform: 'android' | 'ios' | 'web'
-  onPlatformChange: (platform: 'android' | 'ios' | 'web') => void
+  platform: PushClientProfile
+  onPlatformChange: (platform: PushClientProfile) => void
 }
+
+export type PushClientProfile = 'android' | 'ios' | 'web' | 'huawei' | 'honor' | 'xiaomi' | 'oppo' | 'vivo'
 
 const deviceStyle: React.CSSProperties = {
   width: 'min(390px, 100%)',
@@ -65,9 +67,14 @@ const ChannelMessagePreview: React.FC<ChannelMessagePreviewProps> = ({
         options={[
           { label: 'Android', value: 'android' },
           { label: 'iOS', value: 'ios' },
-          { label: t`Web`, value: 'web' }
+          { label: t`Web`, value: 'web' },
+          { label: 'Huawei', value: 'huawei' },
+          { label: 'Honor', value: 'honor' },
+          { label: 'Xiaomi', value: 'xiaomi' },
+          { label: 'OPPO', value: 'oppo' },
+          { label: 'vivo', value: 'vivo' }
         ]}
-        onChange={(value) => onPlatformChange(value as 'android' | 'ios' | 'web')}
+        onChange={(value) => onPlatformChange(value as PushClientProfile)}
       />
       <div style={deviceStyle}>
         <Card size="small" styles={{ body: { padding: 14 } }}>
@@ -93,7 +100,7 @@ const ChannelMessagePreview: React.FC<ChannelMessagePreviewProps> = ({
       </div>
       <Card size="small">
         <Space wrap>
-          <Tag color="purple">{preview.push.platform}</Tag>
+          <Tag color="purple">{platform}</Tag>
           <Text>{preview.push.payload_bytes} bytes</Text>
           {preview.push.deep_link && <Text type="secondary">{preview.push.deep_link}</Text>}
         </Space>

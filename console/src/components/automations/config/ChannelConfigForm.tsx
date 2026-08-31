@@ -33,7 +33,11 @@ export const ChannelConfigForm: React.FC<ChannelConfigFormProps> = ({
       <Form.Item label={`${channelName} ${t`Template`}`} required>
         <TemplateSelectorInput
           value={config.template_id || null}
-          onChange={(templateId) => onChange({ ...config, template_id: templateId || '' })}
+          onChange={(templateId) => {
+            const { template_version, ...rest } = config
+            void template_version
+            onChange({ ...rest, template_id: templateId || '' })
+          }}
           workspaceId={workspaceId}
           channel={nodeType}
           placeholder={t`Select a template`}

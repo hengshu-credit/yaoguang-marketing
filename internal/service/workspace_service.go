@@ -78,6 +78,53 @@ func NewWorkspaceService(
 	}
 }
 
+func fileManagerHasWorkspaceConfig(settings domain.FileManagerSettings) bool {
+	return settings.Endpoint != "" || settings.Bucket != "" || settings.AccessKey != "" ||
+		settings.EncryptedSecretKey != "" || settings.SecretKey != "" ||
+		settings.Region != nil || settings.CDNEndpoint != nil
+}
+
+func (s *WorkspaceService) workspaceWithDefaultObjectStore(workspace *domain.Workspace) *domain.Workspace {
+	if workspace == nil || s.config == nil || fileManagerHasWorkspaceConfig(workspace.Settings.FileManager) {
+		return workspace
+	}
+
+	objectStore := s.config.Realtime.ObjectStore
+	endpoint := objectStore.PublicEndpoint
+	if strings.TrimSpace(endpoint) == "" {
+		endpoint = objectStore.Endpoint
+	}
+	if strings.TrimSpace(endpoint) == "" || strings.TrimSpace(objectStore.Bucket) == "" ||
+		strings.TrimSpace(objectStore.AccessKey) == "" || strings.TrimSpace(objectStore.SecretKey) == "" {
+		return workspace
+	}
+
+	fileManager := domain.FileManagerSettings{
+		Provider:       objectStore.Provider,
+		Endpoint:       endpoint,
+		Bucket:         objectStore.Bucket,
+		AccessKey:      objectStore.AccessKey,
+		SecretKey:      objectStore.SecretKey,
+		ForcePathStyle: objectStore.ForcePathStyle,
+	}
+	if strings.TrimSpace(objectStore.Region) != "" {
+		region := objectStore.Region
+		fileManager.Region = &region
+	}
+	resolved := *workspace
+	resolved.Settings = workspace.Settings
+	resolved.Settings.FileManager = fileManager
+	return &resolved
+}
+
+func (s *WorkspaceService) workspacesWithDefaultObjectStore(workspaces []*domain.Workspace) []*domain.Workspace {
+	resolved := make([]*domain.Workspace, len(workspaces))
+	for index, workspace := range workspaces {
+		resolved[index] = s.workspaceWithDefaultObjectStore(workspace)
+	}
+	return resolved
+}
+
 // ListWorkspaces returns all workspaces for a user
 func (s *WorkspaceService) ListWorkspaces(ctx context.Context) ([]*domain.Workspace, error) {
 	user, err := s.authService.AuthenticateUserFromContext(ctx)
@@ -87,7 +134,11 @@ func (s *WorkspaceService) ListWorkspaces(ctx context.Context) ([]*domain.Worksp
 
 	// Platform admins (ROOT_EMAIL) have owner access to every workspace, so they see them all.
 	if s.config.IsRootEmail(user.Email) {
-		return s.repo.List(ctx)
+		workspaces, err := s.repo.List(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return s.workspacesWithDefaultObjectStore(workspaces), nil
 	}
 
 	userWorkspaces, err := s.repo.GetUserWorkspaces(ctx, user.ID)
@@ -111,7 +162,7 @@ func (s *WorkspaceService) ListWorkspaces(ctx context.Context) ([]*domain.Worksp
 		workspaces = append(workspaces, workspace)
 	}
 
-	return workspaces, nil
+	return s.workspacesWithDefaultObjectStore(workspaces), nil
 }
 
 // GetWorkspace returns a workspace by ID if the user has access
@@ -145,7 +196,7 @@ func (s *WorkspaceService) GetWorkspace(ctx context.Context, id string) (*domain
 		return nil, err
 	}
 
-	return workspace, nil
+	return s.workspaceWithDefaultObjectStore(workspace), nil
 }
 
 // CreateWorkspace creates a new workspace and adds the creator as owner
@@ -319,7 +370,7 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 		// Don't fail workspace creation if task creation fails - it can be created later
 	}
 
-	return workspace, nil
+	return s.workspaceWithDefaultObjectStore(workspace), nil
 }
 
 // preserveFileManagerSecret keeps the stored S3 credential when the caller's file
@@ -486,7 +537,7 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 	// Blog themes are now created by the frontend when enabling the blog
 	// No automatic theme creation in the backend
 
-	return existingWorkspace, nil
+	return s.workspaceWithDefaultObjectStore(existingWorkspace), nil
 }
 
 // DeleteWorkspace deletes a workspace if the user is an owner
@@ -1592,6 +1643,8 @@ func (s *WorkspaceService) CreateIntegration(ctx context.Context, req domain.Cre
 		integration.SMSProvider = req.SMSProvider
 	case domain.IntegrationTypePush:
 		integration.PushProvider = req.PushProvider
+	case domain.IntegrationTypeChannelWebhook:
+		integration.ChannelWebhookSettings = req.ChannelWebhookSettings
 	case domain.IntegrationTypeSupabase:
 		integration.SupabaseSettings = req.SupabaseSettings
 	case domain.IntegrationTypeLLM:
@@ -2028,6 +2081,17 @@ func (s *WorkspaceService) UpdateIntegration(ctx context.Context, req domain.Upd
 		} else {
 			updatedIntegration.PushProvider = req.PushProvider
 			preserveChannelProviderSecrets(&updatedIntegration, existingIntegration)
+		}
+	case domain.IntegrationTypeChannelWebhook:
+		if req.ChannelWebhookSettings == nil {
+			updatedIntegration.ChannelWebhookSettings = existingIntegration.ChannelWebhookSettings
+		} else {
+			updatedIntegration.ChannelWebhookSettings = req.ChannelWebhookSettings
+			if updatedIntegration.ChannelWebhookSettings.Secret == "" &&
+				updatedIntegration.ChannelWebhookSettings.EncryptedSecret == "" &&
+				existingIntegration.ChannelWebhookSettings != nil {
+				updatedIntegration.ChannelWebhookSettings.EncryptedSecret = existingIntegration.ChannelWebhookSettings.EncryptedSecret
+			}
 		}
 	case domain.IntegrationTypeSupabase:
 		// Preserve existing encrypted keys if new keys are not provided

@@ -22,11 +22,16 @@ var (
 )
 
 type DeliveryReceiptService struct {
-	auth          domain.AuthService
-	repo          domain.DeliveryReceiptRepository
-	workspaceRepo domain.WorkspaceRepository
-	maxBatchSize  int
-	now           func() time.Time
+	auth                 domain.AuthService
+	repo                 domain.DeliveryReceiptRepository
+	workspaceRepo        domain.WorkspaceRepository
+	maxBatchSize         int
+	now                  func() time.Time
+	channelWebhookNonces domain.ChannelWebhookNonceRepository
+}
+
+func (s *DeliveryReceiptService) SetChannelWebhookNonceRepository(repository domain.ChannelWebhookNonceRepository) {
+	s.channelWebhookNonces = repository
 }
 
 func NewDeliveryReceiptService(

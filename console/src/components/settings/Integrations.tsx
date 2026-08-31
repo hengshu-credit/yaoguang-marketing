@@ -75,6 +75,9 @@ import { zapierProvider } from '../integrations/ZapierProviders'
 import { LLMProviderKind } from '../../services/api/types'
 import { v4 as uuidv4 } from 'uuid'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
+import ChannelWebhookIntegration from '../integrations/ChannelWebhookIntegration'
+import { channelsApi } from '../../services/api/channels'
+import type { ChannelDefinition } from '../../services/api/channels'
 
 // Provider types that only support transactional emails, not marketing emails
 const transactionalEmailOnly: EmailProviderKind[] = ['mailjet']
@@ -535,6 +538,19 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
   const [senderFormVisible, setSenderFormVisible] = useState(false)
   const [editingSenderIndex, setEditingSenderIndex] = useState<number | null>(null)
   const [senderForm] = Form.useForm()
+  const [channelDefinitions, setChannelDefinitions] = useState<ChannelDefinition[]>([])
+
+  useEffect(() => {
+    let active = true
+    if (workspace?.id) {
+      channelsApi.list(workspace.id).then((response) => {
+        if (active) setChannelDefinitions(response.channels)
+      }).catch(() => {
+        if (active) setChannelDefinitions([])
+      })
+    }
+    return () => { active = false }
+  }, [workspace?.id])
 
   // Drawer state
   const [providerDrawerVisible, setProviderDrawerVisible] = useState(false)
@@ -2625,6 +2641,16 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         title={t`Integrations`}
         description={t`Connect and manage external services`}
       />
+
+      {workspace && <ChannelWebhookIntegration
+        workspace={workspace}
+        definitions={channelDefinitions}
+        isOwner={isOwner}
+        onSaved={async () => {
+          const response = await workspaceService.get(workspace.id)
+          await onSave(response.workspace)
+        }}
+      />}
 
       {isOwner && (workspace?.integrations?.length ?? 0) > 0 && (
         <div style={{ textAlign: 'right', marginBottom: 16 }}>

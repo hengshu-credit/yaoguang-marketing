@@ -424,6 +424,7 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
 	}
+	entry.Payload.AudienceEligibility = audienceEligibilityContextFromJourney(params.Contact)
 
 	// 13. Add List-Unsubscribe header for RFC-8058 compliance
 	if url, ok := templateData["oneclick_unsubscribe_url"].(string); ok && url != "" {

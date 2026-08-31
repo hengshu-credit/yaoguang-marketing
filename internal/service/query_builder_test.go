@@ -14,6 +14,40 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestQueryBuilderBuildCustomerIDSQLUsesCustomerAuthorityAndPlaceholderOffset(t *testing.T) {
+	tree := &domain.TreeNode{
+		Kind: "leaf",
+		Leaf: &domain.TreeNodeLeaf{
+			Source: "contacts",
+			Contact: &domain.ContactCondition{Filters: []*domain.DimensionFilter{{
+				FieldName: "profile_status", FieldType: "string", Operator: "equals", StringValues: []string{"unpaid"},
+			}}},
+		},
+	}
+
+	sqlText, args, err := NewQueryBuilder().BuildCustomerIDSQL(tree, 2)
+	require.NoError(t, err)
+	assert.Equal(t, "SELECT DISTINCT contacts.customer_id FROM contacts WHERE contacts.customer_id IS NOT NULL AND ((SELECT cp.status FROM contact_profiles cp WHERE cp.email = contacts.email) = $3)", sqlText)
+	assert.Equal(t, []interface{}{"unpaid"}, args)
+}
+
+func TestQueryBuilderBuildCustomerMatchSQLBindsCustomerAfterConditionValues(t *testing.T) {
+	tree := &domain.TreeNode{
+		Kind: "leaf",
+		Leaf: &domain.TreeNodeLeaf{
+			Source: "contacts",
+			Contact: &domain.ContactCondition{Filters: []*domain.DimensionFilter{{
+				FieldName: "country", FieldType: "string", Operator: "equals", StringValues: []string{"CN"},
+			}}},
+		},
+	}
+
+	sqlText, args, err := NewQueryBuilder().BuildCustomerMatchSQL(tree, 4)
+	require.NoError(t, err)
+	assert.Equal(t, "SELECT EXISTS (SELECT 1 FROM contacts WHERE contacts.customer_id = $6 AND (country = $5))", sqlText)
+	assert.Equal(t, []interface{}{"CN"}, args)
+}
+
 func TestQueryBuilder_BuildSQL_SimpleConditions(t *testing.T) {
 	qb := NewQueryBuilder()
 

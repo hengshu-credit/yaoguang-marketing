@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -9,21 +10,31 @@ import (
 
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/http/middleware"
+	"github.com/hengshu-credit/yaoguang-marketing/internal/service"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 )
 
 // AutomationHandler handles HTTP requests for automation management
 type AutomationHandler struct {
 	service      domain.AutomationService
+	audienceRuns AutomationAudienceRunner
 	preflight    domain.JourneyPreflightEvaluator
 	trace        domain.JourneyTraceReader
 	logger       logger.Logger
 	getJWTSecret func() ([]byte, error)
 }
 
+type AutomationAudienceRunner interface {
+	Start(context.Context, service.AutomationAudienceRunRequest) (*service.AutomationAudienceRunResult, error)
+}
+
 func (h *AutomationHandler) SetJourneyServices(preflight domain.JourneyPreflightEvaluator, trace domain.JourneyTraceReader) {
 	h.preflight = preflight
 	h.trace = trace
+}
+
+func (h *AutomationHandler) SetAudienceRunService(runs AutomationAudienceRunner) {
+	h.audienceRuns = runs
 }
 
 // NewAutomationHandler creates a new AutomationHandler
@@ -51,6 +62,7 @@ func (h *AutomationHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/automations.activate", requireAuth(http.HandlerFunc(h.handleActivate)))
 	mux.Handle("/api/automations.preflight", requireAuth(http.HandlerFunc(h.handlePreflight)))
 	mux.Handle("/api/automations.pause", requireAuth(http.HandlerFunc(h.handlePause)))
+	mux.Handle("/api/automations.startAudience", requireAuth(http.HandlerFunc(h.handleStartAudience)))
 	mux.Handle("/api/automations.realtimeAssess", requireAuth(http.HandlerFunc(h.handleRealtimeAssess)))
 	mux.Handle("/api/automations.realtimeActivatePrimary", requireAuth(http.HandlerFunc(h.handleRealtimeActivatePrimary)))
 	mux.Handle("/api/automations.realtimeRestoreLegacy", requireAuth(http.HandlerFunc(h.handleRealtimeRestoreLegacy)))
@@ -59,6 +71,37 @@ func (h *AutomationHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/automations.nodeExecutions", requireAuth(http.HandlerFunc(h.handleGetContactNodeExecutions)))
 	mux.Handle("/api/journeys.instances", requireAuth(http.HandlerFunc(h.handleJourneyInstances)))
 	mux.Handle("/api/journeys.trace", requireAuth(http.HandlerFunc(h.handleJourneyTrace)))
+}
+
+func (h *AutomationHandler) handleStartAudience(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if h.audienceRuns == nil {
+		WriteJSONError(w, "Automation audience runs are not configured", http.StatusServiceUnavailable)
+		return
+	}
+	var request service.AutomationAudienceRunRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	result, err := h.audienceRuns.Start(r.Context(), request)
+	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
+		var validation domain.ValidationError
+		if errors.As(err, &validation) {
+			WriteJSONError(w, validation.Error(), http.StatusBadRequest)
+			return
+		}
+		h.logger.WithField("error", err.Error()).Error("Failed to start automation audience run")
+		WriteJSONError(w, "Failed to start automation audience run", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"run": result})
 }
 
 func (h *AutomationHandler) handlePreflight(w http.ResponseWriter, r *http.Request) {

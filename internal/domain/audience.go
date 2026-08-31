@@ -38,19 +38,27 @@ const (
 // AudienceExpression is a tagged JSON tree. A leaf has LeafType and RefID;
 // a composite has Operator and Children. It deliberately cannot contain SQL.
 type AudienceExpression struct {
-	LeafType AudienceLeafType     `json:"leaf_type,omitempty"`
-	RefID    string               `json:"ref_id,omitempty"`
-	Operator AudienceOperator     `json:"operator,omitempty"`
-	Children []AudienceExpression `json:"children,omitempty"`
+	LeafType  AudienceLeafType     `json:"leaf_type,omitempty"`
+	RefID     string               `json:"ref_id,omitempty"`
+	Condition *TreeNode            `json:"condition,omitempty"`
+	Operator  AudienceOperator     `json:"operator,omitempty"`
+	Children  []AudienceExpression `json:"children,omitempty"`
 }
 
 func (e AudienceExpression) Validate() error {
-	isLeaf := e.LeafType != "" || e.RefID != ""
+	isReference := e.LeafType != "" || e.RefID != ""
+	isCondition := e.Condition != nil
 	isComposite := e.Operator != "" || len(e.Children) > 0
-	if isLeaf == isComposite {
-		return errors.New("audience expression must be exactly one leaf or composite")
+	shapeCount := 0
+	for _, present := range []bool{isReference, isCondition, isComposite} {
+		if present {
+			shapeCount++
+		}
 	}
-	if isLeaf {
+	if shapeCount != 1 {
+		return errors.New("audience expression must be exactly one reference leaf, condition leaf, or composite")
+	}
+	if isReference {
 		switch e.LeafType {
 		case AudienceLeafList, AudienceLeafSegment, AudienceLeafAudience:
 		default:
@@ -58,6 +66,12 @@ func (e AudienceExpression) Validate() error {
 		}
 		if strings.TrimSpace(e.RefID) == "" {
 			return errors.New("audience leaf ref_id is required")
+		}
+		return nil
+	}
+	if isCondition {
+		if err := e.Condition.Validate(); err != nil {
+			return fmt.Errorf("audience condition: %w", err)
 		}
 		return nil
 	}

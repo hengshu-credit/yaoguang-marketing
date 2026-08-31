@@ -40,19 +40,32 @@ type BroadcastOrchestratorInterface interface {
 
 // BroadcastOrchestrator is the main processor for sending broadcasts
 type BroadcastOrchestrator struct {
-	messageSender   MessageSender
-	broadcastRepo   domain.BroadcastRepository
-	templateRepo    domain.TemplateRepository
-	contactRepo     domain.ContactRepository
-	taskRepo        domain.TaskRepository
-	workspaceRepo   domain.WorkspaceRepository
-	emailQueueRepo  domain.EmailQueueRepository
-	abTestEvaluator *ABTestEvaluator
-	logger          logger.Logger
-	config          *Config
-	timeProvider    TimeProvider
-	apiEndpoint     string
-	eventBus        domain.EventBus
+	messageSender       MessageSender
+	broadcastRepo       domain.BroadcastRepository
+	templateRepo        domain.TemplateRepository
+	contactRepo         domain.ContactRepository
+	taskRepo            domain.TaskRepository
+	workspaceRepo       domain.WorkspaceRepository
+	emailQueueRepo      domain.EmailQueueRepository
+	abTestEvaluator     *ABTestEvaluator
+	logger              logger.Logger
+	config              *Config
+	timeProvider        TimeProvider
+	apiEndpoint         string
+	eventBus            domain.EventBus
+	audienceRunResolver AudienceRunResolver
+}
+
+type AudienceRunResolver interface {
+	PrepareBroadcastExecution(context.Context, string, *domain.Broadcast) (*domain.CampaignRun, error)
+}
+
+type OrchestratorOption func(*BroadcastOrchestrator)
+
+func WithAudienceRunResolver(resolver AudienceRunResolver) OrchestratorOption {
+	return func(orchestrator *BroadcastOrchestrator) {
+		orchestrator.audienceRunResolver = resolver
+	}
 }
 
 type campaignSnapshotStatusReader interface {
@@ -91,6 +104,7 @@ func NewBroadcastOrchestrator(
 	timeProvider TimeProvider,
 	apiEndpoint string,
 	eventBus domain.EventBus,
+	options ...OrchestratorOption,
 ) BroadcastOrchestratorInterface {
 	if config == nil {
 		config = DefaultConfig()
@@ -100,7 +114,7 @@ func NewBroadcastOrchestrator(
 		timeProvider = NewRealTimeProvider()
 	}
 
-	return &BroadcastOrchestrator{
+	orchestrator := &BroadcastOrchestrator{
 		messageSender:   messageSender,
 		broadcastRepo:   broadcastRepo,
 		templateRepo:    templateRepo,
@@ -115,6 +129,45 @@ func NewBroadcastOrchestrator(
 		apiEndpoint:     apiEndpoint,
 		eventBus:        eventBus,
 	}
+	for _, option := range options {
+		option(orchestrator)
+	}
+	return orchestrator
+}
+
+// ensureExecutionAudience resolves and persists a run once, before any count
+// or recipient fetch. Returning prepared=true tells Process to yield so the
+// snapshot task can finish before dispatch resumes.
+func (o *BroadcastOrchestrator) ensureExecutionAudience(ctx context.Context, workspaceID, broadcastID string) (bool, error) {
+	if o.audienceRunResolver == nil {
+		return false, nil
+	}
+	broadcast, err := o.broadcastRepo.GetBroadcast(ctx, workspaceID, broadcastID)
+	if err != nil {
+		return false, fmt.Errorf("load broadcast for audience resolution: %w", err)
+	}
+	hasRecipientSource := broadcast.Audience.List != "" || broadcast.Audience.AudienceID != ""
+	if !hasRecipientSource || broadcast.Audience.CampaignRunID != "" {
+		return false, nil
+	}
+	run, err := o.audienceRunResolver.PrepareBroadcastExecution(ctx, workspaceID, broadcast)
+	if err != nil {
+		return false, fmt.Errorf("prepare broadcast audience at execution: %w", err)
+	}
+	if run == nil || run.ID == "" {
+		return false, errors.New("audience resolver returned no campaign run")
+	}
+	broadcast.Audience.CampaignRunID = run.ID
+	broadcast.Audience.AudienceVersion = run.AudienceVersion
+	broadcast.Audience.AudienceBuildID = run.AudienceBuildID
+	broadcast.UpdatedAt = time.Now().UTC()
+	if o.timeProvider != nil {
+		broadcast.UpdatedAt = o.timeProvider.Now().UTC()
+	}
+	if err := o.broadcastRepo.UpdateBroadcast(ctx, broadcast); err != nil {
+		return false, fmt.Errorf("persist resolved broadcast audience: %w", err)
+	}
+	return true, nil
 }
 
 // CanProcess returns true if this processor can handle the given task type
@@ -647,6 +700,15 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 
 	// Store the broadcast ID for the defer function
 	broadcastID = broadcastState.BroadcastID
+	preparedAudience, prepareErr := o.ensureExecutionAudience(ctx, task.WorkspaceID, broadcastID)
+	if prepareErr != nil {
+		err = prepareErr
+		return false, err
+	}
+	if preparedAudience {
+		task.State.Message = "正在生成不可变候选客群快照"
+		return false, nil
+	}
 
 	// Track progress
 	sentCount := broadcastState.EnqueuedCount

@@ -16,6 +16,11 @@ type CampaignService struct {
 	snapshots  *CampaignSnapshotService
 	auth       *AuthService
 	tasks      ImportTaskScheduler
+	audiences  AudienceExecutionService
+}
+
+type AudienceExecutionService interface {
+	ResolveLatestAndBuildInternal(context.Context, string, string) (*domain.AudienceBuild, error)
 }
 
 type broadcastCampaignRepository interface {
@@ -43,6 +48,10 @@ func NewAuthorizedCampaignService(repository domain.CampaignRepository, snapshot
 
 func (s *CampaignService) SetTaskScheduler(tasks ImportTaskScheduler) {
 	s.tasks = tasks
+}
+
+func (s *CampaignService) SetAudienceExecutionService(audiences AudienceExecutionService) {
+	s.audiences = audiences
 }
 
 func (s *CampaignService) authorize(ctx context.Context, workspaceID string, permission domain.PermissionType) (context.Context, error) {
@@ -152,6 +161,58 @@ func (s *CampaignService) PrepareBroadcast(ctx context.Context, workspaceID stri
 		return nil, err
 	}
 	run, err := s.snapshots.StartAsync(ctx, workspaceID, version.CampaignID, version.Version)
+	if err != nil {
+		return nil, err
+	}
+	task := &domain.Task{ID: run.ID, WorkspaceID: workspaceID, Type: domain.SnapshotCampaignTaskType,
+		Status: domain.TaskStatusPending, MaxRuntime: 50, MaxRetries: 20, RetryInterval: 10,
+		State: &domain.TaskState{SnapshotCampaign: &domain.SnapshotCampaignState{RunID: run.ID, BroadcastID: broadcast.ID}}}
+	if err := s.tasks.CreateTask(ctx, workspaceID, task); err != nil {
+		return nil, fmt.Errorf("create campaign snapshot task: %w", err)
+	}
+	return run, nil
+}
+
+// PrepareBroadcastExecution resolves a dynamic Audience only when the
+// send_broadcast task actually starts. The build and version returned here are
+// persisted on CampaignRun and remain fixed for the whole run.
+func (s *CampaignService) PrepareBroadcastExecution(ctx context.Context, workspaceID string, broadcast *domain.Broadcast) (*domain.CampaignRun, error) {
+	if broadcast == nil {
+		return nil, errors.New("broadcast is required")
+	}
+	listID := strings.TrimSpace(broadcast.Audience.List)
+	audienceID := strings.TrimSpace(broadcast.Audience.AudienceID)
+	if (listID == "") == (audienceID == "") {
+		return nil, errors.New("broadcast requires exactly one recipient source: a list or an audience")
+	}
+	if s.tasks == nil {
+		return nil, errors.New("campaign snapshot scheduler is unavailable")
+	}
+	repository, ok := s.repository.(broadcastCampaignRepository)
+	if !ok {
+		return nil, errors.New("campaign repository does not support broadcast facade")
+	}
+
+	resolvedVersion := 0
+	resolvedBuildID := ""
+	if audienceID != "" {
+		if s.audiences == nil {
+			return nil, errors.New("audience execution service is unavailable")
+		}
+		build, err := s.audiences.ResolveLatestAndBuildInternal(ctx, workspaceID, audienceID)
+		if err != nil {
+			return nil, fmt.Errorf("resolve latest audience: %w", err)
+		}
+		resolvedVersion = build.AudienceVersion
+		resolvedBuildID = build.ID
+	}
+
+	version, err := repository.EnsureBroadcastCampaign(ctx, workspaceID, broadcast.ID, broadcast.Name,
+		audienceID, resolvedVersion, listID, broadcast.ChannelType, broadcastCampaignVariants(broadcast))
+	if err != nil {
+		return nil, err
+	}
+	run, err := s.snapshots.StartAsyncResolved(ctx, workspaceID, version.CampaignID, version.Version, resolvedBuildID)
 	if err != nil {
 		return nil, err
 	}

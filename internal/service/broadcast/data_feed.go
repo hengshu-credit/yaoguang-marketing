@@ -119,6 +119,11 @@ func (f *dataFeedFetcher) FetchGlobal(ctx context.Context, settings *domain.Glob
 		return nil, fmt.Errorf("failed to marshal request payload: %w", err)
 	}
 
+	renderedHeaders, err := renderDataFeedHeaders(settings.Headers, payloadBytes)
+	if err != nil {
+		return nil, err
+	}
+
 	f.logger.WithFields(map[string]interface{}{
 		"url":     settings.URL,
 		"timeout": timeout.String(),
@@ -140,7 +145,7 @@ func (f *dataFeedFetcher) FetchGlobal(ctx context.Context, settings *domain.Glob
 	req.Header.Set("Accept", "application/json")
 
 	// Add custom headers
-	for _, header := range settings.Headers {
+	for _, header := range renderedHeaders {
 		req.Header.Set(header.Name, header.Value)
 	}
 
@@ -260,6 +265,13 @@ func (f *dataFeedFetcher) FetchRecipient(ctx context.Context, settings *domain.R
 		return nil, fmt.Errorf("failed to marshal request payload: %w", err)
 	}
 
+	renderedHeaders, err := renderDataFeedHeaders(settings.Headers, payloadBytes)
+	if err != nil {
+		return nil, err
+	}
+	renderedSettings := *settings
+	renderedSettings.Headers = renderedHeaders
+
 	f.logger.WithFields(map[string]interface{}{
 		"url":         settings.URL,
 		"timeout":     timeout.String(),
@@ -278,7 +290,7 @@ func (f *dataFeedFetcher) FetchRecipient(ctx context.Context, settings *domain.R
 			time.Sleep(retryDelay)
 		}
 
-		result, statusCode, err := f.doRecipientRequest(ctx, settings, payloadBytes, timeout)
+		result, statusCode, err := f.doRecipientRequest(ctx, &renderedSettings, payloadBytes, timeout)
 		if err != nil {
 			lastErr = err
 			// Check if error is retryable

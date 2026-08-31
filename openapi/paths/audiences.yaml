@@ -1,6 +1,7 @@
 /api/audiences.create:
   post:
     summary: Create a versioned audience
+    description: Saves only the structured definition. A dynamic condition audience is not materialized until a marketing run actually starts.
     operationId: createAudience
     security: [{ BearerAuth: [] }]
     requestBody:
@@ -76,6 +77,7 @@
 /api/audiences.preview:
   post:
     summary: Preview an audience with at most 100 masked customer summaries
+    description: Evaluates current facts without persisting membership. Complete draft trees may be previewed while editing.
     operationId: previewAudience
     security: [{ BearerAuth: [] }]
     requestBody:

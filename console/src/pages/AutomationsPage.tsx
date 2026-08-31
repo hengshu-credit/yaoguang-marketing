@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Row, Col, Typography, Space, App, Empty, Pagination, Drawer } from 'antd'
+import { Row, Col, Typography, Space, App, Empty, Pagination, Drawer, Button } from 'antd'
 import { useParams, useSearch } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { PlusOutlined } from '@ant-design/icons'
@@ -13,6 +13,8 @@ import { AutomationCard } from '../components/automations/AutomationCard'
 import { UpsertAutomationDrawer } from '../components/automations/UpsertAutomationDrawer'
 import { JourneyPreflightPanel } from '../components/automations/JourneyPreflightPanel'
 import { ActionableError } from '../components/errors/ActionableError'
+import { audienceApi } from '../services/api/marketing'
+import { AutomationAudienceRunModal } from '../components/automations/AutomationAudienceRunModal'
 
 const { Title } = Typography
 
@@ -33,6 +35,7 @@ export function AutomationsPage() {
   const [editingNodeId, setEditingNodeId] = useState<string | undefined>()
   const [preflightAutomation, setPreflightAutomation] = useState<Automation | undefined>()
   const [operationError, setOperationError] = useState<unknown>()
+  const [audienceRunOpen, setAudienceRunOpen] = useState(false)
   const handledTraceFix = useRef('')
 
   const [currentPage, setCurrentPage] = useState(1)
@@ -79,6 +82,12 @@ export function AutomationsPage() {
     queryKey: ['templates', workspaceId, 'email'],
     queryFn: () => templatesApi.list({ workspace_id: workspaceId, channel: 'email' }),
     enabled: !!workspaceId
+  })
+
+  const { data: audiencesData } = useQuery({
+    queryKey: ['audiences', workspaceId],
+    queryFn: () => audienceApi.list(workspaceId),
+    enabled: audienceRunOpen && !!workspaceId
   })
 
   const automations = useMemo(() => automationsData?.automations || [], [automationsData?.automations])
@@ -174,6 +183,12 @@ export function AutomationsPage() {
         </Col>
         <Col>
           <Space>
+            <Button
+              disabled={!permissions?.automations?.write || !automations.some((item) => item.status === 'live')}
+              onClick={() => setAudienceRunOpen(true)}
+            >
+              {t`Start from audience`}
+            </Button>
             {currentWorkspace && (
               <UpsertAutomationDrawer
                 workspace={currentWorkspace}
@@ -289,6 +304,14 @@ export function AutomationsPage() {
           />
         )}
       </Drawer>
+
+      <AutomationAudienceRunModal
+        open={audienceRunOpen}
+        workspaceId={workspaceId}
+        automations={automations}
+        audiences={(audiencesData?.items ?? []).map((item) => ({ id: item.id, name: item.name }))}
+        onClose={() => setAudienceRunOpen(false)}
+      />
     </div>
   )
 }

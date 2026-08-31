@@ -59,6 +59,22 @@ func testDeliveryIntent() domain.DeliveryIntent {
 	}
 }
 
+func TestDeliveryRepositorySuppressIntentRecordsAudienceReason(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	repository := NewDeliveryRepositoryWithDB(db)
+	now := time.Date(2026, 8, 31, 12, 0, 0, 0, time.UTC)
+	mock.ExpectExec(`UPDATE delivery_intents.*status = \$3.*suppression_reason = \$4`).
+		WithArgs("intent-1", domain.DeliveryStatusQueued, domain.DeliveryStatusSuppressed, "audience_no_longer_matched", now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	updated, err := repository.SuppressIntent(context.Background(), "workspace-1", "intent-1", domain.DeliveryStatusQueued, "audience_no_longer_matched", now)
+	require.NoError(t, err)
+	assert.True(t, updated)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestDeliveryManagementListAppliesCustomerProviderAndTimeFilters(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	require.NoError(t, err)

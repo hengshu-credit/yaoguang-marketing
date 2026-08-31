@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	pkgmocks "github.com/hengshu-credit/yaoguang-marketing/pkg/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -191,6 +191,47 @@ func TestDataFeedFetcher_FetchGlobal_CustomHeaders(t *testing.T) {
 	// Verify custom headers were sent
 	assert.Equal(t, "Bearer test-token", receivedHeaders.Get("Authorization"))
 	assert.Equal(t, "custom-value", receivedHeaders.Get("X-Custom-Header"))
+}
+
+func TestDataFeedFetcher_FetchGlobal_RendersHeaderTemplatesFromRequestContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+	var authorization string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorization = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}))
+	defer server.Close()
+
+	fetcher := NewUnsafeDataFeedFetcher(mockLogger)
+	settings := &domain.GlobalFeedSettings{
+		Enabled: true,
+		URL:     server.URL,
+		Headers: []domain.DataFeedHeader{
+			{
+				Name:  "Authorization",
+				Value: "Bearer {{ workspace.id }}:{{ broadcast.id }}:{{ list.id }}",
+			},
+		},
+	}
+	payload := &domain.GlobalFeedRequestPayload{
+		Workspace: domain.GlobalFeedWorkspace{ID: "workspace-789", Name: "Workspace"},
+		Broadcast: domain.GlobalFeedBroadcast{ID: "broadcast-123", Name: "Broadcast"},
+		List:      domain.GlobalFeedList{ID: "list-456", Name: "List"},
+	}
+
+	result, err := fetcher.FetchGlobal(context.Background(), settings, payload)
+
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "Bearer workspace-789:broadcast-123:list-456", authorization)
 }
 
 func TestDataFeedFetcher_FetchGlobal_Timeout(t *testing.T) {
@@ -939,6 +980,88 @@ func TestDataFeedFetcher_FetchRecipient_CustomHeaders(t *testing.T) {
 	// Verify custom headers were sent
 	assert.Equal(t, "Bearer recipient-token", receivedHeaders.Get("Authorization"))
 	assert.Equal(t, "recipient-value", receivedHeaders.Get("X-Recipient-Header"))
+}
+
+func TestDataFeedFetcher_FetchRecipient_RendersHeaderTemplatesFromContactContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+	var customerKey string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		customerKey = r.Header.Get("X-Customer-Key")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}))
+	defer server.Close()
+
+	fetcher := NewUnsafeDataFeedFetcher(mockLogger)
+	settings := &domain.RecipientFeedSettings{
+		Enabled: true,
+		URL:     server.URL,
+		Headers: []domain.DataFeedHeader{
+			{
+				Name:  "X-Customer-Key",
+				Value: "{{ contact.external_id }}:{{ contact.custom_string_1 }}",
+			},
+		},
+	}
+	payload := &domain.RecipientFeedRequestPayload{
+		Contact: domain.RecipientFeedContact{
+			Email:         "customer@example.com",
+			ExternalID:    "customer-42",
+			CustomString1: "secret-value",
+		},
+		Workspace: domain.RecipientFeedWorkspace{ID: "workspace-789", Name: "Workspace"},
+		Broadcast: domain.RecipientFeedBroadcast{ID: "broadcast-123", Name: "Broadcast"},
+		List:      domain.RecipientFeedList{ID: "list-456", Name: "List"},
+	}
+
+	result, err := fetcher.FetchRecipient(context.Background(), settings, payload)
+
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "customer-42:secret-value", customerKey)
+}
+
+func TestDataFeedFetcher_FetchRecipient_InvalidHeaderTemplateDoesNotSendRequest(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+	requestCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requestCount++
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}))
+	defer server.Close()
+
+	fetcher := NewUnsafeDataFeedFetcher(mockLogger)
+	settings := &domain.RecipientFeedSettings{
+		Enabled: true,
+		URL:     server.URL,
+		Headers: []domain.DataFeedHeader{
+			{Name: "Authorization", Value: "Bearer {{ contact.email"},
+		},
+	}
+	payload := &domain.RecipientFeedRequestPayload{
+		Contact: domain.RecipientFeedContact{Email: "customer@example.com"},
+	}
+
+	result, err := fetcher.FetchRecipient(context.Background(), settings, payload)
+
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "render header Authorization")
+	assert.Zero(t, requestCount)
 }
 
 func TestDataFeedFetcher_FetchRecipient_RetryOn408(t *testing.T) {

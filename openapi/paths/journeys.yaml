@@ -40,6 +40,30 @@
       '403': { description: Automations write permission required }
       '409': { description: Automation status changed concurrently }
 
+/api/automations.startAudience:
+  post:
+    summary: Start a live Automation from a dynamic Audience
+    description: Resolves the Audience latest active version at execution time, freezes the candidate build, and stores that version on every Journey. Email, SMS, and Push nodes recheck current customer facts before each touch; a non-match skips only that node.
+    operationId: startAutomationAudienceRun
+    security: [{ BearerAuth: [] }]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../components/schemas/journey.yaml#/AutomationAudienceRunRequest' }
+    responses:
+      '200':
+        description: Candidate build completed and Journeys enrolled
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [run]
+              properties:
+                run: { $ref: '../components/schemas/journey.yaml#/AutomationAudienceRunResult' }
+      '400': { description: 'Invalid, archived, or non-live resource' }
+      '403': { description: Automations write plus Segments and Contacts read permissions required }
+
 /api/journeys.instances:
   get:
     summary: List Journey instances for one Customer

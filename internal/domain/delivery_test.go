@@ -95,6 +95,7 @@ func TestDeliveryStatusTransitionPolicy(t *testing.T) {
 	assert.True(t, DeliveryStatusPlanned.CanTransitionTo(DeliveryStatusReserved))
 	assert.True(t, DeliveryStatusReserved.CanTransitionTo(DeliveryStatusQueued))
 	assert.True(t, DeliveryStatusQueued.CanTransitionTo(DeliveryStatusSubmitting))
+	assert.True(t, DeliveryStatusQueued.CanTransitionTo(DeliveryStatusSuppressed))
 	assert.True(t, DeliveryStatusSubmitting.CanTransitionTo(DeliveryStatusProviderAccepted))
 	assert.True(t, DeliveryStatusProviderAccepted.CanTransitionTo(DeliveryStatusConfirmed))
 	assert.True(t, DeliveryStatusTransientFailed.CanTransitionTo(DeliveryStatusQueued))

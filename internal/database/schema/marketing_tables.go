@@ -56,14 +56,18 @@ func MarketingTableDefinitions() []string {
 		)`,
 		`CREATE TABLE IF NOT EXISTS campaign_runs (
 			id UUID PRIMARY KEY, campaign_id UUID NOT NULL, campaign_version INTEGER NOT NULL,
+			audience_id UUID, audience_version INTEGER, audience_build_id UUID,
 			status VARCHAR(24) NOT NULL CHECK (status IN ('snapshotting', 'dispatching', 'paused', 'completed', 'failed', 'cancelled')),
 			run_seed VARCHAR(255) NOT NULL, snapshot_last_customer_id UUID,
 			snapshot_count BIGINT NOT NULL DEFAULT 0 CHECK (snapshot_count >= 0), next_ordinal BIGINT NOT NULL DEFAULT 1 CHECK (next_ordinal > 0),
 			started_at TIMESTAMPTZ, completed_at TIMESTAMPTZ,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			FOREIGN KEY (campaign_id, campaign_version) REFERENCES campaign_versions(campaign_id, version) ON DELETE RESTRICT
+			FOREIGN KEY (campaign_id, campaign_version) REFERENCES campaign_versions(campaign_id, version) ON DELETE RESTRICT,
+			FOREIGN KEY (audience_id, audience_version) REFERENCES audience_versions(audience_id, version) ON DELETE RESTRICT,
+			FOREIGN KEY (audience_build_id) REFERENCES audience_builds(id) ON DELETE RESTRICT
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_campaign_runs_resume ON campaign_runs(status, updated_at) WHERE status IN ('snapshotting', 'dispatching')`,
+		`CREATE INDEX IF NOT EXISTS idx_campaign_runs_audience_build ON campaign_runs(audience_build_id) WHERE audience_build_id IS NOT NULL`,
 		`CREATE TABLE IF NOT EXISTS campaign_recipient_snapshots (
 			run_id UUID NOT NULL REFERENCES campaign_runs(id) ON DELETE RESTRICT, ordinal BIGINT NOT NULL CHECK (ordinal > 0),
 			customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE RESTRICT, variant VARCHAR(100) NOT NULL, source_build_id UUID,

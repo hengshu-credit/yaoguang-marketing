@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	domainmocks "github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -176,6 +176,57 @@ func TestChannelMessageServiceSendRendersAndConfirmsSMS(t *testing.T) {
 	assert.Contains(t, provider.request.StatusCallback, "message_id="+response.Execution.MessageID)
 	assert.Equal(t, 1, ledger.submitted)
 	assert.Equal(t, 1, ledger.confirmed)
+}
+
+func TestChannelMessageServiceSendRendersGenericChannelThroughResolvedProvider(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	auth := domainmocks.NewMockAuthService(ctrl)
+	workspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	contactRepo := domainmocks.NewMockContactRepository(ctrl)
+	templateService := domainmocks.NewMockTemplateService(ctrl)
+	workspace := &domain.Workspace{ID: "ws-1", Settings: domain.WorkspaceSettings{SecretKey: "secret", DefaultLanguage: "en"}}
+	contact := &domain.Contact{Email: "user@example.com"}
+	template := &domain.Template{
+		ID: "telegram-ready", Version: 4, Channel: "telegram", ContentSchemaVersion: 1,
+		Content: &domain.ChannelTemplateContent{Family: domain.ContentFamilyText, Body: "Hello {{ contact.first_name }}"},
+	}
+	endpoint := &domain.ContactEndpoint{EndpointID: "telegram-1", Channel: "telegram", Provider: domain.EndpointProviderChannelWebhook, Platform: "telegram_mobile", Address: "chat-123", Locale: "kk-KZ", Enabled: true}
+
+	auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws-1").Return(context.Background(), nil, &domain.UserWorkspace{Permissions: domain.UserPermissions{domain.PermissionResourceTransactional: {Write: true}}}, nil)
+	workspaceRepo.EXPECT().GetByID(gomock.Any(), "ws-1").Return(workspace, nil)
+	contactRepo.EXPECT().GetContactByEmail(gomock.Any(), "ws-1", contact.Email).Return(contact, nil)
+	templateService.EXPECT().GetTemplateByID(gomock.Any(), "ws-1", template.ID, int64(0)).Return(template, nil)
+	templateService.EXPECT().PreviewTemplate(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, request domain.PreviewTemplateRequest) (*domain.PreviewTemplateResponse, error) {
+		assert.Equal(t, "telegram", request.Channel)
+		assert.Equal(t, "telegram_mobile", request.Profile)
+		assert.Same(t, template.Content, request.Content)
+		return &domain.PreviewTemplateResponse{
+			ResolvedLanguage: "kk",
+			ChannelPreview:   &domain.GenericChannelPreview{Profile: "telegram_mobile", Direction: "ltr", Message: domain.RenderedChannelMessage{Family: domain.ContentFamilyText, Body: "Сәлем"}},
+		}, nil
+	})
+	provider := &fakeChannelProvider{result: &domain.ChannelDeliveryResult{Provider: "channel_webhook", ProviderMessageID: "provider-1", Status: "accepted"}}
+	ledger := &fakeChannelSendRepository{created: true}
+	service, err := NewChannelMessageService(ChannelMessageServiceConfig{
+		Auth: auth, WorkspaceRepo: workspaceRepo, ContactRepo: contactRepo,
+		EndpointRepo:    &fakeContactEndpointRepository{endpoints: []*domain.ContactEndpoint{endpoint}},
+		TemplateService: templateService, SendRepo: ledger,
+		ProviderResolver: fakeChannelProviderResolver{provider: provider}, APIEndpoint: "https://notify.example.com",
+	})
+	require.NoError(t, err)
+
+	response, err := service.Send(context.Background(), &domain.SendChannelMessageRequest{
+		WorkspaceID: "ws-1", EffectKey: "effect-telegram", Channel: "telegram",
+		IntegrationID: "bridge-main", ContactEmail: contact.Email, TemplateID: template.ID,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, domain.ChannelSendConfirmed, response.Execution.Status)
+	require.NotNil(t, provider.request.Generic)
+	assert.Equal(t, "Сәлем", provider.request.Generic.Body)
+	assert.Equal(t, "telegram_mobile", provider.request.Platform)
+	assert.Equal(t, "kk", provider.request.Locale)
+	assert.Equal(t, template.ID, provider.request.TemplateID)
+	assert.Equal(t, template.Version, provider.request.TemplateVersion)
 }
 
 func TestChannelMessageServiceSendDuplicateNeverCallsProvider(t *testing.T) {

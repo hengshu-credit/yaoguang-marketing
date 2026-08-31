@@ -7,22 +7,24 @@ import (
 
 // Factory creates and wires together all the broadcast components
 type Factory struct {
-	broadcastRepo      domain.BroadcastRepository
-	messageHistoryRepo domain.MessageHistoryRepository
-	templateRepo       domain.TemplateRepository
-	emailService       domain.EmailServiceInterface
-	contactRepo        domain.ContactRepository
-	taskRepo           domain.TaskRepository
-	workspaceRepo      domain.WorkspaceRepository
-	emailQueueRepo     domain.EmailQueueRepository
-	deliveryRepo       domain.DeliveryRepository
-	frequencyEvaluator domain.MarketingFrequencyEvaluator
-	dataFeedFetcher    DataFeedFetcher
-	logger             logger.Logger
-	config             *Config
-	apiEndpoint        string
-	eventBus           domain.EventBus
-	useQueueSender     bool
+	broadcastRepo       domain.BroadcastRepository
+	messageHistoryRepo  domain.MessageHistoryRepository
+	templateRepo        domain.TemplateRepository
+	emailService        domain.EmailServiceInterface
+	contactRepo         domain.ContactRepository
+	taskRepo            domain.TaskRepository
+	workspaceRepo       domain.WorkspaceRepository
+	emailQueueRepo      domain.EmailQueueRepository
+	deliveryRepo        domain.DeliveryRepository
+	frequencyEvaluator  domain.MarketingFrequencyEvaluator
+	audienceEligibility AudienceEligibilityChecker
+	dataFeedFetcher     DataFeedFetcher
+	logger              logger.Logger
+	config              *Config
+	apiEndpoint         string
+	eventBus            domain.EventBus
+	useQueueSender      bool
+	audienceRunResolver AudienceRunResolver
 }
 
 // SetDeliveryRepository enables the unified Delivery Intent path without
@@ -33,6 +35,14 @@ func (f *Factory) SetDeliveryRepository(repo domain.DeliveryRepository) {
 
 func (f *Factory) SetFrequencyEvaluator(evaluator domain.MarketingFrequencyEvaluator) {
 	f.frequencyEvaluator = evaluator
+}
+
+func (f *Factory) SetAudienceRunResolver(resolver AudienceRunResolver) {
+	f.audienceRunResolver = resolver
+}
+
+func (f *Factory) SetAudienceEligibilityChecker(checker AudienceEligibilityChecker) {
+	f.audienceEligibility = checker
 }
 
 // NewFactory creates a new factory for broadcast components
@@ -93,10 +103,11 @@ func (f *Factory) CreateMessageSender() MessageSender {
 			)
 			if queueSender, ok := sender.(*queueMessageSender); ok {
 				queueSender.frequencyEvaluator = f.frequencyEvaluator
+				queueSender.audienceEligibility = f.audienceEligibility
 			}
 			return sender
 		}
-		return NewQueueMessageSender(
+		sender := NewQueueMessageSender(
 			f.emailQueueRepo,
 			f.broadcastRepo,
 			f.messageHistoryRepo,
@@ -106,6 +117,10 @@ func (f *Factory) CreateMessageSender() MessageSender {
 			f.config,
 			f.apiEndpoint,
 		)
+		if queueSender, ok := sender.(*queueMessageSender); ok {
+			queueSender.audienceEligibility = f.audienceEligibility
+		}
+		return sender
 	}
 
 	return NewMessageSender(
@@ -146,6 +161,7 @@ func (f *Factory) CreateOrchestrator() BroadcastOrchestratorInterface {
 		timeProvider,
 		f.apiEndpoint,
 		f.eventBus,
+		WithAudienceRunResolver(f.audienceRunResolver),
 	)
 }
 

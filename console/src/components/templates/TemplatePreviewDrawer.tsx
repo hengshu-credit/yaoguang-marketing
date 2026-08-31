@@ -9,6 +9,11 @@ import { Highlight, themes } from 'prism-react-renderer'
 import type { MessageHistory } from '../../services/api/messages_history'
 import { SUPPORTED_LANGUAGES } from '../../lib/languages'
 import ChannelMessagePreview from './ChannelMessagePreview'
+import OmnichannelPreview from './OmnichannelPreview'
+import { channelsApi } from '../../services/api/channels'
+import type { ChannelDefinition } from '../../services/api/channels'
+import EmailClientFrame from './EmailClientFrame'
+import type { PushClientProfile } from './ChannelMessagePreview'
 
 const { Text } = Typography
 
@@ -42,7 +47,9 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   // object the server injects). Displayed in the Template Data tab so it matches the render.
   const [effectiveTestData, setEffectiveTestData] = useState<Record<string, unknown> | null>(null)
   const [channelPreview, setChannelPreview] = useState<PreviewTemplateResponse | null>(null)
-  const [pushPlatform, setPushPlatform] = useState<'android' | 'ios' | 'web'>('android')
+  const [pushPlatform, setPushPlatform] = useState<PushClientProfile>('android')
+  const [genericProfile, setGenericProfile] = useState('')
+  const [channelDefinition, setChannelDefinition] = useState<ChannelDefinition | null>(null)
 
   const availableLanguages = useMemo(() => {
     if (messageHistory) return []
@@ -57,7 +64,8 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
             translation.email &&
             (translation.email.visual_editor_tree || translation.email.mjml_source)) ||
           (record.channel === 'sms' && Boolean(translation.sms)) ||
-          (record.channel === 'push' && Boolean(translation.push))
+          (record.channel === 'push' && Boolean(translation.push)) ||
+          Boolean(translation.content)
         if (code !== defaultLang && hasContent) {
           langs.push({ label: SUPPORTED_LANGUAGES[code] || code, value: code })
         }
@@ -76,11 +84,13 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   }, [effectiveLanguage, record.email, record.translations, workspace.settings?.default_language])
 
   const fetchPreview = async () => {
-    const isMessageChannel = record.channel === 'sms' || record.channel === 'push'
+    const isMessageChannel = record.channel !== 'email' && record.channel !== 'web'
     const isCodeMode = effectiveEmail?.editor_mode === 'code'
 
     const missingMessageContent =
-      (record.channel === 'sms' && !record.sms) || (record.channel === 'push' && !record.push)
+      (record.channel === 'sms' && !record.sms) ||
+      (record.channel === 'push' && !record.push) ||
+      (record.channel !== 'sms' && record.channel !== 'push' && !record.content)
     const missingEmailContent =
       record.channel === 'email' &&
       ((!isCodeMode && !effectiveEmail?.visual_editor_tree) ||
@@ -106,14 +116,24 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
 
     try {
       if (isMessageChannel) {
+        let definition = channelDefinition
+        if (record.channel !== 'sms' && record.channel !== 'push' && !definition) {
+          const catalog = await channelsApi.list(workspace.id)
+          definition = catalog.channels.find((candidate) => candidate.id === record.channel) || null
+          setChannelDefinition(definition)
+        }
+        const profile = genericProfile || definition?.preview_profiles[0]?.id
         const response = await templatesApi.preview({
           workspace_id: workspace.id,
-          channel: record.channel as 'sms' | 'push',
+          channel: record.channel,
           sms: record.sms,
           push: record.push,
+          content: record.content,
+          content_schema_version: record.content_schema_version,
           translations: record.translations,
           language: effectiveLanguage,
-          platform: record.channel === 'push' ? pushPlatform : undefined,
+          platform: record.channel === 'push' ? (pushPlatform === 'ios' || pushPlatform === 'web' ? pushPlatform : 'android') : undefined,
+          profile: record.channel !== 'sms' && record.channel !== 'push' ? profile : undefined,
           test_data: templateData || record.test_data || {}
         })
         setChannelPreview(response)
@@ -224,9 +244,11 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       setChannelPreview(null)
       setSelectedLanguage(null)
       setPushPlatform('android')
+      setGenericProfile('')
+      setChannelDefinition(null)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchPreview is stable
-  }, [isOpen, record.id, record.version, workspace.id, effectiveLanguage, pushPlatform])
+  }, [isOpen, record.id, record.version, workspace.id, effectiveLanguage, pushPlatform, genericProfile])
 
   const items = []
 
@@ -234,7 +256,13 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     items.push({
       key: '1',
       label: t`Client Preview`,
-      children: (
+      children: channelPreview.channel_preview && channelDefinition ? (
+        <OmnichannelPreview
+          definition={channelDefinition}
+          preview={channelPreview.channel_preview}
+          onProfileChange={setGenericProfile}
+        />
+      ) : (
         <ChannelMessagePreview
           preview={channelPreview}
           platform={pushPlatform}
@@ -248,15 +276,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     items.push({
       key: '1',
       label: t`HTML Preview`,
-      children: (
-        <iframe
-          srcDoc={previewHtml}
-          className="w-full h-full border-0"
-          style={{ height: '600px', width: '100%' }}
-          title={t`HTML Preview of ${record.name}`}
-          sandbox=""
-        />
-      )
+      children: <EmailClientFrame html={previewHtml} title={t`HTML Preview of ${record.name}`} />
     })
   }
 

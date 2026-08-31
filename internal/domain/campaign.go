@@ -51,6 +51,9 @@ type CampaignRun struct {
 	ID                     string    `json:"id"`
 	CampaignID             string    `json:"campaign_id"`
 	CampaignVersion        int       `json:"campaign_version"`
+	AudienceID             string    `json:"audience_id,omitempty"`
+	AudienceVersion        int       `json:"audience_version,omitempty"`
+	AudienceBuildID        string    `json:"audience_build_id,omitempty"`
 	Status                 string    `json:"status"`
 	RunSeed                string    `json:"run_seed"`
 	SnapshotLastCustomerID string    `json:"snapshot_last_customer_id,omitempty"`
@@ -80,7 +83,7 @@ type CampaignRepository interface {
 	GetCampaignVersion(context.Context, string, string, int) (*CampaignVersion, error)
 	CreateCampaignRun(context.Context, string, CampaignRun) error
 	GetCampaignRun(context.Context, string, string) (*CampaignRun, error)
-	ListCampaignMembers(context.Context, string, CampaignVersion, string, int) ([]CampaignAudienceMember, string, error)
+	ListCampaignMembers(context.Context, string, CampaignVersion, string, string, int) ([]CampaignAudienceMember, string, error)
 	AppendCampaignSnapshots(context.Context, string, string, []CampaignRecipientSnapshot) (int64, error)
 	CompleteCampaignSnapshot(context.Context, string, string, int64) error
 	ListCampaignSnapshots(context.Context, string, string, int64, int) ([]CampaignRecipientSnapshot, int64, error)

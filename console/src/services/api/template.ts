@@ -2,9 +2,13 @@ import { api } from './client'
 import type { EmailBlock } from '../../components/email_builder/types'
 import type { EmailOptions } from './transactional_notifications'
 import type { EmailProvider } from './workspace'
+import type { ContentFamily } from './channels'
 
 // Template types
-export type TemplateChannel = 'email' | 'web' | 'sms' | 'push'
+export type TemplateChannel =
+  | 'email' | 'web' | 'sms' | 'push' | 'in_app' | 'rcs' | 'webhook'
+  | 'wechat_official_account' | 'wechat_mini_program' | 'wecom' | 'dingtalk' | 'feishu'
+  | 'whatsapp' | 'telegram' | 'line' | 'zalo' | 'viber' | 'messenger' | 'instagram' | 'kakao'
 
 export interface Template {
   id: string
@@ -15,6 +19,8 @@ export interface Template {
   web?: WebTemplate
   sms?: SMSTemplate
   push?: PushTemplate
+  content?: ChannelTemplateContent
+  content_schema_version?: number
   category: string
   template_macro_id?: string
   integration_id?: string
@@ -64,6 +70,57 @@ export interface TemplateTranslation {
   web?: WebTemplate
   sms?: SMSTemplate
   push?: PushTemplate
+  content?: ChannelTemplateContent
+}
+
+export interface ChannelMedia {
+  type: 'image' | 'video' | 'audio' | 'file'
+  url: string
+  alt_text?: string
+}
+
+export interface ChannelAction {
+  type: 'url' | 'deep_link' | 'reply' | 'phone'
+  label: string
+  value: string
+}
+
+export interface ChannelCard {
+  title?: string
+  body?: string
+  media?: ChannelMedia
+  actions?: ChannelAction[]
+}
+
+export interface TemplateParameterBinding {
+  name: string
+  value: string
+}
+
+export interface ExternalTemplateReference {
+  id: string
+  language: string
+  category?: string
+  parameters?: TemplateParameterBinding[]
+}
+
+export interface WebhookPayloadTemplate {
+  content_type: 'application/json'
+  body: string
+  headers?: Record<string, string>
+}
+
+export interface ChannelTemplateContent {
+  family: ContentFamily
+  title?: string
+  body?: string
+  footer?: string
+  media?: ChannelMedia
+  actions?: ChannelAction[]
+  cards?: ChannelCard[]
+  external_template?: ExternalTemplateReference
+  data?: Record<string, unknown>
+  webhook?: WebhookPayloadTemplate
 }
 
 export interface GetTemplatesRequest {
@@ -87,6 +144,8 @@ export interface CreateTemplateRequest {
   web?: WebTemplate
   sms?: SMSTemplate
   push?: PushTemplate
+  content?: ChannelTemplateContent
+  content_schema_version?: number
   category: string
   template_macro_id?: string
   utm_source?: string
@@ -106,6 +165,8 @@ export interface UpdateTemplateRequest {
   web?: WebTemplate
   sms?: SMSTemplate
   push?: PushTemplate
+  content?: ChannelTemplateContent
+  content_schema_version?: number
   category: string
   template_macro_id?: string
   utm_source?: string
@@ -196,12 +257,15 @@ export interface CompileTemplateResponse {
 
 export interface PreviewTemplateRequest {
   workspace_id: string
-  channel: 'sms' | 'push'
+  channel: TemplateChannel
   sms?: SMSTemplate
   push?: PushTemplate
+  content?: ChannelTemplateContent
+  content_schema_version?: number
   translations?: Record<string, TemplateTranslation>
   language?: string
   platform?: 'android' | 'ios' | 'web'
+  profile?: string
   test_data?: Record<string, unknown>
 }
 
@@ -232,13 +296,22 @@ export interface PushPreview {
   warnings: PreviewWarning[]
 }
 
+export interface GenericChannelPreview {
+  profile: string
+  direction: 'ltr' | 'rtl'
+  payload_bytes: number
+  message: ChannelTemplateContent
+  warnings: PreviewWarning[]
+}
+
 export interface PreviewTemplateResponse {
-  channel: 'sms' | 'push'
+  channel: TemplateChannel
   requested_language?: string
   resolved_language: string
   fallback_used: boolean
   sms?: SMSPreview
   push?: PushPreview
+  channel_preview?: GenericChannelPreview
   test_data?: Record<string, unknown>
 }
 

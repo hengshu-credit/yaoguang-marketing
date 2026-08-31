@@ -26,6 +26,18 @@ type deliveryReceiptHTTPStub struct {
 	callbackErr    error
 }
 
+type channelWebhookReceiptHTTPStub struct {
+	deliveryReceiptHTTPStub
+	channelCallback domain.ChannelWebhookReceiptCallback
+	channelResult   *domain.DeliveryReceiptRecordResult
+	channelErr      error
+}
+
+func (s *channelWebhookReceiptHTTPStub) ProcessChannelWebhookCallback(_ context.Context, callback domain.ChannelWebhookReceiptCallback) (*domain.DeliveryReceiptRecordResult, error) {
+	s.channelCallback = callback
+	return s.channelResult, s.channelErr
+}
+
 func (s *deliveryReceiptHTTPStub) Ingest(_ context.Context, request *domain.IngestDeliveryReceiptsRequest) (*domain.IngestDeliveryReceiptsResponse, error) {
 	s.ingestRequest = request
 	return s.ingestResult, s.ingestErr
@@ -103,4 +115,45 @@ func TestDeliveryReceiptHandlerRateLimitsTwilioBeforeService(t *testing.T) {
 	}
 	assert.Equal(t, http.StatusOK, makeRequest().Code)
 	assert.Equal(t, http.StatusTooManyRequests, makeRequest().Code)
+}
+
+func TestDeliveryReceiptHandlerChannelWebhookCallbackPassesExactSignedBody(t *testing.T) {
+	stub := &channelWebhookReceiptHTTPStub{channelResult: &domain.DeliveryReceiptRecordResult{ReceiptID: "r1", Applied: true}}
+	handler := NewDeliveryReceiptHandler(stub, nil, logger.NewLogger(), "https://notify.example")
+	body := `{"receipt_id":"r1","effect_key":"effect-1","event":"delivered","occurred_at":"2026-08-31T12:00:00Z"}`
+	request := httptest.NewRequest(http.MethodPost, "/webhooks/delivery/channel?workspace_id=ws1&integration_id=bridge1", strings.NewReader(body))
+	request.Header.Set("X-Yaoguang-Timestamp", "1788177600")
+	request.Header.Set("X-Yaoguang-Nonce", "nonce-1")
+	request.Header.Set("X-Yaoguang-Signature", "v1=signature")
+	recorder := httptest.NewRecorder()
+
+	handler.handleChannelWebhook(recorder, request)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "ws1", stub.channelCallback.WorkspaceID)
+	assert.Equal(t, "bridge1", stub.channelCallback.IntegrationID)
+	assert.Equal(t, "nonce-1", stub.channelCallback.Nonce)
+	assert.Equal(t, body, string(stub.channelCallback.Body))
+}
+
+func TestDeliveryReceiptHandlerChannelWebhookMapsAuthenticationAndReplayErrors(t *testing.T) {
+	tests := []struct {
+		err  error
+		want int
+	}{
+		{err: service.ErrInvalidChannelWebhookSignature, want: http.StatusUnauthorized},
+		{err: service.ErrChannelWebhookReplay, want: http.StatusConflict},
+		{err: service.ErrChannelWebhookIntegration, want: http.StatusNotFound},
+	}
+	for _, test := range tests {
+		stub := &channelWebhookReceiptHTTPStub{channelErr: test.err}
+		handler := NewDeliveryReceiptHandler(stub, nil, logger.NewLogger(), "")
+		request := httptest.NewRequest(http.MethodPost, "/webhooks/delivery/channel?workspace_id=ws1&integration_id=bridge1", strings.NewReader(`{}`))
+		request.Header.Set("X-Yaoguang-Timestamp", "1")
+		request.Header.Set("X-Yaoguang-Nonce", "nonce")
+		request.Header.Set("X-Yaoguang-Signature", "v1=x")
+		recorder := httptest.NewRecorder()
+		handler.handleChannelWebhook(recorder, request)
+		assert.Equal(t, test.want, recorder.Code)
+	}
 }

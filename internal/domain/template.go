@@ -14,8 +14,8 @@ import (
 
 	// Import the notifuse_mjml package
 
-	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
 	"github.com/asaskevich/govalidator"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
 )
 
 //go:generate mockgen -destination mocks/mock_template_service.go -package mocks github.com/hengshu-credit/yaoguang-marketing/internal/domain TemplateService
@@ -80,22 +80,23 @@ func (t TemplateCategory) Validate() error {
 
 // TemplateTranslation holds the translated content for a specific language variant.
 type TemplateTranslation struct {
-	Email *EmailTemplate `json:"email,omitempty"`
-	Web   *WebTemplate   `json:"web,omitempty"`
-	SMS   *SMSTemplate   `json:"sms,omitempty"`
-	Push  *PushTemplate  `json:"push,omitempty"`
+	Email   *EmailTemplate          `json:"email,omitempty"`
+	Web     *WebTemplate            `json:"web,omitempty"`
+	SMS     *SMSTemplate            `json:"sms,omitempty"`
+	Push    *PushTemplate           `json:"push,omitempty"`
+	Content *ChannelTemplateContent `json:"content,omitempty"`
 }
 
 // validateTranslations validates translation language keys, channel match, and content.
-func validateTranslations(translations map[string]TemplateTranslation, channel string, testData MapOfAny) error {
+func validateTranslations(translations map[string]TemplateTranslation, channel string, contentSchemaVersion int, testData MapOfAny) error {
 	for lang, translation := range translations {
 		if !IsValidLanguage(lang) {
 			return fmt.Errorf("invalid translation language code: %s", lang)
 		}
-		if translation.Email == nil && translation.Web == nil && translation.SMS == nil && translation.Push == nil {
+		if translation.Email == nil && translation.Web == nil && translation.SMS == nil && translation.Push == nil && translation.Content == nil {
 			return fmt.Errorf("translation '%s': content is required", lang)
 		}
-		if err := validateTemplateContent(channel, translation.Email, translation.Web, translation.SMS, translation.Push, testData); err != nil {
+		if err := validateTemplateContent(channel, translation.Email, translation.Web, translation.SMS, translation.Push, translation.Content, contentSchemaVersion, testData); err != nil {
 			return fmt.Errorf("translation '%s': %w", lang, err)
 		}
 	}
@@ -103,23 +104,25 @@ func validateTranslations(translations map[string]TemplateTranslation, channel s
 }
 
 type Template struct {
-	ID              string                         `json:"id"`
-	Name            string                         `json:"name"`
-	Version         int64                          `json:"version"`
-	Channel         string                         `json:"channel"`
-	Email           *EmailTemplate                 `json:"email,omitempty"`
-	Web             *WebTemplate                   `json:"web,omitempty"`
-	SMS             *SMSTemplate                   `json:"sms,omitempty"`
-	Push            *PushTemplate                  `json:"push,omitempty"`
-	Category        string                         `json:"category"`
-	TemplateMacroID *string                        `json:"template_macro_id,omitempty"`
-	IntegrationID   *string                        `json:"integration_id,omitempty"` // Set if template is managed by an integration (e.g., Supabase)
-	TestData        MapOfAny                       `json:"test_data,omitempty"`
-	Settings        MapOfAny                       `json:"settings,omitempty"` // Channels specific 3rd-party settings
-	Translations    map[string]TemplateTranslation `json:"translations,omitempty"`
-	CreatedAt       time.Time                      `json:"created_at"`
-	UpdatedAt       time.Time                      `json:"updated_at"`
-	DeletedAt       *time.Time                     `json:"deleted_at,omitempty"`
+	ID                   string                         `json:"id"`
+	Name                 string                         `json:"name"`
+	Version              int64                          `json:"version"`
+	Channel              string                         `json:"channel"`
+	Email                *EmailTemplate                 `json:"email,omitempty"`
+	Web                  *WebTemplate                   `json:"web,omitempty"`
+	SMS                  *SMSTemplate                   `json:"sms,omitempty"`
+	Push                 *PushTemplate                  `json:"push,omitempty"`
+	Content              *ChannelTemplateContent        `json:"content,omitempty"`
+	ContentSchemaVersion int                            `json:"content_schema_version,omitempty"`
+	Category             string                         `json:"category"`
+	TemplateMacroID      *string                        `json:"template_macro_id,omitempty"`
+	IntegrationID        *string                        `json:"integration_id,omitempty"` // Set if template is managed by an integration (e.g., Supabase)
+	TestData             MapOfAny                       `json:"test_data,omitempty"`
+	Settings             MapOfAny                       `json:"settings,omitempty"` // Channels specific 3rd-party settings
+	Translations         map[string]TemplateTranslation `json:"translations,omitempty"`
+	CreatedAt            time.Time                      `json:"created_at"`
+	UpdatedAt            time.Time                      `json:"updated_at"`
+	DeletedAt            *time.Time                     `json:"deleted_at,omitempty"`
 }
 
 // ResolveEmailContent returns the EmailTemplate for the given contact language.
@@ -206,6 +209,20 @@ func (t *Template) ResolvePushContent(contactLanguage string, workspaceDefaultLa
 	return t.Push
 }
 
+func (t *Template) ResolveChannelContent(requestedLanguage string, workspaceDefaultLanguage string) (*ChannelTemplateContent, string, bool) {
+	resolvedLanguage := workspaceDefaultLanguage
+	if resolvedLanguage == "" {
+		resolvedLanguage = DefaultLanguageCode
+	}
+	if requestedLanguage == "" || requestedLanguage == resolvedLanguage {
+		return t.Content, resolvedLanguage, false
+	}
+	if translation, ok := t.Translations[requestedLanguage]; ok && translation.Content != nil {
+		return translation.Content, requestedLanguage, false
+	}
+	return t.Content, resolvedLanguage, true
+}
+
 func (t *Template) Validate() error {
 	// First validate the template itself
 	if err := validateTemplateID(t.ID); err != nil {
@@ -245,12 +262,12 @@ func (t *Template) Validate() error {
 		t.TestData = MapOfAny{}
 	}
 
-	if err := validateTemplateContent(t.Channel, t.Email, t.Web, t.SMS, t.Push, t.TestData); err != nil {
+	if err := validateTemplateContent(t.Channel, t.Email, t.Web, t.SMS, t.Push, t.Content, t.ContentSchemaVersion, t.TestData); err != nil {
 		return fmt.Errorf("invalid template: %w", err)
 	}
 
 	// Validate translations: language keys, channel match, and content
-	if err := validateTranslations(t.Translations, t.Channel, t.TestData); err != nil {
+	if err := validateTranslations(t.Translations, t.Channel, t.ContentSchemaVersion, t.TestData); err != nil {
 		return fmt.Errorf("invalid template: %w", err)
 	}
 
@@ -516,19 +533,21 @@ func (w *WebTemplate) UnmarshalJSON(data []byte) error {
 
 // Request/Response types
 type CreateTemplateRequest struct {
-	WorkspaceID     string                         `json:"workspace_id"`
-	ID              string                         `json:"id"`
-	Name            string                         `json:"name"`
-	Channel         string                         `json:"channel"`
-	Email           *EmailTemplate                 `json:"email,omitempty"`
-	Web             *WebTemplate                   `json:"web,omitempty"`
-	SMS             *SMSTemplate                   `json:"sms,omitempty"`
-	Push            *PushTemplate                  `json:"push,omitempty"`
-	Category        string                         `json:"category"`
-	TemplateMacroID *string                        `json:"template_macro_id,omitempty"`
-	TestData        MapOfAny                       `json:"test_data,omitempty"`
-	Settings        MapOfAny                       `json:"settings,omitempty"`
-	Translations    map[string]TemplateTranslation `json:"translations,omitempty"`
+	WorkspaceID          string                         `json:"workspace_id"`
+	ID                   string                         `json:"id"`
+	Name                 string                         `json:"name"`
+	Channel              string                         `json:"channel"`
+	Email                *EmailTemplate                 `json:"email,omitempty"`
+	Web                  *WebTemplate                   `json:"web,omitempty"`
+	SMS                  *SMSTemplate                   `json:"sms,omitempty"`
+	Push                 *PushTemplate                  `json:"push,omitempty"`
+	Content              *ChannelTemplateContent        `json:"content,omitempty"`
+	ContentSchemaVersion int                            `json:"content_schema_version,omitempty"`
+	Category             string                         `json:"category"`
+	TemplateMacroID      *string                        `json:"template_macro_id,omitempty"`
+	TestData             MapOfAny                       `json:"test_data,omitempty"`
+	Settings             MapOfAny                       `json:"settings,omitempty"`
+	Translations         map[string]TemplateTranslation `json:"translations,omitempty"`
 }
 
 func (r *CreateTemplateRequest) Validate() (template *Template, workspaceID string, err error) {
@@ -564,28 +583,30 @@ func (r *CreateTemplateRequest) Validate() (template *Template, workspaceID stri
 		return nil, "", fmt.Errorf("invalid create template request: category length must be between 1 and 20")
 	}
 
-	if err := validateTemplateContent(r.Channel, r.Email, r.Web, r.SMS, r.Push, r.TestData); err != nil {
+	if err := validateTemplateContent(r.Channel, r.Email, r.Web, r.SMS, r.Push, r.Content, r.ContentSchemaVersion, r.TestData); err != nil {
 		return nil, "", fmt.Errorf("invalid create template request: %w", err)
 	}
 
-	if err := validateTranslations(r.Translations, r.Channel, r.TestData); err != nil {
+	if err := validateTranslations(r.Translations, r.Channel, r.ContentSchemaVersion, r.TestData); err != nil {
 		return nil, "", fmt.Errorf("invalid create template request: %w", err)
 	}
 
 	return &Template{
-		ID:              r.ID,
-		Name:            r.Name,
-		Version:         1, // Start with version 1 for new templates
-		Channel:         r.Channel,
-		Email:           r.Email,
-		Web:             r.Web,
-		SMS:             r.SMS,
-		Push:            r.Push,
-		Category:        r.Category,
-		TemplateMacroID: r.TemplateMacroID,
-		TestData:        r.TestData,
-		Settings:        r.Settings,
-		Translations:    r.Translations,
+		ID:                   r.ID,
+		Name:                 r.Name,
+		Version:              1, // Start with version 1 for new templates
+		Channel:              r.Channel,
+		Email:                r.Email,
+		Web:                  r.Web,
+		SMS:                  r.SMS,
+		Push:                 r.Push,
+		Content:              r.Content,
+		ContentSchemaVersion: r.ContentSchemaVersion,
+		Category:             r.Category,
+		TemplateMacroID:      r.TemplateMacroID,
+		TestData:             r.TestData,
+		Settings:             r.Settings,
+		Translations:         r.Translations,
 	}, r.WorkspaceID, nil
 }
 
@@ -653,19 +674,21 @@ func (r *GetTemplateRequest) FromURLParams(queryParams url.Values) (err error) {
 }
 
 type UpdateTemplateRequest struct {
-	WorkspaceID     string                         `json:"workspace_id"`
-	ID              string                         `json:"id"`
-	Name            string                         `json:"name"`
-	Channel         string                         `json:"channel"`
-	Email           *EmailTemplate                 `json:"email,omitempty"`
-	Web             *WebTemplate                   `json:"web,omitempty"`
-	SMS             *SMSTemplate                   `json:"sms,omitempty"`
-	Push            *PushTemplate                  `json:"push,omitempty"`
-	Category        string                         `json:"category"`
-	TemplateMacroID *string                        `json:"template_macro_id,omitempty"`
-	TestData        MapOfAny                       `json:"test_data,omitempty"`
-	Settings        MapOfAny                       `json:"settings,omitempty"`
-	Translations    map[string]TemplateTranslation `json:"translations,omitempty"`
+	WorkspaceID          string                         `json:"workspace_id"`
+	ID                   string                         `json:"id"`
+	Name                 string                         `json:"name"`
+	Channel              string                         `json:"channel"`
+	Email                *EmailTemplate                 `json:"email,omitempty"`
+	Web                  *WebTemplate                   `json:"web,omitempty"`
+	SMS                  *SMSTemplate                   `json:"sms,omitempty"`
+	Push                 *PushTemplate                  `json:"push,omitempty"`
+	Content              *ChannelTemplateContent        `json:"content,omitempty"`
+	ContentSchemaVersion int                            `json:"content_schema_version,omitempty"`
+	Category             string                         `json:"category"`
+	TemplateMacroID      *string                        `json:"template_macro_id,omitempty"`
+	TestData             MapOfAny                       `json:"test_data,omitempty"`
+	Settings             MapOfAny                       `json:"settings,omitempty"`
+	Translations         map[string]TemplateTranslation `json:"translations,omitempty"`
 	// BaseVersion is the revision the edit is based on. 0 (unset) skips the
 	// optimistic-concurrency check and preserves legacy last-writer-wins behavior.
 	BaseVersion int64 `json:"base_version,omitempty"`
@@ -704,27 +727,29 @@ func (r *UpdateTemplateRequest) Validate() (template *Template, workspaceID stri
 		return nil, "", fmt.Errorf("invalid update template request: category length must be between 1 and 20")
 	}
 
-	if err := validateTemplateContent(r.Channel, r.Email, r.Web, r.SMS, r.Push, r.TestData); err != nil {
+	if err := validateTemplateContent(r.Channel, r.Email, r.Web, r.SMS, r.Push, r.Content, r.ContentSchemaVersion, r.TestData); err != nil {
 		return nil, "", fmt.Errorf("invalid update template request: %w", err)
 	}
 
-	if err := validateTranslations(r.Translations, r.Channel, r.TestData); err != nil {
+	if err := validateTranslations(r.Translations, r.Channel, r.ContentSchemaVersion, r.TestData); err != nil {
 		return nil, "", fmt.Errorf("invalid update template request: %w", err)
 	}
 
 	return &Template{
-		ID:              r.ID,
-		Name:            r.Name,
-		Channel:         r.Channel,
-		Email:           r.Email,
-		Web:             r.Web,
-		SMS:             r.SMS,
-		Push:            r.Push,
-		Category:        r.Category,
-		TemplateMacroID: r.TemplateMacroID,
-		TestData:        r.TestData,
-		Settings:        r.Settings,
-		Translations:    r.Translations,
+		ID:                   r.ID,
+		Name:                 r.Name,
+		Channel:              r.Channel,
+		Email:                r.Email,
+		Web:                  r.Web,
+		SMS:                  r.SMS,
+		Push:                 r.Push,
+		Content:              r.Content,
+		ContentSchemaVersion: r.ContentSchemaVersion,
+		Category:             r.Category,
+		TemplateMacroID:      r.TemplateMacroID,
+		TestData:             r.TestData,
+		Settings:             r.Settings,
+		Translations:         r.Translations,
 		// Carry the client's base version into the service so it can detect a
 		// stale-base save. The service reconciles Version before persisting.
 		Version: r.BaseVersion,

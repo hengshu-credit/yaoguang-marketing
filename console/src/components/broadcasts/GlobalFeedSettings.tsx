@@ -128,6 +128,7 @@ export function GlobalFeedSettings({
             value={settings.headers}
             onChange={(headers) => handleChange('headers', headers)}
             disabled={disabled}
+            valuePlaceholder="Bearer {{ workspace.id }}"
           />
 
           <Modal

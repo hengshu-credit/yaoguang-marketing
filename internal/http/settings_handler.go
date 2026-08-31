@@ -1,7 +1,6 @@
 package http
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -440,7 +439,7 @@ func (h *SettingsHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		time.Sleep(500 * time.Millisecond)
 		h.logger.Info("Settings updated - initiating graceful shutdown for configuration reload")
-		if err := h.app.Shutdown(context.Background()); err != nil {
+		if err := shutdownForConfigurationReload(h.app); err != nil {
 			h.logger.WithField("error", err).Error("Error during graceful shutdown")
 		}
 	}()

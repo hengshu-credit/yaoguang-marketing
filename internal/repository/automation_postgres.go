@@ -9,10 +9,10 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/service"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/postgresdriver"
-	"github.com/google/uuid"
 )
 
 // AutomationRepository implements domain.AutomationRepository
@@ -71,6 +71,70 @@ var automationPsql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 func (r *AutomationRepository) WithTransaction(ctx context.Context, fn func(*sql.Tx) error) error {
 	// This is a placeholder - actual transactions should be managed per-workspace
 	return fmt.Errorf("use workspace-specific transactions via GetConnection")
+}
+
+// EnrollAudienceBuild creates one idempotent journey per candidate in a
+// run-scoped Audience build. The build UUID is the origin event for every
+// candidate: replaying the same run is deduplicated, while a later run with a
+// new build may enroll the customer again.
+func (r *AutomationRepository) EnrollAudienceBuild(
+	ctx context.Context,
+	workspaceID, automationID, rootNodeID string,
+	automationVersion int,
+	audienceID string,
+	audienceVersion int,
+	buildID string,
+) (int64, error) {
+	if automationID == "" || rootNodeID == "" || automationVersion <= 0 ||
+		audienceID == "" || audienceVersion <= 0 || buildID == "" {
+		return 0, errors.New("automation, root node, versions, audience, and build are required")
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return 0, err
+	}
+	var enrolled int64
+	err = db.QueryRowContext(ctx, `WITH candidates AS (
+		SELECT membership.customer_id
+		FROM audience_memberships membership
+		WHERE membership.build_id = NULLIF($3, '')::uuid
+	), enrolled AS (
+		SELECT candidate.customer_id, result.outcome, result.contact_automation_id
+		FROM candidates candidate
+		CROSS JOIN LATERAL automation_enroll_customer(
+			$1, candidate.customer_id, '', $2, 'every_time', $3::uuid,
+			'{"enabled":false}'::jsonb, $4, 'audience'
+		) result
+	), updated AS (
+		UPDATE contact_automations journey
+		SET context = COALESCE(journey.context, '{}'::jsonb) || jsonb_build_object(
+			'audience_id', $5::text,
+			'audience_version', $6::integer,
+			'audience_build_id', $3::text,
+			'audience_customer_id', enrolled.customer_id::text
+		)
+		FROM enrolled
+		WHERE enrolled.outcome = 'enrolled'
+			AND journey.id = enrolled.contact_automation_id
+		RETURNING journey.id
+	) SELECT COUNT(*) FROM updated`, automationID, rootNodeID, buildID, automationVersion, audienceID, audienceVersion).Scan(&enrolled)
+	if err != nil {
+		return 0, fmt.Errorf("enroll audience build into automation: %w", err)
+	}
+	return enrolled, nil
+}
+
+func (r *AutomationRepository) GetAutomationRuntimeVersion(ctx context.Context, workspaceID, automationID string) (int, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return 0, err
+	}
+	var version int
+	if err := db.QueryRowContext(ctx, `SELECT version FROM automations
+		WHERE id = $1 AND status = 'live' AND deleted_at IS NULL`, automationID).Scan(&version); err != nil {
+		return 0, fmt.Errorf("load automation runtime version: %w", err)
+	}
+	return version, nil
 }
 
 // Automation CRUD operations

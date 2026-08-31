@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import userEvent from '@testing-library/user-event'
 import ChannelMessagePreview from './ChannelMessagePreview'
 
 vi.mock('@lingui/react/macro', () => ({
@@ -57,5 +58,19 @@ describe('ChannelMessagePreview', () => {
     expect(screen.getByText('Order shipped')).toBeInTheDocument()
     expect(screen.getByText('Your order is on the way')).toBeInTheDocument()
     expect(screen.getByText('iOS may truncate this title')).toBeInTheDocument()
+  })
+
+  it('switches among domestic Android OEM client simulations', async () => {
+    const user = userEvent.setup()
+    const onPlatformChange = vi.fn()
+    render(
+      <ChannelMessagePreview
+        preview={{ channel: 'push', resolved_language: 'zh-CN', fallback_used: false, push: { title: '优惠', body: '今日可用', platform: 'android', payload_bytes: 80, warnings: [] } }}
+        platform="android"
+        onPlatformChange={onPlatformChange}
+      />
+    )
+    await user.click(screen.getByText('Huawei'))
+    expect(onPlatformChange).toHaveBeenCalledWith('huawei')
   })
 })

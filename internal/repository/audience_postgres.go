@@ -14,15 +14,30 @@ import (
 )
 
 type AudiencePostgresRepository struct {
-	workspaceRepo domain.WorkspaceRepository
-	db            *sql.DB
+	workspaceRepo     domain.WorkspaceRepository
+	db                *sql.DB
+	conditionCompiler AudienceConditionCompiler
+	now               func() time.Time
 }
+
+type AudienceConditionCompiler func(*domain.TreeNode, int) (string, []interface{}, error)
 
 func NewAudienceRepository(workspaceRepo domain.WorkspaceRepository) *AudiencePostgresRepository {
 	return &AudiencePostgresRepository{workspaceRepo: workspaceRepo}
 }
 func NewAudienceRepositoryWithDB(db *sql.DB) *AudiencePostgresRepository {
 	return &AudiencePostgresRepository{db: db}
+}
+
+func (r *AudiencePostgresRepository) SetConditionCompiler(compiler AudienceConditionCompiler) {
+	r.conditionCompiler = compiler
+}
+
+func (r *AudiencePostgresRepository) currentTime() time.Time {
+	if r.now != nil {
+		return r.now().UTC()
+	}
+	return time.Now().UTC()
 }
 func (r *AudiencePostgresRepository) getDB(ctx context.Context, workspaceID string) (*sql.DB, error) {
 	if r.db != nil {
@@ -178,13 +193,25 @@ func (r *AudiencePostgresRepository) SaveAudienceVersion(ctx context.Context, wo
 }
 
 type audienceSQLCompiler struct {
-	args   []interface{}
-	offset int
+	args              []interface{}
+	offset            int
+	conditionCompiler AudienceConditionCompiler
 }
 
 func (c *audienceSQLCompiler) compile(expression domain.AudienceExpression) (string, error) {
 	if err := expression.Validate(); err != nil {
 		return "", err
+	}
+	if expression.Condition != nil {
+		if c.conditionCompiler == nil {
+			return "", errors.New("audience condition compiler is required")
+		}
+		query, args, err := c.conditionCompiler(expression.Condition, c.offset+len(c.args))
+		if err != nil {
+			return "", fmt.Errorf("compile audience condition: %w", err)
+		}
+		c.args = append(c.args, args...)
+		return query, nil
 	}
 	if expression.LeafType != "" {
 		c.args = append(c.args, expression.RefID)
@@ -216,22 +243,28 @@ func (c *audienceSQLCompiler) compile(expression domain.AudienceExpression) (str
 }
 
 func compileAudienceExpression(expression domain.AudienceExpression) (string, []interface{}, error) {
-	compiler := &audienceSQLCompiler{}
+	return compileAudienceExpressionWithConditionCompiler(expression, 0, nil)
+}
+
+func compileAudienceExpressionWithConditionCompiler(expression domain.AudienceExpression, offset int, conditionCompiler AudienceConditionCompiler) (string, []interface{}, error) {
+	compiler := &audienceSQLCompiler{offset: offset, conditionCompiler: conditionCompiler}
 	query, err := compiler.compile(expression)
 	return query, compiler.args, err
 }
 
 func compileAudienceExpressionWithOffset(expression domain.AudienceExpression, offset int) (string, []interface{}, error) {
-	compiler := &audienceSQLCompiler{offset: offset}
-	query, err := compiler.compile(expression)
-	return query, compiler.args, err
+	return compileAudienceExpressionWithConditionCompiler(expression, offset, nil)
+}
+
+func (r *AudiencePostgresRepository) compileAudienceExpression(expression domain.AudienceExpression, offset int) (string, []interface{}, error) {
+	return compileAudienceExpressionWithConditionCompiler(expression, offset, r.conditionCompiler)
 }
 
 func (r *AudiencePostgresRepository) PreviewAudience(ctx context.Context, workspaceID string, expression domain.AudienceExpression, limit int) ([]domain.CustomerSummary, int64, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 100
 	}
-	compiled, args, err := compileAudienceExpression(expression)
+	compiled, args, err := r.compileAudienceExpression(expression, 0)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -268,7 +301,7 @@ func (r *AudiencePostgresRepository) BuildAudience(ctx context.Context, workspac
 	if err != nil {
 		return "", 0, err
 	}
-	compiled, args, err := compileAudienceExpressionWithOffset(item.Definition, 1)
+	compiled, args, err := r.compileAudienceExpression(item.Definition, 1)
 	if err != nil {
 		return "", 0, err
 	}
@@ -307,6 +340,116 @@ func (r *AudiencePostgresRepository) BuildAudience(ctx context.Context, workspac
 		return "", 0, err
 	}
 	return buildID, count, nil
+}
+
+// BuildAudienceSnapshot materializes one immutable, run-scoped candidate set.
+// Unlike the legacy BuildAudience endpoint, it deliberately does not update
+// audiences.active_build_id: a marketing run persists this exact build ID and
+// no later build is allowed to replace its source.
+func (r *AudiencePostgresRepository) BuildAudienceSnapshot(ctx context.Context, workspaceID, audienceID string, version int) (*domain.AudienceBuild, error) {
+	item, err := r.GetAudienceVersion(ctx, workspaceID, audienceID, version)
+	if err != nil {
+		return nil, err
+	}
+	compiled, args, err := r.compileAudienceExpression(item.Definition, 1)
+	if err != nil {
+		return nil, err
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	now := r.currentTime()
+	build := &domain.AudienceBuild{
+		ID:              uuid.New().String(),
+		AudienceID:      audienceID,
+		AudienceVersion: version,
+		Status:          "pending",
+		CreatedAt:       now,
+		UpdatedAt:       now,
+	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO audience_builds (
+		id, audience_id, audience_version, status, created_at, updated_at
+	) VALUES (NULLIF($1, '')::uuid, NULLIF($2, '')::uuid, $3, 'pending', $4, $4)`,
+		build.ID, audienceID, version, now); err != nil {
+		return nil, fmt.Errorf("create audience snapshot build: %w", err)
+	}
+
+	failBuild := func(cause error) (*domain.AudienceBuild, error) {
+		build.Status = "failed"
+		build.ErrorDetail = cause.Error()
+		build.UpdatedAt = r.currentTime()
+		_, _ = db.ExecContext(context.Background(), `UPDATE audience_builds SET status = 'failed',
+			error_detail = $2, updated_at = $3 WHERE id = NULLIF($1, '')::uuid`,
+			build.ID, build.ErrorDetail, build.UpdatedAt)
+		return build, cause
+	}
+
+	tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead})
+	if err != nil {
+		return failBuild(fmt.Errorf("begin audience snapshot: %w", err))
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.ExecContext(ctx, `UPDATE audience_builds SET status = 'building',
+		started_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+		WHERE id = NULLIF($1, '')::uuid AND status = 'pending'`, build.ID); err != nil {
+		return failBuild(fmt.Errorf("start audience snapshot: %w", err))
+	}
+	insertSQL := `INSERT INTO audience_memberships (build_id, customer_id, ordinal)
+		SELECT NULLIF($1, '')::uuid, result.customer_id, ROW_NUMBER() OVER (ORDER BY result.customer_id)
+		FROM (` + compiled + `) result
+		JOIN customers customer ON customer.id = result.customer_id
+		WHERE customer.merged_into_id IS NULL
+		ON CONFLICT DO NOTHING`
+	result, err := tx.ExecContext(ctx, insertSQL, append([]interface{}{build.ID}, args...)...)
+	if err != nil {
+		return failBuild(fmt.Errorf("materialize audience snapshot: %w", err))
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return failBuild(fmt.Errorf("count audience snapshot members: %w", err))
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE audience_builds SET status = 'completed', member_count = $2,
+		completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+		WHERE id = NULLIF($1, '')::uuid AND status = 'building'`, build.ID, count); err != nil {
+		return failBuild(fmt.Errorf("complete audience snapshot: %w", err))
+	}
+	if err := tx.Commit(); err != nil {
+		return failBuild(fmt.Errorf("commit audience snapshot: %w", err))
+	}
+	build.Status = "completed"
+	build.MemberCount = count
+	build.UpdatedAt = r.currentTime()
+	return build, nil
+}
+
+// MatchesAudienceCustomer re-evaluates an immutable Audience version against
+// current customer facts. False is a business result; database/compiler errors
+// remain errors so callers can retry instead of silently suppressing a touch.
+func (r *AudiencePostgresRepository) MatchesAudienceCustomer(ctx context.Context, workspaceID, audienceID string, version int, customerID string) (bool, error) {
+	if strings.TrimSpace(customerID) == "" {
+		return false, errors.New("customer id is required")
+	}
+	item, err := r.GetAudienceVersion(ctx, workspaceID, audienceID, version)
+	if err != nil {
+		return false, err
+	}
+	compiled, args, err := r.compileAudienceExpression(item.Definition, 0)
+	if err != nil {
+		return false, err
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return false, err
+	}
+	args = append(args, customerID)
+	query := `SELECT EXISTS (SELECT 1 FROM (` + compiled + `) audience_result
+		WHERE audience_result.customer_id = NULLIF($` + fmt.Sprint(len(args)) + `, '')::uuid)`
+	var matches bool
+	if err := db.QueryRowContext(ctx, query, args...).Scan(&matches); err != nil {
+		return false, fmt.Errorf("evaluate audience customer eligibility: %w", err)
+	}
+	return matches, nil
 }
 
 func (r *AudiencePostgresRepository) StartAudienceBuild(ctx context.Context, workspaceID, audienceID string, version int) (*domain.AudienceBuild, error) {
@@ -372,7 +515,7 @@ func (r *AudiencePostgresRepository) ProcessAudienceBuildChunk(ctx context.Conte
 	if err := json.Unmarshal(definition, &version.Definition); err != nil {
 		return nil, false, err
 	}
-	compiled, args, err := compileAudienceExpressionWithOffset(version.Definition, 4)
+	compiled, args, err := r.compileAudienceExpression(version.Definition, 4)
 	if err != nil {
 		return nil, false, err
 	}

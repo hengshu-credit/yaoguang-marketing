@@ -681,7 +681,7 @@ export const PERMISSION_DESCRIPTORS: Record<
         },
       ],
     },
-    caveat: msg`A send-only key can cause real delivery through email, SMS and push providers. /api/channelMessages.send requires an existing contact and encrypted endpoint, and its effect key prevents an identical retry from sending twice. /api/transactional.send still creates an email recipient contact, while cc or bcc additionally needs Contacts read and writing contact fields additionally needs Contacts write.`,
+    caveat: msg`A send-only key can cause real delivery through email, SMS, push, and signed channel Webhook providers. /api/channelMessages.send requires an existing contact and encrypted endpoint, and its effect key prevents an identical retry from sending twice. /api/transactional.send still creates an email recipient contact, while cc or bcc additionally needs Contacts read and writing contact fields additionally needs Contacts write.`,
   },
 
   automations: {

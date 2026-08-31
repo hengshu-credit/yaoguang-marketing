@@ -3,10 +3,12 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type audienceRepositoryStub struct {
@@ -71,4 +73,50 @@ func TestAudienceServiceRejectsTransitiveReferenceCycle(t *testing.T) {
 	service, _ := NewAudienceService(repository)
 	_, err := service.UpdateDefinition(context.Background(), "workspace-1", "audience-a", domain.AudienceExpression{LeafType: domain.AudienceLeafAudience, RefID: "audience-b"})
 	assert.ErrorContains(t, err, "dependency cycle")
+}
+
+type audienceRuntimeRepositoryStub struct {
+	audienceRepositoryStub
+	buildVersion int
+	matchVersion int
+	matchResult  bool
+	matchErr     error
+}
+
+func (s *audienceRuntimeRepositoryStub) BuildAudienceSnapshot(_ context.Context, _, audienceID string, version int) (*domain.AudienceBuild, error) {
+	s.buildVersion = version
+	return &domain.AudienceBuild{ID: "build-1", AudienceID: audienceID, AudienceVersion: version, Status: "completed", MemberCount: 2}, nil
+}
+
+func (s *audienceRuntimeRepositoryStub) MatchesAudienceCustomer(_ context.Context, _, _ string, version int, _ string) (bool, error) {
+	s.matchVersion = version
+	return s.matchResult, s.matchErr
+}
+
+func TestAudienceServiceResolveLatestAndBuildReadsActiveVersionAtExecution(t *testing.T) {
+	repository := &audienceRuntimeRepositoryStub{audienceRepositoryStub: audienceRepositoryStub{
+		audiences: map[string]domain.Audience{"audience-1": {ID: "audience-1", ActiveVersion: 7}},
+	}}
+	service, err := NewAudienceService(repository)
+	require.NoError(t, err)
+
+	build, err := service.ResolveLatestAndBuild(context.Background(), "workspace-1", "audience-1")
+	require.NoError(t, err)
+	assert.Equal(t, 7, repository.buildVersion)
+	assert.Equal(t, 7, build.AudienceVersion)
+}
+
+func TestAudienceServiceMatchesCustomerKeepsFalseSeparateFromErrors(t *testing.T) {
+	repository := &audienceRuntimeRepositoryStub{matchResult: false}
+	service, err := NewAudienceService(repository)
+	require.NoError(t, err)
+
+	matches, err := service.MatchesCustomer(context.Background(), "workspace-1", "audience-1", 5, "customer-1")
+	require.NoError(t, err)
+	assert.False(t, matches)
+	assert.Equal(t, 5, repository.matchVersion)
+
+	repository.matchErr = errors.New("database unavailable")
+	_, err = service.MatchesCustomer(context.Background(), "workspace-1", "audience-1", 5, "customer-1")
+	assert.ErrorContains(t, err, "database unavailable")
 }

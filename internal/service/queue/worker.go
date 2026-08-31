@@ -49,11 +49,12 @@ type EmailFailedCallback func(workspaceID string, sourceType domain.EmailQueueSo
 
 // EmailQueueWorker processes queued emails
 type EmailQueueWorker struct {
-	queueRepo          domain.EmailQueueRepository
-	workspaceRepo      domain.WorkspaceRepository
-	emailService       domain.EmailServiceInterface
-	messageHistoryRepo domain.MessageHistoryRepository
-	deliveryRepo       domain.DeliveryRepository
+	queueRepo           domain.EmailQueueRepository
+	workspaceRepo       domain.WorkspaceRepository
+	emailService        domain.EmailServiceInterface
+	messageHistoryRepo  domain.MessageHistoryRepository
+	deliveryRepo        domain.DeliveryRepository
+	audienceEligibility AudienceEligibilityChecker
 	// automationRepo is optional; when set, the worker performs the stop-on-reply
 	// just-in-time guard before sending automation emails flagged with a
 	// contact_automation_id. Injected via SetAutomationRepo (kept out of the
@@ -75,6 +76,16 @@ type EmailQueueWorker struct {
 	// Callbacks for progress tracking
 	onEmailSent   EmailSentCallback
 	onEmailFailed EmailFailedCallback
+}
+
+const audienceNoLongerMatchedReason = "audience_no_longer_matched"
+
+type AudienceEligibilityChecker interface {
+	MatchesCustomerInternal(context.Context, string, string, int, string) (bool, error)
+}
+
+type deliveryIntentSuppressor interface {
+	SuppressIntent(context.Context, string, string, domain.DeliveryStatus, string, time.Time) (bool, error)
 }
 
 // NewEmailQueueWorker creates a new EmailQueueWorker
@@ -287,6 +298,10 @@ func (w *EmailQueueWorker) SetDeliveryRepository(repo domain.DeliveryRepository)
 	w.deliveryRepo = repo
 }
 
+func (w *EmailQueueWorker) SetAudienceEligibilityChecker(checker AudienceEligibilityChecker) {
+	w.audienceEligibility = checker
+}
+
 func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *domain.EmailQueueEntry) {
 	claimed := entry.ClaimToken != ""
 	deliveryEnabled := claimed && w.deliveryRepo != nil && entry.DeliveryIntentID != ""
@@ -419,6 +434,48 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 					"entry_id": entry.ID,
 					"error":    delErr.Error(),
 				}).Warn("Failed to complete cancelled (stop-on-reply) entry")
+			}
+			return
+		}
+	}
+
+	// Final Audience guard: this runs after rate limiting and immediately before
+	// the delivery intent moves to submitting/provider I/O. A customer who became
+	// ineligible while the message waited in the queue is suppressed here.
+	if eligibility := entry.Payload.AudienceEligibility; eligibility != nil {
+		if w.audienceEligibility == nil {
+			w.deferAudienceEligibilityCheck(workspace, entry, errors.New("audience eligibility checker is unavailable"))
+			return
+		}
+		matches, eligibilityErr := w.audienceEligibility.MatchesCustomerInternal(
+			w.ctx, workspace.ID, eligibility.AudienceID, eligibility.AudienceVersion, eligibility.CustomerID,
+		)
+		if eligibilityErr != nil {
+			w.deferAudienceEligibilityCheck(workspace, entry, eligibilityErr)
+			return
+		}
+		if !matches {
+			if deliveryEnabled {
+				suppressor, ok := w.deliveryRepo.(deliveryIntentSuppressor)
+				if !ok {
+					w.deferAudienceEligibilityCheck(workspace, entry, errors.New("delivery repository cannot persist audience suppression"))
+					return
+				}
+				updated, suppressErr := suppressor.SuppressIntent(
+					w.ctx, workspace.ID, entry.DeliveryIntentID, domain.DeliveryStatusQueued,
+					audienceNoLongerMatchedReason, time.Now().UTC(),
+				)
+				if suppressErr != nil || !updated {
+					if suppressErr == nil {
+						suppressErr = errors.New("audience suppression transition was rejected")
+					}
+					w.deferAudienceEligibilityCheck(workspace, entry, suppressErr)
+					return
+				}
+			}
+			if err := w.completeAudienceSuppressedEntry(workspace, entry); err != nil {
+				w.logger.WithFields(map[string]interface{}{"entry_id": entry.ID, "error": err.Error()}).
+					Warn("Failed to complete audience-suppressed queue entry")
 			}
 			return
 		}
@@ -574,6 +631,27 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 	if w.onEmailSent != nil {
 		w.onEmailSent(workspace.ID, entry.SourceType, entry.SourceID, entry.MessageID)
 	}
+}
+
+func (w *EmailQueueWorker) deferAudienceEligibilityCheck(workspace *domain.Workspace, entry *domain.EmailQueueEntry, cause error) {
+	nextRetry := domain.CalculateNextRetryTime(entry.Attempts)
+	var err error
+	if entry.ClaimToken != "" {
+		err = w.queueRepo.FailClaim(w.ctx, workspace.ID, entry.ID, entry.ClaimToken, cause.Error(), &nextRetry)
+	} else {
+		err = w.queueRepo.MarkAsFailed(w.ctx, workspace.ID, entry.ID, cause.Error(), &nextRetry)
+	}
+	if err != nil {
+		w.logger.WithFields(map[string]interface{}{"entry_id": entry.ID, "error": err.Error()}).
+			Error("Failed to defer audience eligibility check")
+	}
+}
+
+func (w *EmailQueueWorker) completeAudienceSuppressedEntry(workspace *domain.Workspace, entry *domain.EmailQueueEntry) error {
+	if entry.ClaimToken != "" {
+		return w.queueRepo.CompleteClaim(w.ctx, workspace.ID, entry.ID, entry.ClaimToken, time.Now().UTC())
+	}
+	return w.queueRepo.MarkAsSent(w.ctx, workspace.ID, entry.ID)
 }
 
 // handleError handles a send error, scheduling retry or deleting permanently failed entries

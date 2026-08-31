@@ -44,7 +44,10 @@ func TestSupportedLanguages(t *testing.T) {
 	assert.True(t, len(SupportedLanguages) >= 30, "should have at least 30 supported languages")
 
 	// Verify key languages are present
-	expectedLanguages := []string{"en", "fr", "de", "es", "pt", "pt-BR", "zh", "zh-CN", "zh-TW", "ja", "ko", "ar"}
+	expectedLanguages := []string{
+		"en", "fr", "de", "es", "pt", "pt-BR", "zh", "zh-CN", "zh-TW", "ja", "ko", "ar",
+		"kk", "uz", "fil", "ur",
+	}
 	for _, code := range expectedLanguages {
 		_, ok := SupportedLanguages[code]
 		assert.True(t, ok, "expected language %s to be in SupportedLanguages", code)

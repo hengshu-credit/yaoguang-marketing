@@ -26,6 +26,15 @@ type mockAppShutdowner struct {
 	shutdownError  error
 }
 
+type contextCapturingShutdowner struct {
+	contexts chan context.Context
+}
+
+func (s *contextCapturingShutdowner) Shutdown(ctx context.Context) error {
+	s.contexts <- ctx
+	return nil
+}
+
 func (m *mockAppShutdowner) Shutdown(ctx context.Context) error {
 	m.shutdownCalled = true
 	return m.shutdownError
@@ -492,6 +501,45 @@ func TestSetupHandler_Initialize(t *testing.T) {
 				assert.Contains(t, response.Message, "already completed")
 			}
 		})
+	}
+}
+
+func TestSetupHandler_InitializeUsesBoundedShutdownContext(t *testing.T) {
+	settingRepo := newMockSettingRepository()
+	settingService := service.NewSettingService(settingRepo)
+	userRepo := newMockUserRepository()
+	setupService := service.NewSetupService(
+		settingService,
+		&service.UserService{},
+		userRepo,
+		logger.NewLogger(),
+		"secret-key",
+		nil,
+		nil,
+	)
+	shutdowner := &contextCapturingShutdowner{contexts: make(chan context.Context, 1)}
+	handler := NewSetupHandler(setupService, settingService, logger.NewLogger(), shutdowner)
+
+	body, err := json.Marshal(InitializeRequest{
+		RootEmail:     "admin@example.com",
+		APIEndpoint:   "https://api.example.com",
+		SMTPHost:      "smtp.example.com",
+		SMTPPort:      587,
+		SMTPFromEmail: "noreply@example.com",
+	})
+	require.NoError(t, err)
+	req := httptest.NewRequest(http.MethodPost, "/api/setup.initialize", bytes.NewReader(body))
+	w := httptest.NewRecorder()
+	handler.Initialize(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	select {
+	case shutdownCtx := <-shutdowner.contexts:
+		deadline, ok := shutdownCtx.Deadline()
+		require.True(t, ok, "configuration reload shutdown must be bounded")
+		assert.WithinDuration(t, time.Now().Add(15*time.Second), deadline, 2*time.Second)
+	case <-time.After(2 * time.Second):
+		t.Fatal("configuration reload shutdown was not requested")
 	}
 }
 

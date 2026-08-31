@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -24,16 +25,23 @@ import (
 // instead of sending directly. This allows rate limiting to be handled by the queue workers
 // and provides a unified queue for both broadcasts and automations.
 type queueMessageSender struct {
-	queueRepo          domain.EmailQueueRepository
-	deliveryRepo       domain.DeliveryRepository
-	frequencyEvaluator domain.MarketingFrequencyEvaluator
-	broadcastRepo      domain.BroadcastRepository
-	messageHistoryRepo domain.MessageHistoryRepository
-	templateRepo       domain.TemplateRepository
-	dataFeedFetcher    DataFeedFetcher
-	logger             logger.Logger
-	config             *Config
-	apiEndpoint        string
+	queueRepo           domain.EmailQueueRepository
+	deliveryRepo        domain.DeliveryRepository
+	frequencyEvaluator  domain.MarketingFrequencyEvaluator
+	audienceEligibility AudienceEligibilityChecker
+	broadcastRepo       domain.BroadcastRepository
+	messageHistoryRepo  domain.MessageHistoryRepository
+	templateRepo        domain.TemplateRepository
+	dataFeedFetcher     DataFeedFetcher
+	logger              logger.Logger
+	config              *Config
+	apiEndpoint         string
+}
+
+const audienceNoLongerMatchedReason = "audience_no_longer_matched"
+
+type AudienceEligibilityChecker interface {
+	MatchesCustomerInternal(context.Context, string, string, int, string) (bool, error)
 }
 
 // NewQueueMessageSender creates a new message sender that enqueues to the email queue
@@ -131,6 +139,19 @@ func (s *queueMessageSender) SendToRecipient(
 			return NewBroadcastError(ErrCodeSendFailed, "delivery customer authority is missing", false, nil)
 		}
 		phase := broadcastDeliveryPhase(broadcast)
+		if broadcast.Audience.AudienceID != "" {
+			entry.Payload.AudienceEligibility = &domain.AudienceEligibilityContext{
+				AudienceID: broadcast.Audience.AudienceID, AudienceVersion: broadcast.Audience.AudienceVersion,
+				AudienceBuildID: broadcast.Audience.AudienceBuildID, CustomerID: customerID,
+			}
+		}
+		eligible, eligibilityErr := s.checkAudienceEligibility(ctx, workspaceID, broadcast, customerID, phase, "individual", template, 0)
+		if eligibilityErr != nil {
+			return NewBroadcastError(ErrCodeSendFailed, "failed to evaluate audience eligibility", true, eligibilityErr)
+		}
+		if !eligible {
+			return nil
+		}
 		if _, reserveErr := s.reserveBroadcastEntry(ctx, workspaceID, broadcast, customerID, email, phase, "individual", template, entry); reserveErr != nil {
 			return NewBroadcastError(ErrCodeSendFailed, "failed to reserve delivery", true, reserveErr)
 		}
@@ -238,6 +259,18 @@ func (s *queueMessageSender) SendBatch(
 			continue
 		}
 		recipient.DeliveryVariant = template.ID
+		if s.deliveryRepo != nil {
+			eligible, eligibilityErr := s.checkAudienceEligibility(
+				ctx, workspaceID, broadcast, customerID, phase, occurrence, template, recipient.SnapshotOrdinal,
+			)
+			if eligibilityErr != nil {
+				return 0, 0, NewBroadcastError(ErrCodeSendFailed, "failed to evaluate audience eligibility", true, eligibilityErr)
+			}
+			if !eligible {
+				deliveryProcessed++
+				continue
+			}
+		}
 		if email == "" {
 			if s.deliveryRepo == nil || strings.TrimSpace(customerID) == "" {
 				buildErrors++
@@ -358,6 +391,12 @@ func (s *queueMessageSender) SendBatch(
 			buildErrors++
 			continue
 		}
+		if broadcast.Audience.AudienceID != "" {
+			entry.Payload.AudienceEligibility = &domain.AudienceEligibilityContext{
+				AudienceID: broadcast.Audience.AudienceID, AudienceVersion: broadcast.Audience.AudienceVersion,
+				AudienceBuildID: broadcast.Audience.AudienceBuildID, CustomerID: customerID,
+			}
+		}
 
 		if s.deliveryRepo != nil {
 			if _, reserveErr := s.reserveBroadcastEntry(ctx, workspaceID, broadcast, customerID, recipient.Contact.Email, phase, occurrence, template, entry); reserveErr != nil {
@@ -403,6 +442,85 @@ func (s *queueMessageSender) SendBatch(
 
 	// Return enqueued as "sent" since from the orchestrator's perspective, the job is done
 	return len(entries), buildErrors, nil
+}
+
+func (s *queueMessageSender) checkAudienceEligibility(
+	ctx context.Context,
+	workspaceID string,
+	broadcast *domain.Broadcast,
+	customerID, phase, occurrence string,
+	template *domain.Template,
+	snapshotOrdinal int64,
+) (bool, error) {
+	if broadcast == nil || strings.TrimSpace(broadcast.Audience.AudienceID) == "" {
+		return true, nil
+	}
+	if broadcast.Audience.AudienceVersion <= 0 {
+		return false, errors.New("resolved audience version is required")
+	}
+	if s.audienceEligibility == nil {
+		return false, errors.New("audience eligibility checker is unavailable")
+	}
+	if s.deliveryRepo == nil {
+		return false, errors.New("delivery repository is required for audience eligibility audit")
+	}
+	effectKey, err := broadcastDeliveryEffectKey(workspaceID, broadcast, customerID, "", phase, occurrence, template.ID)
+	if err != nil {
+		return false, err
+	}
+	existing, err := s.deliveryRepo.GetIntentByEffectKey(ctx, workspaceID, effectKey)
+	if err != nil {
+		return false, fmt.Errorf("load audience eligibility decision: %w", err)
+	}
+	if existing != nil && existing.Status == domain.DeliveryStatusSuppressed &&
+		existing.SuppressionReason == audienceNoLongerMatchedReason {
+		return false, nil
+	}
+
+	matches, err := s.audienceEligibility.MatchesCustomerInternal(
+		ctx,
+		workspaceID,
+		broadcast.Audience.AudienceID,
+		broadcast.Audience.AudienceVersion,
+		customerID,
+	)
+	if err != nil {
+		return false, fmt.Errorf("evaluate current audience facts: %w", err)
+	}
+	if matches {
+		return true, nil
+	}
+
+	fingerprint := struct {
+		EffectKey       string `json:"effect_key"`
+		AudienceID      string `json:"audience_id"`
+		AudienceVersion int    `json:"audience_version"`
+		AudienceBuildID string `json:"audience_build_id"`
+	}{effectKey, broadcast.Audience.AudienceID, broadcast.Audience.AudienceVersion, broadcast.Audience.AudienceBuildID}
+	encoded, err := json.Marshal(fingerprint)
+	if err != nil {
+		return false, fmt.Errorf("encode audience eligibility decision: %w", err)
+	}
+	digest := sha256.Sum256(encoded)
+	intent := domain.DeliveryIntent{
+		EffectKey: effectKey, RequestHash: hex.EncodeToString(digest[:]), SourceType: domain.DeliverySourceBroadcast,
+		SourceID: broadcast.ID, SourceVersion: broadcastDeliverySourceVersion(broadcast), CustomerID: customerID,
+		Channel: "email", TemplateID: template.ID, TemplateVersion: template.Version,
+		NodeOrPhase: phase, Occurrence: occurrence, Variant: template.ID, Status: domain.DeliveryStatusSuppressed,
+		SuppressionReason: audienceNoLongerMatchedReason,
+		Metadata: domain.MapOfAny{
+			"audience_id": broadcast.Audience.AudienceID, "audience_version": broadcast.Audience.AudienceVersion,
+			"audience_build_id": broadcast.Audience.AudienceBuildID, "snapshot_ordinal": snapshotOrdinal,
+		},
+	}
+	stored, _, err := s.deliveryRepo.ReserveIntent(ctx, workspaceID, intent)
+	if err != nil {
+		return false, fmt.Errorf("record audience eligibility skip: %w", err)
+	}
+	if stored.Status != domain.DeliveryStatusSuppressed || stored.SuppressionReason != audienceNoLongerMatchedReason {
+		return false, errors.New("audience eligibility effect key belongs to a non-suppressed delivery")
+	}
+	return false, nil
 }
 
 // buildQueueEntry creates an EmailQueueEntry for a recipient

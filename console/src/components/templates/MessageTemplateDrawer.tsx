@@ -29,6 +29,7 @@ import type {
 import type { Workspace } from '../../services/api/types'
 import { templatesApi } from '../../services/api/template'
 import ChannelMessagePreview from './ChannelMessagePreview'
+import type { PushClientProfile } from './ChannelMessagePreview'
 
 type MessageChannel = 'sms' | 'push'
 
@@ -39,6 +40,7 @@ interface MessageTemplateDrawerProps {
   buttonContent?: React.ReactNode
   buttonProps?: ButtonProps
   onClose?: () => void
+  defaultChannel?: MessageChannel
 }
 
 interface TranslationFormValue {
@@ -83,7 +85,8 @@ const MessageTemplateDrawer: React.FC<MessageTemplateDrawerProps> = ({
   fromTemplate,
   buttonContent,
   buttonProps,
-  onClose
+  onClose,
+  defaultChannel
 }) => {
   const { t } = useLingui()
   const { message } = App.useApp()
@@ -92,7 +95,7 @@ const MessageTemplateDrawer: React.FC<MessageTemplateDrawerProps> = ({
   const [open, setOpen] = useState(false)
   const [preview, setPreview] = useState<PreviewTemplateResponse | null>(null)
   const [previewError, setPreviewError] = useState<string | null>(null)
-  const [platform, setPlatform] = useState<'android' | 'ios' | 'web'>('android')
+  const [platform, setPlatform] = useState<PushClientProfile>('android')
   const channel = Form.useWatch('channel', form) || 'sms'
   const sourceTemplate = template || fromTemplate
 
@@ -104,7 +107,7 @@ const MessageTemplateDrawer: React.FC<MessageTemplateDrawerProps> = ({
   }, [defaultLanguage, workspace.settings?.languages])
 
   const initialValues = useMemo<MessageTemplateFormValues>(() => {
-    const existingChannel: MessageChannel = sourceTemplate?.channel === 'push' ? 'push' : 'sms'
+    const existingChannel: MessageChannel = sourceTemplate?.channel === 'push' ? 'push' : defaultChannel || 'sms'
     const translations: Record<string, TranslationFormValue> = {}
     for (const [language, translation] of Object.entries(sourceTemplate?.translations || {})) {
       translations[language] = {
@@ -129,7 +132,7 @@ const MessageTemplateDrawer: React.FC<MessageTemplateDrawerProps> = ({
       test_data: JSON.stringify(sourceTemplate?.test_data || {}, null, 2),
       translations
     }
-  }, [fromTemplate, sourceTemplate, template])
+  }, [defaultChannel, fromTemplate, sourceTemplate, template])
 
   const buildPayload = (values: MessageTemplateFormValues) => {
     const translations: Record<string, TemplateTranslation> = {}
@@ -209,7 +212,7 @@ const MessageTemplateDrawer: React.FC<MessageTemplateDrawerProps> = ({
         push: payload.push,
         translations: payload.translations,
         language: previewLanguage,
-        platform: payload.channel === 'push' ? platform : undefined,
+        platform: payload.channel === 'push' ? (platform === 'ios' || platform === 'web' ? platform : 'android') : undefined,
         test_data: payload.test_data
       } as PreviewTemplateRequest)
     },

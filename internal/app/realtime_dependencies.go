@@ -114,19 +114,41 @@ func (d *RealtimeDependencies) Shutdown(ctx context.Context) error {
 		if cancel != nil {
 			cancel()
 		}
+
+		closed := make(chan error, 1)
+		go func() {
+			var closeErr error
+			for index := len(d.components) - 1; index >= 0; index-- {
+				if err := d.components[index].Close(); err != nil {
+					closeErr = errors.Join(closeErr, fmt.Errorf("close %s: %w", d.components[index].Name(), err))
+				}
+			}
+			closed <- closeErr
+		}()
+
 		waited := make(chan struct{})
 		go func() {
 			d.wait.Wait()
 			close(waited)
 		}()
-		select {
-		case <-waited:
-		case <-ctx.Done():
-			shutdownErr = errors.Join(shutdownErr, ctx.Err())
-		}
-		for index := len(d.components) - 1; index >= 0; index-- {
-			if err := d.components[index].Close(); err != nil {
-				shutdownErr = errors.Join(shutdownErr, fmt.Errorf("close %s: %w", d.components[index].Name(), err))
+
+		for {
+			select {
+			case err := <-closed:
+				shutdownErr = errors.Join(shutdownErr, err)
+				closed = nil
+			case <-waited:
+				if closed != nil {
+					select {
+					case err := <-closed:
+						shutdownErr = errors.Join(shutdownErr, err)
+					default:
+					}
+				}
+				return
+			case <-ctx.Done():
+				shutdownErr = errors.Join(shutdownErr, ctx.Err())
+				return
 			}
 		}
 	})

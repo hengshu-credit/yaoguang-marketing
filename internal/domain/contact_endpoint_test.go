@@ -80,3 +80,21 @@ func TestContactEndpointMutationRejectsInvalidSMSPhone(t *testing.T) {
 	}).Validate()
 	assert.EqualError(t, err, "twilio sms address must be in E.164 format")
 }
+
+func TestContactEndpointMutationValidateSignedWebhookChannel(t *testing.T) {
+	endpoint, err := (ContactEndpointMutation{
+		Operation: EndpointOperationUpsert, EndpointID: "telegram-1",
+		Channel: "telegram", Provider: EndpointProviderChannelWebhook,
+		Platform: "telegram_mobile", Address: "chat-123", Locale: "kk-KZ",
+	}).Validate()
+	require.NoError(t, err)
+	assert.Equal(t, "telegram", endpoint.Channel)
+	assert.Equal(t, "chat-123", endpoint.Address)
+
+	_, err = (ContactEndpointMutation{
+		Operation: EndpointOperationUpsert, EndpointID: "bad",
+		Channel: "telegram", Provider: EndpointProviderChannelWebhook,
+		Platform: "whatsapp_web", Address: "chat",
+	}).Validate()
+	assert.ErrorContains(t, err, "platform whatsapp_web is not supported by channel telegram")
+}

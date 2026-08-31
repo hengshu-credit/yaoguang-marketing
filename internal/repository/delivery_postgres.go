@@ -229,6 +229,25 @@ func (r *DeliveryPostgresRepository) GetIntentByEffectKey(ctx context.Context, w
 	return &intent, nil
 }
 
+func (r *DeliveryPostgresRepository) SuppressIntent(ctx context.Context, workspaceID, intentID string, expected domain.DeliveryStatus, reason string, occurredAt time.Time) (bool, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return false, err
+	}
+	result, err := db.ExecContext(ctx, `UPDATE delivery_intents
+		SET status = $3, suppression_reason = $4, updated_at = $5
+		WHERE id = $1 AND status = $2`,
+		intentID, expected, domain.DeliveryStatusSuppressed, reason, occurredAt.UTC())
+	if err != nil {
+		return false, fmt.Errorf("suppress delivery intent: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return rows == 1, nil
+}
+
 func (r *DeliveryPostgresRepository) ResolveCustomerID(ctx context.Context, workspaceID, email string) (string, error) {
 	db, err := r.getDB(ctx, workspaceID)
 	if err != nil {

@@ -468,8 +468,28 @@ export interface GetNodeStatsResponse {
   node_stats: Record<string, AutomationNodeStats>
 }
 
+export interface AutomationAudienceRunResult {
+  automation_id: string
+  audience_id: string
+  audience_version: number
+  build_id: string
+  candidate_count: number
+  enrolled_count: number
+}
+
 // API client
 export const automationApi = {
+	startAudience: async (
+		workspaceId: string,
+		automationId: string,
+		audienceId: string
+	): Promise<AutomationAudienceRunResult> => {
+		const response = await api.post<AutomationAudienceRunResult | { run: AutomationAudienceRunResult }>(
+			'/api/automations.startAudience',
+			{ workspace_id: workspaceId, automation_id: automationId, audience_id: audienceId }
+		)
+		return 'run' in response ? response.run : response
+	},
   list: async (params: ListAutomationsRequest): Promise<ListAutomationsResponse> => {
     const searchParams = new URLSearchParams()
     searchParams.append('workspace_id', params.workspace_id)

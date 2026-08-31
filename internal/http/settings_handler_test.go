@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/service"
@@ -560,6 +561,39 @@ func TestSettingsHandler_Update_Success(t *testing.T) {
 	assert.Equal(t, "465", settingRepo.settings["smtp_port"])
 	assert.Equal(t, "true", settingRepo.settings["telemetry_enabled"])
 	assert.Equal(t, "true", settingRepo.settings["check_for_updates"])
+}
+
+func TestSettingsHandler_UpdateUsesBoundedShutdownContext(t *testing.T) {
+	handler, settingRepo, _, _ := setupSettingsHandler(t)
+	shutdowner := &contextCapturingShutdowner{contexts: make(chan context.Context, 1)}
+	handler.app = shutdowner
+
+	ctx := context.Background()
+	_ = settingRepo.Set(ctx, "is_installed", "true")
+	_ = settingRepo.Set(ctx, "root_email", testRootEmail)
+
+	body, err := json.Marshal(SystemSettingsData{
+		RootEmail:     testRootEmail,
+		APIEndpoint:   "https://new-api.example.com",
+		SMTPHost:      "smtp.example.com",
+		SMTPPort:      587,
+		SMTPFromEmail: "noreply@example.com",
+	})
+	require.NoError(t, err)
+	req := httptest.NewRequest(http.MethodPost, "/api/settings.update", bytes.NewReader(body))
+	req = reqWithUserContext(req, "root-user-id")
+	w := httptest.NewRecorder()
+	handler.handleUpdate(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	select {
+	case shutdownCtx := <-shutdowner.contexts:
+		deadline, ok := shutdownCtx.Deadline()
+		require.True(t, ok, "configuration reload shutdown must be bounded")
+		assert.WithinDuration(t, time.Now().Add(15*time.Second), deadline, 2*time.Second)
+	case <-time.After(2 * time.Second):
+		t.Fatal("configuration reload shutdown was not requested")
+	}
 }
 
 func TestSettingsHandler_Update_MaskedPasswordRetainsExisting(t *testing.T) {

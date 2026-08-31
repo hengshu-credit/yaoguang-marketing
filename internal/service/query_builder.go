@@ -187,6 +187,61 @@ func (qb *QueryBuilder) BuildSQL(tree *domain.TreeNode) (string, []interface{}, 
 	return sql, args, nil
 }
 
+// BuildCustomerIDSQL compiles a condition tree into the authoritative Customer IDs
+// represented by legacy contact rows. placeholderOffset is the number of parameters
+// already owned by an outer query, so the returned SQL can be embedded safely in an
+// Audience expression without renumbering placeholders after the fact.
+func (qb *QueryBuilder) BuildCustomerIDSQL(tree *domain.TreeNode, placeholderOffset int) (string, []interface{}, error) {
+	if tree == nil {
+		return "", nil, fmt.Errorf("tree cannot be nil")
+	}
+	if placeholderOffset < 0 {
+		return "", nil, fmt.Errorf("placeholder offset cannot be negative")
+	}
+	if err := tree.Validate(); err != nil {
+		return "", nil, fmt.Errorf("invalid tree: %w", err)
+	}
+
+	condition, args, _, err := qb.parseNode(tree, placeholderOffset+1)
+	if err != nil {
+		return "", nil, err
+	}
+	if condition == "" {
+		return "", nil, fmt.Errorf("condition tree produced no predicate")
+	}
+	return "SELECT DISTINCT contacts.customer_id FROM contacts WHERE contacts.customer_id IS NOT NULL AND " + condition, args, nil
+}
+
+// BuildCustomerMatchSQL compiles the same condition semantics as
+// BuildCustomerIDSQL, narrowed to one Customer. The returned args contain the
+// condition values only; the caller appends the Customer ID for the final
+// placeholder in the returned SQL.
+func (qb *QueryBuilder) BuildCustomerMatchSQL(tree *domain.TreeNode, placeholderOffset int) (string, []interface{}, error) {
+	if tree == nil {
+		return "", nil, fmt.Errorf("tree cannot be nil")
+	}
+	if placeholderOffset < 0 {
+		return "", nil, fmt.Errorf("placeholder offset cannot be negative")
+	}
+	if err := tree.Validate(); err != nil {
+		return "", nil, fmt.Errorf("invalid tree: %w", err)
+	}
+
+	condition, args, nextPlaceholder, err := qb.parseNode(tree, placeholderOffset+1)
+	if err != nil {
+		return "", nil, err
+	}
+	if condition == "" {
+		return "", nil, fmt.Errorf("condition tree produced no predicate")
+	}
+	query := fmt.Sprintf(
+		"SELECT EXISTS (SELECT 1 FROM contacts WHERE contacts.customer_id = $%d AND %s)",
+		nextPlaceholder,
+		condition,
+	)
+	return query, args, nil
+}
+
 // parseNode recursively parses a tree node
 func (qb *QueryBuilder) parseNode(node *domain.TreeNode, argIndex int) (string, []interface{}, int, error) {
 	switch node.Kind {

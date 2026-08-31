@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -386,17 +385,6 @@ func (s *BroadcastService) ScheduleBroadcast(ctx context.Context, request *domai
 			s.logger.Error("Cannot schedule broadcast with non-draft status")
 			return err
 		}
-		if (bcast.Audience.List != "" || bcast.Audience.AudienceID != "") && bcast.Audience.CampaignRunID == "" {
-			if s.campaigns == nil {
-				return errors.New("campaign snapshot service is unavailable")
-			}
-			run, prepareErr := s.campaigns.PrepareBroadcast(ctx, request.WorkspaceID, bcast)
-			if prepareErr != nil {
-				return fmt.Errorf("prepare immutable campaign audience: %w", prepareErr)
-			}
-			bcast.Audience.CampaignRunID = run.ID
-		}
-
 		// Fetch global feed if configured
 		if bcast.DataFeed != nil && bcast.DataFeed.GlobalFeed != nil && bcast.DataFeed.GlobalFeed.Enabled {
 			// Get list information for the payload

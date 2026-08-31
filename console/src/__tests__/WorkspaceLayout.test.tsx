@@ -174,13 +174,13 @@ describe('WorkspaceLayout product navigation', () => {
     expect(document.querySelector('.workspace-sider-nav .ant-menu-item')?.textContent).toBe('Data Analytics')
   })
 
-  it('links the audiences navigation item directly to lists', async () => {
+  it('links the audiences navigation item to the condition audience workspace', async () => {
     render(<WorkspaceLayout />)
 
     const audienceEntry = await screen.findByText('Audiences')
     expect(audienceEntry.closest('a')).toHaveAttribute(
       'data-to',
-      '/console/workspace/$workspaceId/lists'
+      '/console/workspace/$workspaceId/audiences'
     )
   })
 

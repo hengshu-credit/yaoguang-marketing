@@ -81,8 +81,8 @@ msgstr "（空）"
 
 #. placeholder {0}: record.email.reply_to
 #. placeholder {0}: templateSender?.name || defaultSender?.name
-#: src/components/templates/TemplatePreviewDrawer.tsx:307
-#: src/components/templates/TemplatePreviewDrawer.tsx:343
+#: src/components/templates/TemplatePreviewDrawer.tsx:327
+#: src/components/templates/TemplatePreviewDrawer.tsx:363
 msgid "(original: {0})"
 msgstr "(原文: {0})"
 
@@ -105,6 +105,12 @@ msgstr "{0} 条待确认"
 #: src/components/automations/JourneyPreflightPanel.tsx:167
 msgid "{0} blocking issue(s) must be fixed."
 msgstr "必须修复 {0} 个阻断问题。"
+
+#. placeholder {0}: result.candidate_count
+#. placeholder {1}: result.enrolled_count
+#: src/components/automations/AutomationAudienceRunModal.tsx:82
+msgid "{0} candidates, {1} enrolled"
+msgstr "{0} 位候选客户，{1} 位已进入流程"
 
 #. placeholder {0}: delivery.confirmed.toLocaleString()
 #. placeholder {1}: delivery.failed.toLocaleString()
@@ -296,7 +302,7 @@ msgstr "有 {0} 个警告需要确认。"
 
 #. placeholder {0}: range[0]
 #. placeholder {1}: range[1]
-#: src/pages/AutomationsPage.tsx:244
+#: src/pages/AutomationsPage.tsx:259
 msgid "{0}-{1} of {total} automations"
 msgstr "{0}-{1}，共 {total} 个自动化流程"
 
@@ -366,6 +372,10 @@ msgstr "{opens} 打开 {recipients} 收件人"
 #: src/components/timeline/ContactTimeline.tsx:836
 msgid "{pageviews} pages"
 msgstr "{pageviews} 页次"
+
+#: src/components/audiences/AudienceDrawer.tsx:162
+msgid "{previewTotal} customers match"
+msgstr "匹配 {previewTotal} 位客户"
 
 #: src/components/timeline/ContactTimeline.tsx:414
 msgid "{propertyCount} properties"
@@ -459,7 +469,7 @@ msgstr "+ 从名称、CC、BCC、回复、附件中添加"
 msgid "+ Add property filter"
 msgstr "+ 添加属性过滤器"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:767
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:819
 msgid "+ Add variation"
 msgstr "+ 添加变异"
 
@@ -492,7 +502,7 @@ msgstr "1个目标"
 msgid "1 page"
 msgstr "1页"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:499
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:519
 msgid "1. Audience"
 msgstr "1. 受众"
 
@@ -513,7 +523,7 @@ msgstr "2. 模板"
 msgid "2. Template ({0})"
 msgstr "2. 模板({0})"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:503
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:523
 msgid "2. Web Analytics"
 msgstr "2. 网站分析"
 
@@ -521,7 +531,7 @@ msgstr "2. 网站分析"
 msgid "200 - Extra Light"
 msgstr "200 - 额外光线"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:507
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:527
 msgid "3. Data Feeds"
 msgstr "3. 数据源"
 
@@ -533,7 +543,7 @@ msgstr "3. 翻译"
 msgid "300 - Light"
 msgstr "300 - 轻"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:511
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:531
 msgid "4. Content"
 msgstr "4. 内容"
 
@@ -597,8 +607,12 @@ msgid "A segment with ID \"{id}\" already exists"
 msgstr "ID 为“{id}”的细分群体已存在"
 
 #: src/services/api/permissions.ts:684
-msgid "A send-only key can cause real delivery through email, SMS and push providers. /api/channelMessages.send requires an existing contact and encrypted endpoint, and its effect key prevents an identical retry from sending twice. /api/transactional.send still creates an email recipient contact, while cc or bcc additionally needs Contacts read and writing contact fields additionally needs Contacts write."
-msgstr "仅具有发送权限的密钥就能通过邮件、短信和推送服务商产生真实投递。/api/channelMessages.send 需要已存在的联系人和已加密的端点，其幂等键可防止完全相同的重试重复发送。/api/transactional.send 仍会创建邮件收件人联系人；设置 cc 或 bcc 还需要“联系人”读取权限，写入联系人字段还需要“联系人”写入权限。"
+#~ msgid "A send-only key can cause real delivery through email, SMS and push providers. /api/channelMessages.send requires an existing contact and encrypted endpoint, and its effect key prevents an identical retry from sending twice. /api/transactional.send still creates an email recipient contact, while cc or bcc additionally needs Contacts read and writing contact fields additionally needs Contacts write."
+#~ msgstr "仅具有发送权限的密钥就能通过邮件、短信和推送服务商产生真实投递。/api/channelMessages.send 需要已存在的联系人和已加密的端点，其幂等键可防止完全相同的重试重复发送。/api/transactional.send 仍会创建邮件收件人联系人；设置 cc 或 bcc 还需要“联系人”读取权限，写入联系人字段还需要“联系人”写入权限。"
+
+#: src/services/api/permissions.ts:684
+msgid "A send-only key can cause real delivery through email, SMS, push, and signed channel Webhook providers. /api/channelMessages.send requires an existing contact and encrypted endpoint, and its effect key prevents an identical retry from sending twice. /api/transactional.send still creates an email recipient contact, while cc or bcc additionally needs Contacts read and writing contact fields additionally needs Contacts write."
+msgstr "仅具有发送权限的密钥就能通过邮件、短信、推送和签名渠道 Webhook 产生真实投递。/api/channelMessages.send 需要已存在的联系人和已加密的端点，其幂等键可防止完全相同的重试重复发送。/api/transactional.send 仍会创建邮件收件人联系人；设置 cc 或 bcc 还需要“联系人”读取权限，写入联系人字段还需要“联系人”写入权限。"
 
 #: src/components/segment/button_upsert.tsx:759
 msgid "A tree is required"
@@ -641,7 +655,7 @@ msgstr "接受邀请"
 msgid "Accepted by provider"
 msgstr "服务商已接收"
 
-#: src/components/settings/Integrations.tsx:1856
+#: src/components/settings/Integrations.tsx:1872
 msgid "Access Key"
 msgstr "访问密钥"
 
@@ -653,7 +667,7 @@ msgstr "行动"
 
 #: src/components/blog/PostsTable.tsx:296
 #: src/components/blog/RecentThemesTable.tsx:179
-#: src/components/customers/CustomerImportPanel.tsx:156
+#: src/components/customers/CustomerImportPanel.tsx:158
 #: src/pages/BroadcastsPage.tsx:939
 msgid "Actions"
 msgstr "行动"
@@ -681,7 +695,7 @@ msgstr "启用检查"
 
 #: src/components/automations/JourneyPreflightPanel.tsx:89
 #: src/components/automations/JourneyPreflightPanel.tsx:94
-#: src/pages/AutomationsPage.tsx:269
+#: src/pages/AutomationsPage.tsx:284
 msgid "Activation preflight"
 msgstr "启用前检查"
 
@@ -720,9 +734,9 @@ msgid "Activity timeline"
 msgstr "活动时间线"
 
 #: src/components/blog/AuthorsTable.tsx:138
-#: src/components/broadcasts/HeadersEditor.tsx:54
-#: src/components/broadcasts/HeadersEditor.tsx:102
-#: src/components/customers/CustomerProfilePanel.tsx:143
+#: src/components/broadcasts/HeadersEditor.tsx:72
+#: src/components/broadcasts/HeadersEditor.tsx:120
+#: src/components/customers/CustomerProfilePanel.tsx:165
 #: src/components/segment/input_json_path.tsx:98
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:109
@@ -793,6 +807,15 @@ msgstr "在区域中添加块"
 msgid "Add block in wrapper"
 msgstr "在包装中添加块"
 
+#: src/components/templates/OmnichannelFields.tsx:58
+msgid "Add card"
+msgstr "添加卡片"
+
+#: src/components/integrations/ChannelWebhookIntegration.tsx:81
+#: src/components/integrations/ChannelWebhookIntegration.tsx:96
+msgid "Add Channel Webhook"
+msgstr "添加渠道 Webhook"
+
 #: src/components/email_builder/blocks/MjAttributesBlock.tsx:17
 msgid "Add child elements for specific components (mj-text, mj-button, etc.) to set their default values."
 msgstr "为特定组件(mj-text,mj-按钮等)添加子元素以设定其默认值."
@@ -827,12 +850,12 @@ msgid "Add Custom Field Label"
 msgstr "添加自定义字段标签"
 
 #: src/components/broadcasts/HeadersEditor.tsx:90
-msgid "Add custom header"
-msgstr "添加自定义标题"
+#~ msgid "Add custom header"
+#~ msgstr "添加 Header"
 
 #: src/components/broadcasts/HeadersEditor.tsx:95
-msgid "Add Custom Header"
-msgstr "添加自定义信头"
+#~ msgid "Add Custom Header"
+#~ msgstr "添加 Header"
 
 #: src/components/web_analytics/explore/DimensionSelector.tsx:230
 msgid "Add dimension"
@@ -850,11 +873,16 @@ msgstr "添加筛选条件"
 msgid "Add filter conditions"
 msgstr "添加过滤条件"
 
-#: src/components/customers/CustomerImportPanel.tsx:84
+#: src/components/broadcasts/HeadersEditor.tsx:108
+#: src/components/broadcasts/HeadersEditor.tsx:113
+msgid "Add Header"
+msgstr "添加 Header"
+
+#: src/components/customers/CustomerImportPanel.tsx:86
 msgid "Add imported customers to lists"
 msgstr "将导入的客户添加到名单"
 
-#: src/components/settings/Integrations.tsx:2633
+#: src/components/settings/Integrations.tsx:2651
 msgid "Add Integration"
 msgstr "添加集成"
 
@@ -876,7 +904,7 @@ msgstr "添加节点"
 msgid "Add notes about this version..."
 msgstr "添加此版本的注释..."
 
-#: src/components/settings/Integrations.tsx:2367
+#: src/components/settings/Integrations.tsx:2383
 msgid "Add one or more email senders. The first sender will be used as the default."
 msgstr "添加一个或多个邮件发件人。首个发件人将作为默认发件人。"
 
@@ -884,17 +912,21 @@ msgstr "添加一个或多个邮件发件人。首个发件人将作为默认发
 msgid "Add operation"
 msgstr "添加操作"
 
+#: src/components/templates/OmnichannelFields.tsx:35
+msgid "Add parameter"
+msgstr "添加参数"
+
 #: src/components/segment/input_json_path.tsx:110
 msgid "Add path"
 msgstr "添加路径"
 
-#: src/components/customers/CustomerProfilePanel.tsx:132
+#: src/components/customers/CustomerProfilePanel.tsx:146
 msgid "Add profile attribute"
 msgstr "添加客户属性"
 
-#: src/components/settings/Integrations.tsx:2326
-#: src/components/settings/Integrations.tsx:2382
-#: src/components/settings/Integrations.tsx:2677
+#: src/components/settings/Integrations.tsx:2342
+#: src/components/settings/Integrations.tsx:2398
+#: src/components/settings/Integrations.tsx:2695
 msgid "Add Sender"
 msgstr "添加发件人"
 
@@ -1045,7 +1077,7 @@ msgstr "对齐"
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:118
 #: src/components/web_analytics/tabs/FiltersTab.tsx:146
 #: src/pages/BroadcastsPage.tsx:1581
-#: src/pages/TemplatesPage.tsx:125
+#: src/pages/TemplatesPage.tsx:127
 msgid "All"
 msgstr "全部"
 
@@ -1057,6 +1089,10 @@ msgstr "ALL"
 #: src/pages/BroadcastsPage.tsx:237
 msgid "All {0} emails have been processed."
 msgstr "全体 {0} 邮件已经处理。"
+
+#: src/components/templates/ChannelPicker.tsx:53
+msgid "All channels"
+msgstr "全部渠道"
 
 #: src/components/broadcasts/BroadcastLinkStats.tsx:177
 msgid "All click events, including repeat clicks. May be inflated by bots and prefetching."
@@ -1082,7 +1118,7 @@ msgstr "选择所有尺寸"
 msgid "All emails have been sent."
 msgstr "所有邮件都已发送。"
 
-#: src/components/settings/Integrations.tsx:437
+#: src/components/settings/Integrations.tsx:440
 msgid "All marketing emails (broadcasts, campaigns) will be sent through this provider from now on."
 msgstr "所有营销邮件(群发,运动)从现在开始都会通过这个供应商发送."
 
@@ -1100,7 +1136,7 @@ msgstr "各方"
 msgid "All time"
 msgstr "永远"
 
-#: src/components/settings/Integrations.tsx:456
+#: src/components/settings/Integrations.tsx:459
 msgid "All transactional emails (notifications, password resets, etc.) will be sent through this provider from now on."
 msgstr "此后所有事务邮件（通知、密码重置等）都将通过此服务商发送。"
 
@@ -1111,6 +1147,10 @@ msgstr "所有工作区覆盖项都将恢复为内置默认值。"
 #: src/pages/SetupWizard.tsx:523
 msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 msgstr "允许接收邮件来触发事务通知。需要 TLS 证书。"
+
+#: src/components/integrations/ChannelWebhookIntegration.tsx:101
+msgid "Allowed channels"
+msgstr "允许的渠道"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:256
 #: src/components/settings/WebAnalyticsSettings.tsx:315
@@ -1151,7 +1191,7 @@ msgstr "总是为更好的兼容性提供倒置字体"
 msgid "Always set to the specified value"
 msgstr "总是设置到指定的值"
 
-#: src/components/settings/Integrations.tsx:220
+#: src/components/settings/Integrations.tsx:223
 msgid "Amazon SES (inbound-smtp.<region>.amazonaws.com, in a region that supports email receiving)"
 msgstr "Amazon SES (输入声)<region>. amazonaws.com, 在一个支持邮件接收的区域)."
 
@@ -1269,8 +1309,8 @@ msgstr "随时"
 msgid "API Command"
 msgstr "API 命令"
 
-#: src/components/settings/Integrations.tsx:2088
-#: src/components/settings/Integrations.tsx:2470
+#: src/components/settings/Integrations.tsx:2104
+#: src/components/settings/Integrations.tsx:2486
 #: src/components/settings/SystemSettingsDrawer.tsx:277
 #: src/pages/SetupWizard.tsx:329
 msgid "API Endpoint"
@@ -1290,23 +1330,23 @@ msgstr "API 密钥"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:84
 #: src/components/integrations/LLMIntegration.tsx:175
-#: src/components/settings/Integrations.tsx:1641
-#: src/components/settings/Integrations.tsx:1692
-#: src/components/settings/Integrations.tsx:2101
-#: src/components/settings/Integrations.tsx:2139
-#: src/components/settings/Integrations.tsx:2140
-#: src/components/settings/Integrations.tsx:2157
-#: src/components/settings/Integrations.tsx:2158
-#: src/components/settings/Integrations.tsx:2179
+#: src/components/settings/Integrations.tsx:1657
+#: src/components/settings/Integrations.tsx:1708
+#: src/components/settings/Integrations.tsx:2117
+#: src/components/settings/Integrations.tsx:2155
+#: src/components/settings/Integrations.tsx:2156
+#: src/components/settings/Integrations.tsx:2173
+#: src/components/settings/Integrations.tsx:2174
+#: src/components/settings/Integrations.tsx:2195
 #: src/components/settings/WorkspaceMembers.tsx:116
 msgid "API Key"
 msgstr "API 密钥"
 
-#: src/components/settings/Integrations.tsx:2180
+#: src/components/settings/Integrations.tsx:2196
 msgid "API Key (starts with SG.)"
 msgstr "API Key(从SG开始)."
 
-#: src/components/settings/Integrations.tsx:1759
+#: src/components/settings/Integrations.tsx:1775
 msgid "API key address"
 msgstr "API 密钥地址"
 
@@ -1407,15 +1447,15 @@ msgstr "您确定要删除此帖子"
 msgid "Are you sure you want to delete this block?"
 msgstr "您确定要删除此块吗 ?"
 
-#: src/components/broadcasts/HeadersEditor.tsx:63
+#: src/components/broadcasts/HeadersEditor.tsx:81
 msgid "Are you sure you want to delete this header?"
-msgstr "您确定要删除此信头吗 ?"
+msgstr "确定删除这个 Header 吗？"
 
 #: src/components/automations/nodes/BaseNode.tsx:49
 msgid "Are you sure you want to delete this node?"
 msgstr "您确定要删除此节点吗 ?"
 
-#: src/pages/TemplatesPage.tsx:406
+#: src/pages/TemplatesPage.tsx:371
 msgid "Are you sure you want to delete this template?"
 msgstr "您确定要删除此模板吗 ?"
 
@@ -1451,7 +1491,7 @@ msgstr "您确定要删除此自定义字段标签吗 ?"
 msgid "Are you sure you want to remove this field?"
 msgstr "您确定要删除此字段吗 ?"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:737
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:789
 msgid "Are you sure you want to remove this variation?"
 msgstr "您确定要删除此变异吗 ?"
 
@@ -1522,7 +1562,7 @@ msgstr "附录"
 msgid "Attempts"
 msgstr "尝试"
 
-#: src/components/customers/CustomerProfilePanel.tsx:140
+#: src/components/customers/CustomerProfilePanel.tsx:162
 msgid "Attribute name"
 msgstr "属性名称"
 
@@ -1540,6 +1580,10 @@ msgstr "归因规则"
 msgid "Audience"
 msgstr "客群"
 
+#: src/components/audiences/AudienceDrawer.tsx:137
+msgid "Audience name"
+msgstr "客群名称"
+
 #: src/components/automations/JourneyCreateWizard.tsx:145
 msgid "Audience notification"
 msgstr "客群通知"
@@ -1547,6 +1591,14 @@ msgstr "客群通知"
 #: src/components/automations/JourneyCreateWizard.tsx:148
 msgid "Audience notification journey"
 msgstr "客群通知自动化旅程"
+
+#: src/pages/AudiencesPage.tsx:44
+msgid "Audience segmentation"
+msgstr "客群划分"
+
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:546
+msgid "Audience source"
+msgstr "客群来源"
 
 #: src/layouts/WorkspaceLayout.tsx:257
 msgid "Audiences"
@@ -1558,7 +1610,7 @@ msgid "Auth Email"
 msgstr "Auth 邮件"
 
 #: src/components/integrations/SupabaseIntegration.tsx:139
-#: src/components/settings/Integrations.tsx:1466
+#: src/components/settings/Integrations.tsx:1482
 msgid "Auth Email Hook"
 msgstr "Auth 邮件 Hook"
 
@@ -1566,7 +1618,7 @@ msgstr "Auth 邮件 Hook"
 msgid "Auth Email Hook Secret"
 msgstr "Auth 邮件 Hook 机密"
 
-#: src/components/settings/Integrations.tsx:2408
+#: src/components/settings/Integrations.tsx:2424
 msgid "Authentication"
 msgstr "认证"
 
@@ -1574,7 +1626,7 @@ msgstr "认证"
 msgid "Authentication email sent via Supabase"
 msgstr "认证邮件通过 Supabase"
 
-#: src/components/settings/Integrations.tsx:1896
+#: src/components/settings/Integrations.tsx:1912
 msgid "Authentication Type"
 msgstr "认证类型"
 
@@ -1623,7 +1675,7 @@ msgstr "自动复制"
 msgid "Auto-send Winner"
 msgstr "自动发送胜者"
 
-#: src/components/settings/Integrations.tsx:1541
+#: src/components/settings/Integrations.tsx:1557
 msgid "Auto-subscribe to Lists"
 msgstr "自动订阅列表"
 
@@ -1631,7 +1683,7 @@ msgstr "自动订阅列表"
 msgid "Automatically add new users to the selected lists"
 msgstr "自动将新用户添加到选中的列表"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:656
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:708
 msgid "Automatically send winner"
 msgstr "自动发送赢家"
 
@@ -1639,7 +1691,7 @@ msgstr "自动发送赢家"
 msgid "Automation"
 msgstr "自动化"
 
-#: src/pages/AutomationsPage.tsx:285
+#: src/pages/AutomationsPage.tsx:300
 msgid "Automation activated successfully"
 msgstr "成功启动自动化"
 
@@ -1647,7 +1699,7 @@ msgstr "成功启动自动化"
 msgid "Automation created successfully"
 msgstr "成功创建自动化"
 
-#: src/pages/AutomationsPage.tsx:129
+#: src/pages/AutomationsPage.tsx:138
 msgid "Automation deleted successfully"
 msgstr "自动删除成功"
 
@@ -1663,7 +1715,7 @@ msgstr "自动化旅程"
 msgid "Automation Journeys"
 msgstr "营销自动化"
 
-#: src/pages/AutomationsPage.tsx:114
+#: src/pages/AutomationsPage.tsx:123
 msgid "Automation paused successfully"
 msgstr "自动暂停成功"
 
@@ -1681,7 +1733,7 @@ msgstr "自动化:触发器标识"
 
 #: src/components/settings/PermissionsMatrix.tsx:127
 #: src/components/settings/UITranslationsSettings.tsx:110
-#: src/pages/AutomationsPage.tsx:172
+#: src/pages/AutomationsPage.tsx:181
 #: src/services/api/errors.ts:222
 msgid "Automations"
 msgstr "自动化"
@@ -1710,16 +1762,16 @@ msgstr "阿凡达 URL"
 msgid "Avoid special characters that might not display properly"
 msgstr "避免可能不正确显示的特殊字符"
 
-#: src/components/settings/Integrations.tsx:1853
+#: src/components/settings/Integrations.tsx:1869
 msgid "AWS Access Key"
 msgstr "AWS 访问密钥"
 
-#: src/components/settings/Integrations.tsx:1794
-#: src/components/settings/Integrations.tsx:2431
+#: src/components/settings/Integrations.tsx:1810
+#: src/components/settings/Integrations.tsx:2447
 msgid "AWS Region"
 msgstr "AWS 地区"
 
-#: src/components/settings/Integrations.tsx:1858
+#: src/components/settings/Integrations.tsx:1874
 msgid "AWS Secret Key"
 msgstr "AWS 密钥"
 
@@ -1786,7 +1838,7 @@ msgid "Background Type"
 msgstr "背景类型"
 
 #: src/components/integrations/LLMIntegration.tsx:214
-#: src/components/settings/Integrations.tsx:1635
+#: src/components/settings/Integrations.tsx:1651
 msgid "Base URL"
 msgstr "基础 URL"
 
@@ -1810,7 +1862,7 @@ msgstr "Base64 编码的 TLS 私钥"
 msgid "Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0"
 msgstr "Base64 编码的 TLS 私钥。运行：cat privkey.pem | base64 -w 0"
 
-#: src/components/settings/Integrations.tsx:1901
+#: src/components/settings/Integrations.tsx:1917
 msgid "Basic Authentication (Username/Password)"
 msgstr "基本认证(用户名/密码)"
 
@@ -1822,7 +1874,7 @@ msgstr "基本情况"
 msgid "Batch import"
 msgstr "批量导入"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:377
+#: src/components/templates/TemplatePreviewDrawer.tsx:397
 msgid "BCC"
 msgstr "BCC"
 
@@ -1840,16 +1892,12 @@ msgstr "在此之前"
 msgid "before date"
 msgstr "日期之前"
 
-#: src/components/settings/Integrations.tsx:1503
+#: src/components/settings/Integrations.tsx:1519
 msgid "Before User Created Hook"
 msgstr "在用户创建 Hook 之前"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:536
 msgid "Belonging to at least one of the following segments"
 msgstr "属于以下至少一个细分群体"
-
-#~ msgid "Belonging to at least one of the following segments"
-#~ msgstr "属于以下至少一个细分群体"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:480
 msgid "Best and worst pages"
@@ -1910,7 +1958,7 @@ msgstr "块类型 :"
 msgid "Blocking"
 msgstr "阻断"
 
-#: src/pages/TemplatesPage.tsx:132
+#: src/pages/TemplatesPage.tsx:134
 msgid "Blocklist"
 msgstr "块状"
 
@@ -1934,7 +1982,7 @@ msgstr "博客分类,帖子和主题,加上工作区级博客配置."
 
 #: src/components/navigation/WorkspaceSectionTabs.tsx:73
 msgid "Blog Content"
-msgstr "Blog 内容"
+msgstr "文章管理"
 
 #: src/components/blog/RecentThemesTable.tsx:77
 msgid "Blog custom endpoint URL is not configured"
@@ -2030,14 +2078,14 @@ msgstr "左下边"
 msgid "Bottom Right"
 msgstr "右下边"
 
-#: src/components/settings/Integrations.tsx:265
+#: src/components/settings/Integrations.tsx:268
 msgid "bounce"
 msgstr "弹跳"
 
 #: src/components/timeline/ContactTimeline.tsx:653
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:189
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:72
-#: src/pages/TemplatesPage.tsx:131
+#: src/pages/TemplatesPage.tsx:133
 msgid "Bounce"
 msgstr "弹跳"
 
@@ -2202,7 +2250,7 @@ msgstr "群发 \"{0}\" 计划成功"
 msgid "Broadcast \"{0}\" sending started"
 msgstr "群发 \"{0}\" 发送开始"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:148
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:157
 msgid "Broadcast created successfully"
 msgstr "群发成功创建"
 
@@ -2215,11 +2263,11 @@ msgstr "群发 ID"
 msgid "Broadcast ID copied to clipboard"
 msgstr "群发ID 复制到剪贴板"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:520
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:540
 msgid "Broadcast name"
 msgstr "群发名称"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:148
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:157
 msgid "Broadcast updated successfully"
 msgstr "群发成功更新"
 
@@ -2351,6 +2399,7 @@ msgstr "本活动限制"
 msgid "Campaigns"
 msgstr "营销活动"
 
+#: src/components/audiences/AudienceDrawer.tsx:122
 #: src/components/automations/AutomationCard.tsx:157
 #: src/components/automations/AutomationCard.tsx:236
 #: src/components/automations/config/ConditionsField.tsx:120
@@ -2365,9 +2414,9 @@ msgstr "营销活动"
 #: src/components/blog/ThemeEditorDrawer.tsx:280
 #: src/components/blog/ThemeEditorDrawer.tsx:310
 #: src/components/blog/ThemeEditorDrawer.tsx:469
-#: src/components/broadcasts/HeadersEditor.tsx:103
+#: src/components/broadcasts/HeadersEditor.tsx:121
 #: src/components/broadcasts/SendOrScheduleModal.tsx:334
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:322
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:333
 #: src/components/contacts/BulkActionProgressModal.tsx:60
 #: src/components/contacts/BulkUpdateDrawer.tsx:576
 #: src/components/contacts/ContactDetailsDrawer.tsx:1114
@@ -2378,9 +2427,9 @@ msgstr "营销活动"
 #: src/components/contacts/ExportContactsModal.tsx:314
 #: src/components/contacts/InlineEditableField.tsx:291
 #: src/components/contacts/InlineEditableField.tsx:299
-#: src/components/customers/CustomerProfilePanel.tsx:46
-#: src/components/customers/CustomerProfilePanel.tsx:122
-#: src/components/customers/CustomerProfilePanel.tsx:144
+#: src/components/customers/CustomerProfilePanel.tsx:48
+#: src/components/customers/CustomerProfilePanel.tsx:136
+#: src/components/customers/CustomerProfilePanel.tsx:166
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:155
 #: src/components/email_builder/panels/Preview.tsx:182
 #: src/components/email_builder/ui/BlockToolbar.tsx:210
@@ -2403,13 +2452,13 @@ msgstr "营销活动"
 #: src/components/settings/BlogSettings.tsx:206
 #: src/components/settings/CustomFieldsConfiguration.tsx:291
 #: src/components/settings/EditPermissionsDrawer.tsx:80
-#: src/components/settings/Integrations.tsx:2551
-#: src/components/settings/Integrations.tsx:2682
-#: src/components/settings/Integrations.tsx:2717
-#: src/components/settings/Integrations.tsx:2764
-#: src/components/settings/Integrations.tsx:2812
-#: src/components/settings/Integrations.tsx:2859
-#: src/components/settings/Integrations.tsx:2896
+#: src/components/settings/Integrations.tsx:2567
+#: src/components/settings/Integrations.tsx:2700
+#: src/components/settings/Integrations.tsx:2735
+#: src/components/settings/Integrations.tsx:2782
+#: src/components/settings/Integrations.tsx:2830
+#: src/components/settings/Integrations.tsx:2877
+#: src/components/settings/Integrations.tsx:2914
 #: src/components/settings/SystemSettingsDrawer.tsx:170
 #: src/components/settings/UITranslationsSettings.tsx:361
 #: src/components/settings/WebhookCard.tsx:430
@@ -2436,7 +2485,7 @@ msgstr "营销活动"
 #: src/pages/BroadcastsPage.tsx:1017
 #: src/pages/BroadcastsPage.tsx:1733
 #: src/pages/ListsPage.tsx:307
-#: src/pages/TemplatesPage.tsx:414
+#: src/pages/TemplatesPage.tsx:379
 #: src/pages/TransactionalNotificationsPage.tsx:149
 msgid "Cancel"
 msgstr "取消"
@@ -2461,7 +2510,7 @@ msgstr "取消群发"
 msgid "Cancel broadcast?"
 msgstr "取消群发?"
 
-#: src/components/customers/CustomerImportPanel.tsx:136
+#: src/components/customers/CustomerImportPanel.tsx:138
 msgid "Cancel import"
 msgstr "取消导入"
 
@@ -2479,6 +2528,10 @@ msgstr "取消上传吗 ?"
 #: src/pages/DeliveryCenterPage.tsx:58
 msgid "Cancelled"
 msgstr "已取消"
+
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:601
+msgid "Candidates do not change after the campaign starts"
+msgstr "营销活动启动后候选客户不再变化"
 
 #: src/components/automations/context/AutomationContext.tsx:140
 msgid "Cannot remove list while email nodes exist. Delete email nodes first."
@@ -2501,7 +2554,11 @@ msgstr "目录 URL"
 msgid "Capitalize"
 msgstr "资本化"
 
-#: src/components/blog/BlogSidebar.tsx:96
+#: src/components/templates/OmnichannelFields.tsx:54
+msgid "Card"
+msgstr "卡片"
+
+#: src/components/blog/BlogPageHeader.tsx:7
 msgid "Categories"
 msgstr "类别"
 
@@ -2511,8 +2568,9 @@ msgstr "类别"
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:75
 #: src/components/templates/CreateTemplateDrawer.tsx:292
 #: src/components/templates/CreateTemplateDrawer.tsx:1030
-#: src/components/templates/MessageTemplateDrawer.tsx:390
-#: src/pages/TemplatesPage.tsx:242
+#: src/components/templates/MessageTemplateDrawer.tsx:393
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:214
+#: src/pages/TemplatesPage.tsx:238
 msgid "Category"
 msgstr "分类"
 
@@ -2533,7 +2591,7 @@ msgstr "成功更新分类"
 msgid "Category:"
 msgstr "类别 :"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:365
+#: src/components/templates/TemplatePreviewDrawer.tsx:385
 msgid "CC"
 msgstr "CC"
 
@@ -2605,7 +2663,8 @@ msgstr "变化状况 {0}"
 #: src/components/delivery/DeliveryFiltersBar.tsx:37
 #: src/components/errors/ActionableError.tsx:35
 #: src/components/messages/MessageHistoryTab.tsx:217
-#: src/components/templates/MessageTemplateDrawer.tsx:378
+#: src/components/templates/MessageTemplateDrawer.tsx:381
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:213
 #: src/components/web_analytics/explore/BreakdownModal.tsx:63
 #: src/components/web_analytics/explore/DimensionSelector.tsx:97
 #: src/components/web_analytics/FilterBuilder.tsx:55
@@ -2614,6 +2673,10 @@ msgstr "变化状况 {0}"
 #: src/pages/DeliveryCenterPage.tsx:121
 msgid "Channel"
 msgstr "渠道"
+
+#: src/components/integrations/ChannelWebhookIntegration.tsx:80
+msgid "Channel delivery Webhooks"
+msgstr "渠道投递 Webhook"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:185
 #: src/components/web_analytics/tabs/DashboardTab.tsx:176
@@ -2626,6 +2689,18 @@ msgstr "频道组"
 msgid "Channel groups"
 msgstr "频道组"
 
+#: src/components/templates/ChannelPicker.tsx:34
+msgid "Channel scope"
+msgstr "渠道范围"
+
+#: src/components/integrations/ChannelWebhookIntegration.tsx:69
+msgid "Channel Webhook created"
+msgstr "渠道 Webhook 已创建"
+
+#: src/components/integrations/ChannelWebhookIntegration.tsx:69
+msgid "Channel Webhook updated"
+msgstr "渠道 Webhook 已更新"
+
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:55
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:178
 #: src/components/web_analytics/tabs/DashboardTab.tsx:169
@@ -2634,7 +2709,7 @@ msgstr "频道组"
 msgid "Channels"
 msgstr "渠道管理"
 
-#: src/components/templates/ChannelMessagePreview.tsx:47
+#: src/components/templates/ChannelMessagePreview.tsx:49
 msgid "characters"
 msgstr "字符"
 
@@ -2662,6 +2737,10 @@ msgstr "请检查网络连接后重试。"
 #: src/components/automations/JourneyPreflightPanel.tsx:109
 msgid "Checking journey..."
 msgstr "正在检查自动化旅程..."
+
+#: src/components/templates/UnifiedTemplateActions.tsx:58
+msgid "Choose a channel"
+msgstr "选择渠道"
 
 #: src/components/automations/JourneyCreateWizard.tsx:275
 msgid "Choose a goal and starting template"
@@ -2742,7 +2821,7 @@ msgstr "点击邮件"
 msgid "Click for options"
 msgstr "点击选项"
 
-#: src/components/customers/CustomerImportPanel.tsx:118
+#: src/components/customers/CustomerImportPanel.tsx:120
 msgid "Click or drag a CSV file here"
 msgstr "点击或拖拽 CSV 文件到此处"
 
@@ -2755,11 +2834,11 @@ msgstr "点击或将 CSV 文件拖到此区域以上传"
 msgid "Click rate"
 msgstr "点击率"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:54
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:56
 msgid "Click Rate"
 msgstr "点击率"
 
-#: src/components/settings/Integrations.tsx:240
+#: src/components/settings/Integrations.tsx:243
 msgid "Click Register Webhooks to set up reply forwarding, then point your domain's MX records at {mxTarget}."
 msgstr "点击注册 Webhooks 设置回复转发,然后将您的域名的MX记录指向 {mxTarget}."
 
@@ -2810,11 +2889,16 @@ msgstr "客户身份"
 msgid "Client ID is required"
 msgstr "必须填写客户端 ID"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:236
+#: src/components/templates/OmnichannelPreview.tsx:27
+#: src/components/templates/OmnichannelPreview.tsx:29
+msgid "Client preview"
+msgstr "客户端预览"
+
+#: src/components/templates/TemplatePreviewDrawer.tsx:258
 msgid "Client Preview"
 msgstr "客户端预览"
 
-#: src/components/settings/Integrations.tsx:2028
+#: src/components/settings/Integrations.tsx:2044
 #: src/components/settings/SystemSettingsDrawer.tsx:582
 #: src/pages/SetupWizard.tsx:673
 msgid "Client Secret"
@@ -2824,14 +2908,14 @@ msgstr "客户端机密"
 msgid "Client Secret is required"
 msgstr "需要客户端保密"
 
-#: src/components/settings/Integrations.tsx:1994
+#: src/components/settings/Integrations.tsx:2010
 msgid "Client Secret Value"
 msgstr "客户端秘密值"
 
 #: src/components/templates/TemplateSelectorInput.tsx:239
 #: src/components/templates/TemplateSelectorInput.tsx:241
-msgid "Clone"
-msgstr "克隆"
+#~ msgid "Clone"
+#~ msgstr "克隆"
 
 #: src/components/email_builder/ui/BlockToolbar.tsx:152
 msgid "Clone Block"
@@ -2843,13 +2927,14 @@ msgstr "克隆邮件模板"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:260
 #: src/components/templates/CreateTemplateDrawer.tsx:780
-#: src/pages/TemplatesPage.tsx:357
+#: src/pages/TemplatesPage.tsx:338
 msgid "Clone Template"
 msgstr "克隆模板"
 
+#: src/components/automations/AutomationAudienceRunModal.tsx:63
 #: src/components/blog/ThemeEditorDrawer.tsx:279
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:40
-#: src/components/broadcasts/GlobalFeedSettings.tsx:137
+#: src/components/broadcasts/GlobalFeedSettings.tsx:138
 #: src/components/contacts/BulkActionProgressModal.tsx:65
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:825
 #: src/components/settings/WebhookCard.tsx:447
@@ -2871,7 +2956,7 @@ msgid "Closed Captions (CC)"
 msgstr "结案说明(CC)"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:678
-#: src/pages/TemplatesPage.tsx:235
+#: src/pages/TemplatesPage.tsx:231
 msgid "Code"
 msgstr "代码"
 
@@ -2926,7 +3011,7 @@ msgstr "逗号分隔值"
 msgid "Comma-separated. Only these domains may auto-create accounts."
 msgstr "逗号分离. 只有这些域可以自动创建账户 。"
 
-#: src/components/settings/Integrations.tsx:1877
+#: src/components/settings/Integrations.tsx:1893
 #: src/components/settings/SystemSettingsDrawer.tsx:341
 #: src/pages/SetupWizard.tsx:406
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
@@ -2979,7 +3064,7 @@ msgstr "投诉邮件"
 msgid "Complained"
 msgstr "申诉"
 
-#: src/components/settings/Integrations.tsx:269
+#: src/components/settings/Integrations.tsx:272
 msgid "complaint"
 msgstr "申诉"
 
@@ -2999,10 +3084,14 @@ msgstr "申诉"
 msgid "Complement, don't repeat the subject line"
 msgstr "补充,不要重复主题行"
 
-#: src/components/customers/CustomerImportPanel.tsx:108
+#: src/components/customers/CustomerImportPanel.tsx:110
 #: src/pages/BroadcastsPage.tsx:242
 msgid "Complete"
 msgstr "完成"
+
+#: src/components/audiences/AudienceDrawer.tsx:165
+msgid "Complete a condition to preview the audience size"
+msgstr "完成一个筛选条件后即可预览客群人数"
 
 #: src/pages/SetupWizard.tsx:738
 msgid "Complete Setup"
@@ -3012,7 +3101,8 @@ msgstr "完成初始化"
 msgid "Complete the condition to refresh the count"
 msgstr "完成刷新数的条件"
 
-#: src/components/templates/MessageTemplateDrawer.tsx:257
+#: src/components/templates/MessageTemplateDrawer.tsx:260
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:161
 msgid "Complete the required fields before previewing."
 msgstr "在预览前完成所需的字段 。"
 
@@ -3057,8 +3147,8 @@ msgstr "条件"
 msgid "Configuration for {nodeType} is not available in Phase 2"
 msgstr "配置用于 {nodeType} 在第二阶段没有"
 
-#: src/components/settings/Integrations.tsx:2223
-#: src/components/settings/Integrations.tsx:2434
+#: src/components/settings/Integrations.tsx:2239
+#: src/components/settings/Integrations.tsx:2450
 msgid "Configuration set"
 msgstr "配置集"
 
@@ -3070,8 +3160,8 @@ msgstr "配置集"
 #: src/components/automations/nodes/RemoveFromListNode.tsx:52
 #: src/components/automations/nodes/TriggerNode.tsx:72
 #: src/components/automations/nodes/WebhookNode.tsx:55
-#: src/components/settings/Integrations.tsx:1267
-#: src/components/settings/Integrations.tsx:1315
+#: src/components/settings/Integrations.tsx:1283
+#: src/components/settings/Integrations.tsx:1331
 msgid "Configure"
 msgstr "配置"
 
@@ -3120,10 +3210,10 @@ msgstr "为您的博客配置造型和 SEO 设置 。 这些设置将应用于�
 msgid "Configure the trigger"
 msgstr "配置触发器"
 
-#: src/components/settings/Integrations.tsx:1470
-#: src/components/settings/Integrations.tsx:1507
-#: src/components/settings/Integrations.tsx:1643
-#: src/components/settings/Integrations.tsx:1694
+#: src/components/settings/Integrations.tsx:1486
+#: src/components/settings/Integrations.tsx:1523
+#: src/components/settings/Integrations.tsx:1659
+#: src/components/settings/Integrations.tsx:1710
 msgid "Configured"
 msgstr "已配置"
 
@@ -3158,21 +3248,21 @@ msgstr "确认处理结果"
 msgid "Confirmed"
 msgstr "确认"
 
-#: src/components/settings/Integrations.tsx:1360
+#: src/components/settings/Integrations.tsx:1376
 msgid "Connect"
 msgstr "连接"
 
-#: src/components/settings/Integrations.tsx:2626
+#: src/components/settings/Integrations.tsx:2642
 msgid "Connect and manage external services"
 msgstr "连接并管理外部服务"
 
-#: src/components/settings/Integrations.tsx:2885
+#: src/components/settings/Integrations.tsx:2903
 #: src/components/settings/ZapierSettings.tsx:286
 msgid "Connect Zapier"
 msgstr "连接 Zapier"
 
 #: src/components/automations/AutomationNodeList.tsx:32
-#: src/components/settings/Integrations.tsx:1764
+#: src/components/settings/Integrations.tsx:1780
 msgid "Connected"
 msgstr "已连接"
 
@@ -3193,11 +3283,11 @@ msgstr "连续交付失败 : {consecutiveFailures}"
 msgid "Consent"
 msgstr "授权同意"
 
-#: src/components/settings/Integrations.tsx:2655
+#: src/components/settings/Integrations.tsx:2673
 msgid "Consider connecting a marketing email provider to send newsletters, promotional campaigns, and announcements to engage with your audience."
 msgstr "建议连接营销邮件服务商，用于发送简报、推广活动和公告，与受众保持互动。"
 
-#: src/components/settings/Integrations.tsx:2650
+#: src/components/settings/Integrations.tsx:2668
 msgid "Consider connecting a transactional email provider to be able to use transactional emails for account notifications, password resets, and other important system messages."
 msgstr "建议连接事务邮件服务商，用于发送账户通知、密码重置和其他重要系统消息。"
 
@@ -3233,7 +3323,7 @@ msgstr "联系方式"
 msgid "Contact Email"
 msgstr "联系人邮件"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:154
+#: src/components/broadcasts/RecipientFeedSettings.tsx:155
 msgid "Contact email (leave empty for random)"
 msgstr "联系人邮件( 留空用于随机)"
 
@@ -3323,7 +3413,9 @@ msgstr "集装箱铺设"
 msgid "contains"
 msgstr "包含"
 
-#: src/pages/TemplatesPage.tsx:271
+#: src/components/broadcasts/HeadersEditor.tsx:58
+#: src/components/broadcasts/HeadersEditor.tsx:139
+#: src/pages/TemplatesPage.tsx:268
 msgid "Content"
 msgstr "内容"
 
@@ -3331,6 +3423,10 @@ msgstr "内容"
 #: src/layouts/WorkspaceLayout.tsx:291
 msgid "Content Center"
 msgstr "素材模板"
+
+#: src/components/broadcasts/HeadersEditor.tsx:140
+msgid "Content is required"
+msgstr "请输入内容"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:62
 msgid "Content quality by traffic source"
@@ -3344,13 +3440,27 @@ msgstr "内容结构"
 msgid "Content Structure Tree"
 msgstr "内容结构树"
 
+#: src/components/templates/OmnichannelFields.tsx:43
+msgid "Content type"
+msgstr "内容类型"
+
 #: src/components/web_analytics/tabs/DashboardTab.tsx:193
 msgid "Contents"
 msgstr "目录"
 
-#: src/components/customers/CustomerImportPanel.tsx:107
+#: src/components/customers/CustomerImportPanel.tsx:109
 msgid "Continue after this page closes"
 msgstr "关闭此页面后继续处理"
+
+#. placeholder {0}: definition.label_key
+#: src/components/templates/UnifiedTemplateActions.tsx:64
+#: src/components/templates/UnifiedTemplateActions.tsx:66
+msgid "Continue with {0}"
+msgstr "继续使用 {0}"
+
+#: src/components/templates/UnifiedTemplateActions.tsx:62
+msgid "Continue with Email"
+msgstr "继续创建邮件模板"
 
 #: src/components/seo/SEOSettingsForm.tsx:74
 #: src/components/seo/SEOSettingsForm.tsx:188
@@ -3384,8 +3494,8 @@ msgid "Copied"
 msgstr "复制"
 
 #: src/components/common/CodeSnippet.tsx:93
-#: src/components/settings/Integrations.tsx:1491
-#: src/components/settings/Integrations.tsx:1528
+#: src/components/settings/Integrations.tsx:1507
+#: src/components/settings/Integrations.tsx:1544
 #: src/components/settings/WebhookCard.tsx:369
 #: src/components/settings/ZapierSettings.tsx:193
 #: src/components/settings/ZapierSettings.tsx:259
@@ -3406,8 +3516,8 @@ msgstr "复制到剪贴板"
 msgid "Copy URL"
 msgstr "复制 URL"
 
-#: src/components/settings/Integrations.tsx:1480
-#: src/components/settings/Integrations.tsx:1517
+#: src/components/settings/Integrations.tsx:1496
+#: src/components/settings/Integrations.tsx:1533
 msgid "Copy Webhook endpoint"
 msgstr "复制 Webhook 端点"
 
@@ -3527,7 +3637,7 @@ msgstr "创建 {channelLabel} 模板"
 msgid "Create a blog category"
 msgstr "创建博客分类"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:381
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:392
 #: src/services/api/permissions.ts:578
 msgid "Create a broadcast"
 msgstr "创建群发"
@@ -3584,7 +3694,7 @@ msgstr "创建自动化, 包括 Webhook、 邮件和列表节点"
 msgid "Create an email template"
 msgstr "创建邮件模板"
 
-#: src/components/settings/Integrations.tsx:1066
+#: src/components/settings/Integrations.tsx:1082
 msgid "Create an SES tenant for this integration?"
 msgstr "是否为此集成创建 SES 租户？"
 
@@ -3600,15 +3710,21 @@ msgstr "创建 API 密钥"
 
 #: src/components/automations/UpsertAutomationDrawer.tsx:154
 #: src/components/automations/UpsertAutomationDrawer.tsx:318
-#: src/pages/AutomationsPage.tsx:188
+#: src/pages/AutomationsPage.tsx:203
 msgid "Create Automation"
 msgstr "创建自动化"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:377
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:388
 #: src/pages/BroadcastsPage.tsx:1564
 #: src/pages/BroadcastsPage.tsx:1702
 msgid "Create Broadcast"
 msgstr "创建群发"
+
+#: src/components/audiences/AudienceDrawer.tsx:117
+#: src/pages/AudiencesPage.tsx:54
+#: src/pages/AudiencesPage.tsx:63
+msgid "Create dynamic audience"
+msgstr "创建动态客群"
 
 #: src/components/blog/RecentThemesTable.tsx:213
 msgid "Create First Theme"
@@ -3618,7 +3734,7 @@ msgstr "创建第一个主题"
 msgid "Create List"
 msgstr "创建列表"
 
-#: src/components/templates/MessageTemplateDrawer.tsx:337
+#: src/components/templates/MessageTemplateDrawer.tsx:340
 msgid "Create message template"
 msgstr "创建信件模板"
 
@@ -3626,10 +3742,15 @@ msgstr "创建信件模板"
 msgid "Create my own"
 msgstr "创建我自己"
 
-#. placeholder {0}: category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')
+#. placeholder {0}: channel.toUpperCase()
+#: src/components/templates/TemplateSelectorInput.tsx:183
+#: src/components/templates/TemplateSelectorInput.tsx:233
+msgid "Create new {0} template"
+msgstr "创建新的 {0} 模板"
+
 #: src/components/templates/TemplateSelectorInput.tsx:279
-msgid "Create New {0} Template"
-msgstr "创建新 {0} 模板"
+#~ msgid "Create New {0} Template"
+#~ msgstr "创建新 {0} 模板"
 
 #: src/components/blog/CategoryDrawer.tsx:101
 msgid "Create New Category"
@@ -3648,8 +3769,8 @@ msgid "Create New Post"
 msgstr "创建新邮件"
 
 #: src/components/templates/TemplateSelectorInput.tsx:280
-msgid "Create New Template"
-msgstr "创建新模板"
+#~ msgid "Create New Template"
+#~ msgstr "创建新模板"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:305
 #: src/components/blog/ThemeSelectionModal.tsx:42
@@ -3667,6 +3788,10 @@ msgstr "创建新主题 - {0}"
 msgid "Create Notification"
 msgstr "创建通知"
 
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:195
+msgid "Create omnichannel template"
+msgstr "创建全渠道模板"
+
 #: src/services/api/permissions.ts:258
 msgid "Create or update one Customer profile with an idempotency key"
 msgstr "使用幂等键创建或更新单个客户档案"
@@ -3680,20 +3805,25 @@ msgstr "创建可复用的客群，并实时监控人数。"
 msgid "Create rule"
 msgstr "创建规则"
 
-#: src/components/templates/MessageTemplateDrawer.tsx:334
+#: src/components/templates/MessageTemplateDrawer.tsx:337
 msgid "Create SMS / Push"
 msgstr "创建短信 / 推送"
+
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:193
+#: src/components/templates/UnifiedTemplateActions.tsx:57
+msgid "Create template"
+msgstr "创建模板"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:260
 #: src/components/templates/CreateTemplateDrawer.tsx:780
 msgid "Create Template"
 msgstr "创建模板"
 
-#: src/components/settings/Integrations.tsx:1068
+#: src/components/settings/Integrations.tsx:1084
 msgid "Create tenant"
 msgstr "创建租户"
 
-#: src/components/settings/Integrations.tsx:1989
+#: src/components/settings/Integrations.tsx:2005
 msgid "Create this in Azure Portal > App registrations > Your App > Certificates & secrets"
 msgstr "在 Azure 门户网站 > App 注册 > Your App > 证书和机密中创建此选项"
 
@@ -3710,11 +3840,11 @@ msgstr "创建 Webhook"
 msgid "Create Workspace"
 msgstr "创建工作区"
 
-#: src/pages/AutomationsPage.tsx:215
+#: src/pages/AutomationsPage.tsx:230
 msgid "Create your first automation"
 msgstr "创建您的第一个自动化"
 
-#: src/pages/BlogPage.tsx:151
+#: src/pages/BlogPage.tsx:149
 msgid "Create your first blog post to get started"
 msgstr "创建您第一个启动的博客文章"
 
@@ -3722,7 +3852,7 @@ msgstr "创建您第一个启动的博客文章"
 msgid "Create your first broadcast to get started"
 msgstr "创建第一个群发以开始使用"
 
-#: src/pages/BlogPage.tsx:146
+#: src/pages/BlogPage.tsx:144
 msgid "Create Your First Category"
 msgstr "创建您的第一类"
 
@@ -3734,11 +3864,11 @@ msgstr "创建您要启动的第一个列表"
 msgid "Create your first notification to get started"
 msgstr "创建第一条通知以开始使用"
 
-#: src/pages/BlogPage.tsx:155
+#: src/pages/BlogPage.tsx:153
 msgid "Create Your First Post"
 msgstr "创建您的第一个邮箱"
 
-#: src/pages/TemplatesPage.tsx:520
+#: src/pages/TemplatesPage.tsx:474
 msgid "Create your first template to get started"
 msgstr "创建您启动的第一个模板"
 
@@ -3747,9 +3877,10 @@ msgid "created"
 msgstr "创建"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:80
+#: src/components/customers/CustomerProfilePanel.tsx:189
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:418
 #: src/pages/DeliveryCenterPage.tsx:124
-#: src/pages/TemplatesPage.tsx:297
+#: src/pages/TemplatesPage.tsx:294
 msgid "Created"
 msgstr "已创建"
 
@@ -3810,7 +3941,7 @@ msgstr "当前"
 msgid "Current Segment Tree JSON"
 msgstr "当前段树 JSON"
 
-#: src/components/settings/Integrations.tsx:2439
+#: src/components/settings/Integrations.tsx:2455
 msgid "custom"
 msgstr "自定义"
 
@@ -3839,7 +3970,8 @@ msgstr "自定义 CSS"
 msgid "Custom CSS class for styling"
 msgstr "自定义用于样式的 CSS 类"
 
-#: src/components/templates/MessageTemplateDrawer.tsx:320
+#: src/components/templates/MessageTemplateDrawer.tsx:323
+#: src/components/templates/OmnichannelFields.tsx:75
 msgid "Custom data (JSON)"
 msgstr "自定义数据( JSON)"
 
@@ -3919,8 +4051,8 @@ msgid "Custom Fields"
 msgstr "自定义字段"
 
 #: src/components/broadcasts/HeadersEditor.tsx:34
-msgid "Custom header"
-msgstr "自定义信头"
+#~ msgid "Custom header"
+#~ msgstr "Headers"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:434
 msgid "Custom hostname used in SMTP EHLO/HELO command. Leave empty to use default."
@@ -4044,7 +4176,7 @@ msgstr "客户"
 msgid "Customer 360"
 msgstr "客户 360 视图"
 
-#: src/components/customers/CustomerImportPanel.tsx:75
+#: src/components/customers/CustomerImportPanel.tsx:77
 msgid "Customer CSV import"
 msgstr "客户 CSV 导入"
 
@@ -4065,7 +4197,7 @@ msgstr "客户 ID 或客户编号"
 msgid "Customer number"
 msgstr "客户编号"
 
-#: src/components/customers/CustomerProfilePanel.tsx:98
+#: src/components/customers/CustomerProfilePanel.tsx:109
 msgid "Customer profile"
 msgstr "客户档案"
 
@@ -4153,19 +4285,20 @@ msgid "Deduplication:"
 msgstr "复制 :"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:326
-#: src/components/templates/MessageTemplateDrawer.tsx:316
+#: src/components/templates/MessageTemplateDrawer.tsx:319
 msgid "Deep link"
 msgstr "深链接"
 
-#: src/components/templates/MessageTemplateDrawer.tsx:282
+#: src/components/templates/MessageTemplateDrawer.tsx:285
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:183
 #: src/components/templates/SendTemplateModal.tsx:66
-#: src/pages/TemplatesPage.tsx:265
+#: src/pages/TemplatesPage.tsx:262
 msgid "default"
 msgstr "默认"
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:232
 #: src/components/integrations/LLMIntegration.tsx:228
-#: src/components/settings/Integrations.tsx:396
+#: src/components/settings/Integrations.tsx:399
 #: src/components/settings/UITranslationsSettings.tsx:279
 msgid "Default"
 msgstr "默认"
@@ -4208,7 +4341,7 @@ msgstr "元描述默认值"
 msgid "Defaults to meta title"
 msgstr "默认元标题"
 
-#: src/components/settings/Integrations.tsx:2079
+#: src/components/settings/Integrations.tsx:2095
 #: src/pages/SetupWizard.tsx:466
 msgid "Defaults to SMTP host"
 msgstr "SMTP 主机的默认值"
@@ -4216,6 +4349,10 @@ msgstr "SMTP 主机的默认值"
 #: src/pages/DeliveryCenterPage.tsx:54
 msgid "Deferred"
 msgstr "已延后"
+
+#: src/pages/AudiencesPage.tsx:46
+msgid "Define reusable audiences from customer attributes, status, lists, activity, and goals."
+msgstr "根据客户属性、状态、名单、行为和目标事件定义可复用客群。"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:329
 msgid "Define UTM parameters for links in your email for better campaign tracking."
@@ -4240,11 +4377,11 @@ msgstr "延迟"
 #: src/components/file_manager/fileManager.tsx:778
 #: src/components/file_manager/fileManager.tsx:951
 #: src/components/segment/input.tsx:401
-#: src/components/settings/Integrations.tsx:366
-#: src/components/settings/Integrations.tsx:1449
-#: src/components/settings/Integrations.tsx:1608
-#: src/components/settings/Integrations.tsx:1677
-#: src/components/settings/Integrations.tsx:1741
+#: src/components/settings/Integrations.tsx:369
+#: src/components/settings/Integrations.tsx:1465
+#: src/components/settings/Integrations.tsx:1624
+#: src/components/settings/Integrations.tsx:1693
+#: src/components/settings/Integrations.tsx:1757
 #: src/components/settings/WebhookCard.tsx:263
 #: src/components/settings/WebhookCard.tsx:276
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:83
@@ -4395,8 +4532,12 @@ msgid "Delete folder (Read-only mode)"
 msgstr "删除文件夹( 只读模式)"
 
 #: src/components/broadcasts/HeadersEditor.tsx:62
-msgid "Delete header"
-msgstr "删除页眉"
+#~ msgid "Delete header"
+#~ msgstr "删除 Header"
+
+#: src/components/broadcasts/HeadersEditor.tsx:80
+msgid "Delete Header"
+msgstr "删除 Header"
 
 #: src/components/settings/WorkspaceMembers.tsx:235
 #: src/components/settings/WorkspaceMembers.tsx:242
@@ -4422,11 +4563,11 @@ msgstr "删除文章"
 msgid "Delete segment"
 msgstr "删除段"
 
-#: src/pages/TemplatesPage.tsx:393
+#: src/pages/TemplatesPage.tsx:358
 msgid "Delete Template"
 msgstr "删除模板"
 
-#: src/pages/TemplatesPage.tsx:403
+#: src/pages/TemplatesPage.tsx:368
 msgid "Delete template?"
 msgstr "删除模板吗 ?"
 
@@ -4438,14 +4579,14 @@ msgstr "删除通知?"
 msgid "Delete this condition?"
 msgstr "删除此条件吗 ?"
 
-#: src/components/settings/Integrations.tsx:1735
+#: src/components/settings/Integrations.tsx:1751
 msgid "Delete this connection?"
 msgstr "删除此连接 ?"
 
-#: src/components/settings/Integrations.tsx:360
-#: src/components/settings/Integrations.tsx:1443
-#: src/components/settings/Integrations.tsx:1602
-#: src/components/settings/Integrations.tsx:1671
+#: src/components/settings/Integrations.tsx:363
+#: src/components/settings/Integrations.tsx:1459
+#: src/components/settings/Integrations.tsx:1618
+#: src/components/settings/Integrations.tsx:1687
 msgid "Delete this integration?"
 msgstr "删除此集成？"
 
@@ -4458,7 +4599,7 @@ msgstr "删除此操作 ?"
 msgid "Delete this rule?"
 msgstr "删除此规则 ?"
 
-#: src/components/settings/Integrations.tsx:2346
+#: src/components/settings/Integrations.tsx:2362
 msgid "Delete this sender?"
 msgstr "删除此发件人吗 ?"
 
@@ -4491,7 +4632,7 @@ msgstr "删除 {deletedCount} 项目"
 msgid "Deleted {deletedCount}, failed {failedCount}"
 msgstr "删除 {deletedCount}失败 {failedCount}"
 
-#: src/components/settings/Integrations.tsx:1736
+#: src/components/settings/Integrations.tsx:1752
 msgid "Deleting revokes the API key this connection minted, so any Zap still using it stops working. This action cannot be undone."
 msgstr "删除可取消此连接的 API 密钥, 因此任何 Zap 仍然使用它 停止工作 。 这一行动不能取消。"
 
@@ -4499,7 +4640,11 @@ msgstr "删除可取消此连接的 API 密钥, 因此任何 Zap 仍然使用它
 msgid "Deleting this webhook breaks the Zap that created it. The Zap stays switched on in Zapier and reports no error — it simply stops receiving events."
 msgstr "删除此 Webhook 会使创建它的 Zap 失效。该 Zap 在 Zapier 中仍显示为启用且不会报错，但将停止接收事件。"
 
-#: src/components/settings/Integrations.tsx:261
+#: src/components/integrations/ChannelWebhookIntegration.tsx:80
+msgid "Deliver new messaging channels through a signed HTTPS bridge."
+msgstr "通过签名 HTTPS 网关投递新增消息渠道。"
+
+#: src/components/settings/Integrations.tsx:264
 #: src/components/timeline/ContactTimeline.tsx:575
 msgid "delivered"
 msgstr "已交付"
@@ -4573,6 +4718,7 @@ msgstr "请说明核实依据和处理原因"
 msgid "Describe this image..."
 msgstr "描述这个图像..."
 
+#: src/components/audiences/AudienceDrawer.tsx:140
 #: src/components/automations/NodeConfigPanel.tsx:216
 #: src/components/blog/CategoryDrawer.tsx:155
 #: src/components/lists/ListDrawer.tsx:206
@@ -4591,6 +4737,10 @@ msgstr "说明必须是 {MAX_DESCRIPTION_LENGTH} 字符或以下"
 msgid "Description when shared on social media (og:description)"
 msgstr "社交媒体共享时描述( og: description)"
 
+#: src/components/templates/EmailClientFrame.tsx:17
+msgid "Desktop email"
+msgstr "桌面端邮件"
+
 #: src/components/email_builder/panels/Preview.tsx:445
 msgid "Desktop view (100%)"
 msgstr "桌面视图 (100%)"
@@ -4608,7 +4758,7 @@ msgstr "从网站 URL 检测"
 msgid "Device"
 msgstr "设备"
 
-#: src/pages/TemplatesPage.tsx:252
+#: src/pages/TemplatesPage.tsx:248
 msgid "Device notification"
 msgstr "设备通知"
 
@@ -4665,7 +4815,7 @@ msgstr "禁用网点"
 
 #: src/components/settings/BlogSettings.tsx:235
 #: src/components/settings/GeneralSettings.tsx:166
-#: src/components/settings/Integrations.tsx:1569
+#: src/components/settings/Integrations.tsx:1585
 #: src/components/settings/WebAnalyticsSettings.tsx:251
 #: src/components/templates/TemplateTranslationsTab.tsx:204
 msgid "Disabled"
@@ -4757,8 +4907,8 @@ msgstr "您是否想要发送 \"{0}\" 即刻还是日后安排?"
 msgid "Documentation"
 msgstr "文档"
 
-#: src/components/settings/Integrations.tsx:2136
-#: src/components/settings/Integrations.tsx:2479
+#: src/components/settings/Integrations.tsx:2152
+#: src/components/settings/Integrations.tsx:2495
 #: src/pages/SetupWizard.tsx:545
 msgid "Domain"
 msgstr "域名"
@@ -4805,7 +4955,7 @@ msgstr "双切入模板"
 msgid "Download"
 msgstr "下载"
 
-#: src/components/customers/CustomerImportPanel.tsx:135
+#: src/components/customers/CustomerImportPanel.tsx:137
 msgid "Download failed rows"
 msgstr "下载失败行"
 
@@ -4825,6 +4975,10 @@ msgstr "下载 {0} 文件"
 msgid "Draft"
 msgstr "草案"
 
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:224
+msgid "Draft preview updates immediately. Server Liquid validation follows automatically."
+msgstr "草稿预览会立即更新，随后自动进行服务端 Liquid 校验。"
+
 #: src/components/blog/ThemeEditorDrawer.tsx:147
 msgid "Draft restored from local storage"
 msgstr "从本地存储恢复草稿"
@@ -4840,6 +4994,16 @@ msgstr "在树上拖动此块"
 #: src/components/file_manager/fileManager.tsx:1006
 msgid "Drop files here to upload"
 msgstr "在此丢弃文件上传"
+
+#: src/pages/AudiencesPage.tsx:73
+msgid "Dynamic"
+msgstr "动态"
+
+#: src/components/automations/AutomationAudienceRunModal.tsx:78
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:550
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:568
+msgid "Dynamic audience"
+msgstr "动态客群"
 
 #: src/components/customers/CustomerDrawer.tsx:95
 msgid "Dynamic audience memberships"
@@ -4894,7 +5058,7 @@ msgstr "例如,设置频道用于 Google 广告"
 msgid "e.g. sku"
 msgstr "例如,须"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:523
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:543
 msgid "E.g. Weekly Newsletter - May 2023"
 msgstr "例如,《每周通讯》----2023年5月"
 
@@ -4960,11 +5124,12 @@ msgstr "编辑"
 #: src/components/blog/PostsTable.tsx:349
 #: src/components/email_builder/EmailBuilder.tsx:839
 #: src/components/email_builder/ui/ImportFontInput.tsx:209
-#: src/components/settings/Integrations.tsx:350
-#: src/components/settings/Integrations.tsx:1433
-#: src/components/settings/Integrations.tsx:1592
-#: src/components/settings/Integrations.tsx:1661
-#: src/components/settings/Integrations.tsx:1725
+#: src/components/integrations/ChannelWebhookIntegration.tsx:87
+#: src/components/settings/Integrations.tsx:353
+#: src/components/settings/Integrations.tsx:1449
+#: src/components/settings/Integrations.tsx:1608
+#: src/components/settings/Integrations.tsx:1677
+#: src/components/settings/Integrations.tsx:1741
 #: src/components/settings/WebhookCard.tsx:283
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:91
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:154
@@ -4983,7 +5148,7 @@ msgstr "编辑 {0} 翻译"
 msgid "Edit {channelLabel} Template"
 msgstr "编辑 {channelLabel} 模板"
 
-#: src/components/customers/CustomerProfilePanel.tsx:62
+#: src/components/customers/CustomerProfilePanel.tsx:64
 msgid "Edit {label}"
 msgstr "编辑{label}"
 
@@ -5029,11 +5194,11 @@ msgstr "编辑作者"
 msgid "Edit Automation"
 msgstr "编辑自动化"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:381
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:392
 msgid "Edit broadcast"
 msgstr "编辑群发"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:377
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:388
 #: src/pages/BroadcastsPage.tsx:596
 msgid "Edit Broadcast"
 msgstr "编辑群发"
@@ -5041,6 +5206,10 @@ msgstr "编辑群发"
 #: src/components/blog/CategoryDrawer.tsx:101
 msgid "Edit Category"
 msgstr "编辑类别"
+
+#: src/components/integrations/ChannelWebhookIntegration.tsx:96
+msgid "Edit Channel Webhook"
+msgstr "编辑渠道 Webhook"
 
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:123
 msgid "Edit Content"
@@ -5076,7 +5245,7 @@ msgstr "编辑 Liquid 内容"
 msgid "Edit List"
 msgstr "编辑列表"
 
-#: src/components/templates/MessageTemplateDrawer.tsx:337
+#: src/components/templates/MessageTemplateDrawer.tsx:340
 msgid "Edit message template"
 msgstr "编辑信件模板"
 
@@ -5087,6 +5256,10 @@ msgstr "编辑通知"
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:197
 msgid "Edit Notification"
 msgstr "编辑通知"
+
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:195
+msgid "Edit omnichannel template"
+msgstr "编辑全渠道模板"
 
 #: src/components/settings/WorkspaceMembers.tsx:204
 msgid "Edit permissions"
@@ -5109,18 +5282,19 @@ msgstr "编辑规则"
 msgid "Edit segment"
 msgstr "编辑段"
 
-#: src/components/settings/Integrations.tsx:2677
+#: src/components/settings/Integrations.tsx:2695
 msgid "Edit Sender"
 msgstr "编辑发件人"
 
-#: src/components/customers/CustomerProfilePanel.tsx:115
+#: src/components/customers/CustomerProfilePanel.tsx:129
 msgid "Edit tags"
 msgstr "编辑标签"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:260
 #: src/components/templates/CreateTemplateDrawer.tsx:780
-#: src/components/templates/MessageTemplateDrawer.tsx:334
-#: src/pages/TemplatesPage.tsx:322
+#: src/components/templates/MessageTemplateDrawer.tsx:337
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:193
+#: src/pages/TemplatesPage.tsx:319
 msgid "Edit Template"
 msgstr "编辑模板"
 
@@ -5150,7 +5324,7 @@ msgstr "编辑值"
 msgid "Edit Webhook"
 msgstr "编辑 Webhook"
 
-#: src/components/settings/Integrations.tsx:2885
+#: src/components/settings/Integrations.tsx:2903
 msgid "Edit Zapier connection"
 msgstr "编辑 Zapier 连接"
 
@@ -5162,8 +5336,8 @@ msgstr "可编辑标记"
 msgid "Editor mode"
 msgstr "编辑器模式"
 
-#: src/components/settings/Integrations.tsx:2076
-#: src/components/settings/Integrations.tsx:2420
+#: src/components/settings/Integrations.tsx:2092
+#: src/components/settings/Integrations.tsx:2436
 #: src/components/settings/SystemSettingsDrawer.tsx:432
 #: src/pages/SetupWizard.tsx:463
 msgid "EHLO Hostname"
@@ -5177,7 +5351,7 @@ msgstr "倾斜"
 msgid "Element Padding"
 msgstr "元素铺设"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:581
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:633
 msgid "email"
 msgstr "邮件"
 
@@ -5199,7 +5373,7 @@ msgstr "邮件"
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
 #: src/components/frequency/FrequencyPolicyForm.tsx:85
 #: src/components/messages/MessageHistoryTab.tsx:219
-#: src/components/settings/Integrations.tsx:2692
+#: src/components/settings/Integrations.tsx:2710
 #: src/components/settings/WorkspaceMembers.tsx:101
 #: src/components/timeline/ContactTimeline.tsx:584
 #: src/pages/ContactsPage.tsx:369
@@ -5214,12 +5388,12 @@ msgid "Email (Required)"
 msgstr "邮件( 需要)"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:383
-#: src/components/settings/Integrations.tsx:1932
+#: src/components/settings/Integrations.tsx:1948
 #: src/components/settings/WorkspaceMembers.tsx:486
 msgid "Email Address"
 msgstr "邮件地址"
 
-#: src/components/settings/Integrations.tsx:1934
+#: src/components/settings/Integrations.tsx:1950
 msgid "Email address is required for OAuth2"
 msgstr "OAuth2 需要邮件地址"
 
@@ -5240,6 +5414,11 @@ msgstr "邮件已退信"
 msgid "Email Broadcast"
 msgstr "邮件群发"
 
+#: src/components/templates/EmailClientFrame.tsx:14
+#: src/components/templates/EmailClientFrame.tsx:15
+msgid "Email client preview"
+msgstr "邮件客户端预览"
+
 #: src/pages/ContactsPage.tsx:1001
 msgid "Email compatibility view"
 msgstr "邮箱联系人兼容视图"
@@ -5248,7 +5427,7 @@ msgstr "邮箱联系人兼容视图"
 msgid "Email field mapping is required"
 msgstr "需要邮件实地绘图"
 
-#: src/components/automations/config/EmailConfigForm.tsx:77
+#: src/components/automations/config/EmailConfigForm.tsx:79
 #: src/components/templates/SendTemplateModal.tsx:286
 msgid "Email Integration"
 msgstr "邮件集成"
@@ -5291,7 +5470,7 @@ msgstr "邮件选项 :"
 msgid "Email Preview"
 msgstr "邮件预览"
 
-#: src/components/settings/Integrations.tsx:2645
+#: src/components/settings/Integrations.tsx:2663
 msgid "Email Provider Configuration Needed"
 msgstr "需要配置邮件服务商"
 
@@ -5314,7 +5493,7 @@ msgstr "邮件主题"
 msgid "Email subject ({0})"
 msgstr "邮件主题{0})"
 
-#: src/components/automations/config/EmailConfigForm.tsx:65
+#: src/components/automations/config/EmailConfigForm.tsx:67
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:292
 msgid "Email Template"
 msgstr "邮件模板"
@@ -5345,13 +5524,13 @@ msgstr "邮件 :"
 msgid "Emails are being delivered. {0} sent, {1} remaining."
 msgstr "正在发送邮件。 {0} 发送 {1} 剩余。"
 
-#: src/components/settings/Integrations.tsx:2199
-#: src/components/settings/Integrations.tsx:2506
+#: src/components/settings/Integrations.tsx:2215
+#: src/components/settings/Integrations.tsx:2522
 msgid "emails per day"
 msgstr "每日邮件数"
 
-#: src/components/settings/Integrations.tsx:2198
-#: src/components/settings/Integrations.tsx:2505
+#: src/components/settings/Integrations.tsx:2214
+#: src/components/settings/Integrations.tsx:2521
 msgid "emails per hour"
 msgstr "每小时邮件数"
 
@@ -5363,7 +5542,7 @@ msgstr "Emoji建议"
 msgid "Empty column. Add text, button, or image content."
 msgstr "空栏. 添加文本、按钮或图像内容。"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:623
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:675
 msgid "Enable A/B Testing"
 msgstr "启用 A/B 测试"
 
@@ -5409,11 +5588,11 @@ msgstr "启用此规则 ?"
 msgid "Enable TLS encryption for SMTP connection"
 msgstr "启用 SMTP 连接的 TLS 加密"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:186
+#: src/components/broadcasts/GlobalFeedSettings.tsx:187
 msgid "Enable to fetch global data that will be available to all recipients in this broadcast. The data will be accessible in your templates using the \"global_feed\" variable."
 msgstr "启用以获取此群发中所有收件人可用的全局数据 。 这些数据将使用 \"global_feed\" 变量。"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:229
+#: src/components/broadcasts/RecipientFeedSettings.tsx:230
 msgid "Enable to fetch personalized data for each recipient before sending their email. The data will be accessible in your templates using the \"recipient_feed\" variable."
 msgstr "启用在发送邮件前获取每个收件人的个性化数据 。 这些数据将使用 \"recipient_feed\" 变量。"
 
@@ -5427,7 +5606,7 @@ msgstr "启用网点"
 
 #: src/components/settings/BlogSettings.tsx:230
 #: src/components/settings/GeneralSettings.tsx:161
-#: src/components/settings/Integrations.tsx:1565
+#: src/components/settings/Integrations.tsx:1581
 #: src/components/settings/SystemSettingsDrawer.tsx:459
 #: src/components/settings/SystemSettingsDrawer.tsx:543
 #: src/components/settings/WebAnalyticsSettings.tsx:246
@@ -5448,7 +5627,7 @@ msgstr "结束时间必须晚于开始时间"
 msgid "ended"
 msgstr "结束"
 
-#: src/components/automations/config/ChannelConfigForm.tsx:51
+#: src/components/automations/config/ChannelConfigForm.tsx:55
 msgid "Endpoint ID"
 msgstr "端点标识"
 
@@ -5481,7 +5660,7 @@ msgstr "输入 {0}"
 msgid "Enter a name for this block"
 msgstr "输入此块的名称"
 
-#: src/components/settings/Integrations.tsx:1789
+#: src/components/settings/Integrations.tsx:1805
 msgid "Enter a name for this integration"
 msgstr "输入此集成的名称"
 
@@ -5497,7 +5676,11 @@ msgstr "输入翻译，或选择“恢复默认”以使用默认值"
 msgid "Enter a unique alphanumeric ID"
 msgstr "输入唯一的字母数字 ID"
 
-#: src/components/settings/Integrations.tsx:2730
+#: src/components/integrations/ChannelWebhookIntegration.tsx:99
+msgid "Enter an absolute HTTPS URL"
+msgstr "请输入完整的 HTTPS URL"
+
+#: src/components/settings/Integrations.tsx:2748
 msgid "Enter an email address to receive a test email:"
 msgstr "输入接收测试邮件的邮件地址 :"
 
@@ -5748,7 +5931,7 @@ msgstr "错误"
 msgid "Error loading data"
 msgstr "加载数据时出错"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:421
+#: src/components/templates/TemplatePreviewDrawer.tsx:441
 msgid "Error loading preview"
 msgstr "加载预览时出错"
 
@@ -5839,7 +6022,7 @@ msgstr "每个“ set” 操作都需要一个值"
 msgid "Every domain"
 msgstr "每个域"
 
-#: src/components/customers/CustomerImportPanel.tsx:80
+#: src/components/customers/CustomerImportPanel.tsx:82
 msgid "Every row is recorded before processing. Existing list suppression states are preserved when imported customers are added to lists."
 msgstr "每一行都会在处理前记录。导入客户添加到名单时，会保留已有的名单抑制状态。"
 
@@ -5872,9 +6055,13 @@ msgstr "只摘录"
 msgid "Exclude Unsubscribed"
 msgstr "排除未订阅"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:557
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:609
 msgid "Exclude unsubscribed, bounced & complained recipients"
 msgstr "排除已退订、退信及投诉的收件人"
+
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:603
+msgid "Execution uses the audience's latest rule version, freezes matching candidates, and checks each customer again immediately before sending."
+msgstr "任务执行时使用客群最新规则冻结候选客户，并在实际发送前再次检查每位客户。"
 
 #: src/components/automations/UpsertAutomationDrawer.tsx:218
 msgid "Exit on reply"
@@ -5965,7 +6152,7 @@ msgstr "导出所有联系人"
 msgid "External ID"
 msgstr "外部标识"
 
-#: src/components/customers/CustomerProfilePanel.tsx:106
+#: src/components/customers/CustomerProfilePanel.tsx:120
 #: src/components/errors/ActionableError.tsx:33
 #: src/pages/CustomersPage.tsx:98
 msgid "External user ID"
@@ -5990,8 +6177,8 @@ msgstr "失败"
 #: src/components/contacts/BulkActionProgressModal.tsx:146
 #: src/components/contacts/BulkUpdateDrawer.tsx:695
 #: src/components/contacts/BulkUpdateDrawer.tsx:734
-#: src/components/customers/CustomerImportPanel.tsx:132
-#: src/components/customers/CustomerImportPanel.tsx:155
+#: src/components/customers/CustomerImportPanel.tsx:134
+#: src/components/customers/CustomerImportPanel.tsx:157
 #: src/components/messages/MessageHistoryTab.tsx:127
 #: src/components/messages/MessageHistoryTab.tsx:129
 #: src/components/messages/MessageHistoryTable.tsx:274
@@ -6010,7 +6197,7 @@ msgstr "失败"
 msgid "Failed permanently"
 msgstr "永久失败"
 
-#: src/components/customers/CustomerImportPanel.tsx:156
+#: src/components/customers/CustomerImportPanel.tsx:158
 msgid "Failed rows"
 msgstr "失败行"
 
@@ -6034,7 +6221,7 @@ msgstr "取消群发失败"
 msgid "Failed to clear field"
 msgstr "清除字段失败"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:200
+#: src/components/templates/TemplatePreviewDrawer.tsx:220
 msgid "Failed to compile template preview."
 msgstr "编译模板预览失败 。"
 
@@ -6061,7 +6248,7 @@ msgid "Failed to create automation: {0}"
 msgstr "创建自动化失败 : {0}"
 
 #. placeholder {0}: error.message
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:154
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:163
 msgid "Failed to create broadcast: {0}"
 msgstr "创建群发失败 : {0}"
 
@@ -6123,7 +6310,7 @@ msgstr "删除联系人失败"
 msgid "Failed to delete file: "
 msgstr "删除文件失败 : "
 
-#: src/components/settings/Integrations.tsx:1193
+#: src/components/settings/Integrations.tsx:1209
 msgid "Failed to delete integration"
 msgstr "删除集成失败"
 
@@ -6147,7 +6334,7 @@ msgstr "删除邮件失败"
 msgid "Failed to delete segment"
 msgstr "删除细分群体失败"
 
-#: src/pages/TemplatesPage.tsx:178
+#: src/pages/TemplatesPage.tsx:174
 msgid "Failed to delete template: {errorMsg}"
 msgstr "删除模板失败 : {errorMsg}"
 
@@ -6172,7 +6359,7 @@ msgstr "下载文件失败"
 msgid "Failed to download files"
 msgstr "下载文件失败"
 
-#: src/components/settings/Integrations.tsx:1107
+#: src/components/settings/Integrations.tsx:1123
 msgid "Failed to enable reputation isolation"
 msgstr "启用名声隔离失败"
 
@@ -6257,6 +6444,10 @@ msgstr "加载 Webhook 订阅失败"
 msgid "Failed to pause broadcast"
 msgstr "暂停群发失败"
 
+#: src/components/audiences/AudienceDrawer.tsx:72
+msgid "Failed to preview audience"
+msgstr "预览客群失败"
+
 #: src/components/segment/button_upsert.tsx:227
 msgid "Failed to preview segment"
 msgstr "预览段失败"
@@ -6297,7 +6488,7 @@ msgstr "刷新全局种子失败 : {0}"
 msgid "Failed to regenerate webhook secret"
 msgstr "重新生成 Webhook 秘密失败"
 
-#: src/components/settings/Integrations.tsx:201
+#: src/components/settings/Integrations.tsx:204
 msgid "Failed to register webhooks"
 msgstr "注册 webhooks 失败"
 
@@ -6325,6 +6516,14 @@ msgstr "验证码重新发送失败"
 msgid "Failed to resume broadcast"
 msgstr "恢复群发失败"
 
+#: src/components/audiences/AudienceDrawer.tsx:107
+msgid "Failed to save audience"
+msgstr "保存客群失败"
+
+#: src/components/integrations/ChannelWebhookIntegration.tsx:72
+msgid "Failed to save Channel Webhook"
+msgstr "保存渠道 Webhook 失败"
+
 #: src/components/contacts/ContactUpsertDrawer.tsx:323
 msgid "Failed to save contact"
 msgstr "保存联系人失败"
@@ -6337,7 +6536,7 @@ msgstr "保存联系人失败 。 请再试一次"
 msgid "Failed to save field"
 msgstr "保存字段失败"
 
-#: src/components/settings/Integrations.tsx:973
+#: src/components/settings/Integrations.tsx:989
 msgid "Failed to save Firecrawl integration"
 msgstr "保存 Firecrawl 集成失败"
 
@@ -6348,11 +6547,11 @@ msgstr "触达频控策略保存失败"
 #: src/components/integrations/FirecrawlIntegration.tsx:69
 #: src/components/integrations/LLMIntegration.tsx:152
 #: src/components/integrations/SupabaseIntegration.tsx:123
-#: src/components/settings/Integrations.tsx:1170
+#: src/components/settings/Integrations.tsx:1186
 msgid "Failed to save integration"
 msgstr "保存集成失败"
 
-#: src/components/settings/Integrations.tsx:923
+#: src/components/settings/Integrations.tsx:939
 msgid "Failed to save LLM integration"
 msgstr "保存 LLM 集成失败"
 
@@ -6360,7 +6559,7 @@ msgstr "保存 LLM 集成失败"
 msgid "Failed to save settings"
 msgstr "保存设置失败"
 
-#: src/components/settings/Integrations.tsx:870
+#: src/components/settings/Integrations.tsx:886
 msgid "Failed to save Supabase integration"
 msgstr "保存 Supabase 集成失败"
 
@@ -6385,7 +6584,7 @@ msgstr "保存界面翻译失败"
 msgid "Failed to save webhook subscription"
 msgstr "保存 Webhook 订阅失败"
 
-#: src/components/settings/Integrations.tsx:1032
+#: src/components/settings/Integrations.tsx:1048
 msgid "Failed to save Zapier integration"
 msgstr "保存 Zapier 集成失败"
 
@@ -6407,7 +6606,7 @@ msgstr "验证码发送失败"
 
 #. placeholder {0}: response.error
 #. placeholder {0}: response.error || 'Unknown error'
-#: src/components/settings/Integrations.tsx:1234
+#: src/components/settings/Integrations.tsx:1250
 #: src/components/templates/SendTemplateModal.tsx:140
 msgid "Failed to send test email: {0}"
 msgstr "发送测试邮件失败 : {0}"
@@ -6416,11 +6615,15 @@ msgstr "发送测试邮件失败 : {0}"
 msgid "Failed to send test webhook"
 msgstr "发送测试 Webhook 失败"
 
-#: src/components/settings/Integrations.tsx:687
+#: src/components/settings/Integrations.tsx:703
 msgid "Failed to set default provider"
 msgstr "设置默认服务商失败"
 
-#: src/components/settings/Integrations.tsx:1238
+#: src/components/automations/AutomationAudienceRunModal.tsx:52
+msgid "Failed to start audience run"
+msgstr "启动客群流程失败"
+
+#: src/components/settings/Integrations.tsx:1254
 msgid "Failed to test email provider"
 msgstr "测试邮件服务商失败"
 
@@ -6451,7 +6654,7 @@ msgid "Failed to update blog settings"
 msgstr "更新博客设置失败"
 
 #. placeholder {0}: error.message
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:154
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:163
 msgid "Failed to update broadcast: {0}"
 msgstr "更新群发失败 : {0}"
 
@@ -6544,7 +6747,7 @@ msgstr "反馈 :"
 msgid "Fetched {0} contacts..."
 msgstr "已获取 {0} 联系人..."
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:145
+#: src/components/broadcasts/GlobalFeedSettings.tsx:146
 msgid "Fetching data..."
 msgstr "正在获取数据..."
 
@@ -6567,7 +6770,7 @@ msgid "field: {0}"
 msgstr "字段 : {0}"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:967
-#: src/components/customers/CustomerImportPanel.tsx:150
+#: src/components/customers/CustomerImportPanel.tsx:152
 msgid "File"
 msgstr "文件"
 
@@ -6641,6 +6844,7 @@ msgstr "过滤器由 {0}"
 msgid "Filter by: {0}"
 msgstr "过滤方式 : {0}"
 
+#: src/components/audiences/AudienceDrawer.tsx:143
 #: src/components/automations/config/FilterConfigForm.tsx:28
 msgid "Filter conditions"
 msgstr "过滤条件"
@@ -6672,16 +6876,16 @@ msgstr "过滤器——已清除"
 msgid "Filters:"
 msgstr "过滤器 :"
 
-#: src/components/settings/Integrations.tsx:1973
+#: src/components/settings/Integrations.tsx:1989
 msgid "Find this in Azure Portal > App registrations > Your App > Overview"
 msgstr "在 Azure 门户网站 > App 注册 > Your App > 概览中查找此选项"
 
-#: src/components/settings/Integrations.tsx:1962
+#: src/components/settings/Integrations.tsx:1978
 msgid "Find this in Azure Portal > Azure Active Directory > Overview"
 msgstr "在 Azure 门户网站 > Azure 活动目录 > 概览中查找此内容"
 
-#: src/components/settings/Integrations.tsx:2010
-#: src/components/settings/Integrations.tsx:2023
+#: src/components/settings/Integrations.tsx:2026
+#: src/components/settings/Integrations.tsx:2039
 msgid "Find this in Google Cloud Console > APIs & Services > Credentials"
 msgstr "找到这个 Google 云控台 > APIs & Services > 全权证书"
 
@@ -6693,7 +6897,7 @@ msgstr "为指定收件人发起测试数据源请求"
 msgid "Fire a test delivery at the subscription's URL — write, not read, because it makes the server call out"
 msgstr "向订阅 URL 发起测试投递——这是写入而非读取操作，因为它会让服务器访问外部地址"
 
-#: src/components/settings/Integrations.tsx:970
+#: src/components/settings/Integrations.tsx:986
 msgid "Firecrawl integration saved successfully"
 msgstr "Firecrawl 集成成功保存"
 
@@ -6801,6 +7005,10 @@ msgstr "字体大小"
 msgid "Font Styling"
 msgstr "字体样式"
 
+#: src/components/templates/OmnichannelFields.tsx:73
+msgid "Footer"
+msgstr "页脚"
+
 #: src/components/transactional/ApiCommandModal.tsx:1005
 msgid "for deduplication - notifications with the same external_id won't be sent twice."
 msgstr "拆分 - 相同的通知 external_id 不会被送两次。"
@@ -6829,7 +7037,7 @@ msgstr "强行全面重建一段"
 msgid "Format"
 msgstr "格式"
 
-#: src/components/settings/Integrations.tsx:226
+#: src/components/settings/Integrations.tsx:229
 msgid "Forwards inbound replies to Yaoguang Marketing so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the provider-side route; you must also point your domain's MX records at your email provider."
 msgstr "将入站回复转发到瑶光营销平台，以便客户回复时自动停止流程（回复后退出）。注册 Webhook 会创建邮件服务商侧的路由；您还必须将域名 MX 记录指向邮件服务商。"
 
@@ -6858,7 +7066,7 @@ msgstr "触达频控策略已保存为新版本"
 
 #: src/components/delivery/DeliveryFiltersBar.tsx:72
 #: src/components/delivery/DeliveryFiltersBar.tsx:122
-#: src/components/templates/TemplatePreviewDrawer.tsx:298
+#: src/components/templates/TemplatePreviewDrawer.tsx:318
 msgid "From"
 msgstr "从"
 
@@ -6963,7 +7171,7 @@ msgstr "地理数据收集"
 msgid "Geography"
 msgstr "地理"
 
-#: src/components/settings/Integrations.tsx:2211
+#: src/components/settings/Integrations.tsx:2227
 msgid "Gives this integration its own SES reputation profile and its own suppression list, so another workspace's bounces can't pause or suppress this one. AWS bills per tenant per month, based on volume."
 msgstr "赋予了这种集成,它自己的SES名声简介和自己的压制列表,因此另一个工作区的退信不能暂停或压制这个. AWS 根据数量计算,每个租户每月的账单。"
 
@@ -6971,7 +7179,7 @@ msgstr "赋予了这种集成,它自己的SES名声简介和自己的压制列�
 msgid "Global Data Feed"
 msgstr "全局数据源"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:134
+#: src/components/broadcasts/GlobalFeedSettings.tsx:135
 msgid "Global Feed Response"
 msgstr "全球饲料反应"
 
@@ -6979,7 +7187,7 @@ msgstr "全球饲料反应"
 msgid "Global feed URL"
 msgstr "全局种子 URL"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:397
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:408
 msgid "Global feed URL is required when enabled"
 msgstr "启用时需要全局种子 URL"
 
@@ -7039,7 +7247,7 @@ msgstr "目标"
 msgid "Goals by day and hour"
 msgstr "日时目标"
 
-#: src/components/settings/Integrations.tsx:1926
+#: src/components/settings/Integrations.tsx:1942
 msgid "Google Workspace / Gmail"
 msgstr "Google 工作区/ Gmail"
 
@@ -7099,21 +7307,37 @@ msgstr "页头"
 msgid "Head Attributes"
 msgstr "主属性"
 
+#: src/components/broadcasts/HeadersEditor.tsx:126
+msgid "Header"
+msgstr "Header"
+
+#: src/components/broadcasts/HeadersEditor.tsx:141
+msgid "Header content supports template placeholders"
+msgstr "内容支持 {{ }} 模板占位符"
+
+#: src/components/broadcasts/HeadersEditor.tsx:127
+msgid "Header is required"
+msgstr "请选择或输入 Header"
+
 #: src/components/broadcasts/HeadersEditor.tsx:108
-msgid "Header name"
-msgstr "页眉名称"
+#~ msgid "Header name"
+#~ msgstr "Header"
 
 #: src/components/broadcasts/HeadersEditor.tsx:109
-msgid "Header name is required"
-msgstr "需要页眉名称"
+#~ msgid "Header name is required"
+#~ msgstr "请选择或输入 Header"
 
 #: src/components/broadcasts/HeadersEditor.tsx:115
-msgid "Header value"
-msgstr "页眉值"
+#~ msgid "Header value"
+#~ msgstr "内容"
 
 #: src/components/broadcasts/HeadersEditor.tsx:116
-msgid "Header value is required"
-msgstr "需要页眉值"
+#~ msgid "Header value is required"
+#~ msgstr "请输入内容"
+
+#: src/components/broadcasts/HeadersEditor.tsx:52
+msgid "Headers"
+msgstr "Headers"
 
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:236
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:362
@@ -7231,14 +7455,18 @@ msgstr "HTML 导出失败"
 msgid "HTML exported successfully"
 msgstr "HTML 成功导出"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:250
+#: src/components/templates/TemplatePreviewDrawer.tsx:278
 msgid "HTML Preview"
 msgstr "HTML 预览"
 
 #. placeholder {0}: record.name
-#: src/components/templates/TemplatePreviewDrawer.tsx:256
+#: src/components/templates/TemplatePreviewDrawer.tsx:279
 msgid "HTML Preview of {0}"
 msgstr "HTML 预览 {0}"
+
+#: src/components/integrations/ChannelWebhookIntegration.tsx:99
+msgid "HTTPS endpoint"
+msgstr "HTTPS 地址"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:135
 msgid "https://example.com or {{ url }}"
@@ -7309,7 +7537,7 @@ msgstr "ID只能包含小写字母、数字和下划线"
 msgid "ID doesn't match"
 msgstr "ID 不匹配"
 
-#: src/pages/TemplatesPage.tsx:228
+#: src/pages/TemplatesPage.tsx:224
 msgid "ID for API:"
 msgstr "API 的标识 :"
 
@@ -7385,7 +7613,7 @@ msgstr "识别点击跟踪邮件链接的收件人"
 msgid "Identity"
 msgstr "身份标识"
 
-#: src/components/customers/CustomerProfilePanel.tsx:151
+#: src/components/customers/CustomerProfilePanel.tsx:173
 #: src/pages/CustomersPage.tsx:104
 msgid "Identity aliases"
 msgstr "身份标识别名"
@@ -7417,7 +7645,7 @@ msgid "Image Attributes"
 msgstr "图像属性"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:323
-#: src/components/templates/MessageTemplateDrawer.tsx:313
+#: src/components/templates/MessageTemplateDrawer.tsx:316
 msgid "Image URL"
 msgstr "图像 URL"
 
@@ -7452,7 +7680,7 @@ msgstr "导入并导出模板"
 msgid "Import cancelled"
 msgstr "导入已取消"
 
-#: src/components/customers/CustomerImportPanel.tsx:67
+#: src/components/customers/CustomerImportPanel.tsx:69
 msgid "Import cancelled; every unfinished row is recorded as failed."
 msgstr "导入已取消；所有未完成行均已记录为失败。"
 
@@ -7520,7 +7748,7 @@ msgstr "导入字体"
 msgid "Importing files..."
 msgstr "正在导入文件..."
 
-#: src/components/customers/CustomerImportPanel.tsx:79
+#: src/components/customers/CustomerImportPanel.tsx:81
 msgid "Imports are durable and close-safe"
 msgstr "导入任务持久保存，关闭页面不受影响"
 
@@ -7558,7 +7786,7 @@ msgstr "字段确定。"
 msgid "In-App"
 msgstr "站内消息"
 
-#: src/components/settings/Integrations.tsx:234
+#: src/components/settings/Integrations.tsx:237
 msgid "inbound replies"
 msgstr "入站回复"
 
@@ -7570,7 +7798,7 @@ msgstr "收件箱"
 msgid "Include a clear call-to-action"
 msgstr "包含明确的呼吁行动"
 
-#: src/components/customers/CustomerImportPanel.tsx:119
+#: src/components/customers/CustomerImportPanel.tsx:121
 msgid "Include external_user_id, email or phone; at least one customer identifier is required."
 msgstr "请包含 external_user_id、email 或 phone；至少需要一个客户标识。"
 
@@ -7654,15 +7882,15 @@ msgstr "安装跟踪片段"
 msgid "Instance trace ID"
 msgstr "实例追踪 ID"
 
-#: src/components/automations/config/ChannelConfigForm.tsx:42
+#: src/components/automations/config/ChannelConfigForm.tsx:46
 msgid "Integration"
 msgstr "集成"
 
-#: src/components/settings/Integrations.tsx:1155
+#: src/components/settings/Integrations.tsx:1171
 msgid "Integration created successfully"
 msgstr "成功创建集成"
 
-#: src/components/settings/Integrations.tsx:1190
+#: src/components/settings/Integrations.tsx:1206
 msgid "Integration deleted successfully"
 msgstr "成功删除集成"
 
@@ -7673,20 +7901,20 @@ msgstr "集成 ID："
 #: src/components/integrations/FirecrawlIntegration.tsx:76
 #: src/components/integrations/LLMIntegration.tsx:159
 #: src/components/integrations/SupabaseIntegration.tsx:130
-#: src/components/settings/Integrations.tsx:1788
+#: src/components/settings/Integrations.tsx:1804
 msgid "Integration Name"
 msgstr "集成名称"
 
-#: src/components/settings/Integrations.tsx:794
-#: src/components/settings/Integrations.tsx:1210
+#: src/components/settings/Integrations.tsx:810
+#: src/components/settings/Integrations.tsx:1226
 msgid "Integration not found or not an email provider"
 msgstr "未找到或未找到邮件服务商"
 
-#: src/components/settings/Integrations.tsx:1141
+#: src/components/settings/Integrations.tsx:1157
 msgid "Integration updated successfully"
 msgstr "集成已更新"
 
-#: src/components/settings/Integrations.tsx:2625
+#: src/components/settings/Integrations.tsx:2641
 #: src/components/settings/SettingsSidebar.tsx:67
 #: src/components/settings/UITranslationsSettings.tsx:103
 msgid "Integrations"
@@ -7739,7 +7967,7 @@ msgstr "字段无效的 JSON {field}"
 msgid "Invalid or expired invitation token"
 msgstr "无效或过期的邀请符"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:152
+#: src/components/templates/TemplatePreviewDrawer.tsx:172
 msgid "Invalid template structure data."
 msgstr "无效的模板结构数据 。"
 
@@ -7828,11 +8056,11 @@ msgstr "不为空"
 msgid "is not in"
 msgstr "没有在"
 
-#: src/components/settings/Integrations.tsx:2453
+#: src/components/settings/Integrations.tsx:2469
 msgid "isolated"
 msgstr "单独"
 
-#: src/components/settings/Integrations.tsx:2461
+#: src/components/settings/Integrations.tsx:2477
 msgid "isolation requested but not provisioned"
 msgstr "请求隔离但未提供"
 
@@ -7917,6 +8145,10 @@ msgstr "JSON 对象"
 msgid "JSON Payload Required:"
 msgstr "JSON 所需有效载荷 :"
 
+#: src/components/templates/OmnichannelFields.tsx:44
+msgid "JSON request body"
+msgstr "JSON 请求正文"
+
 #: src/components/email_builder/ui/FontStyleInput.tsx:157
 msgid "Justify"
 msgstr "说明"
@@ -7963,15 +8195,15 @@ msgid "Landing pages"
 msgstr "登陆页面"
 
 #: src/components/analytics/NewContactsTable.tsx:166
-#: src/components/automations/config/ChannelConfigForm.tsx:60
+#: src/components/automations/config/ChannelConfigForm.tsx:64
 #: src/components/automations/config/TriggerConfigForm.tsx:136
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:221
 #: src/components/contacts/ContactDetailsDrawer.tsx:452
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:96
 #: src/components/contacts/ExportContactsModal.tsx:68
-#: src/components/customers/CustomerProfilePanel.tsx:108
+#: src/components/customers/CustomerProfilePanel.tsx:122
 #: src/components/templates/SendTemplateModal.tsx:326
-#: src/components/templates/TemplatePreviewDrawer.tsx:400
+#: src/components/templates/TemplatePreviewDrawer.tsx:420
 #: src/pages/ContactsPage.tsx:375
 #: src/pages/ContactsPage.tsx:431
 #: src/pages/ContactsPage.tsx:706
@@ -8008,7 +8240,7 @@ msgstr "过去7天"
 msgid "Last Edited"
 msgstr "最后编辑"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:153
+#: src/components/broadcasts/GlobalFeedSettings.tsx:154
 msgid "Last fetched:"
 msgstr "上次获取 :"
 
@@ -8034,7 +8266,11 @@ msgstr "铅"
 msgid "Learn how to enable SMTP bridge"
 msgstr "学习如何启用 SMTP 桥"
 
-#: src/components/settings/Integrations.tsx:639
+#: src/components/integrations/ChannelWebhookIntegration.tsx:100
+msgid "Leave blank to keep the current secret"
+msgstr "留空以保留当前密钥"
+
+#: src/components/settings/Integrations.tsx:655
 msgid "Leave blank to keep the current value"
 msgstr "留空以保留当前值"
 
@@ -8059,11 +8295,11 @@ msgstr "留空从 API 端点获取 。 在通过代理或虚域达到调用时�
 msgid "Leave empty to trigger on any field change"
 msgstr "留空以触发任何字段变化"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:168
+#: src/components/broadcasts/RecipientFeedSettings.tsx:169
 msgid "Leave empty to use a random contact from the broadcast audience."
 msgstr "留空则从群发受众中随机选择一位联系人。"
 
-#: src/components/settings/Integrations.tsx:2226
+#: src/components/settings/Integrations.tsx:2242
 msgid "Leave empty to use the one Yaoguang Marketing manages for this integration."
 msgstr "留空则使用瑶光营销平台为此集成管理的配置。"
 
@@ -8123,7 +8359,7 @@ msgstr "行线"
 #. placeholder {0}: detail.line
 #. placeholder {1}: detail.tagName
 #. placeholder {2}: detail.message
-#: src/components/templates/TemplatePreviewDrawer.tsx:436
+#: src/components/templates/TemplatePreviewDrawer.tsx:456
 msgid "Line {0} ({1}): {2}"
 msgstr "行线 {0} ({1}): {2}"
 
@@ -8179,6 +8415,7 @@ msgstr "支持 Liquid 变量"
 #: src/components/automations/config/TriggerConfigForm.tsx:91
 #: src/components/automations/config/TriggerConfigForm.tsx:295
 #: src/components/automations/UpsertAutomationDrawer.tsx:201
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:549
 #: src/components/contacts/BulkUpdateDrawer.tsx:602
 #: src/components/contacts/ExportContactsModal.tsx:73
 #: src/components/messages/MessageHistoryTable.tsx:132
@@ -8337,7 +8574,7 @@ msgid "List:"
 msgstr "列表 :"
 
 #: src/components/analytics/NewContactsTable.tsx:73
-#: src/components/customers/CustomerImportPanel.tsx:151
+#: src/components/customers/CustomerImportPanel.tsx:153
 #: src/components/settings/PermissionsMatrix.tsx:120
 #: src/components/settings/UITranslationsSettings.tsx:113
 #: src/pages/ContactsPage.tsx:424
@@ -8347,7 +8584,7 @@ msgstr "列表 :"
 msgid "Lists"
 msgstr "列表"
 
-#: src/components/customers/CustomerImportPanel.tsx:100
+#: src/components/customers/CustomerImportPanel.tsx:102
 msgid "Lists could not be loaded. You can still import without list binding."
 msgstr "名单加载失败，您仍可不绑定名单直接导入。"
 
@@ -8365,6 +8602,10 @@ msgstr "“列表”写入权限也包含联系人写入能力。通过 `/api/li
 msgid "Live"
 msgstr "实时"
 
+#: src/components/automations/AutomationAudienceRunModal.tsx:75
+msgid "Live automation"
+msgstr "已发布自动化流程"
+
 #: src/components/navigation/DataAnalyticsPageShell.tsx:33
 #: src/components/navigation/WorkspaceSectionTabs.tsx:140
 msgid "Live Visitors"
@@ -8375,7 +8616,7 @@ msgstr "实时访客"
 msgid "LLM"
 msgstr "LLM"
 
-#: src/components/settings/Integrations.tsx:920
+#: src/components/settings/Integrations.tsx:936
 msgid "LLM integration saved successfully"
 msgstr "LLM 集成成功保存"
 
@@ -8403,7 +8644,7 @@ msgstr "加载工作区记录；读取或写入权限均可访问"
 msgid "Loaded the latest version of this template (v{0})."
 msgstr "已加载此模板的最新版本（v{0}）。"
 
-#: src/pages/AutomationsPage.tsx:198
+#: src/pages/AutomationsPage.tsx:213
 msgid "Loading automations..."
 msgstr "正在加载自动化..."
 
@@ -8411,7 +8652,7 @@ msgstr "正在加载自动化..."
 msgid "Loading delivery details..."
 msgstr "正在加载投递详情..."
 
-#: src/components/customers/CustomerImportPanel.tsx:97
+#: src/components/customers/CustomerImportPanel.tsx:99
 msgid "Loading lists..."
 msgstr "正在加载名单..."
 
@@ -8439,13 +8680,13 @@ msgstr "正在加载 Webhook 投递记录..."
 msgid "Loading webhook events..."
 msgstr "正在加载 Webhook 事件..."
 
-#: src/components/settings/Integrations.tsx:250
+#: src/components/settings/Integrations.tsx:253
 msgid "Loading webhook status..."
 msgstr "正在加载 Webhook 状态..."
 
 #: src/components/blog_editor/NotifuseEditor.tsx:480
 #: src/components/messages/MessageHistoryTab.tsx:610
-#: src/components/templates/TemplateSelectorInput.tsx:151
+#: src/components/templates/TemplateSelectorInput.tsx:138
 #: src/components/timeline/ContactTimeline.tsx:1039
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:499
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:455
@@ -8454,7 +8695,7 @@ msgstr "正在加载 Webhook 状态..."
 #: src/pages/ContactsPage.tsx:1181
 #: src/pages/ListsPage.tsx:149
 #: src/pages/LogsPage.tsx:18
-#: src/pages/TemplatesPage.tsx:211
+#: src/pages/TemplatesPage.tsx:207
 #: src/pages/TransactionalNotificationsPage.tsx:383
 msgid "Loading..."
 msgstr "加载中..."
@@ -8513,7 +8754,7 @@ msgstr "小写"
 msgid "Magic code sent to your email"
 msgstr "验证码已发送到您的邮箱"
 
-#: src/components/settings/Integrations.tsx:221
+#: src/components/settings/Integrations.tsx:224
 msgid "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 msgstr "Mailgun (mxa.mailgun.org/mxb.mailgun.org) (中文(简体) )."
 
@@ -8545,11 +8786,15 @@ msgstr "使该部分横跨整个邮件视图宽度,忽略容器限制(通常为6
 msgid "Makes the wrapper span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections."
 msgstr "使包件横跨整个邮件视图宽度,忽略容器限制(通常为600px). 有用于全血背景和英雄部分."
 
+#: src/pages/AudiencesPage.tsx:51
+msgid "Manage lists"
+msgstr "管理名单"
+
 #: src/components/settings/WorkspaceMembers.tsx:434
 msgid "Manage your workspace members"
 msgstr "管理您的工作区成员"
 
-#: src/components/settings/Integrations.tsx:2439
+#: src/components/settings/Integrations.tsx:2455
 msgid "managed"
 msgstr "管理"
 
@@ -8572,7 +8817,7 @@ msgstr "手动"
 msgid "Map"
 msgstr "地图"
 
-#: src/components/customers/CustomerImportPanel.tsx:105
+#: src/components/customers/CustomerImportPanel.tsx:107
 msgid "Map fields"
 msgstr "字段映射"
 
@@ -8597,8 +8842,9 @@ msgstr "将 CSV 列映射到联系人字段，其中"
 msgid "Marked as spam"
 msgstr "标记为垃圾邮件"
 
-#: src/components/templates/MessageTemplateDrawer.tsx:393
-#: src/pages/TemplatesPage.tsx:126
+#: src/components/templates/MessageTemplateDrawer.tsx:396
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:214
+#: src/pages/TemplatesPage.tsx:128
 msgid "Marketing"
 msgstr "营销"
 
@@ -8618,7 +8864,7 @@ msgstr "营销活动：包括草稿、A/B 版本、数据源、发送计划和�
 msgid "Marketing Email Provider Required"
 msgstr "需要营销邮件服务商"
 
-#: src/components/settings/Integrations.tsx:412
+#: src/components/settings/Integrations.tsx:415
 msgid "Marketing Emails"
 msgstr "营销邮件"
 
@@ -8630,6 +8876,10 @@ msgstr "营销概览"
 #: src/components/analytics/AnalyticsDashboard.tsx:176
 msgid "Marketing Provider"
 msgstr "营销渠道服务商"
+
+#: src/components/audiences/AudienceDrawer.tsx:134
+msgid "Marketing runs select the latest audience when execution starts, freeze the candidates, and check every customer again immediately before each message."
+msgstr "营销任务实际启动时使用最新客群规则冻结候选客户，并在每次触达前再次检查客户是否仍满足条件。"
 
 #: src/components/contacts/SegmentsFilter.tsx:73
 msgid "Matched"
@@ -8683,6 +8933,10 @@ msgstr "最大范围为2年. 日期在 {timezone}."
 msgid "Measure the actions that matter and compare conversion performance across segments."
 msgstr "衡量关键行为，并对比不同客群的转化表现。"
 
+#: src/components/templates/OmnichannelFields.tsx:71
+msgid "Media URL"
+msgstr "媒体 URL"
+
 #: src/components/web_analytics/goals/GoalCard.tsx:46
 msgid "Median"
 msgstr "中间"
@@ -8733,10 +8987,16 @@ msgstr "介质"
 msgid "Member removed successfully"
 msgstr "成功删除成员"
 
+#: src/pages/AudiencesPage.tsx:77
+msgid "Members are evaluated only for previews and when a marketing run starts."
+msgstr "系统仅在预览和营销任务启动时计算客群成员。"
+
 #: src/components/templates/CreateTemplateDrawer.tsx:303
 #: src/components/templates/CreateTemplateDrawer.tsx:320
-#: src/components/templates/MessageTemplateDrawer.tsx:290
-#: src/components/templates/MessageTemplateDrawer.tsx:307
+#: src/components/templates/MessageTemplateDrawer.tsx:293
+#: src/components/templates/MessageTemplateDrawer.tsx:310
+#: src/components/templates/OmnichannelFields.tsx:55
+#: src/components/templates/OmnichannelFields.tsx:67
 #: src/pages/BroadcastsPage.tsx:496
 msgid "Message"
 msgstr "消息"
@@ -8769,15 +9029,19 @@ msgstr "消息历史和webhook事件将被匿名(邮件地址已编辑)但保留
 msgid "Message ID"
 msgstr "消息 ID"
 
-#: src/components/templates/MessageTemplateDrawer.tsx:292
-#: src/components/templates/MessageTemplateDrawer.tsx:309
+#: src/components/templates/MessageTemplateDrawer.tsx:295
+#: src/components/templates/MessageTemplateDrawer.tsx:312
 msgid "Message is required"
 msgstr "需要信件"
 
-#: src/components/settings/Integrations.tsx:2125
-#: src/components/settings/Integrations.tsx:2488
+#: src/components/settings/Integrations.tsx:2141
+#: src/components/settings/Integrations.tsx:2504
 msgid "Message Stream"
 msgstr "信件流"
+
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:216
+msgid "Message type"
+msgstr "消息类型"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:1072
 msgid "Messages"
@@ -8804,7 +9068,7 @@ msgstr "计量"
 msgid "Metrics and dimensions"
 msgstr "计量和维度"
 
-#: src/components/settings/Integrations.tsx:1924
+#: src/components/settings/Integrations.tsx:1940
 msgid "Microsoft 365 / Office 365"
 msgstr "微软365/办公室365"
 
@@ -8842,7 +9106,7 @@ msgstr "分钟"
 msgid "Missing Tags"
 msgstr "缺少标记"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:89
+#: src/components/templates/TemplatePreviewDrawer.tsx:99
 msgid "Missing workspace ID or template data."
 msgstr "缺少工作区ID或模板数据."
 
@@ -8865,7 +9129,7 @@ msgid "MJML compilation completed successfully with no warnings or errors."
 msgstr "MJML 编译成功,没有警告或错误。"
 
 #. placeholder {0}: mjmlError.message
-#: src/components/templates/TemplatePreviewDrawer.tsx:428
+#: src/components/templates/TemplatePreviewDrawer.tsx:448
 msgid "MJML Compilation Error: {0}"
 msgstr "MJML 汇编错误 : {0}"
 
@@ -8897,7 +9161,7 @@ msgstr "MJML 导入错误"
 msgid "MJML Import Validation Failed"
 msgstr "MJML 导入验证失败"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:266
+#: src/components/templates/TemplatePreviewDrawer.tsx:286
 msgid "MJML Source"
 msgstr "MJML 来源"
 
@@ -8921,6 +9185,10 @@ msgstr "移动桌面预览( D)"
 msgid "Mobile Breakpoint"
 msgstr "移动断点"
 
+#: src/components/templates/EmailClientFrame.tsx:16
+msgid "Mobile email"
+msgstr "移动端邮件"
+
 #: src/components/email_builder/panels/Preview.tsx:437
 msgid "Mobile view (400px)"
 msgstr "移动视图 (400px)"
@@ -8928,7 +9196,7 @@ msgstr "移动视图 (400px)"
 #: src/components/integrations/LLMIntegration.tsx:195
 #: src/components/integrations/LLMIntegration.tsx:206
 #: src/components/integrations/LLMIntegration.tsx:243
-#: src/components/settings/Integrations.tsx:1625
+#: src/components/settings/Integrations.tsx:1641
 msgid "Model"
 msgstr "型号"
 
@@ -8988,7 +9256,7 @@ msgstr "我的韦伯库"
 msgid "my-custom-class"
 msgstr "我的海关级"
 
-#: src/components/settings/Integrations.tsx:2279
+#: src/components/settings/Integrations.tsx:2295
 msgid "my-tenant"
 msgstr "我的租户"
 
@@ -9004,16 +9272,18 @@ msgstr "N/A"
 #: src/components/blog/CategoryDrawer.tsx:130
 #: src/components/errors/ActionableError.tsx:34
 #: src/components/file_manager/fileManager.tsx:868
+#: src/components/integrations/ChannelWebhookIntegration.tsx:98
 #: src/components/lists/ListDrawer.tsx:185
 #: src/components/segment/button_upsert.tsx:442
-#: src/components/settings/Integrations.tsx:387
-#: src/components/settings/Integrations.tsx:1465
-#: src/components/settings/Integrations.tsx:1624
-#: src/components/settings/Integrations.tsx:1691
-#: src/components/settings/Integrations.tsx:1755
-#: src/components/settings/Integrations.tsx:2702
+#: src/components/settings/Integrations.tsx:390
+#: src/components/settings/Integrations.tsx:1481
+#: src/components/settings/Integrations.tsx:1640
+#: src/components/settings/Integrations.tsx:1707
+#: src/components/settings/Integrations.tsx:1771
+#: src/components/settings/Integrations.tsx:2720
 #: src/components/settings/WebhooksSettings.tsx:272
-#: src/components/templates/MessageTemplateDrawer.tsx:371
+#: src/components/templates/MessageTemplateDrawer.tsx:374
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:210
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:119
 #: src/components/web_analytics/filters/FilterTable.tsx:192
 #: src/components/web_analytics/filters/TestFilterModal.tsx:230
@@ -9041,6 +9311,10 @@ msgstr "设置此连接在瑶光营销平台中的名称，以及它在“设置
 msgid "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 msgstr "命名一个槽重新命名它出现在任何地方:仪表板,探索采摘者和归属规则."
 
+#: src/components/templates/ChannelPicker.tsx:80
+msgid "Native"
+msgstr "原生"
+
 #: src/components/settings/UITranslationsSettings.tsx:100
 msgid "Navigation"
 msgstr "导航"
@@ -9049,11 +9323,11 @@ msgstr "导航"
 msgid "Needs confirmation"
 msgstr "待确认"
 
-#: src/components/settings/Integrations.tsx:2214
+#: src/components/settings/Integrations.tsx:2230
 msgid "Needs these extra IAM permissions: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Add ses:ListTenants and ses:ListTenantResources for the pickers below, and ses:DeleteTenant plus ses:DeleteTenantResourceAssociation so the tenant is removed with the integration instead of billing forever."
 msgstr "需要以下额外的 IAM 权限：ses:CreateTenant、ses:CreateTenantResourceAssociation、ses:GetTenant、ses:PutTenantSuppressionAttributes、ses:ListEmailIdentities。下方选择器还需要 ses:ListTenants 和 ses:ListTenantResources；要在删除集成时同时删除租户并避免持续计费，还需要 ses:DeleteTenant 和 ses:DeleteTenantResourceAssociation。"
 
-#: src/components/blog/BlogSidebar.tsx:108
+#: src/components/blog/BlogSidebar.tsx:106
 msgid "New Category"
 msgstr "新类别"
 
@@ -9104,9 +9378,9 @@ msgid "New workspace"
 msgstr "新工作区"
 
 #: src/components/automations/JourneyCreateWizard.tsx:493
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:327
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:337
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:338
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:348
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:359
 #: src/components/templates/CreateTemplateDrawer.tsx:809
 #: src/components/templates/CreateTemplateDrawer.tsx:830
 #: src/pages/CustomersPage.tsx:232
@@ -9126,9 +9400,9 @@ msgstr "下一个运行"
 #: src/components/blog/PostDrawer.tsx:293
 #: src/components/blog/PostDrawer.tsx:561
 #: src/components/blog/PostsTable.tsx:319
-#: src/components/broadcasts/HeadersEditor.tsx:66
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:244
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:740
+#: src/components/broadcasts/HeadersEditor.tsx:84
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:255
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:792
 #: src/components/contacts/ContactUpsertDrawer.tsx:540
 #: src/components/contacts/SegmentsFilter.tsx:150
 #: src/components/contacts/SegmentsFilter.tsx:165
@@ -9141,14 +9415,14 @@ msgstr "下一个运行"
 #: src/components/messages/MessageHistoryTab.tsx:189
 #: src/components/messages/MessageHistoryTab.tsx:205
 #: src/components/settings/CustomFieldsConfiguration.tsx:214
-#: src/components/settings/Integrations.tsx:322
-#: src/components/settings/Integrations.tsx:364
-#: src/components/settings/Integrations.tsx:440
-#: src/components/settings/Integrations.tsx:459
-#: src/components/settings/Integrations.tsx:1447
-#: src/components/settings/Integrations.tsx:1606
-#: src/components/settings/Integrations.tsx:1675
-#: src/components/settings/Integrations.tsx:1739
+#: src/components/settings/Integrations.tsx:325
+#: src/components/settings/Integrations.tsx:367
+#: src/components/settings/Integrations.tsx:443
+#: src/components/settings/Integrations.tsx:462
+#: src/components/settings/Integrations.tsx:1463
+#: src/components/settings/Integrations.tsx:1622
+#: src/components/settings/Integrations.tsx:1691
+#: src/components/settings/Integrations.tsx:1755
 #: src/components/settings/PermissionsMatrix.tsx:187
 #: src/components/settings/WebhookCard.tsx:218
 #: src/components/settings/WebhookCard.tsx:274
@@ -9188,7 +9462,7 @@ msgstr "未回复。 请再试一次"
 msgid "No attribution rules yet. Create the first one to start shaping your traffic data."
 msgstr "还没有归属规则 创建第一个开始构建您的流量数据 。"
 
-#: src/pages/AutomationsPage.tsx:201
+#: src/pages/AutomationsPage.tsx:216
 msgid "No automations yet"
 msgstr "尚未实现自动化"
 
@@ -9214,17 +9488,21 @@ msgstr "没有与过滤器匹配的群发"
 msgid "No campaign data"
 msgstr "暂无营销活动数据"
 
-#: src/pages/BlogPage.tsx:144
+#: src/pages/BlogPage.tsx:142
 msgid "No categories yet"
 msgstr "尚未进行分类"
 
-#: src/components/templates/TemplateSelectorInput.tsx:256
+#: src/components/templates/TemplateSelectorInput.tsx:218
 msgid "No category"
 msgstr "无类别"
 
 #: src/pages/WebAnalyticsLivePage.tsx:208
 msgid "No channel data"
 msgstr "没有频道数据"
+
+#: src/components/templates/ChannelPicker.tsx:65
+msgid "No channels match"
+msgstr "没有匹配的渠道"
 
 #: src/components/web_analytics/goals/GoalCard.tsx:149
 msgid "No chart data"
@@ -9288,11 +9566,11 @@ msgstr "这一期间没有数据"
 msgid "No data found"
 msgstr "未找到数据"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:179
+#: src/components/broadcasts/GlobalFeedSettings.tsx:180
 msgid "No data returned"
 msgstr "未返回数据"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:328
+#: src/components/templates/TemplatePreviewDrawer.tsx:348
 msgid "No default sender configured"
 msgstr "未配置默认发件人"
 
@@ -9318,7 +9596,11 @@ msgstr "未找到维度"
 msgid "No draft posts"
 msgstr "没有草稿文章"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:303
+#: src/pages/AudiencesPage.tsx:62
+msgid "No dynamic audiences yet"
+msgstr "暂无动态客群"
+
+#: src/components/templates/TemplatePreviewDrawer.tsx:323
 msgid "no email"
 msgstr "无邮件"
 
@@ -9370,7 +9652,7 @@ msgstr "没有要导出的 HTML 内容"
 msgid "No icon found"
 msgstr "未找到图标"
 
-#: src/components/customers/CustomerProfilePanel.tsx:158
+#: src/components/customers/CustomerProfilePanel.tsx:180
 msgid "No identity aliases"
 msgstr "无身份标识别名"
 
@@ -9390,7 +9672,7 @@ msgstr "尚未为此变换记录链接点击"
 msgid "No list"
 msgstr "无列表"
 
-#: src/components/customers/CustomerImportPanel.tsx:70
+#: src/components/customers/CustomerImportPanel.tsx:72
 msgid "No list binding"
 msgstr "不绑定名单"
 
@@ -9446,11 +9728,11 @@ msgstr "此分类中没有文章"
 msgid "No posts yet"
 msgstr "暂无文章"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:465
+#: src/components/templates/TemplatePreviewDrawer.tsx:485
 msgid "No preview available or template is empty."
 msgstr "没有可用的预览或模板为空 。"
 
-#: src/components/customers/CustomerProfilePanel.tsx:137
+#: src/components/customers/CustomerProfilePanel.tsx:159
 msgid "No profile attributes"
 msgstr "暂无客户属性"
 
@@ -9458,7 +9740,7 @@ msgstr "暂无客户属性"
 msgid "No properties"
 msgstr "无属性"
 
-#: src/components/settings/Integrations.tsx:1217
+#: src/components/settings/Integrations.tsx:1233
 msgid "No provider configured for testing"
 msgstr "没有配置用于测试的服务商"
 
@@ -9494,7 +9776,7 @@ msgstr "没有可用的样本值"
 msgid "No saved blocks yet"
 msgstr "尚未保存块"
 
-#: src/components/settings/Integrations.tsx:403
+#: src/components/settings/Integrations.tsx:406
 msgid "No senders configured"
 msgstr "没有配置发件人"
 
@@ -9510,33 +9792,33 @@ msgstr "头部元素没有可用的设置 。"
 msgid "No source data"
 msgstr "没有源数据"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:441
+#: src/components/templates/TemplatePreviewDrawer.tsx:461
 msgid "No specific details provided."
 msgstr "未提供具体细节。"
 
-#: src/components/customers/CustomerProfilePanel.tsx:101
+#: src/components/customers/CustomerProfilePanel.tsx:115
 msgid "No status"
 msgstr "无状态"
 
-#: src/components/customers/CustomerProfilePanel.tsx:125
+#: src/components/customers/CustomerProfilePanel.tsx:139
 msgid "No tags"
 msgstr "无标签"
 
-#: src/components/templates/TemplateSelectorInput.tsx:266
-#: src/pages/TemplatesPage.tsx:518
+#: src/components/templates/TemplateSelectorInput.tsx:228
+#: src/pages/TemplatesPage.tsx:472
 msgid "No templates found"
 msgstr "未找到模板"
 
 #. placeholder {0}: category.replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:265
+#: src/components/templates/TemplateSelectorInput.tsx:227
 msgid "No templates found for {0} category"
 msgstr "没有找到模板 {0} 类别"
 
-#: src/pages/TemplatesPage.tsx:553
+#: src/pages/TemplatesPage.tsx:494
 msgid "No templates found for category \"{selectedCategory}\""
 msgstr "未找到类别模板 \"{selectedCategory}\""
 
-#: src/pages/TemplatesPage.tsx:510
+#: src/pages/TemplatesPage.tsx:464
 msgid "No templates match your search"
 msgstr "没有匹配搜索的模板"
 
@@ -9629,15 +9911,15 @@ msgstr "常规"
 msgid "Not all visitors come with the same intent. This rate should be interpreted with caution as it includes all traffic regardless of purpose."
 msgstr "并不是所有的访客都怀着同样的意向而来. 这一费率应谨慎地加以解释,因为它包括所有交通,不论目的为何。"
 
-#: src/components/settings/Integrations.tsx:422
-#: src/components/settings/Integrations.tsx:428
+#: src/components/settings/Integrations.tsx:425
+#: src/components/settings/Integrations.tsx:431
 msgid "Not assigned"
 msgstr "未分配"
 
 #: src/components/analytics/AnalyticsDashboard.tsx:164
 #: src/components/analytics/AnalyticsDashboard.tsx:188
-#: src/components/settings/Integrations.tsx:1499
-#: src/components/settings/Integrations.tsx:1536
+#: src/components/settings/Integrations.tsx:1515
+#: src/components/settings/Integrations.tsx:1552
 msgid "Not configured"
 msgstr "未配置"
 
@@ -9651,7 +9933,7 @@ msgstr "未连接"
 msgid "not contains"
 msgstr "不包含"
 
-#: src/components/settings/Integrations.tsx:2445
+#: src/components/settings/Integrations.tsx:2461
 msgid "not created yet — register webhooks"
 msgstr "尚未创建 — 注册 Webhooks"
 
@@ -9670,7 +9952,7 @@ msgstr "没有在"
 msgid "Not in List"
 msgstr "未在列表中"
 
-#: src/components/settings/Integrations.tsx:1069
+#: src/components/settings/Integrations.tsx:1085
 msgid "Not now"
 msgstr "现在不行"
 
@@ -9686,7 +9968,7 @@ msgstr "未解决"
 #: src/components/settings/GeneralSettings.tsx:149
 #: src/components/settings/SMTPBridgeSettings.tsx:42
 #: src/components/settings/SMTPBridgeSettings.tsx:46
-#: src/components/templates/TemplatePreviewDrawer.tsx:348
+#: src/components/templates/TemplatePreviewDrawer.tsx:368
 msgid "Not set"
 msgstr "未设置"
 
@@ -9698,7 +9980,7 @@ msgstr "未标记的频道"
 msgid "Note: mj-raw components can only be placed directly in mj-body or mj-head, not inside mj-wrapper. Consider moving the mj-raw content outside the wrapper or converting it to appropriate MJML components."
 msgstr "注:mj-raw组件只能直接放置在mj-body或mj-head,不能放置在mj-wrapper内部. 考虑将 mj-raw 内容移到包装器外或转换为适当 MJML 组件。"
 
-#: src/pages/TemplatesPage.tsx:408
+#: src/pages/TemplatesPage.tsx:373
 msgid "Note: The template will be hidden from your workspace but preserved to maintain the ability to preview previously sent broadcasts and messages that used this template."
 msgstr "说明: 模板将隐藏在您的工作区中, 但保留以保持预览先前发送的使用此模板的群发和信件的能力 。"
 
@@ -9726,7 +10008,7 @@ msgstr "通知名称"
 msgid "Notification updated successfully"
 msgstr "成功更新通知"
 
-#: src/components/settings/Integrations.tsx:2238
+#: src/components/settings/Integrations.tsx:2254
 msgid "notifuse-…"
 msgstr "没有,如果..."
 
@@ -9761,11 +10043,11 @@ msgstr "类别页面上每页要显示的帖数"
 msgid "Number of posts to display per page on the homepage"
 msgstr "主页上每页显示的帖数"
 
-#: src/components/settings/Integrations.tsx:1903
+#: src/components/settings/Integrations.tsx:1919
 msgid "OAuth2 (Microsoft 365 / Google)"
 msgstr "OAuth2(微软365/ Google)"
 
-#: src/components/settings/Integrations.tsx:1919
+#: src/components/settings/Integrations.tsx:1935
 msgid "OAuth2 Provider"
 msgstr "OAuth2 服务商"
 
@@ -9778,7 +10060,7 @@ msgstr "对象键：{segment}"
 msgid "Oblique"
 msgstr "斜体"
 
-#: src/components/settings/Integrations.tsx:2042
+#: src/components/settings/Integrations.tsx:2058
 msgid "Obtain this using the OAuth2 playground or your own OAuth flow"
 msgstr "使用 OAuth2 游乐场或您自己的 OAuth 流获取此功能"
 
@@ -9896,7 +10178,7 @@ msgstr "在新标签中打开"
 msgid "Open on web"
 msgstr "在网络上打开"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:53
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:55
 msgid "Open Rate"
 msgstr "打开率"
 
@@ -9949,7 +10231,7 @@ msgstr "操作结果:"
 msgid "Operations"
 msgstr "业务"
 
-#: src/pages/TemplatesPage.tsx:129
+#: src/pages/TemplatesPage.tsx:131
 msgid "Opt-in"
 msgstr "选入"
 
@@ -9959,7 +10241,7 @@ msgstr "选入"
 msgid "Optional"
 msgstr "可选"
 
-#: src/components/templates/MessageTemplateDrawer.tsx:287
+#: src/components/templates/MessageTemplateDrawer.tsx:290
 msgid "Optional alphanumeric sender"
 msgstr "可选的字母数字发件人标识"
 
@@ -9967,11 +10249,11 @@ msgstr "可选的字母数字发件人标识"
 msgid "Optional bearer token"
 msgstr "可选 Bearer 令牌"
 
-#: src/components/customers/CustomerImportPanel.tsx:86
+#: src/components/customers/CustomerImportPanel.tsx:88
 msgid "Optional. Choose one or more lists; leaving this empty imports customers without changing list membership."
 msgstr "可选。选择一个或多个名单；留空则只导入客户，不更改名单归属。"
 
-#: src/components/automations/config/ChannelConfigForm.tsx:60
+#: src/components/automations/config/ChannelConfigForm.tsx:64
 msgid "Optional. Contact and endpoint locale are used by default."
 msgstr "可选的 联系人和端点语言默认使用."
 
@@ -9987,7 +10269,7 @@ msgstr "可选的 为: OpenAI- 兼容供应商(Ollama、vLLM、LiteLLM、Azure�
 msgid "Optional. If provided, sent as Authorization: Bearer <secret>"
 msgstr "可选的 如果提供,则作为授权函发出: <secret>"
 
-#: src/components/automations/config/ChannelConfigForm.tsx:52
+#: src/components/automations/config/ChannelConfigForm.tsx:56
 msgid "Optional. Leave blank to use the contact's most recently active endpoint."
 msgstr "可选的 留空以使用联系人最近的主动端点 。"
 
@@ -10017,8 +10299,9 @@ msgstr "OS"
 #: src/components/blog_editor/menus/suggestion/SlashPopoverContent.tsx:74
 #: src/components/settings/UITranslationsSettings.tsx:119
 #: src/components/settings/WebhooksSettings.tsx:353
-#: src/components/templates/MessageTemplateDrawer.tsx:396
-#: src/pages/TemplatesPage.tsx:133
+#: src/components/templates/MessageTemplateDrawer.tsx:399
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:214
+#: src/pages/TemplatesPage.tsx:135
 msgid "Other"
 msgstr "其他人员"
 
@@ -10051,7 +10334,7 @@ msgstr "覆盖"
 msgid "Override the default sender name for this test email"
 msgstr "覆盖此测试邮件的默认发件人名称"
 
-#: src/components/automations/config/EmailConfigForm.tsx:78
+#: src/components/automations/config/EmailConfigForm.tsx:80
 msgid "Override the workspace default email provider for this node"
 msgstr "覆盖此节点的工作区默认邮件服务商"
 
@@ -10097,6 +10380,10 @@ msgstr "页 次"
 msgid "Pageviews"
 msgstr "页面视图"
 
+#: src/components/templates/OmnichannelFields.tsx:31
+msgid "Parameter name"
+msgstr "参数名称"
+
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:384
 msgid "Parent Frame"
 msgstr "父框架"
@@ -10114,7 +10401,7 @@ msgstr "分区已重写保留其新值 。"
 msgid "Password"
 msgstr "密码"
 
-#: src/components/settings/Integrations.tsx:2067
+#: src/components/settings/Integrations.tsx:2083
 msgid "Password (optional)"
 msgstr "密码( 可选)"
 
@@ -10180,7 +10467,7 @@ msgstr "有效载荷 :"
 #: src/components/automations/config/TriggerConfigForm.tsx:99
 #: src/components/automations/nodes/AddToListNode.tsx:59
 #: src/components/contacts/ContactDetailsDrawer.tsx:583
-#: src/components/customers/CustomerImportPanel.tsx:129
+#: src/components/customers/CustomerImportPanel.tsx:131
 #: src/components/lists/ListStats.tsx:90
 #: src/components/settings/WorkspaceMembers.tsx:136
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:85
@@ -10207,7 +10494,7 @@ msgstr "每位收件人的数据源"
 msgid "Per-recipient feed URL"
 msgstr "每个接收者的种子 URL"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:402
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:413
 msgid "Per-recipient feed URL is required when enabled"
 msgstr "启用时需要每个接收者的种子 URL"
 
@@ -10277,9 +10564,21 @@ msgstr "纯文本( 只在 TLS 终止代理后安全)"
 msgid "Planned"
 msgstr "计划中"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:395
+#: src/components/templates/TemplatePreviewDrawer.tsx:415
 msgid "Platform"
 msgstr "平台"
+
+#: src/components/templates/OmnichannelFields.tsx:27
+msgid "Platform category"
+msgstr "平台类别"
+
+#: src/components/templates/OmnichannelFields.tsx:25
+msgid "Platform language"
+msgstr "平台语言"
+
+#: src/components/templates/OmnichannelFields.tsx:24
+msgid "Platform template ID"
+msgstr "平台模板 ID"
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:604
 msgid "Playback options"
@@ -10293,7 +10592,7 @@ msgstr "回放选项"
 msgid "Please add at least one author"
 msgstr "请至少添加一个作者"
 
-#: src/components/settings/Integrations.tsx:1117
+#: src/components/settings/Integrations.tsx:1133
 msgid "Please add at least one sender before saving"
 msgstr "请在保存前至少添加一个发件人"
 
@@ -10302,7 +10601,7 @@ msgid "Please check the form for errors"
 msgstr "请检查表格中的错误"
 
 #: src/components/blog/PostDrawer.tsx:703
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:481
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:501
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:253
 msgid "Please check the form for errors."
 msgstr "请检查表格中的错误 。"
@@ -10315,7 +10614,7 @@ msgstr "请选择不同的细分群体名称"
 msgid "Please enter a bounce threshold"
 msgstr "请输入弹跳门槛"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:521
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:541
 msgid "Please enter a broadcast name"
 msgstr "请输入群发名称"
 
@@ -10467,6 +10766,10 @@ msgstr "请选择自定义字段"
 msgid "Please select a date"
 msgstr "请选择一个日期"
 
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:569
+msgid "Please select a dynamic audience"
+msgstr "请选择动态客群"
+
 #: src/components/segment/input_dimension_filters.tsx:206
 msgid "Please select a field"
 msgstr "请选择一个字段"
@@ -10479,7 +10782,7 @@ msgstr "请选择目标类型"
 msgid "Please select a JSON file"
 msgstr "请选择 JSON 文件"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:533
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:581
 #: src/components/contacts/ContactDetailsDrawer.tsx:1131
 #: src/components/segment/form_leaf.tsx:238
 msgid "Please select a list"
@@ -10538,7 +10841,7 @@ msgstr "请选择事件类型"
 msgid "Please select an MJML file"
 msgstr "请选择一个 MJML 文件"
 
-#: src/components/settings/Integrations.tsx:1920
+#: src/components/settings/Integrations.tsx:1936
 msgid "Please select an OAuth2 provider"
 msgstr "请选择 OAuth2 服务商"
 
@@ -10619,7 +10922,7 @@ msgstr "邮件成功更新"
 msgid "Postcode"
 msgstr "邮政编码"
 
-#: src/components/settings/Integrations.tsx:2127
+#: src/components/settings/Integrations.tsx:2143
 msgid "Postmark Message Stream ID (e.g. \"outbound\" for transactional, \"broadcast\" for marketing)"
 msgstr "Postmark 消息流 ID（例如：事务邮件使用 \"outbound\"，营销邮件使用 \"broadcast\"）"
 
@@ -10671,7 +10974,8 @@ msgstr "预览"
 #: src/components/common/ImageURLInput.tsx:52
 #: src/components/email_builder/EmailBuilder.tsx:843
 #: src/components/segment/button_upsert.tsx:659
-#: src/components/templates/MessageTemplateDrawer.tsx:348
+#: src/components/templates/MessageTemplateDrawer.tsx:351
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:201
 msgid "Preview"
 msgstr "预览"
 
@@ -10708,7 +11012,7 @@ msgid "Preview template"
 msgstr "预览模板"
 
 #: src/pages/BroadcastsPage.tsx:981
-#: src/pages/TemplatesPage.tsx:434
+#: src/pages/TemplatesPage.tsx:399
 msgid "Preview Template"
 msgstr "预览模板"
 
@@ -10729,7 +11033,7 @@ msgstr "预览文本将出现在这里..."
 msgid "Preview this theme in a new tab"
 msgstr "在新标签中预览此主题"
 
-#: src/components/templates/MessageTemplateDrawer.tsx:434
+#: src/components/templates/MessageTemplateDrawer.tsx:437
 msgid "Preview uses the server Liquid renderer and your current unsaved values."
 msgstr "使用服务器预览 Liquid 渲染器和当前未保存的值。"
 
@@ -10741,9 +11045,9 @@ msgstr "预览在编译后将在此显示"
 msgid "Preview Your Email"
 msgstr "预览您的邮件"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:334
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:345
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:356
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:367
 #: src/components/templates/CreateTemplateDrawer.tsx:814
 #: src/components/templates/CreateTemplateDrawer.tsx:835
 #: src/pages/CustomersPage.tsx:229
@@ -10810,7 +11114,7 @@ msgstr "上个礼拜"
 msgid "Previous year"
 msgstr "前一年"
 
-#: src/components/customers/CustomerProfilePanel.tsx:156
+#: src/components/customers/CustomerProfilePanel.tsx:178
 msgid "Primary"
 msgstr "主要"
 
@@ -10832,7 +11136,7 @@ msgstr "优先级 :"
 msgid "Private"
 msgstr "私营"
 
-#: src/components/customers/CustomerImportPanel.tsx:107
+#: src/components/customers/CustomerImportPanel.tsx:109
 msgid "Process"
 msgstr "处理"
 
@@ -10855,7 +11159,7 @@ msgstr "已处理 {0} 联系人 : {1} 已经成功 {2} 失败"
 msgid "Processed {successful} contacts successfully, {failed} failed"
 msgstr "已处理 {successful} 联系成功, {failed} 失败"
 
-#: src/components/customers/CustomerImportPanel.tsx:130
+#: src/components/customers/CustomerImportPanel.tsx:132
 msgid "Processing"
 msgstr "处理中"
 
@@ -10883,7 +11187,7 @@ msgstr "处理已暂停"
 msgid "Processing was stopped before completion."
 msgstr "在完成之前,处理工作已停止。"
 
-#: src/components/customers/CustomerProfilePanel.tsx:131
+#: src/components/customers/CustomerProfilePanel.tsx:145
 msgid "Profile attributes"
 msgstr "客户画像属性"
 
@@ -10999,7 +11303,7 @@ msgstr "购买"
 #: src/components/frequency/FrequencyPolicyForm.tsx:87
 #: src/components/messages/MessageHistoryTab.tsx:221
 #: src/components/templates/CreateTemplateDrawer.tsx:255
-#: src/components/templates/MessageTemplateDrawer.tsx:384
+#: src/components/templates/MessageTemplateDrawer.tsx:387
 msgid "Push"
 msgstr "推送"
 
@@ -11011,11 +11315,11 @@ msgstr "排队中"
 msgid "Queued emails will not be sent. In-flight sends will complete."
 msgstr "不发送已排队的邮件 。 飞行中发送将完成。"
 
-#: src/components/settings/Integrations.tsx:2502
+#: src/components/settings/Integrations.tsx:2518
 msgid "Rate Limit for Marketing"
 msgstr "销售费率限制"
 
-#: src/components/settings/Integrations.tsx:2186
+#: src/components/settings/Integrations.tsx:2202
 msgid "Rate limit for marketing emails (emails per minute)"
 msgstr "营销邮件的费率限制(每分钟邮件)"
 
@@ -11047,7 +11351,7 @@ msgstr "原始有效载荷 :"
 msgid "Re-engage customers when the business reports a churn-risk event."
 msgstr "业务系统上报流失风险事件时，重新触达客户。"
 
-#: src/components/settings/Integrations.tsx:330
+#: src/components/settings/Integrations.tsx:333
 msgid "Re-register"
 msgstr "重新登记"
 
@@ -11089,7 +11393,7 @@ msgstr "为群发读取 A/B 测试结果"
 msgid "Read an integration sync task's state and progress"
 msgstr "读取集成同步任务的状态和进度"
 
-#: src/components/customers/CustomerImportPanel.tsx:105
+#: src/components/customers/CustomerImportPanel.tsx:107
 msgid "Read customer identifiers"
 msgstr "读取客户标识"
 
@@ -11237,7 +11541,7 @@ msgstr "重建段"
 msgid "Receive a scheduled_reminder event from your scheduler and continue the journey."
 msgstr "接收业务调度器上报的 scheduled_reminder 事件并继续自动化旅程。"
 
-#: src/components/customers/CustomerImportPanel.tsx:104
+#: src/components/customers/CustomerImportPanel.tsx:106
 msgid "Receive the complete CSV"
 msgstr "接收完整 CSV"
 
@@ -11245,7 +11549,7 @@ msgstr "接收完整 CSV"
 msgid "Recent Failed Messages"
 msgstr "最近的错误信件"
 
-#: src/components/customers/CustomerImportPanel.tsx:142
+#: src/components/customers/CustomerImportPanel.tsx:144
 msgid "Recent imports"
 msgstr "最近导入"
 
@@ -11276,13 +11580,17 @@ msgid "recipient@example.com"
 msgstr "recipient@example.com"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:553
-msgid "Recipients do not change after the campaign starts"
-msgstr "活动开始后收件人不会变化"
+#~ msgid "Recipients do not change after the campaign starts"
+#~ msgstr "活动开始后收件人不会变化"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:98
 #: src/pages/BroadcastsPage.tsx:1221
 msgid "Recommended"
 msgstr "建议"
+
+#: src/components/templates/ChannelPicker.tsx:43
+msgid "Recommended for {normalizedCountry}"
+msgstr "推荐用于 {normalizedCountry}"
 
 #: src/pages/BroadcastsPage.tsx:1219
 msgid "Recommended Winner"
@@ -11386,8 +11694,8 @@ msgstr "重新生成"
 msgid "Regenerate secret?"
 msgstr "重现秘密?"
 
-#: src/components/settings/Integrations.tsx:2142
-#: src/components/settings/Integrations.tsx:2482
+#: src/components/settings/Integrations.tsx:2158
+#: src/components/settings/Integrations.tsx:2498
 msgid "Region"
 msgstr "地区"
 
@@ -11395,12 +11703,12 @@ msgstr "地区"
 msgid "Regional (~11km precision)"
 msgstr "区域(~11公里精度)"
 
-#: src/components/settings/Integrations.tsx:281
-#: src/components/settings/Integrations.tsx:330
+#: src/components/settings/Integrations.tsx:284
+#: src/components/settings/Integrations.tsx:333
 msgid "Register Webhooks"
 msgstr "注册 Webhooks"
 
-#: src/components/settings/Integrations.tsx:318
+#: src/components/settings/Integrations.tsx:321
 msgid "Register webhooks?"
 msgstr "注册网友?"
 
@@ -11408,7 +11716,7 @@ msgstr "注册网友?"
 msgid "Regular expression"
 msgstr "正则表达式"
 
-#: src/components/settings/Integrations.tsx:1561
+#: src/components/settings/Integrations.tsx:1577
 msgid "Reject Disposable Email"
 msgstr "拒绝可处理的邮件"
 
@@ -11435,8 +11743,13 @@ msgstr "请重新加载此页面后重试。"
 #: src/components/automations/config/ConditionsField.tsx:119
 #: src/components/automations/config/ConditionsField.tsx:124
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:119
+#: src/components/templates/OmnichannelFields.tsx:33
 msgid "Remove"
 msgstr "移除"
+
+#: src/components/customers/CustomerProfilePanel.tsx:73
+msgid "Remove {label}"
+msgstr "移除{label}"
 
 #: src/services/api/permissions.ts:398
 msgid "Remove a contact from a list (also needs Contacts write)"
@@ -11445,6 +11758,10 @@ msgstr "从列表中删除联系人( 也需要写入联系人)"
 #: src/services/api/permissions.ts:229
 msgid "Remove a contact from a list (also needs Lists write)"
 msgstr "从列表中删除联系人( 也需要列表写入)"
+
+#: src/components/templates/OmnichannelFields.tsx:56
+msgid "Remove card"
+msgstr "移除卡片"
 
 #: src/components/automations/config/ConditionsField.tsx:116
 msgid "Remove conditions"
@@ -11489,15 +11806,11 @@ msgstr "删除成员"
 msgid "Remove this author?"
 msgstr "删除此作者吗 ?"
 
-#: src/components/customers/CustomerProfilePanel.tsx
+#: src/components/customers/CustomerProfilePanel.tsx:72
 msgid "Remove this profile attribute?"
 msgstr "确定移除此客户属性吗？"
 
-#: src/components/customers/CustomerProfilePanel.tsx
-msgid "Remove {label}"
-msgstr "移除{label}"
-
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:736
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:788
 msgid "Remove variation"
 msgstr "删除变量"
 
@@ -11550,16 +11863,20 @@ msgstr "重复 X 语句"
 msgid "Repeat Y"
 msgstr "重复 Y"
 
+#: src/components/integrations/ChannelWebhookIntegration.tsx:100
+msgid "Replace secret"
+msgstr "替换密钥"
+
 #: src/components/timeline/ContactTimeline.tsx:655
 msgid "Replied"
 msgstr "已复制"
 
-#: src/components/settings/Integrations.tsx:239
+#: src/components/settings/Integrations.tsx:242
 msgid "Reply forwarding is set up. Inbound replies also require your domain's MX records to point at {mxTarget}."
 msgstr "回复转发已设置。入站回复还要求您域名的 MX 记录指向 {mxTarget}。"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1137
-#: src/components/templates/TemplatePreviewDrawer.tsx:337
+#: src/components/templates/TemplatePreviewDrawer.tsx:357
 msgid "Reply to"
 msgstr "回复至"
 
@@ -11579,16 +11896,16 @@ msgstr "报 告 - {dimensions}"
 msgid "Report An Issue"
 msgstr "报告问题"
 
-#: src/components/settings/Integrations.tsx:2449
+#: src/components/settings/Integrations.tsx:2465
 msgid "Reputation"
 msgstr "名誉"
 
-#: src/components/settings/Integrations.tsx:1097
+#: src/components/settings/Integrations.tsx:1113
 msgid "Reputation isolation is active for this integration"
 msgstr "此集成已启用信誉隔离"
 
 #. placeholder {0}: result.unverified_senders.join(', ')
-#: src/components/settings/Integrations.tsx:1094
+#: src/components/settings/Integrations.tsx:1110
 msgid "Reputation isolation is on. These senders have no verified identity and will fail to send: {0}"
 msgstr "信誉隔离已启用。以下发件人没有已验证的身份，将无法发送：{0}"
 
@@ -11665,7 +11982,7 @@ msgstr "重置集成同步任务, 因此它从头开始重运行"
 msgid "Reset formatting"
 msgstr "重设格式"
 
-#: src/pages/TemplatesPage.tsx:558
+#: src/pages/TemplatesPage.tsx:499
 msgid "reset the filter"
 msgstr "重置过滤器"
 
@@ -11799,7 +12116,7 @@ msgstr "恢复上一个上传"
 msgid "Resume Upload"
 msgstr "继续上传"
 
-#: src/components/customers/CustomerImportPanel.tsx:106
+#: src/components/customers/CustomerImportPanel.tsx:108
 msgid "Retain invalid rows"
 msgstr "保留无效行"
 
@@ -11815,7 +12132,7 @@ msgstr "延后重试"
 msgid "Review"
 msgstr "查看"
 
-#: src/components/customers/CustomerImportPanel.tsx:108
+#: src/components/customers/CustomerImportPanel.tsx:110
 msgid "Review successes and failures"
 msgstr "检查成功和失败记录"
 
@@ -11943,7 +12260,7 @@ msgstr "运行回填"
 msgid "Run test"
 msgstr "运行测试"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:164
+#: src/components/broadcasts/RecipientFeedSettings.tsx:165
 msgid "Run Test"
 msgstr "运行测试"
 
@@ -11990,10 +12307,10 @@ msgstr "样本百分比"
 msgid "Sample values"
 msgstr "样本值"
 
-#: src/components/settings/Integrations.tsx:2106
-#: src/components/settings/Integrations.tsx:2170
-#: src/components/settings/Integrations.tsx:2473
-#: src/components/settings/Integrations.tsx:2494
+#: src/components/settings/Integrations.tsx:2122
+#: src/components/settings/Integrations.tsx:2186
+#: src/components/settings/Integrations.tsx:2489
+#: src/components/settings/Integrations.tsx:2510
 msgid "Sandbox Mode"
 msgstr "沙盒模式"
 
@@ -12002,35 +12319,37 @@ msgstr "沙盒模式"
 #: src/components/blog/PostDrawer.tsx:691
 #: src/components/blog/ThemeEditorDrawer.tsx:318
 #: src/components/blog/ThemeEditorDrawer.tsx:468
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:365
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:376
 #: src/components/contacts/ContactUpsertDrawer.tsx:502
 #: src/components/contacts/InlineEditableField.tsx:318
-#: src/components/customers/CustomerProfilePanel.tsx:121
+#: src/components/customers/CustomerProfilePanel.tsx:135
 #: src/components/email_builder/panels/Preview.tsx:185
 #: src/components/email_builder/ui/BlockToolbar.tsx:209
 #: src/components/email_builder/ui/StringPopoverInput.tsx:103
 #: src/components/file_manager/buttonSettings.tsx:312
+#: src/components/integrations/ChannelWebhookIntegration.tsx:96
 #: src/components/lists/ListDrawer.tsx:170
 #: src/components/settings/CustomFieldsConfiguration.tsx:293
-#: src/components/settings/Integrations.tsx:2554
-#: src/components/settings/Integrations.tsx:2685
-#: src/components/settings/Integrations.tsx:2772
-#: src/components/settings/Integrations.tsx:2820
-#: src/components/settings/Integrations.tsx:2867
-#: src/components/settings/Integrations.tsx:2903
+#: src/components/settings/Integrations.tsx:2570
+#: src/components/settings/Integrations.tsx:2703
+#: src/components/settings/Integrations.tsx:2790
+#: src/components/settings/Integrations.tsx:2838
+#: src/components/settings/Integrations.tsx:2885
+#: src/components/settings/Integrations.tsx:2921
 #: src/components/settings/SystemSettingsDrawer.tsx:239
 #: src/components/settings/WebhooksSettings.tsx:253
 #: src/components/templates/CreateTemplateDrawer.tsx:272
 #: src/components/templates/CreateTemplateDrawer.tsx:825
 #: src/components/templates/CreateTemplateDrawer.tsx:846
-#: src/components/templates/MessageTemplateDrawer.tsx:351
+#: src/components/templates/MessageTemplateDrawer.tsx:354
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:202
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:187
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
 msgid "Save"
 msgstr "保存"
 
-#: src/components/customers/CustomerProfilePanel.tsx:38
+#: src/components/customers/CustomerProfilePanel.tsx:40
 msgid "Save {label}"
 msgstr "保存{label}"
 
@@ -12045,6 +12364,10 @@ msgstr "无论如何保存"
 #: src/components/email_builder/ui/BlockToolbar.tsx:225
 msgid "Save as new block"
 msgstr "另存为新块"
+
+#: src/components/audiences/AudienceDrawer.tsx:124
+msgid "Save audience"
+msgstr "保存客群"
 
 #: src/components/email_builder/ui/BlockToolbar.tsx:168
 #: src/components/email_builder/ui/BlockToolbar.tsx:205
@@ -12167,9 +12490,13 @@ msgid "Search"
 msgstr "搜索"
 
 #: src/pages/BroadcastsPage.tsx:1591
-#: src/pages/TemplatesPage.tsx:491
+#: src/pages/TemplatesPage.tsx:445
 msgid "Search by name"
 msgstr "按名称搜索"
+
+#: src/components/templates/ChannelPicker.tsx:59
+msgid "Search channels"
+msgstr "搜索渠道"
 
 #: src/pages/CustomersPage.tsx:164
 msgid "Search customer number, external ID, email or phone"
@@ -12184,7 +12511,7 @@ msgstr "搜索维度"
 msgid "Search Engine Indexing"
 msgstr "搜索引擎索引"
 
-#: src/components/templates/TemplateSelectorInput.tsx:189
+#: src/components/templates/TemplateSelectorInput.tsx:176
 msgid "Search templates..."
 msgstr "搜索模板..."
 
@@ -12214,9 +12541,17 @@ msgstr "第二个值必须大于第一个值"
 msgid "Secret"
 msgstr "机密"
 
-#: src/components/settings/Integrations.tsx:1859
-#: src/components/settings/Integrations.tsx:2162
-#: src/components/settings/Integrations.tsx:2165
+#: src/components/integrations/ChannelWebhookIntegration.tsx:91
+msgid "Secret configured"
+msgstr "已配置密钥"
+
+#: src/components/integrations/ChannelWebhookIntegration.tsx:91
+msgid "Secret configured, ends in {hint}"
+msgstr "已配置密钥，末尾为 {hint}"
+
+#: src/components/settings/Integrations.tsx:1875
+#: src/components/settings/Integrations.tsx:2178
+#: src/components/settings/Integrations.tsx:2181
 msgid "Secret Key"
 msgstr "密钥"
 
@@ -12328,7 +12663,7 @@ msgstr "细分群体"
 #: src/components/file_manager/fileManager.tsx:976
 #: src/components/settings/BlogSettings.tsx:360
 #: src/components/settings/BlogSettings.tsx:376
-#: src/components/templates/TemplateSelectorInput.tsx:246
+#: src/components/templates/TemplateSelectorInput.tsx:208
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 #: src/pages/BroadcastsPage.tsx:1024
 msgid "Select"
@@ -12400,8 +12735,8 @@ msgstr "选择一段..."
 msgid "Select a sender"
 msgstr "选择发件人"
 
-#: src/components/automations/config/ChannelConfigForm.tsx:39
-#: src/components/templates/TemplateSelectorInput.tsx:44
+#: src/components/automations/config/ChannelConfigForm.tsx:43
+#: src/components/templates/TemplateSelectorInput.tsx:43
 msgid "Select a template"
 msgstr "选择模板"
 
@@ -12417,6 +12752,10 @@ msgstr "请选择"
 msgid "Select all"
 msgstr "全部选择"
 
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:572
+msgid "Select an audience"
+msgstr "选择客群"
+
 #: src/components/templates/SendTemplateModal.tsx:289
 msgid "Select an email integration"
 msgstr "选择邮件集成"
@@ -12429,7 +12768,7 @@ msgstr "选择事件类型"
 msgid "Select an event..."
 msgstr "选择事件..."
 
-#: src/components/automations/config/ChannelConfigForm.tsx:45
+#: src/components/automations/config/ChannelConfigForm.tsx:49
 msgid "Select an integration"
 msgstr "选择集成"
 
@@ -12441,7 +12780,7 @@ msgstr "选择查看图表的另一个公尺"
 msgid "Select Avatar"
 msgstr "选择象形文字"
 
-#: src/components/settings/Integrations.tsx:1795
+#: src/components/settings/Integrations.tsx:1811
 msgid "Select AWS Region"
 msgstr "选择 AWS 地区"
 
@@ -12490,7 +12829,7 @@ msgstr "选择尺寸"
 msgid "Select email template"
 msgstr "选择邮件模板"
 
-#: src/components/automations/config/EmailConfigForm.tsx:71
+#: src/components/automations/config/EmailConfigForm.tsx:73
 msgid "Select email template..."
 msgstr "选择邮件模板..."
 
@@ -12548,7 +12887,7 @@ msgstr "选择列表"
 msgid "Select List"
 msgstr "选择列表"
 
-#: src/components/customers/CustomerImportPanel.tsx:97
+#: src/components/customers/CustomerImportPanel.tsx:99
 #: src/components/integrations/SupabaseIntegration.tsx:189
 msgid "Select lists (optional)"
 msgstr "选择列表( 可选)"
@@ -12557,7 +12896,7 @@ msgstr "选择列表( 可选)"
 msgid "Select lists to add contacts to"
 msgstr "选择要添加联系人到的列表"
 
-#: src/components/settings/Integrations.tsx:1922
+#: src/components/settings/Integrations.tsx:1938
 msgid "Select OAuth2 Provider"
 msgstr "选择 OAuth2 服务商"
 
@@ -12582,16 +12921,16 @@ msgstr "选择存储服务商"
 msgid "Select supported languages"
 msgstr "选择支持的语言"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:724
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:787
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:776
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:839
 msgid "Select template"
 msgstr "选择模板"
 
-#: src/components/templates/TemplateSelectorInput.tsx:179
+#: src/components/templates/TemplateSelectorInput.tsx:166
 msgid "Select Template"
 msgstr "选择模板"
 
-#: src/components/automations/config/EmailConfigForm.tsx:65
+#: src/components/automations/config/EmailConfigForm.tsx:67
 msgid "Select the email template to send"
 msgstr "选择要发送的邮件模板"
 
@@ -12599,7 +12938,7 @@ msgstr "选择要发送的邮件模板"
 msgid "Select the event that will trigger this automation"
 msgstr "选择触发此自动化的事件"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:538
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:584
 msgid "Select the list to snapshot when the campaign starts"
 msgstr "选择活动开始时用于快照的名单"
 
@@ -12741,11 +13080,11 @@ msgstr "发送或调度群发"
 msgid "Send Test"
 msgstr "发送测试"
 
-#: src/components/settings/Integrations.tsx:2726
+#: src/components/settings/Integrations.tsx:2744
 #: src/components/templates/SendTemplateModal.tsx:263
 #: src/components/templates/SendTemplateModal.tsx:277
 #: src/pages/BroadcastsPage.tsx:965
-#: src/pages/TemplatesPage.tsx:424
+#: src/pages/TemplatesPage.tsx:389
 msgid "Send Test Email"
 msgstr "发送测试邮件"
 
@@ -12755,13 +13094,13 @@ msgstr "使用 SMTP 网关发送事务通知，适合与现有的 SMTP 邮件系
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1085
 #: src/components/templates/SendTemplateModal.tsx:303
-#: src/pages/TemplatesPage.tsx:248
+#: src/pages/TemplatesPage.tsx:244
 msgid "Sender"
 msgstr "发件人"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:311
-#: src/components/templates/MessageTemplateDrawer.tsx:286
-#: src/components/templates/TemplatePreviewDrawer.tsx:390
+#: src/components/templates/MessageTemplateDrawer.tsx:289
+#: src/components/templates/TemplatePreviewDrawer.tsx:410
 msgid "Sender ID"
 msgstr "发件人 ID"
 
@@ -12770,8 +13109,8 @@ msgstr "发件人 ID"
 msgid "Sender Name"
 msgstr "发件人名称"
 
-#: src/components/settings/Integrations.tsx:388
-#: src/components/settings/Integrations.tsx:2365
+#: src/components/settings/Integrations.tsx:391
+#: src/components/settings/Integrations.tsx:2381
 msgid "Senders"
 msgstr "发件人"
 
@@ -12853,8 +13192,8 @@ msgstr "服务器已成功重新启动 !"
 msgid "Server restarted successfully! You can now sign in."
 msgstr "服务器已成功重新启动 ! 你现在可以报名了"
 
-#: src/components/settings/Integrations.tsx:2118
-#: src/components/settings/Integrations.tsx:2121
+#: src/components/settings/Integrations.tsx:2134
+#: src/components/settings/Integrations.tsx:2137
 msgid "Server Token"
 msgstr "服务器令牌"
 
@@ -12862,11 +13201,11 @@ msgstr "服务器令牌"
 msgid "Service temporarily unavailable"
 msgstr "服务暂时不可用"
 
-#: src/components/settings/Integrations.tsx:2249
+#: src/components/settings/Integrations.tsx:2265
 msgid "SES tenant"
 msgstr "SES 租户"
 
-#: src/components/settings/Integrations.tsx:2209
+#: src/components/settings/Integrations.tsx:2225
 msgid "SES tenant isolation"
 msgstr "SES 租户隔离"
 
@@ -12905,23 +13244,23 @@ msgstr "会议(前一次)"
 msgid "Sessions with less engaged time than this count as bounces."
 msgstr "约定时间少于此数的会话为弹跳 。"
 
-#: src/components/settings/Integrations.tsx:684
+#: src/components/settings/Integrations.tsx:700
 msgid "Set as default marketing email provider"
 msgstr "设定为默认营销邮件服务商"
 
-#: src/components/settings/Integrations.tsx:2335
+#: src/components/settings/Integrations.tsx:2351
 msgid "Set as default sender"
 msgstr "设为默认发件人"
 
-#: src/components/settings/Integrations.tsx:684
+#: src/components/settings/Integrations.tsx:700
 msgid "Set as default transactional email provider"
 msgstr "设为默认事务邮件服务商"
 
-#: src/components/settings/Integrations.tsx:436
+#: src/components/settings/Integrations.tsx:439
 msgid "Set as marketing email provider?"
 msgstr "设定为营销邮件服务商吗 ?"
 
-#: src/components/settings/Integrations.tsx:455
+#: src/components/settings/Integrations.tsx:458
 msgid "Set as transactional email provider?"
 msgstr "设为事务邮件服务商？"
 
@@ -13048,7 +13387,7 @@ msgstr "共享链接"
 msgid "Shared"
 msgstr "共享"
 
-#: src/components/settings/Integrations.tsx:2464
+#: src/components/settings/Integrations.tsx:2480
 msgid "shared with the rest of this AWS account"
 msgstr "与其余部分共享 AWS 账户"
 
@@ -13094,13 +13433,26 @@ msgstr "登录"
 msgid "Sign in with SSO"
 msgstr "与 SSO 签约"
 
+#: src/components/templates/ChannelPicker.tsx:82
+#: src/pages/TemplatesPage.tsx:249
+msgid "Signed Webhook"
+msgstr "签名 Webhook"
+
 #: src/pages/LogoutPage.tsx:29
 msgid "Signing out..."
 msgstr "签名..."
 
+#: src/components/integrations/ChannelWebhookIntegration.tsx:100
+msgid "Signing secret"
+msgstr "签名密钥"
+
 #: src/components/settings/WebhooksSettings.tsx:350
 msgid "Signup"
 msgstr "注册"
+
+#: src/components/templates/OmnichannelPreview.tsx:37
+msgid "Simulated preview"
+msgstr "模拟预览"
 
 #: src/components/analytics/NewContactsTable.tsx:184
 #: src/components/settings/WorkspaceMembers.tsx:181
@@ -13155,7 +13507,7 @@ msgstr "小写字母、数字和连字符"
 #: src/components/delivery/DeliveryFiltersBar.tsx:40
 #: src/components/frequency/FrequencyPolicyForm.tsx:86
 #: src/components/messages/MessageHistoryTab.tsx:220
-#: src/components/templates/ChannelMessagePreview.tsx:35
+#: src/components/templates/ChannelMessagePreview.tsx:37
 #: src/components/templates/CreateTemplateDrawer.tsx:255
 msgid "SMS"
 msgstr "短信"
@@ -13202,8 +13554,8 @@ msgstr "SMTP 连接测试成功"
 msgid "SMTP domain"
 msgstr "SMTP 域名"
 
-#: src/components/settings/Integrations.tsx:1868
-#: src/components/settings/Integrations.tsx:2399
+#: src/components/settings/Integrations.tsx:1884
+#: src/components/settings/Integrations.tsx:2415
 #: src/components/settings/SystemSettingsDrawer.tsx:316
 #: src/pages/SetupWizard.tsx:394
 msgid "SMTP Host"
@@ -13213,7 +13565,7 @@ msgstr "SMTP 主机"
 msgid "SMTP host is required"
 msgstr "需要SMTP主机"
 
-#: src/components/settings/Integrations.tsx:2066
+#: src/components/settings/Integrations.tsx:2082
 #: src/components/settings/SystemSettingsDrawer.tsx:384
 #: src/pages/SetupWizard.tsx:435
 msgid "SMTP Password"
@@ -13223,7 +13575,7 @@ msgstr "SMTP 密码"
 msgid "SMTP port"
 msgstr "SMTP 端口"
 
-#: src/components/settings/Integrations.tsx:1875
+#: src/components/settings/Integrations.tsx:1891
 #: src/components/settings/SystemSettingsDrawer.tsx:329
 #: src/pages/SetupWizard.tsx:403
 msgid "SMTP Port"
@@ -13245,11 +13597,11 @@ msgstr "SMTP供应商不支持投诉的网络呼号,因此无法跟踪垃圾邮�
 msgid "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
 msgstr "SMTP 服务商不支持发送的 Webhooks, 因此无法跟踪发送状态"
 
-#: src/components/settings/Integrations.tsx:2402
+#: src/components/settings/Integrations.tsx:2418
 msgid "SMTP User"
 msgstr "SMTP 用户"
 
-#: src/components/settings/Integrations.tsx:2061
+#: src/components/settings/Integrations.tsx:2077
 #: src/components/settings/SystemSettingsDrawer.tsx:371
 #: src/pages/SetupWizard.tsx:430
 msgid "SMTP Username"
@@ -13357,7 +13709,7 @@ msgstr "间距"
 msgid "Spacer Attributes"
 msgstr "间距属性"
 
-#: src/components/settings/Integrations.tsx:2100
+#: src/components/settings/Integrations.tsx:2116
 msgid "SparkPost API Key"
 msgstr "SparkPost API 密钥"
 
@@ -13389,6 +13741,14 @@ msgstr "立即启动群发发送任务"
 msgid "Start a historical backfill of web analytics data"
 msgstr "开始历史回填网络分析数据"
 
+#: src/components/automations/AutomationAudienceRunModal.tsx:62
+msgid "Start audience run"
+msgstr "启动客群流程"
+
+#: src/components/automations/AutomationAudienceRunModal.tsx:61
+msgid "Start automation from audience"
+msgstr "从客群启动自动化流程"
+
 #: src/components/web_analytics/toolbar.tsx:42
 msgid "Start date cannot be in the future"
 msgstr "未来无法开始日期"
@@ -13396,6 +13756,10 @@ msgstr "未来无法开始日期"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:856
 msgid "Start Fresh"
 msgstr "开始新鲜"
+
+#: src/pages/AutomationsPage.tsx:190
+msgid "Start from audience"
+msgstr "从客群启动"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:400
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:376
@@ -13457,8 +13821,8 @@ msgstr "状态"
 #: src/components/blog/PostsTable.tsx:245
 #: src/components/blog/RecentThemesTable.tsx:122
 #: src/components/contacts/ContactDetailsDrawer.tsx:982
-#: src/components/customers/CustomerImportPanel.tsx:152
-#: src/components/customers/CustomerProfilePanel.tsx:107
+#: src/components/customers/CustomerImportPanel.tsx:154
+#: src/components/customers/CustomerProfilePanel.tsx:121
 #: src/components/delivery/DeliveryFiltersBar.tsx:30
 #: src/components/delivery/DeliveryFiltersBar.tsx:191
 #: src/components/messages/MessageHistoryTab.tsx:580
@@ -13524,7 +13888,7 @@ msgstr "样式"
 msgid "Style Attributes"
 msgstr "样式属性"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:353
+#: src/components/templates/TemplatePreviewDrawer.tsx:373
 #: src/components/templates/TemplateTranslationsTab.tsx:212
 #: src/pages/BroadcastsPage.tsx:839
 msgid "Subject"
@@ -13533,7 +13897,7 @@ msgstr "议题"
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:33
 #: src/components/email_builder/panels/TreePanel.tsx:283
 #: src/components/templates/CreateTemplateDrawer.tsx:1115
-#: src/components/templates/TemplatePreviewDrawer.tsx:358
+#: src/components/templates/TemplatePreviewDrawer.tsx:378
 #: src/components/templates/TemplateTranslationsTab.tsx:220
 msgid "Subject preview"
 msgstr "主题预览"
@@ -13622,8 +13986,8 @@ msgstr "订阅状态"
 msgid "Subscription status updated successfully"
 msgstr "订阅状态已成功更新"
 
-#: src/components/customers/CustomerImportPanel.tsx:131
-#: src/components/customers/CustomerImportPanel.tsx:154
+#: src/components/customers/CustomerImportPanel.tsx:133
+#: src/components/customers/CustomerImportPanel.tsx:156
 msgid "Succeeded"
 msgstr "成功"
 
@@ -13667,7 +14031,7 @@ msgstr "报告摘要 {0}"
 msgid "Summary-only feed"
 msgstr "仅提供摘要"
 
-#: src/components/settings/Integrations.tsx:867
+#: src/components/settings/Integrations.tsx:883
 msgid "Supabase integration saved successfully"
 msgstr "Supabase 成功保存集成"
 
@@ -13707,7 +14071,7 @@ msgstr "同步可配置的大批量数据，并按原顺序返回每条记录的
 msgid "System Fonts"
 msgstr "系统字体"
 
-#: src/components/customers/CustomerProfilePanel.tsx:163
+#: src/components/customers/CustomerProfilePanel.tsx:185
 msgid "System identifiers"
 msgstr "系统标识"
 
@@ -13736,7 +14100,7 @@ msgstr "标记已添加"
 msgid "Tag Removed"
 msgstr "标记已删除"
 
-#: src/components/customers/CustomerProfilePanel.tsx:114
+#: src/components/customers/CustomerProfilePanel.tsx:128
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:137
 #: src/components/web_analytics/filters/FilterTable.tsx:252
 #: src/pages/CustomersPage.tsx:121
@@ -13755,7 +14119,7 @@ msgstr "参观一下"
 msgid "Target"
 msgstr "目标"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:528
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:580
 msgid "Target list"
 msgstr "目标名单"
 
@@ -13763,7 +14127,7 @@ msgstr "目标名单"
 msgid "Target list:"
 msgstr "目标列表 :"
 
-#: src/components/customers/CustomerImportPanel.tsx:89
+#: src/components/customers/CustomerImportPanel.tsx:91
 msgid "Target lists"
 msgstr "目标名单"
 
@@ -13802,17 +14166,17 @@ msgid "template"
 msgstr "模板"
 
 #: src/components/automations/config/ChannelConfigForm.tsx:33
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:782
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:834
 #: src/components/messages/MessageHistoryTable.tsx:130
 #: src/components/messages/MessageHistoryTable.tsx:172
 #: src/pages/BroadcastsPage.tsx:834
 #: src/pages/BroadcastsPage.tsx:836
-#: src/pages/TemplatesPage.tsx:216
+#: src/pages/TemplatesPage.tsx:212
 msgid "Template"
 msgstr "模板"
 
 #. placeholder {0}: field.key + 1
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:691
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:743
 msgid "Template {0}"
 msgstr "模板 {0}"
 
@@ -13840,16 +14204,18 @@ msgstr "由他人更改模板"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:224
 #: src/components/templates/CreateTemplateDrawer.tsx:473
-#: src/components/templates/MessageTemplateDrawer.tsx:195
+#: src/components/templates/MessageTemplateDrawer.tsx:198
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:174
 msgid "Template created successfully"
 msgstr "成功创建模板"
 
 #: src/components/email_builder/panels/Preview.tsx:336
-#: src/components/templates/TemplatePreviewDrawer.tsx:277
+#: src/components/templates/TemplatePreviewDrawer.tsx:297
 msgid "Template Data"
 msgstr "模板数据"
 
-#: src/components/templates/MessageTemplateDrawer.tsx:411
+#: src/components/templates/MessageTemplateDrawer.tsx:414
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:218
 msgid "Template data (JSON)"
 msgstr "模板数据 (JSON)"
 
@@ -13857,7 +14223,7 @@ msgstr "模板数据 (JSON)"
 msgid "Template Data & Liquid Templating"
 msgstr "模板数据( T) Liquid 调情"
 
-#: src/pages/TemplatesPage.tsx:172
+#: src/pages/TemplatesPage.tsx:168
 msgid "Template deleted successfully"
 msgstr "成功删除模板"
 
@@ -13895,13 +14261,14 @@ msgstr "模板名称"
 msgid "Template set"
 msgstr "模板集"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:163
+#: src/components/templates/TemplatePreviewDrawer.tsx:183
 msgid "Template structure data is missing or invalid."
 msgstr "模板结构数据缺失或无效 。"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:224
 #: src/components/templates/CreateTemplateDrawer.tsx:473
-#: src/components/templates/MessageTemplateDrawer.tsx:195
+#: src/components/templates/MessageTemplateDrawer.tsx:198
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:174
 msgid "Template updated successfully"
 msgstr "成功更新模板"
 
@@ -13916,7 +14283,7 @@ msgstr "模板 :"
 
 #: src/components/settings/PermissionsMatrix.tsx:121
 #: src/components/settings/UITranslationsSettings.tsx:112
-#: src/pages/TemplatesPage.tsx:452
+#: src/pages/TemplatesPage.tsx:417
 #: src/services/api/errors.ts:216
 msgid "Templates"
 msgstr "模板"
@@ -13925,7 +14292,7 @@ msgstr "模板"
 msgid "Templates provide understandable defaults. Every trigger and flow node remains editable."
 msgstr "模板提供易懂的默认配置，所有触发器和流程节点仍可编辑。"
 
-#: src/components/settings/Integrations.tsx:2347
+#: src/components/settings/Integrations.tsx:2363
 msgid "Templates using this sender will need to be updated to use a different sender."
 msgstr "使用此发送器的模板需要更新以使用不同的发送器 。"
 
@@ -13935,13 +14302,13 @@ msgid "Templating markup allowed"
 msgstr "允许临时加价"
 
 #. placeholder {0}: result.tenant_name
-#: src/components/settings/Integrations.tsx:1085
+#: src/components/settings/Integrations.tsx:1101
 msgid "Tenant {0} exists in AWS but could not be saved here. Save again to finish — you are already being billed for it."
 msgstr "租户 {0} 存在于 AWS 但无法在这里保存。 再次保存以完成——你已经被收了帐。"
 
 #. placeholder {0}: result.tenant_name
 #. placeholder {1}: (result.missing_permissions ?? []).join(', ') || 'none reported'
-#: src/components/settings/Integrations.tsx:1090
+#: src/components/settings/Integrations.tsx:1106
 msgid "Tenant {0} was created but its configuration set is not associated, so it is not in use yet. Missing permissions: {1}"
 msgstr "租户 {0} 已创建,但其配置集没有关联,所以尚未使用。 缺少权限 : {1}"
 
@@ -13951,7 +14318,7 @@ msgstr "术语"
 
 #: src/components/broadcasts/GlobalFeedSettings.tsx:122
 #: src/components/broadcasts/RecipientFeedSettings.tsx:130
-#: src/components/settings/Integrations.tsx:373
+#: src/components/settings/Integrations.tsx:376
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:104
 #: src/components/web_analytics/tabs/FiltersTab.tsx:125
 #: src/pages/TransactionalNotificationsPage.tsx:175
@@ -13987,20 +14354,20 @@ msgstr "测试数据成功更新"
 msgid "Test deliveries are unavailable here: Zapier's hook URLs always answer with success, so a test would report a green tick even for a Zap that no longer exists."
 msgstr "这里无法提供测试: Zapier钩子 URL 总是成功的回答, 所以测试会报告一个绿色的勾子, 即使对于一个已经不存在的 Zap 。"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:62
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:64
 msgid "Test duration (hours)"
 msgstr "试验时间(小时)"
 
-#: src/components/settings/Integrations.tsx:2712
+#: src/components/settings/Integrations.tsx:2730
 msgid "Test Email Provider"
 msgstr "测试邮件服务商"
 
-#: src/components/settings/Integrations.tsx:1231
+#: src/components/settings/Integrations.tsx:1247
 #: src/components/templates/SendTemplateModal.tsx:137
 msgid "Test email sent successfully"
 msgstr "测试邮件发送成功"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:182
+#: src/components/broadcasts/RecipientFeedSettings.tsx:183
 msgid "Test Failed"
 msgstr "测试失败"
 
@@ -14013,11 +14380,11 @@ msgstr "测试失败 : {0}"
 msgid "Test in different email clients as support varies"
 msgstr "在不同的邮件客户端中测试, 因为支持不同"
 
-#: src/components/settings/Integrations.tsx:2552
+#: src/components/settings/Integrations.tsx:2568
 msgid "Test Integration"
 msgstr "测试集成"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:142
+#: src/components/broadcasts/RecipientFeedSettings.tsx:143
 msgid "Test Recipient Feed"
 msgstr "测试收件人种子"
 
@@ -14025,7 +14392,7 @@ msgstr "测试收件人种子"
 msgid "Test rule"
 msgstr "测试规则"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:647
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:699
 msgid "Test sample size (%)"
 msgstr "测试样本大小(%)"
 
@@ -14038,11 +14405,11 @@ msgstr "测试变量"
 msgid "Test Webhook"
 msgstr "测试 Webhook"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:191
+#: src/components/broadcasts/RecipientFeedSettings.tsx:192
 msgid "Tested with:"
 msgstr "试验过:"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:175
+#: src/components/broadcasts/RecipientFeedSettings.tsx:176
 msgid "Testing feed..."
 msgstr "测试种子..."
 
@@ -14151,7 +14518,7 @@ msgstr "CSV 文件应该有一个包含邮件地址的列"
 msgid "The CSV file should have headers in the first row."
 msgstr "CSV文件应该在第一行有标题."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:553
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:604
 msgid "The current active list members are frozen into an immutable snapshot. Identity, consent, suppression and frequency policies are still checked at send time."
 msgstr "当前名单中的活跃成员会被固化为不可变快照。发送时仍会检查身份、同意、抑制和频控策略。"
 
@@ -14167,7 +14534,7 @@ msgstr "目前公布的主题将自动发布."
 msgid "The customer will not receive this delivery."
 msgstr "客户不会收到本次投递。"
 
-#: src/components/settings/Integrations.tsx:1936
+#: src/components/settings/Integrations.tsx:1952
 msgid "The email address that will be used as the SMTP user for authentication"
 msgstr "用作 SMTP 认证用户的邮件地址"
 
@@ -14183,11 +14550,11 @@ msgstr "邮件正文必须包含符合上述格式的有效 JSON"
 msgid "The export failed. Please try again."
 msgstr "导出失败 。 请再试一次"
 
-#: src/components/customers/CustomerImportPanel.tsx:47
+#: src/components/customers/CustomerImportPanel.tsx:49
 msgid "The file was received and will continue processing in the background."
 msgstr "文件已接收，将在后台继续处理。"
 
-#: src/components/customers/CustomerImportPanel.tsx:47
+#: src/components/customers/CustomerImportPanel.tsx:49
 msgid "The file was received but rejected by the configured import limits."
 msgstr "文件已接收，但因超出配置的导入限制而被拒绝。"
 
@@ -14199,7 +14566,7 @@ msgstr "您的导入中发现了以下验证错误 :"
 msgid "The generated email has issues that prevent it from rendering:"
 msgstr "生成的邮件有问题阻止其渲染:"
 
-#: src/components/settings/Integrations.tsx:2077
+#: src/components/settings/Integrations.tsx:2093
 #: src/pages/SetupWizard.tsx:464
 msgid "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
 msgstr "您的服务器主机名在连接 SMTP 服务器时会识别自己 。 如果为空, 默认 SMTP 主机值 。"
@@ -14216,6 +14583,10 @@ msgstr "密钥在 Sets → Team 中列出为 {0},可以扩展其权限。"
 #: src/components/web_analytics/filters/BackfillStatus.tsx:118
 msgid "The last backfill failed"
 msgstr "上次回填失败"
+
+#: src/components/automations/AutomationAudienceRunModal.tsx:72
+msgid "The latest audience rule is evaluated now. Candidates enter the journey once, and every message node checks the same rule again against current customer data."
+msgstr "系统现在按最新客群规则圈选候选客户并投入流程；每个消息节点都会根据客户最新数据再次检查同一版规则。"
 
 #: src/components/settings/BlogSettings.tsx:344
 msgid "The main title for your blog"
@@ -14321,7 +14692,7 @@ msgstr "成功更新主题"
 msgid "Theme Versions"
 msgstr "主题版本"
 
-#: src/components/settings/Integrations.tsx:2290
+#: src/components/settings/Integrations.tsx:2306
 msgid "These AWS credentials can't list tenants or configuration sets (needs ses:ListTenants). Type the names instead."
 msgstr "这些 AWS 证书不能列出租户或配置集(需要ses:ListTenants). 输入名字代替。"
 
@@ -14337,7 +14708,7 @@ msgstr "这些联系人将从所选列表中删除 。 这是一个真正的删�
 msgid "These contacts will be subscribed to the selected list (status: active)."
 msgstr "这些联系人将被订阅到所选列表( 状态: 活动) 。"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:569
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:621
 msgid "These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to analyze the performance of your campaign."
 msgstr "这些参数会自动添加到群发 URL 中，供网站分析工具评估营销活动效果。"
 
@@ -14353,10 +14724,10 @@ msgstr "此账户已经链接到不同的单一签名身份 。"
 #: src/components/blog/DeletePostModal.tsx:36
 #: src/components/contacts/DeleteContactModal.tsx:54
 #: src/components/settings/DeleteWorkspace.tsx:45
-#: src/components/settings/Integrations.tsx:361
-#: src/components/settings/Integrations.tsx:1444
-#: src/components/settings/Integrations.tsx:1603
-#: src/components/settings/Integrations.tsx:1672
+#: src/components/settings/Integrations.tsx:364
+#: src/components/settings/Integrations.tsx:1460
+#: src/components/settings/Integrations.tsx:1619
+#: src/components/settings/Integrations.tsx:1688
 #: src/components/settings/WebhookCard.tsx:271
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:29
 msgid "This action cannot be undone."
@@ -14512,6 +14883,10 @@ msgstr "本次操作已延迟，但没有数据丢失。"
 msgid "This page cannot be previewed here"
 msgstr "此页面无法在此预览"
 
+#: src/components/audiences/AudienceDrawer.tsx:133
+msgid "This page stores filter logic, not a live member list"
+msgstr "这里只保存筛选逻辑，不维护实时成员名单"
+
 #: src/components/settings/PermissionsMatrix.tsx:73
 msgid "This permission gates no endpoint today."
 msgstr "当前没有任何端点受此权限控制。"
@@ -14523,6 +14898,10 @@ msgstr "这一许可尚未执行,所以总是得到批准。 它不能关闭。"
 #: src/components/automations/JourneyCreateWizard.tsx:427
 msgid "This policy does not change whether a customer enters the Journey."
 msgstr "此策略不会改变客户是否进入自动化旅程。"
+
+#: src/components/templates/OmnichannelPreview.tsx:45
+msgid "This preview profile is not supported."
+msgstr "不支持此预览配置。"
 
 #: src/components/segment/input_event_property_filters.tsx:162
 msgid "This property is already filtered"
@@ -14540,11 +14919,11 @@ msgstr "此段为空. 添加列或组以显示内容。"
 msgid "This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM ({timezone})"
 msgstr "此段使用相对日期过滤器,并将在每天早上5点自动重制({timezone})"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:712
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:764
 msgid "This template is already used in another variation"
 msgstr "此模板已经在另一个变体中使用"
 
-#: src/pages/TemplatesPage.tsx:390
+#: src/pages/TemplatesPage.tsx:355
 msgid "This template is managed by an integration and cannot be deleted"
 msgstr "此模板由集成管理, 无法删除"
 
@@ -14593,7 +14972,7 @@ msgstr "这将永久删除工作区 \"{0}\" 及其所有数据。 要确认, 请
 msgid "This will permanently remove the contact and their subscriptions."
 msgstr "这将永久删除联系人及其订阅 。"
 
-#: src/components/settings/Integrations.tsx:319
+#: src/components/settings/Integrations.tsx:322
 msgid "This will register or update webhook endpoints for this email provider."
 msgstr "这将注册或更新此邮件服务商的 Webhook 端点 。"
 
@@ -14601,7 +14980,7 @@ msgstr "这将注册或更新此邮件服务商的 Webhook 端点 。"
 msgid "This will replace all content with the default language template. Continue?"
 msgstr "这将用默认语言模板取代所有内容 。 继续?"
 
-#: src/components/settings/Integrations.tsx:2738
+#: src/components/settings/Integrations.tsx:2756
 msgid "This will send a real test email to the address provided."
 msgstr "这将发送一个真实的测试邮件到所提供的地址 。"
 
@@ -14644,6 +15023,10 @@ msgstr "时限"
 #: src/components/contacts/ContactDetailsDrawer.tsx:1054
 msgid "Timeline"
 msgstr "时间线"
+
+#: src/components/integrations/ChannelWebhookIntegration.tsx:102
+msgid "Timeout (seconds)"
+msgstr "超时时间（秒）"
 
 #: src/components/segment/form_leaf.tsx:502
 #: src/components/segment/input.tsx:818
@@ -14689,7 +15072,7 @@ msgstr "时间戳"
 #: src/components/broadcasts/SendOrScheduleModal.tsx:298
 #: src/components/contacts/ContactDetailsDrawer.tsx:451
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:95
-#: src/components/customers/CustomerProfilePanel.tsx:109
+#: src/components/customers/CustomerProfilePanel.tsx:123
 #: src/components/settings/GeneralSettings.tsx:153
 #: src/components/settings/GeneralSettings.tsx:215
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:169
@@ -14730,12 +15113,13 @@ msgstr "修复这些错误的提示 :"
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:34
 #: src/components/settings/BlogSettings.tsx:242
 #: src/components/templates/CreateTemplateDrawer.tsx:317
-#: src/components/templates/MessageTemplateDrawer.tsx:300
+#: src/components/templates/MessageTemplateDrawer.tsx:303
+#: src/components/templates/OmnichannelFields.tsx:64
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:182
 msgid "Title"
 msgstr "标题"
 
-#: src/components/templates/MessageTemplateDrawer.tsx:302
+#: src/components/templates/MessageTemplateDrawer.tsx:305
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:184
 msgid "Title is required"
 msgstr "需要标题"
@@ -14770,7 +15154,7 @@ msgstr "TLS 证书 (Base64)"
 msgid "TLS certificate is required"
 msgstr "需要 TLS 证书"
 
-#: src/components/settings/Integrations.tsx:2405
+#: src/components/settings/Integrations.tsx:2421
 msgid "TLS Enabled"
 msgstr "TLS 已启用"
 
@@ -14834,7 +15218,7 @@ msgstr "当前请求过多"
 msgid "Too many sign-in attempts. Please wait a moment and try again."
 msgstr "太多的注册尝试。 请等一下,再试一次"
 
-#: src/components/settings/Integrations.tsx:1697
+#: src/components/settings/Integrations.tsx:1713
 msgid "Tools"
 msgstr "工具"
 
@@ -14895,8 +15279,8 @@ msgstr "交通源头"
 
 #: src/components/automations/config/ABTestConfigForm.tsx:168
 #: src/components/contacts/SegmentsFilter.tsx:77
-#: src/components/customers/CustomerImportPanel.tsx:128
-#: src/components/customers/CustomerImportPanel.tsx:153
+#: src/components/customers/CustomerImportPanel.tsx:130
+#: src/components/customers/CustomerImportPanel.tsx:155
 msgid "Total"
 msgstr "共计"
 
@@ -14940,11 +15324,11 @@ msgstr "轨迹网站流量一党脚本. Bets被存储在这个工作区的数据
 msgid "Tracking"
 msgstr "跟踪"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:614
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:666
 msgid "Tracking (opens & clicks) must be enabled in workspace settings to use A/B testing features."
 msgstr "在工作区设置中必须启用跟踪(打开和点击)以使用A/B测试功能."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:660
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:712
 msgid "Tracking (opens & clicks) should be enabled in your workspace settings to use this feature"
 msgstr "在工作区设置中应该启用跟踪( 打开和点击) 以使用此功能"
 
@@ -14964,14 +15348,15 @@ msgstr "没有过滤规则"
 
 #: src/components/analytics/EmailMetricsChart.tsx:286
 #: src/components/settings/PermissionsMatrix.tsx:123
-#: src/components/templates/MessageTemplateDrawer.tsx:394
+#: src/components/templates/MessageTemplateDrawer.tsx:397
+#: src/components/templates/OmnichannelTemplateDrawer.tsx:214
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
-#: src/pages/TemplatesPage.tsx:127
+#: src/pages/TemplatesPage.tsx:129
 #: src/services/api/errors.ts:218
 msgid "Transactional"
 msgstr "事务通知"
 
-#: src/components/settings/Integrations.tsx:417
+#: src/components/settings/Integrations.tsx:420
 msgid "Transactional Emails"
 msgstr "事务邮件"
 
@@ -15048,7 +15433,7 @@ msgstr "请稍后重试；若问题持续，请将下方请求 ID 提供给技�
 msgid "Try again. If it continues, give support the request ID below."
 msgstr "请重试；若问题持续，请将下方请求 ID 提供给技术支持。"
 
-#: src/pages/TemplatesPage.tsx:556
+#: src/pages/TemplatesPage.tsx:497
 msgid "Try selecting a different category or"
 msgstr "尝试选择不同的类别或"
 
@@ -15061,7 +15446,7 @@ msgstr "变成"
 msgid "Turn Into"
 msgstr "转向"
 
-#: src/components/settings/Integrations.tsx:2268
+#: src/components/settings/Integrations.tsx:2284
 msgid "Turn off SES tenant isolation to use your own tenant, or clear this field."
 msgstr "关闭SES租户隔离 使用自己的租户, 或清除这个田地。"
 
@@ -15159,7 +15544,7 @@ msgstr "撤销"
 msgid "Undo (Ctrl+Z)"
 msgstr "撤消( Ctrl+Z)"
 
-#: src/components/customers/CustomerImportPanel.tsx:136
+#: src/components/customers/CustomerImportPanel.tsx:138
 msgid "Unfinished rows will be marked as failed; successful rows are not rolled back."
 msgstr "未完成行将标记为失败；成功行不会回滚。"
 
@@ -15183,7 +15568,7 @@ msgstr "唯一点击人数 ÷ 此版本的收件人数。"
 msgid "Unique clicks counts each recipient once per link — someone who clicks several links appears in every row, so these won't add up to this variation's total number of clickers."
 msgstr "每个链接都会对每位收件人去重计算。同一人点击多个链接时会出现在多行中，因此各行不能直接相加作为此版本的唯一点击人数。"
 
-#: src/components/templates/ChannelMessagePreview.tsx:50
+#: src/components/templates/ChannelMessagePreview.tsx:52
 msgid "units remaining"
 msgstr "剩余单位"
 
@@ -15245,7 +15630,7 @@ msgstr "下线文章"
 
 #: src/components/automations/UpsertAutomationDrawer.tsx:157
 #: src/components/blog/PostDrawer.tsx:558
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:241
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:252
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:150
 msgid "Unsaved changes"
 msgstr "未保存的更改"
@@ -15272,7 +15657,7 @@ msgstr "不明数据"
 msgid "Unsub."
 msgstr "不明嫌犯 不明嫌犯 不明嫌犯 不明嫌犯"
 
-#: src/pages/TemplatesPage.tsx:130
+#: src/pages/TemplatesPage.tsx:132
 msgid "Unsubscribe"
 msgstr "取消订阅"
 
@@ -15316,8 +15701,8 @@ msgstr "无标题"
 msgid "Untitled journey"
 msgstr "未命名自动化旅程"
 
-#: src/components/settings/Integrations.tsx:2230
-#: src/components/settings/Integrations.tsx:2257
+#: src/components/settings/Integrations.tsx:2246
+#: src/components/settings/Integrations.tsx:2273
 msgid "Up to 64 letters, numbers, hyphens or underscores."
 msgstr "最多64个字母,数字,连字符或下划线."
 
@@ -15356,6 +15741,7 @@ msgstr "更新"
 #: src/components/automations/AutomationCard.tsx:310
 #: src/components/automations/config/TriggerConfigForm.tsx:81
 #: src/components/blog/PostsTable.tsx:290
+#: src/components/customers/CustomerProfilePanel.tsx:190
 msgid "Updated"
 msgstr "更新"
 
@@ -15363,7 +15749,7 @@ msgstr "更新"
 msgid "Updated At"
 msgstr "更新时间"
 
-#: src/components/customers/CustomerImportPanel.tsx:104
+#: src/components/customers/CustomerImportPanel.tsx:106
 #: src/components/file_manager/fileManager.tsx:718
 #: src/components/file_manager/fileManager.tsx:731
 msgid "Upload"
@@ -15377,7 +15763,7 @@ msgstr "上传完成"
 msgid "Upload Error"
 msgstr "上传错误"
 
-#: src/components/customers/CustomerImportPanel.tsx:49
+#: src/components/customers/CustomerImportPanel.tsx:51
 msgid "Upload failed"
 msgstr "上传失败"
 
@@ -15444,7 +15830,7 @@ msgstr "使用"
 msgid "Use a different email"
 msgstr "使用不同的邮件"
 
-#: src/components/settings/Integrations.tsx:2253
+#: src/components/settings/Integrations.tsx:2269
 msgid "Use a tenant you manage yourself. Requires a configuration set associated with it in AWS."
 msgstr "用一个你管理自己的房客。 需要一个与之相关的配置集 AWS."
 
@@ -15452,11 +15838,11 @@ msgstr "用一个你管理自己的房客。 需要一个与之相关的配置�
 msgid "Use Anyway"
 msgstr "无论如何使用"
 
-#: src/components/settings/Integrations.tsx:449
+#: src/components/settings/Integrations.tsx:452
 msgid "Use for Marketing"
 msgstr "用于营销"
 
-#: src/components/settings/Integrations.tsx:468
+#: src/components/settings/Integrations.tsx:471
 msgid "Use for Transactional"
 msgstr "用于事务邮件"
 
@@ -15492,17 +15878,17 @@ msgstr "使用以下 curl 命令通过 API 发送事务通知："
 msgid "Use This Theme"
 msgstr "使用此主题"
 
-#: src/components/settings/Integrations.tsx:1886
+#: src/components/settings/Integrations.tsx:1902
 #: src/components/settings/SystemSettingsDrawer.tsx:354
 #: src/pages/SetupWizard.tsx:420
 msgid "Use TLS"
 msgstr "使用 TLS"
 
-#: src/components/automations/config/EmailConfigForm.tsx:85
+#: src/components/automations/config/EmailConfigForm.tsx:87
 msgid "Use workspace default"
 msgstr "使用工作区默认"
 
-#: src/components/settings/Integrations.tsx:406
+#: src/components/settings/Integrations.tsx:409
 msgid "Used for"
 msgstr "用于"
 
@@ -15529,7 +15915,7 @@ msgstr "用户创建的钩"
 msgid "User Created Hook Secret"
 msgstr "用户创建的 Hook 秘密"
 
-#: src/components/settings/Integrations.tsx:1553
+#: src/components/settings/Integrations.tsx:1569
 msgid "User Metadata Field"
 msgstr "用户元数据字段"
 
@@ -15592,7 +15978,7 @@ msgstr "UTM 来源"
 msgid "UTM Term"
 msgstr "UTM 学期"
 
-#: src/components/customers/CustomerImportPanel.tsx:106
+#: src/components/customers/CustomerImportPanel.tsx:108
 msgid "Validate"
 msgstr "校验"
 
@@ -15600,7 +15986,6 @@ msgstr "校验"
 msgid "Validation Error"
 msgstr "校验错误"
 
-#: src/components/broadcasts/HeadersEditor.tsx:40
 #: src/components/segment/form_leaf.tsx:839
 #: src/components/web_analytics/FilterBuilder.tsx:263
 #: src/components/web_analytics/FilterBuilder.tsx:271
@@ -15612,7 +15997,7 @@ msgstr "校验错误"
 msgid "Value"
 msgstr "数值"
 
-#: src/components/customers/CustomerProfilePanel.tsx:141
+#: src/components/customers/CustomerProfilePanel.tsx:163
 msgid "Value (text or JSON)"
 msgstr "值（文本或 JSON）"
 
@@ -15632,7 +16017,7 @@ msgstr "数值 :"
 msgid "Variant name"
 msgstr "备选名称"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:678
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:730
 #: src/pages/BroadcastsPage.tsx:775
 msgid "Variations"
 msgstr "变化"
@@ -15661,6 +16046,11 @@ msgstr "正在校验邀请..."
 msgid "Version"
 msgstr "版本"
 
+#. placeholder {0}: audience.active_version
+#: src/pages/AudiencesPage.tsx:74
+msgid "Version {0}"
+msgstr "版本 {0}"
+
 #: src/components/blog/ThemeEditorDrawer.tsx:474
 msgid "VERSION NOTES (OPTIONAL)"
 msgstr "核查说明(任择)"
@@ -15682,7 +16072,7 @@ msgstr "垂直对齐"
 msgid "Video starts at this timestamp (MM:SS, HH:MM:SS, or seconds)"
 msgstr "视频开始于此时间戳(MM:SS,HH:MM:SS,或秒)"
 
-#: src/components/customers/CustomerImportPanel.tsx:156
+#: src/components/customers/CustomerImportPanel.tsx:158
 msgid "View"
 msgstr "查看"
 
@@ -15804,7 +16194,7 @@ msgstr "无法完成本次操作"
 msgid "We'll automatically detect and use your website's favicon"
 msgstr "我们将自动检测和使用你网站的favicon"
 
-#: src/components/templates/ChannelMessagePreview.tsx:68
+#: src/components/templates/ChannelMessagePreview.tsx:70
 msgid "Web"
 msgstr "网页"
 
@@ -15861,13 +16251,13 @@ msgstr "Webhook 已禁用"
 msgid "Webhook enabled"
 msgstr "Webhook 已启用"
 
-#: src/components/settings/Integrations.tsx:1486
-#: src/components/settings/Integrations.tsx:1523
+#: src/components/settings/Integrations.tsx:1502
+#: src/components/settings/Integrations.tsx:1539
 msgid "Webhook endpoint copied to clipboard"
 msgstr "Webhook 端点复制到剪贴板"
 
-#: src/components/settings/Integrations.tsx:1472
-#: src/components/settings/Integrations.tsx:1509
+#: src/components/settings/Integrations.tsx:1488
+#: src/components/settings/Integrations.tsx:1525
 msgid "Webhook endpoint:"
 msgstr "Webhook 端点 :"
 
@@ -15901,16 +16291,16 @@ msgstr "Webhook 订阅"
 msgid "Webhook URL"
 msgstr "Webhook 網址"
 
-#: src/components/settings/Integrations.tsx:249
-#: src/components/settings/Integrations.tsx:257
-#: src/components/settings/Integrations.tsx:289
+#: src/components/settings/Integrations.tsx:252
+#: src/components/settings/Integrations.tsx:260
+#: src/components/settings/Integrations.tsx:292
 #: src/components/settings/SettingsSidebar.tsx:94
 #: src/components/settings/UITranslationsSettings.tsx:104
 #: src/components/settings/WebhooksSettings.tsx:207
 msgid "Webhooks"
 msgstr "Webhook"
 
-#: src/components/settings/Integrations.tsx:198
+#: src/components/settings/Integrations.tsx:201
 msgid "Webhooks registered successfully"
 msgstr "Webhooks 注册成功"
 
@@ -15966,8 +16356,8 @@ msgstr "每周活动"
 msgid "Weight"
 msgstr "重量"
 
-#: src/components/templates/MessageTemplateDrawer.tsx:395
-#: src/pages/TemplatesPage.tsx:128
+#: src/components/templates/MessageTemplateDrawer.tsx:398
+#: src/pages/TemplatesPage.tsx:130
 msgid "Welcome"
 msgstr "欢迎光临"
 
@@ -16097,7 +16487,7 @@ msgstr "选中胜者"
 msgid "Winner selected successfully! The broadcast will be sent to remaining recipients."
 msgstr "成功选中胜者 ! 群发将发给其余接收者。"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:48
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:50
 msgid "Winning metric"
 msgstr "中标"
 
@@ -16238,7 +16628,7 @@ msgstr "核对或处理此投递需要消息历史写入权限"
 msgid "Yaoguang Marketing disabled this webhook automatically"
 msgstr "瑶光营销平台已自动停用此 Webhook"
 
-#: src/components/settings/Integrations.tsx:1067
+#: src/components/settings/Integrations.tsx:1083
 msgid "Yaoguang Marketing will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume."
 msgstr "瑶光营销平台将在您的 AWS 账号中创建独立租户，为其配置独立抑制列表，并关联此集成的配置集和发件人身份。AWS 会按租户和月度用量计费。"
 
@@ -16255,9 +16645,9 @@ msgstr "每年"
 #: src/components/blog/PostDrawer.tsx:292
 #: src/components/blog/PostDrawer.tsx:560
 #: src/components/blog/PostsTable.tsx:318
-#: src/components/broadcasts/HeadersEditor.tsx:65
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:243
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:739
+#: src/components/broadcasts/HeadersEditor.tsx:83
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:254
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:791
 #: src/components/contacts/ContactUpsertDrawer.tsx:539
 #: src/components/contacts/SegmentsFilter.tsx:149
 #: src/components/contacts/SegmentsFilter.tsx:164
@@ -16270,14 +16660,14 @@ msgstr "每年"
 #: src/components/messages/MessageHistoryTab.tsx:188
 #: src/components/messages/MessageHistoryTab.tsx:204
 #: src/components/settings/CustomFieldsConfiguration.tsx:213
-#: src/components/settings/Integrations.tsx:321
-#: src/components/settings/Integrations.tsx:363
-#: src/components/settings/Integrations.tsx:439
-#: src/components/settings/Integrations.tsx:458
-#: src/components/settings/Integrations.tsx:1446
-#: src/components/settings/Integrations.tsx:1605
-#: src/components/settings/Integrations.tsx:1674
-#: src/components/settings/Integrations.tsx:1738
+#: src/components/settings/Integrations.tsx:324
+#: src/components/settings/Integrations.tsx:366
+#: src/components/settings/Integrations.tsx:442
+#: src/components/settings/Integrations.tsx:461
+#: src/components/settings/Integrations.tsx:1462
+#: src/components/settings/Integrations.tsx:1621
+#: src/components/settings/Integrations.tsx:1690
+#: src/components/settings/Integrations.tsx:1754
 #: src/components/settings/WebhookCard.tsx:217
 #: src/components/settings/WebhookCard.tsx:273
 #: src/components/settings/WebhookCard.tsx:360
@@ -16305,7 +16695,7 @@ msgstr "是的,清理干净"
 msgid "Yes, delete"
 msgstr "是,删除"
 
-#: src/pages/TemplatesPage.tsx:412
+#: src/pages/TemplatesPage.tsx:377
 #: src/pages/TransactionalNotificationsPage.tsx:148
 msgid "Yes, Delete"
 msgstr "是,删除"
@@ -16386,10 +16776,10 @@ msgstr "联系人没有写权限"
 msgid "You don't have write permission for lists"
 msgstr "你没有写列表的权限"
 
-#: src/pages/TemplatesPage.tsx:321
-#: src/pages/TemplatesPage.tsx:356
-#: src/pages/TemplatesPage.tsx:392
-#: src/pages/TemplatesPage.tsx:457
+#: src/pages/TemplatesPage.tsx:318
+#: src/pages/TemplatesPage.tsx:337
+#: src/pages/TemplatesPage.tsx:357
+#: src/pages/TemplatesPage.tsx:422
 msgid "You don't have write permission for templates"
 msgstr "您没有写模板的权限"
 
@@ -16403,7 +16793,7 @@ msgid "You have unsaved changes"
 msgstr "您有未保存的更改"
 
 #: src/components/blog/PostDrawer.tsx:559
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:242
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:253
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:151
 msgid "You have unsaved changes. Are you sure you want to close this drawer?"
 msgstr "你有未保存的变化。 你确定要关闭这个抽屉吗?"
@@ -16421,7 +16811,7 @@ msgid "You must configure a Custom Endpoint URL in General Settings above before
 msgstr "在启用博客前, 您必须在上面的普通设置中配置自定义端点 URL 。"
 
 #: src/pages/BroadcastsPage.tsx:964
-#: src/pages/TemplatesPage.tsx:423
+#: src/pages/TemplatesPage.tsx:388
 msgid "You need read template and write contact permissions to send test emails"
 msgstr "您需要读取模板并写入发送测试邮件的联系权限"
 
@@ -16434,7 +16824,7 @@ msgstr "您正在继续上一次的“{fileName}”上传任务。上传将从�
 msgid "You've been invited to join"
 msgstr "你被邀请加入"
 
-#: src/components/settings/Integrations.tsx:1102
+#: src/components/settings/Integrations.tsx:1118
 msgid "Your AWS credentials cannot create SES tenants. Grant ses:CreateTenant and ses:CreateTenantResourceAssociation, then save again."
 msgstr "您的 AWS 凭据无法创建 SES 租户。请授予 ses:CreateTenant 和 ses:CreateTenantResourceAssociation 权限，然后再次保存。"
 
@@ -16470,7 +16860,7 @@ msgstr "您的界面翻译更改尚未保存。"
 msgid "Your web analytics settings have not been saved. Leaving this page discards them."
 msgstr "您的网络分析设置尚未保存 。 离开这页会丢弃他们。"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:574
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:626
 msgid "Your website or company name"
 msgstr "您的网站或公司名称"
 
@@ -16502,11 +16892,11 @@ msgstr "Zapier API 密钥"
 msgid "Zapier created this webhook for one of your Zaps."
 msgstr "Zapier 为你的一个Zaps创建了这个网页。"
 
-#: src/components/settings/Integrations.tsx:1029
+#: src/components/settings/Integrations.tsx:1045
 msgid "Zapier integration saved successfully"
 msgstr "Zapier 成功保存集成"
 
-#: src/components/settings/Integrations.tsx:1008
+#: src/components/settings/Integrations.tsx:1024
 msgid "Zapier is connected, but the integration list could not be refreshed"
 msgstr "Zapier 连接,但无法刷新集成列表"
 

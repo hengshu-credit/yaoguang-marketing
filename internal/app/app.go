@@ -121,6 +121,7 @@ type App struct {
 	transactionalNotificationRepo domain.TransactionalNotificationRepository
 	messageHistoryRepo            domain.MessageHistoryRepository
 	deliveryReceiptRepo           domain.DeliveryReceiptRepository
+	channelWebhookNonceRepo       domain.ChannelWebhookNonceRepository
 	deliveryRepo                  domain.DeliveryRepository
 	channelSendRepo               domain.ChannelSendRepository
 	inboundWebhookEventRepo       domain.InboundWebhookEventRepository
@@ -157,6 +158,7 @@ type App struct {
 	listService                      *service.ListService
 	contactListService               *service.ContactListService
 	templateService                  *service.TemplateService
+	channelCatalogService            *service.ChannelCatalogService
 	templateBlockService             *service.TemplateBlockService
 	emailService                     *service.EmailService
 	broadcastService                 *service.BroadcastService
@@ -198,6 +200,7 @@ type App struct {
 	automationService                *service.AutomationService
 	automationScheduler              *service.AutomationScheduler
 	automationExecutor               *service.AutomationExecutor
+	automationAudienceRunService     *service.AutomationAudienceRunService
 	llmService                       *service.LLMService
 	emailQueueWorker                 *queue.EmailQueueWorker
 	dataFeedFetcher                  broadcast.DataFeedFetcher
@@ -484,6 +487,7 @@ func (a *App) InitRepositories() error {
 	a.transactionalNotificationRepo = repository.NewTransactionalNotificationRepository(a.workspaceRepo)
 	a.messageHistoryRepo = repository.NewMessageHistoryRepository(a.workspaceRepo)
 	a.deliveryReceiptRepo = repository.NewDeliveryReceiptRepository(a.workspaceRepo)
+	a.channelWebhookNonceRepo = repository.NewChannelWebhookNonceRepository(a.workspaceRepo)
 	a.channelSendRepo, err = repository.NewChannelSendRepository(a.workspaceRepo)
 	if err != nil {
 		return fmt.Errorf("failed to initialize channel send repository: %w", err)
@@ -518,7 +522,9 @@ func (a *App) InitRepositories() error {
 	// Initialize email queue repository
 	a.emailQueueRepo = repository.NewEmailQueueRepository(a.workspaceRepo)
 	a.deliveryRepo = repository.NewDeliveryRepository(a.workspaceRepo, a.emailQueueRepo)
-	a.audienceRepo = repository.NewAudienceRepository(a.workspaceRepo)
+	audienceRepo := repository.NewAudienceRepository(a.workspaceRepo)
+	audienceRepo.SetConditionCompiler(queryBuilder.BuildCustomerIDSQL)
+	a.audienceRepo = audienceRepo
 	a.campaignRepo = repository.NewCampaignRepository(a.workspaceRepo)
 	a.frequencyPolicyRepo = repository.NewFrequencyPolicyRepository(a.workspaceRepo)
 	a.importJobRepo = repository.NewImportJobRepository(a.workspaceRepo)
@@ -677,6 +683,10 @@ func (a *App) InitServices() error {
 		a.logger,
 		a.config.APIEndpoint,
 	)
+	a.channelCatalogService, err = service.NewChannelCatalogService(a.authService)
+	if err != nil {
+		return fmt.Errorf("failed to initialize channel catalogue service: %w", err)
+	}
 
 	// Initialize template block service
 	a.templateBlockService = service.NewTemplateBlockService(
@@ -714,6 +724,7 @@ func (a *App) InitServices() error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize campaign service: %w", err)
 	}
+	a.campaignService.SetAudienceExecutionService(a.audienceService)
 	importMaxRows := a.config.Ingest.CustomerImportMaxRows
 	if importMaxRows <= 0 {
 		importMaxRows = 1_000_000
@@ -1020,6 +1031,8 @@ func (a *App) InitServices() error {
 		a.eventBus,
 		true, // useQueueSender - use queue-based message sender for broadcasts
 	)
+	broadcastFactory.SetAudienceRunResolver(a.campaignService)
+	broadcastFactory.SetAudienceEligibilityChecker(a.audienceService)
 	broadcastFactory.SetDeliveryRepository(a.deliveryRepo)
 	broadcastFactory.SetFrequencyEvaluator(a.frequencyPolicyService)
 
@@ -1043,6 +1056,7 @@ func (a *App) InitServices() error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize delivery receipt service: %w", err)
 	}
+	a.deliveryReceiptService.SetChannelWebhookNonceRepository(a.channelWebhookNonceRepo)
 	deliveryManagementRepo, ok := a.deliveryRepo.(domain.DeliveryManagementRepository)
 	if !ok {
 		return errors.New("delivery repository does not support management operations")
@@ -1233,6 +1247,18 @@ func (a *App) InitServices() error {
 		service.WithAutomationRealtimeOperations(reconciliationService, cutoverService),
 		service.WithAutomationNodeValidator(service.NewAutomationNodeReferenceValidator(a.templateService, a.workspaceRepo)),
 	)
+	automationAudienceRepository, ok := a.automationRepo.(service.AutomationAudienceRunRepository)
+	if !ok {
+		return errors.New("automation repository does not support audience runs")
+	}
+	a.automationAudienceRunService, err = service.NewAutomationAudienceRunService(
+		automationAudienceRepository,
+		a.audienceService,
+		a.authService,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to initialize automation audience run service: %w", err)
+	}
 	journeyPreflightSource, err := service.NewAutomationJourneyPreflightSource(a.automationRepo, a.workspaceRepo, a.templateService)
 	if err != nil {
 		return fmt.Errorf("failed to initialize journey preflight source: %w", err)
@@ -1386,6 +1412,7 @@ func (a *App) InitServices() error {
 	// Enable the stop-on-reply just-in-time guard for automation sends.
 	a.emailQueueWorker.SetAutomationRepo(a.automationRepo)
 	a.emailQueueWorker.SetDeliveryRepository(a.deliveryRepo)
+	a.emailQueueWorker.SetAudienceEligibilityChecker(a.audienceService)
 
 	// Initialize Firecrawl service
 	firecrawlService := service.NewFirecrawlService(a.logger)
@@ -1414,6 +1441,7 @@ func (a *App) InitServices() error {
 		a.logger,
 		a.config.APIEndpoint,
 		service.WithChannelMessageService(a.channelMessageService),
+		service.WithAutomationAudienceEligibility(a.audienceService),
 	)
 	a.automationScheduler = service.NewAutomationScheduler(
 		a.automationExecutor,
@@ -1581,6 +1609,7 @@ func (a *App) InitHandlers() error {
 	listHandler := httpHandler.NewListHandler(a.listService, getJWTSecret, a.logger)
 	contactListHandler := httpHandler.NewContactListHandler(a.contactListService, getJWTSecret, a.logger)
 	templateHandler := httpHandler.NewTemplateHandler(a.templateService, getJWTSecret, a.logger)
+	channelCatalogHandler := httpHandler.NewChannelCatalogHandler(a.channelCatalogService, getJWTSecret, a.logger)
 	templateBlockHandler := httpHandler.NewTemplateBlockHandler(a.templateBlockService, getJWTSecret, a.logger)
 	emailHandler := httpHandler.NewEmailHandler(a.emailService, getJWTSecret, a.logger, a.config.Security.SecretKey)
 	broadcastHandler := httpHandler.NewBroadcastHandler(a.broadcastService, a.templateService, getJWTSecret, a.logger, a.config.IsDemo())
@@ -1689,6 +1718,7 @@ func (a *App) InitHandlers() error {
 		a.logger,
 	)
 	automationHandler.SetJourneyServices(a.journeyPreflightService, a.journeyTraceService)
+	automationHandler.SetAudienceRunService(a.automationAudienceRunService)
 	llmHandler := httpHandler.NewLLMHandler(
 		a.llmService,
 		getJWTSecret,
@@ -1712,6 +1742,7 @@ func (a *App) InitHandlers() error {
 	listHandler.RegisterRoutes(a.mux)
 	contactListHandler.RegisterRoutes(a.mux)
 	templateHandler.RegisterRoutes(a.mux)
+	channelCatalogHandler.RegisterRoutes(a.mux)
 	templateBlockHandler.RegisterRoutes(a.mux)
 	emailHandler.RegisterRoutes(a.mux)
 	broadcastHandler.RegisterRoutes(a.mux)

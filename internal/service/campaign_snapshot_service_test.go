@@ -46,7 +46,13 @@ func (s *campaignRepositoryStub) GetCampaignRun(context.Context, string, string)
 	copy := s.run
 	return &copy, nil
 }
-func (s *campaignRepositoryStub) ListCampaignMembers(_ context.Context, _ string, _ domain.CampaignVersion, after string, limit int) ([]domain.CampaignAudienceMember, string, error) {
+func (s *campaignRepositoryStub) GetCompletedAudienceBuildID(context.Context, string, string, int) (string, error) {
+	if len(s.members) == 0 {
+		return "", nil
+	}
+	return s.members[0].BuildID, nil
+}
+func (s *campaignRepositoryStub) ListCampaignMembers(_ context.Context, _ string, _ domain.CampaignVersion, _ string, after string, limit int) ([]domain.CampaignAudienceMember, string, error) {
 	start := 0
 	if after != "" {
 		for index, member := range s.members {

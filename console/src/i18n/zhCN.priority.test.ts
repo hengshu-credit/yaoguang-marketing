@@ -22,7 +22,7 @@ const priorityTranslations: Record<string, string> = {
   'Marketing Campaign': '营销活动',
   'Email Broadcast': '邮件群发',
   'Template Management': '模板管理',
-  'Blog Content': 'Blog 内容',
+  'Blog Content': '文章管理',
   'Marketing Overview': '营销概览',
   'Website Overview': '网站概览',
   'Live Visitors': '实时访客',

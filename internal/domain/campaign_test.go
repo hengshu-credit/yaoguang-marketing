@@ -45,3 +45,14 @@ func TestCampaignVersionAcceptsExactlyOneRecipientSource(t *testing.T) {
 	incompleteAudience.ListID, incompleteAudience.AudienceID = "", "audience-1"
 	assert.ErrorContains(t, incompleteAudience.Validate(), "exactly one")
 }
+
+func TestCampaignRunCarriesTheExactResolvedAudienceSource(t *testing.T) {
+	run := CampaignRun{
+		AudienceID:      "audience-1",
+		AudienceVersion: 7,
+		AudienceBuildID: "build-1",
+	}
+	assert.Equal(t, "audience-1", run.AudienceID)
+	assert.Equal(t, 7, run.AudienceVersion)
+	assert.Equal(t, "build-1", run.AudienceBuildID)
+}

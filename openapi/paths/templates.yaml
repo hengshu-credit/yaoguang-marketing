@@ -344,3 +344,44 @@
           application/json:
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/templates.preview:
+  post:
+    summary: Render an unsaved channel template
+    description: Renders SMS, Push, or generic omnichannel content through the server Liquid engine and returns client-profile diagnostics without persisting the draft.
+    operationId: previewTemplate
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [workspace_id, channel]
+            properties:
+              workspace_id: { type: string }
+              channel: { type: string }
+              sms: { $ref: '../components/schemas/template.yaml#/SMSTemplate' }
+              push: { $ref: '../components/schemas/template.yaml#/PushTemplate' }
+              content: { $ref: '../components/schemas/template.yaml#/ChannelTemplateContent' }
+              content_schema_version: { type: integer, enum: [1] }
+              language: { type: string }
+              platform: { type: string, enum: [android, ios, web] }
+              profile: { type: string }
+              translations: { type: object, additionalProperties: { $ref: '../components/schemas/template.yaml#/TemplateTranslation' } }
+              test_data: { type: object, additionalProperties: true }
+    responses:
+      '200':
+        description: Rendered preview and diagnostics
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      '400':
+        description: Invalid channel content, profile, Liquid, or template data
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'

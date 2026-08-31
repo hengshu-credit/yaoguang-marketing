@@ -16,10 +16,11 @@ const (
 	EndpointOperationUpsert  = "upsert"
 	EndpointOperationDisable = "disable"
 
-	PushProviderFCM        = "fcm"
-	PushProviderAPNS       = "apns"
-	PushProviderWebPush    = "webpush"
-	EndpointProviderTwilio = "twilio"
+	PushProviderFCM                = "fcm"
+	PushProviderAPNS               = "apns"
+	PushProviderWebPush            = "webpush"
+	EndpointProviderTwilio         = "twilio"
+	EndpointProviderChannelWebhook = "channel_webhook"
 
 	EndpointPlatformAndroid = "android"
 	EndpointPlatformIOS     = "ios"
@@ -93,9 +94,6 @@ func (m ContactEndpointMutation) Validate() (*ContactEndpoint, error) {
 	m.Timezone = strings.TrimSpace(m.Timezone)
 	m.AppID = strings.TrimSpace(m.AppID)
 	m.DeviceID = strings.TrimSpace(m.DeviceID)
-	if m.Channel != ChannelPush && m.Channel != ChannelSMS {
-		return nil, fmt.Errorf("endpoint channel must be sms or push")
-	}
 	if m.Address == "" || utf8.RuneCountInString(m.Address) > 4096 {
 		return nil, fmt.Errorf("endpoint address must contain 1 to 4096 characters")
 	}
@@ -119,8 +117,19 @@ func (m ContactEndpointMutation) Validate() (*ContactEndpoint, error) {
 		if m.Channel != ChannelPush || m.Platform != EndpointPlatformWeb {
 			return nil, fmt.Errorf("provider webpush requires platform web")
 		}
+	case EndpointProviderChannelWebhook:
+		definition, ok := FindChannelDefinition(m.Channel)
+		if !ok {
+			return nil, fmt.Errorf("unknown endpoint channel %s", m.Channel)
+		}
+		if !containsString(definition.DeliveryModes, ChannelDeliveryModeSignedWebhook) {
+			return nil, fmt.Errorf("channel %s does not support signed Webhook endpoints", m.Channel)
+		}
+		if m.Platform != "" && !definitionSupportsProfile(definition, m.Platform) {
+			return nil, fmt.Errorf("platform %s is not supported by channel %s", m.Platform, m.Channel)
+		}
 	default:
-		return nil, fmt.Errorf("endpoint provider must be twilio, fcm, apns, or webpush")
+		return nil, fmt.Errorf("endpoint provider must be twilio, fcm, apns, webpush, or channel_webhook")
 	}
 	if m.Locale != "" && !endpointLocalePattern.MatchString(m.Locale) {
 		return nil, fmt.Errorf("invalid endpoint locale: %s", m.Locale)
@@ -182,8 +191,8 @@ func (r *ListContactEndpointsRequest) Validate() error {
 	if r.Channel == "" {
 		r.Channel = ChannelPush
 	}
-	if r.Channel != ChannelPush && r.Channel != ChannelSMS {
-		return fmt.Errorf("channel must be sms or push")
+	if !IsRegisteredChannel(r.Channel) {
+		return fmt.Errorf("unknown channel %s", r.Channel)
 	}
 	return nil
 }

@@ -331,6 +331,12 @@ func TestBroadcast_Validate(t *testing.T) {
 	}
 }
 
+func TestBroadcastValidateAcceptsAudienceIDForExecutionTimeResolution(t *testing.T) {
+	broadcast := createValidBroadcast()
+	broadcast.Audience = domain.AudienceSettings{AudienceID: "11111111-1111-4111-8111-111111111111", ExcludeUnsubscribed: true}
+	require.NoError(t, broadcast.Validate())
+}
+
 func TestCreateBroadcastRequest_Validate(t *testing.T) {
 	now := time.Now()
 

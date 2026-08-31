@@ -22,12 +22,39 @@ Template:
       enum:
         - email
         - web
+        - sms
+        - push
+        - in_app
+        - rcs
+        - webhook
+        - wechat_official_account
+        - wechat_mini_program
+        - wecom
+        - dingtalk
+        - feishu
+        - whatsapp
+        - telegram
+        - line
+        - zalo
+        - viber
+        - messenger
+        - instagram
+        - kakao
       description: Communication channel
       example: email
     email:
       $ref: '#/EmailTemplate'
     web:
       $ref: '#/WebTemplate'
+    sms:
+      $ref: '#/SMSTemplate'
+    push:
+      $ref: '#/PushTemplate'
+    content:
+      $ref: '#/ChannelTemplateContent'
+    content_schema_version:
+      type: integer
+      enum: [1]
     category:
       type: string
       enum:
@@ -158,6 +185,42 @@ TemplateTranslation:
       $ref: '#/EmailTemplate'
     web:
       $ref: '#/WebTemplate'
+    content:
+      $ref: '#/ChannelTemplateContent'
+
+SMSTemplate:
+  type: object
+  required: [body]
+  properties:
+    body: { type: string, maxLength: 10000 }
+    sender_id: { type: string, maxLength: 32 }
+
+PushTemplate:
+  type: object
+  required: [title, body]
+  properties:
+    title: { type: string, maxLength: 512 }
+    body: { type: string, maxLength: 4096 }
+    image_url: { type: string, format: uri }
+    deep_link: { type: string }
+    data: { type: object, additionalProperties: true }
+
+ChannelTemplateContent:
+  type: object
+  required: [family]
+  properties:
+    family:
+      type: string
+      enum: [text, notification, rich_card, carousel, external_template, work_message, webhook_payload]
+    title: { type: string }
+    body: { type: string }
+    footer: { type: string }
+    media: { type: object, additionalProperties: true }
+    actions: { type: array, items: { type: object, additionalProperties: true } }
+    cards: { type: array, items: { type: object, additionalProperties: true } }
+    external_template: { type: object, additionalProperties: true }
+    data: { type: object, additionalProperties: true }
+    webhook: { type: object, additionalProperties: true }
 
 CreateTemplateRequest:
   type: object
@@ -188,12 +251,39 @@ CreateTemplateRequest:
       enum:
         - email
         - web
+        - sms
+        - push
+        - in_app
+        - rcs
+        - webhook
+        - wechat_official_account
+        - wechat_mini_program
+        - wecom
+        - dingtalk
+        - feishu
+        - whatsapp
+        - telegram
+        - line
+        - zalo
+        - viber
+        - messenger
+        - instagram
+        - kakao
       description: Communication channel
       example: email
     email:
       $ref: '#/EmailTemplate'
     web:
       $ref: '#/WebTemplate'
+    sms:
+      $ref: '#/SMSTemplate'
+    push:
+      $ref: '#/PushTemplate'
+    content:
+      $ref: '#/ChannelTemplateContent'
+    content_schema_version:
+      type: integer
+      enum: [1]
     category:
       type: string
       enum:
@@ -260,12 +350,39 @@ UpdateTemplateRequest:
       enum:
         - email
         - web
+        - sms
+        - push
+        - in_app
+        - rcs
+        - webhook
+        - wechat_official_account
+        - wechat_mini_program
+        - wecom
+        - dingtalk
+        - feishu
+        - whatsapp
+        - telegram
+        - line
+        - zalo
+        - viber
+        - messenger
+        - instagram
+        - kakao
       description: Communication channel
       example: email
     email:
       $ref: '#/EmailTemplate'
     web:
       $ref: '#/WebTemplate'
+    sms:
+      $ref: '#/SMSTemplate'
+    push:
+      $ref: '#/PushTemplate'
+    content:
+      $ref: '#/ChannelTemplateContent'
+    content_schema_version:
+      type: integer
+      enum: [1]
     category:
       type: string
       enum:

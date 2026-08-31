@@ -207,6 +207,7 @@ func TestBroadcastService_ScheduleBroadcast_SendNow_Success(t *testing.T) {
 
 	err := d.svc.ScheduleBroadcast(ctx, req)
 	require.NoError(t, err)
+	assert.Empty(t, draft.Audience.CampaignRunID, "scheduling must leave Audience resolution to task execution")
 }
 
 type rejectingMarketingPreflight struct{ err error }

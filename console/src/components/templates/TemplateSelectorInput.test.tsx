@@ -28,13 +28,6 @@ vi.mock('../../contexts/AuthContext', () => ({
 vi.mock('./TemplatePreviewDrawer', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }))
-const createDrawerProps = vi.hoisted(() => vi.fn())
-vi.mock('./CreateTemplateDrawer', () => ({
-  CreateTemplateDrawer: (props: { forceChannel?: string }) => {
-    createDrawerProps(props)
-    return <button type="button">create-template</button>
-  }
-}))
 
 const makeTemplate = (id: string, name: string, channel: Template['channel'] = 'email'): Template =>
   ({ id, name, category: 'marketing', channel }) as unknown as Template
@@ -81,16 +74,16 @@ describe('TemplateSelectorInput', () => {
     )
   })
 
-  it('passes the selected node channel to list and create flows', async () => {
+  it('opens the corresponding material creation page for the selected node channel', async () => {
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null)
     render(<Wrapper value={null} channel="sms" />)
     const input = screen.getByPlaceholderText('Select a template')
     fireEvent.click(input)
     await waitFor(() => {
       expect(templatesApi.list).toHaveBeenCalledWith(expect.objectContaining({ channel: 'sms' }))
-      expect(createDrawerProps).toHaveBeenCalledWith(
-        expect.objectContaining({ forceChannel: 'sms' })
-      )
     })
+    fireEvent.click(screen.getByRole('button', { name: /Create new SMS template/i }))
+    expect(open).toHaveBeenCalledWith('/console/workspace/ws1/templates?create_channel=sms', '_blank', 'noopener,noreferrer')
   })
 
   it('clears a controlled template that belongs to another channel', async () => {

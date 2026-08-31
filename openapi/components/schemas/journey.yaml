@@ -40,6 +40,26 @@ ActivateAutomationRequest:
     preflight_hash: { type: string }
     confirm_warnings: { type: boolean, default: false }
 
+AutomationAudienceRunRequest:
+  type: object
+  additionalProperties: false
+  required: [workspace_id, automation_id, audience_id]
+  properties:
+    workspace_id: { type: string }
+    automation_id: { type: string }
+    audience_id: { type: string, format: uuid }
+
+AutomationAudienceRunResult:
+  type: object
+  required: [automation_id, audience_id, audience_version, build_id, candidate_count, enrolled_count]
+  properties:
+    automation_id: { type: string }
+    audience_id: { type: string, format: uuid }
+    audience_version: { type: integer, minimum: 1 }
+    build_id: { type: string, format: uuid }
+    candidate_count: { type: integer, format: int64, minimum: 0 }
+    enrolled_count: { type: integer, format: int64, minimum: 0 }
+
 JourneyInstance:
   type: object
   required: [id, enrollment_id, status, automation_id, customer_id, customer_no, frequency, entry_decision, started_at]

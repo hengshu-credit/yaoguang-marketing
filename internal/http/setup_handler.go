@@ -16,6 +16,14 @@ type AppShutdowner interface {
 	Shutdown(ctx context.Context) error
 }
 
+const configurationReloadShutdownTimeout = 15 * time.Second
+
+func shutdownForConfigurationReload(app AppShutdowner) error {
+	ctx, cancel := context.WithTimeout(context.Background(), configurationReloadShutdownTimeout)
+	defer cancel()
+	return app.Shutdown(ctx)
+}
+
 // SetupHandler handles setup wizard endpoints
 type SetupHandler struct {
 	setupService   *service.SetupService
@@ -241,7 +249,7 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		time.Sleep(500 * time.Millisecond)
 		h.logger.Info("Setup completed - initiating graceful shutdown for configuration reload")
-		if err := h.app.Shutdown(context.Background()); err != nil {
+		if err := shutdownForConfigurationReload(h.app); err != nil {
 			h.logger.WithField("error", err).Error("Error during graceful shutdown")
 		}
 	}()

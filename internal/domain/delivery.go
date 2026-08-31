@@ -38,7 +38,7 @@ var deliveryStatusTransitions = map[DeliveryStatus]map[DeliveryStatus]struct{}{
 		DeliveryStatusQueued: {}, DeliveryStatusSuppressed: {}, DeliveryStatusDeferred: {}, DeliveryStatusCancelled: {},
 	},
 	DeliveryStatusQueued: {
-		DeliveryStatusSubmitting: {}, DeliveryStatusDeferred: {}, DeliveryStatusTransientFailed: {}, DeliveryStatusCancelled: {},
+		DeliveryStatusSubmitting: {}, DeliveryStatusSuppressed: {}, DeliveryStatusDeferred: {}, DeliveryStatusTransientFailed: {}, DeliveryStatusCancelled: {},
 	},
 	DeliveryStatusSubmitting: {
 		DeliveryStatusProviderAccepted: {}, DeliveryStatusTransientFailed: {}, DeliveryStatusTerminalFailed: {}, DeliveryStatusUnknown: {},

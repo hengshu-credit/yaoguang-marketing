@@ -22,11 +22,19 @@ type capturedDeliveryReservation struct {
 type captureBroadcastDeliveryRepository struct {
 	reservations []capturedDeliveryReservation
 	intents      []domain.DeliveryIntent
+	stored       map[string]domain.DeliveryIntent
 	failAt       int
 	missingEmail string
 }
 
 func (r *captureBroadcastDeliveryRepository) ReserveIntent(_ context.Context, _ string, intent domain.DeliveryIntent) (domain.DeliveryIntent, bool, error) {
+	if stored, ok := r.stored[intent.EffectKey]; ok {
+		return stored, false, nil
+	}
+	if r.stored == nil {
+		r.stored = map[string]domain.DeliveryIntent{}
+	}
+	r.stored[intent.EffectKey] = intent
 	r.intents = append(r.intents, intent)
 	return intent, true, nil
 }
@@ -65,8 +73,13 @@ func TestQueueMessageSenderDeliveryRequiresAuthorityCustomerID(t *testing.T) {
 	assert.Empty(t, deliveryRepo.reservations)
 }
 
-func (r *captureBroadcastDeliveryRepository) GetIntentByEffectKey(context.Context, string, string) (*domain.DeliveryIntent, error) {
-	return nil, nil
+func (r *captureBroadcastDeliveryRepository) GetIntentByEffectKey(_ context.Context, _, effectKey string) (*domain.DeliveryIntent, error) {
+	intent, ok := r.stored[effectKey]
+	if !ok {
+		return nil, nil
+	}
+	copy := intent
+	return &copy, nil
 }
 
 func (r *captureBroadcastDeliveryRepository) TransitionIntent(context.Context, string, string, domain.DeliveryStatus, domain.DeliveryStatus, time.Time) (bool, error) {
@@ -82,6 +95,10 @@ func (r *captureBroadcastDeliveryRepository) RecordAttemptOutcome(context.Contex
 }
 
 func deliveryQueueSenderFixture(t *testing.T, deliveryRepo domain.DeliveryRepository) (MessageSender, []*domain.ContactWithList, map[string]*domain.Template, *domain.EmailProvider) {
+	return deliveryQueueSenderFixtureWithAudience(t, deliveryRepo, domain.AudienceSettings{List: "list-1"})
+}
+
+func deliveryQueueSenderFixtureWithAudience(t *testing.T, deliveryRepo domain.DeliveryRepository, audience domain.AudienceSettings) (MessageSender, []*domain.ContactWithList, map[string]*domain.Template, *domain.EmailProvider) {
 	t.Helper()
 	ctrl := gomock.NewController(t)
 	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
@@ -95,7 +112,7 @@ func deliveryQueueSenderFixture(t *testing.T, deliveryRepo domain.DeliveryReposi
 	createdAt := time.Date(2026, 8, 30, 9, 0, 0, 0, time.UTC)
 	broadcast := &domain.Broadcast{
 		ID: "broadcast-1", WorkspaceID: "workspace-1", Name: "Stable delivery", CreatedAt: createdAt,
-		Audience: domain.AudienceSettings{List: "list-1"}, UTMParameters: &domain.UTMParameters{},
+		Audience: audience, UTMParameters: &domain.UTMParameters{},
 		TestSettings: domain.BroadcastTestSettings{Enabled: true, Variations: []domain.BroadcastVariation{
 			{TemplateID: "template-a"}, {TemplateID: "template-b"},
 		}},
@@ -122,6 +139,88 @@ func deliveryQueueSenderFixture(t *testing.T, deliveryRepo domain.DeliveryReposi
 		mockQueueRepo, deliveryRepo, mockBroadcastRepo, mockHistoryRepo, mockTemplateRepo,
 		nil, mockLogger, nil, "https://api.example.com",
 	), recipients, templates, provider
+}
+
+type audienceEligibilityStub struct {
+	result   bool
+	err      error
+	requests []struct {
+		audienceID string
+		version    int
+		customerID string
+	}
+}
+
+func (s *audienceEligibilityStub) MatchesCustomerInternal(_ context.Context, _, audienceID string, version int, customerID string) (bool, error) {
+	s.requests = append(s.requests, struct {
+		audienceID string
+		version    int
+		customerID string
+	}{audienceID: audienceID, version: version, customerID: customerID})
+	return s.result, s.err
+}
+
+func TestQueueMessageSenderAudienceEligibilityFalseIsTerminalAndNeverReplayedAsSend(t *testing.T) {
+	deliveryRepo := &captureBroadcastDeliveryRepository{}
+	sender, recipients, templates, provider := deliveryQueueSenderFixtureWithAudience(t, deliveryRepo, domain.AudienceSettings{
+		AudienceID: "audience-1", AudienceVersion: 7, AudienceBuildID: "build-7", CampaignRunID: "run-1",
+	})
+	checker := &audienceEligibilityStub{result: false}
+	sender.(*queueMessageSender).audienceEligibility = checker
+
+	processed, failed, err := sender.SendBatch(context.Background(), "workspace-1", "integration-1", "secret",
+		"https://api.example.com", "", false, nil, "broadcast-1", recipients[:1], templates, provider, time.Now().Add(time.Minute), "")
+	require.NoError(t, err)
+	assert.Equal(t, 1, processed)
+	assert.Zero(t, failed)
+	assert.Empty(t, deliveryRepo.reservations)
+	require.Len(t, deliveryRepo.intents, 1)
+	assert.Equal(t, domain.DeliveryStatusSuppressed, deliveryRepo.intents[0].Status)
+	assert.Equal(t, "audience_no_longer_matched", deliveryRepo.intents[0].SuppressionReason)
+
+	checker.result = true
+	processed, failed, err = sender.SendBatch(context.Background(), "workspace-1", "integration-1", "secret",
+		"https://api.example.com", "", false, nil, "broadcast-1", recipients[:1], templates, provider, time.Now().Add(time.Minute), "")
+	require.NoError(t, err)
+	assert.Equal(t, 1, processed)
+	assert.Zero(t, failed)
+	assert.Empty(t, deliveryRepo.reservations)
+	assert.Len(t, checker.requests, 1, "a terminal eligibility skip must not be re-evaluated into a later send")
+}
+
+func TestQueueMessageSenderAudienceEligibilityErrorsRemainRetryable(t *testing.T) {
+	deliveryRepo := &captureBroadcastDeliveryRepository{}
+	sender, recipients, templates, provider := deliveryQueueSenderFixtureWithAudience(t, deliveryRepo, domain.AudienceSettings{
+		AudienceID: "audience-1", AudienceVersion: 7, AudienceBuildID: "build-7", CampaignRunID: "run-1",
+	})
+	sender.(*queueMessageSender).audienceEligibility = &audienceEligibilityStub{err: errors.New("database unavailable")}
+
+	processed, failed, err := sender.SendBatch(context.Background(), "workspace-1", "integration-1", "secret",
+		"https://api.example.com", "", false, nil, "broadcast-1", recipients[:1], templates, provider, time.Now().Add(time.Minute), "")
+	assert.ErrorContains(t, err, "database unavailable")
+	assert.Zero(t, processed)
+	assert.Zero(t, failed)
+	assert.Empty(t, deliveryRepo.intents)
+	assert.Empty(t, deliveryRepo.reservations)
+}
+
+func TestQueueMessageSenderAudienceEligibleCarriesFinalWorkerGuardContext(t *testing.T) {
+	deliveryRepo := &captureBroadcastDeliveryRepository{}
+	sender, recipients, templates, provider := deliveryQueueSenderFixtureWithAudience(t, deliveryRepo, domain.AudienceSettings{
+		AudienceID: "audience-1", AudienceVersion: 7, AudienceBuildID: "build-7", CampaignRunID: "run-1",
+	})
+	sender.(*queueMessageSender).audienceEligibility = &audienceEligibilityStub{result: true}
+
+	processed, failed, err := sender.SendBatch(context.Background(), "workspace-1", "integration-1", "secret",
+		"https://api.example.com", "", false, nil, "broadcast-1", recipients[:1], templates, provider, time.Now().Add(time.Minute), "")
+	require.NoError(t, err)
+	assert.Equal(t, 1, processed)
+	assert.Zero(t, failed)
+	require.Len(t, deliveryRepo.reservations, 1)
+	require.NotNil(t, deliveryRepo.reservations[0].entry.Payload.AudienceEligibility)
+	assert.Equal(t, "audience-1", deliveryRepo.reservations[0].entry.Payload.AudienceEligibility.AudienceID)
+	assert.Equal(t, 7, deliveryRepo.reservations[0].entry.Payload.AudienceEligibility.AudienceVersion)
+	assert.Equal(t, "11111111-1111-4111-8111-111111111111", deliveryRepo.reservations[0].entry.Payload.AudienceEligibility.CustomerID)
 }
 
 func TestQueueMessageSenderDeliveryReplayKeepsEffectKeyVariantAndQueueIdentity(t *testing.T) {

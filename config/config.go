@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const VERSION = "52.0"
+const VERSION = "54.0"
 
 type Config struct {
 	Server              ServerConfig
@@ -536,7 +536,9 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	v.SetDefault("CLICKHOUSE_PASSWORD", "")
 	v.SetDefault("CLICKHOUSE_BATCH_SIZE", 1000)
 	v.SetDefault("CLICKHOUSE_FLUSH_INTERVAL", "1s")
+	v.SetDefault("S3_PROVIDER", "")
 	v.SetDefault("S3_ENDPOINT", "")
+	v.SetDefault("S3_PUBLIC_ENDPOINT", "")
 	v.SetDefault("S3_BUCKET", "notifuse-assets")
 	v.SetDefault("S3_REGION", "us-east-1")
 	v.SetDefault("S3_ACCESS_KEY", "")
@@ -613,7 +615,9 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 			FlushInterval: v.GetDuration("CLICKHOUSE_FLUSH_INTERVAL"),
 		},
 		ObjectStore: ObjectStoreConfig{
+			Provider:       v.GetString("S3_PROVIDER"),
 			Endpoint:       v.GetString("S3_ENDPOINT"),
+			PublicEndpoint: v.GetString("S3_PUBLIC_ENDPOINT"),
 			Bucket:         v.GetString("S3_BUCKET"),
 			Region:         v.GetString("S3_REGION"),
 			AccessKey:      v.GetString("S3_ACCESS_KEY"),

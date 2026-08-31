@@ -10,13 +10,34 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/service"
-	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestAutomationRepositoryEnrollAudienceBuildPersistsJourneyEligibilityContext(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	repository := NewAutomationRepositoryWithDB(db, nil).(*AutomationRepository)
+
+	mock.ExpectQuery(`(?s)WITH candidates AS.*audience_memberships.*automation_enroll_customer.*UPDATE contact_automations.*audience_version`).
+		WithArgs("automation-1", "trigger-1", "22222222-2222-4222-8222-222222222222", 4,
+			"11111111-1111-4111-8111-111111111111", 7).
+		WillReturnRows(sqlmock.NewRows([]string{"enrolled"}).AddRow(int64(2)))
+
+	count, err := repository.EnrollAudienceBuild(
+		context.Background(), "workspace-1", "automation-1", "trigger-1", 4,
+		"11111111-1111-4111-8111-111111111111", 7,
+		"22222222-2222-4222-8222-222222222222",
+	)
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), count)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
 
 func TestContactAutomationClaimAcquiresExpiredLease(t *testing.T) {
 	db, mock, repo := setupAutomationMock(t)

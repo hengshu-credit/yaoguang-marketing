@@ -93,8 +93,6 @@ export function BlogSidebar({
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div className="text-xl font-medium pt-6 pl-6">{t`Categories`}</div>
-      <Divider className="!my-4" />
       <Menu
         mode="inline"
         selectedKeys={[selectedKey]}
