@@ -109,6 +109,20 @@ func (s *CustomerService) UpsertCustomerBatch(ctx context.Context, request *doma
 	return s.upsertCustomerBatchAuthorized(authenticatedCtx, request)
 }
 
+func (s *CustomerService) UpdateCustomerListMemberships(ctx context.Context, request *domain.CustomerListMembershipUpdateRequest) (*domain.CustomerListMembershipUpdateResult, error) {
+	if request == nil {
+		return nil, domain.NewValidationError("request is required")
+	}
+	if err := request.Validate(); err != nil {
+		return nil, domain.NewValidationError(err.Error())
+	}
+	authenticatedCtx, err := s.authorize(ctx, request.WorkspaceID, domain.PermissionTypeWrite)
+	if err != nil {
+		return nil, err
+	}
+	return s.repository.UpdateListMemberships(authenticatedCtx, *request)
+}
+
 func (s *CustomerService) upsertCustomerBatchAuthorized(ctx context.Context, request *domain.CustomerBatchUpsertRequest) (*domain.CustomerBatchUpsertResponse, error) {
 	if request == nil {
 		return nil, domain.NewValidationError("request is required")

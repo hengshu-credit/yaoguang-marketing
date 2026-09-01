@@ -124,6 +124,8 @@ paths:
     $ref: './paths/customers.yaml#/~1api~1customers.upsert'
   /api/customers.batch:
     $ref: './paths/customers.yaml#/~1api~1customers.batch'
+  /api/customers.listMemberships.update:
+    $ref: './paths/customers.yaml#/~1api~1customers.listMemberships.update'
   /api/customers.merge:
     $ref: './paths/customers.yaml#/~1api~1customers.merge'
   /api/contactLists.updateStatus:
@@ -176,6 +178,14 @@ paths:
     $ref: './paths/templates.yaml#/~1api~1templates.compile'
   /api/templates.preview:
     $ref: './paths/templates.yaml#/~1api~1templates.preview'
+  /api/templateCategories.list:
+    $ref: './paths/template-categories.yaml#/~1api~1templateCategories.list'
+  /api/templateCategories.create:
+    $ref: './paths/template-categories.yaml#/~1api~1templateCategories.create'
+  /api/templateCategories.update:
+    $ref: './paths/template-categories.yaml#/~1api~1templateCategories.update'
+  /api/templateCategories.delete:
+    $ref: './paths/template-categories.yaml#/~1api~1templateCategories.delete'
   /api/customEvents.import:
     $ref: './paths/custom-events.yaml#/~1api~1customEvents.import'
   /api/webhookSubscriptions.create:
@@ -275,6 +285,10 @@ components:
       $ref: './components/schemas/customer.yaml#/CustomerBatchUpsertRequest'
     CustomerBatchUpsertResponse:
       $ref: './components/schemas/customer.yaml#/CustomerBatchUpsertResponse'
+    CustomerListMembershipUpdateRequest:
+      $ref: './components/schemas/customer.yaml#/CustomerListMembershipUpdateRequest'
+    CustomerListMembershipUpdateResponse:
+      $ref: './components/schemas/customer.yaml#/CustomerListMembershipUpdateResponse'
     CustomerMergeRequest:
       $ref: './components/schemas/customer.yaml#/CustomerMergeRequest'
     CustomerMergeResponse:
@@ -351,6 +365,14 @@ components:
       $ref: './components/schemas/broadcast.yaml#/TestRecipientFeedResponse'
     Template:
       $ref: './components/schemas/template.yaml#/Template'
+    TemplateCategoryDefinition:
+      $ref: './components/schemas/template.yaml#/TemplateCategoryDefinition'
+    CreateTemplateCategoryRequest:
+      $ref: './components/schemas/template.yaml#/CreateTemplateCategoryRequest'
+    UpdateTemplateCategoryRequest:
+      $ref: './components/schemas/template.yaml#/UpdateTemplateCategoryRequest'
+    DeleteTemplateCategoryRequest:
+      $ref: './components/schemas/template.yaml#/DeleteTemplateCategoryRequest'
     EmailTemplate:
       $ref: './components/schemas/template.yaml#/EmailTemplate'
     WebTemplate:

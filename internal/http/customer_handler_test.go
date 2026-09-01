@@ -15,17 +15,19 @@ import (
 )
 
 type customerServiceHTTPStub struct {
-	getRequest     *domain.GetCustomerRequest
-	listRequest    *domain.CustomerListRequest
-	upsertRequest  *domain.UpsertCustomerRequest
-	batchRequest   *domain.CustomerBatchUpsertRequest
-	mergeRequest   *domain.CustomerMergeRequest
-	getResponse    *domain.Customer
-	listResponse   *domain.CustomerListResponse
-	upsertResponse *domain.CustomerMutationResult
-	batchResponse  *domain.CustomerBatchUpsertResponse
-	mergeResponse  *domain.CustomerMergeResult
-	err            error
+	getRequest         *domain.GetCustomerRequest
+	listRequest        *domain.CustomerListRequest
+	upsertRequest      *domain.UpsertCustomerRequest
+	batchRequest       *domain.CustomerBatchUpsertRequest
+	membershipRequest  *domain.CustomerListMembershipUpdateRequest
+	mergeRequest       *domain.CustomerMergeRequest
+	getResponse        *domain.Customer
+	listResponse       *domain.CustomerListResponse
+	upsertResponse     *domain.CustomerMutationResult
+	batchResponse      *domain.CustomerBatchUpsertResponse
+	membershipResponse *domain.CustomerListMembershipUpdateResult
+	mergeResponse      *domain.CustomerMergeResult
+	err                error
 }
 
 func (stub *customerServiceHTTPStub) GetCustomer(_ context.Context, request *domain.GetCustomerRequest) (*domain.Customer, error) {
@@ -46,6 +48,11 @@ func (stub *customerServiceHTTPStub) UpsertCustomer(_ context.Context, request *
 func (stub *customerServiceHTTPStub) UpsertCustomerBatch(_ context.Context, request *domain.CustomerBatchUpsertRequest) (*domain.CustomerBatchUpsertResponse, error) {
 	stub.batchRequest = request
 	return stub.batchResponse, stub.err
+}
+
+func (stub *customerServiceHTTPStub) UpdateCustomerListMemberships(_ context.Context, request *domain.CustomerListMembershipUpdateRequest) (*domain.CustomerListMembershipUpdateResult, error) {
+	stub.membershipRequest = request
+	return stub.membershipResponse, stub.err
 }
 
 func (stub *customerServiceHTTPStub) MergeCustomer(_ context.Context, request *domain.CustomerMergeRequest) (*domain.CustomerMergeResult, error) {
@@ -183,6 +190,48 @@ func TestCustomerHandlerBatchPreservesCompleteOrderedResults(t *testing.T) {
 	assert.Equal(t, 1, body.Accepted)
 	assert.Equal(t, 1, body.Failed)
 	assert.Equal(t, []int{0, 1}, []int{body.Results[0].Index, body.Results[1].Index})
+}
+
+func TestCustomerHandlerUpdatesListMembershipsAndReturnsOperationCounts(t *testing.T) {
+	stub := &customerServiceHTTPStub{membershipResponse: &domain.CustomerListMembershipUpdateResult{
+		Customers: 2, Lists: 2, Changed: 3, Unchanged: 1,
+	}}
+	handler := NewCustomerHandler(stub, nil, logger.NewLogger())
+	request := httptest.NewRequest(http.MethodPost, "/api/customers.listMemberships.update", strings.NewReader(`{
+		"workspace_id":"workspace1",
+		"customer_ids":["11111111-1111-4111-8111-111111111111","22222222-2222-4222-8222-222222222222"],
+		"list_ids":["newsletter","vip"],
+		"action":"add"
+	}`))
+	request.Header.Set("X-Request-ID", "membership-request-1")
+	response := httptest.NewRecorder()
+
+	handler.handleUpdateListMemberships(response, request)
+
+	assert.Equal(t, http.StatusOK, response.Code)
+	require.NotNil(t, stub.membershipRequest)
+	assert.Equal(t, []string{"newsletter", "vip"}, stub.membershipRequest.ListIDs)
+	assert.JSONEq(t, `{
+		"request_id":"membership-request-1",
+		"customers":2,
+		"lists":2,
+		"changed":3,
+		"unchanged":1
+	}`, response.Body.String())
+}
+
+func TestCustomerHandlerRegistersListMembershipUpdateRoute(t *testing.T) {
+	handler := NewCustomerHandler(
+		&customerServiceHTTPStub{},
+		func() ([]byte, error) { return []byte("customer-handler-test-jwt-secret-32-bytes"), nil },
+		logger.NewLogger(),
+	)
+	mux := http.NewServeMux()
+	handler.RegisterRoutes(mux)
+
+	_, pattern := mux.Handler(httptest.NewRequest(http.MethodPost, "/api/customers.listMemberships.update", nil))
+
+	assert.Equal(t, "/api/customers.listMemberships.update", pattern)
 }
 
 func TestCustomerHandlerRejectsWrongMethodMalformedAndTrailingJSON(t *testing.T) {

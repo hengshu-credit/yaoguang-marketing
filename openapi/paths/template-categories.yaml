@@ -1,0 +1,62 @@
+/api/templateCategories.list:
+  get:
+    summary: List Workspace template categories
+    operationId: listTemplateCategories
+    security: [{ BearerAuth: [] }]
+    parameters:
+      - { name: workspace_id, in: query, required: true, schema: { type: string } }
+      - { name: include_inactive, in: query, required: false, schema: { type: boolean, default: false } }
+    responses:
+      '200':
+        description: Ordered category catalogue
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                categories:
+                  type: array
+                  items: { $ref: '../components/schemas/template.yaml#/TemplateCategoryDefinition' }
+      '400': { description: Invalid workspace request }
+
+/api/templateCategories.create:
+  post:
+    summary: Create a Workspace template category
+    operationId: createTemplateCategory
+    security: [{ BearerAuth: [] }]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../components/schemas/template.yaml#/CreateTemplateCategoryRequest' }
+    responses:
+      '201': { description: Category created }
+      '400': { description: Invalid or duplicate category }
+
+/api/templateCategories.update:
+  post:
+    summary: Update category name, order or active state
+    operationId: updateTemplateCategory
+    security: [{ BearerAuth: [] }]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../components/schemas/template.yaml#/UpdateTemplateCategoryRequest' }
+    responses:
+      '200': { description: Category updated }
+      '404': { description: Category not found }
+
+/api/templateCategories.delete:
+  post:
+    summary: Delete an unused custom category
+    operationId: deleteTemplateCategory
+    security: [{ BearerAuth: [] }]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../components/schemas/template.yaml#/DeleteTemplateCategoryRequest' }
+    responses:
+      '200': { description: Category deleted }
+      '409': { description: System category or category in use }

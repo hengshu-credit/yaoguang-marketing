@@ -566,10 +566,10 @@ func collectMonths(sessions []*domain.WebSession, pages []*domain.WebPage, goals
 	return months
 }
 
-// EnsureMonthlyPartitions creates the monthly partitions of every web
-// analytics table for the given months (idempotent). Current and future
-// months also get the aggressive autovacuum profile — the maintenance worker
-// resets it once the month rolls over and the partition goes cold.
+// EnsureMonthlyPartitions creates the event-ledger and web-analytics monthly
+// partitions for the given months (idempotent). Current and future web
+// analytics partitions also get the aggressive autovacuum profile — the
+// maintenance worker resets it once the month rolls over and they go cold.
 func (r *webAnalyticsRepository) EnsureMonthlyPartitions(ctx context.Context, workspaceID string, months []time.Time) error {
 	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
@@ -577,6 +577,9 @@ func (r *webAnalyticsRepository) EnsureMonthlyPartitions(ctx context.Context, wo
 	}
 	currentMonth := time.Now().UTC().Format("2006-01")
 	for _, month := range months {
+		if _, err := db.ExecContext(ctx, schema.EventLedgerPartitionDDL(month)); err != nil {
+			return fmt.Errorf("failed to create event ledger partition for %s: %w", month.Format("2006-01"), err)
+		}
 		for _, table := range schema.WebAnalyticsTableNames {
 			if _, err := db.ExecContext(ctx, schema.WebAnalyticsPartitionDDL(table, month)); err != nil {
 				return fmt.Errorf("failed to create partition of %s for %s: %w", table, month.Format("2006-01"), err)

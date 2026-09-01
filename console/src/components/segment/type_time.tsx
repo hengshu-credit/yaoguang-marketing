@@ -15,6 +15,7 @@ import {
   OperatorInTheLastDays,
   OperatorNotInTheLastDays
 } from './operator_time'
+import { segmentControlLabel, segmentOperatorLabel } from './labels'
 
 // Note: This class contains string labels that cannot use useLingui as they are class properties.
 // The placeholder 'select a value' and error messages should be translated at the point of use if needed.
@@ -43,13 +44,13 @@ export class FieldTypeTime implements FieldTypeRenderer {
         <Form.Item name="operator" rules={[{ required: true, message: Messages.RequiredField }]}>
           <Select
             // size="small"
-            placeholder="select a value"
+            placeholder={segmentControlLabel('select_operator')}
             // style={{ width: '150px' }}
             popupMatchSelectWidth={false}
             options={this.operators.map((op: IOperator) => {
               return {
                 value: op.type,
-                label: op.label
+                label: segmentOperatorLabel(op.type, op.label)
               }
             })}
           />

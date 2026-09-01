@@ -16,7 +16,7 @@ import {
   Radio,
   MenuProps
 } from 'antd'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   templatesApi,
   type CreateTemplateRequest,
@@ -48,6 +48,8 @@ import { SUPPORTED_LANGUAGES } from '../../lib/languages'
 import TemplateTranslationsTab from './TemplateTranslationsTab'
 import type { TranslationEditorState } from './TemplateTranslationsTab'
 import type { EmailTemplate, TemplateTranslation } from '../../services/api/template'
+import TemplateCategorySelect from './TemplateCategorySelect'
+import { templateCategoriesApi } from '../../services/api/templateCategories'
 
 /**
  * Validates liquid template tags in a string to ensure they are properly closed
@@ -290,13 +292,7 @@ function ChannelTemplateDrawer({
             <Input disabled={!!template} />
           </Form.Item>
           <Form.Item name="category" label={t`Category`} rules={[{ required: true }]}>
-            <Select
-              disabled={!!forceCategory}
-              options={['marketing', 'transactional', 'welcome', 'other'].map((value) => ({
-                value,
-                label: value
-              }))}
-            />
+            <TemplateCategorySelect workspaceId={workspace.id} disabled={!!forceCategory} />
           </Form.Item>
           {channel === 'sms' ? (
             <>
@@ -429,15 +425,23 @@ function EmailTemplateDrawer({
   const emailPreview = Form.useWatch(['email', 'subject_preview'], form)
   const watchedCategory = Form.useWatch(['category'], form)
   const categoryValue = forceCategory || watchedCategory
+  const { data: templateCategoryCatalog } = useQuery({
+    queryKey: ['template-categories', workspace.id, true],
+    queryFn: () => templateCategoriesApi.list(workspace.id, true)
+  })
+  const isMarketingCategory =
+    templateCategoryCatalog?.categories.find((category) => category.id === categoryValue)?.purpose === 'marketing' ||
+    ((template || fromTemplate)?.category === categoryValue && (template || fromTemplate)?.category_purpose === 'marketing') ||
+    (!templateCategoryCatalog && (categoryValue === 'marketing' || categoryValue === 'blog'))
 
   const emailProvider = useMemo(() => {
     const providerId =
-      categoryValue === 'marketing'
+      isMarketingCategory
         ? workspace.settings.marketing_email_provider_id
         : workspace.settings.transactional_email_provider_id
     return workspace.integrations?.find((integration) => integration.id === providerId)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Provider IDs are part of workspace settings
-  }, [workspace.integrations, categoryValue])
+  }, [workspace.integrations, isMarketingCategory])
 
   const emailSender = useMemo(() => {
     if (emailProvider) {
@@ -1030,40 +1034,7 @@ function EmailTemplateDrawer({
                         label={t`Category`}
                         rules={[{ required: true, type: 'string' }]}
                       >
-                        <Select
-                          placeholder={t`Select category`}
-                          disabled={forceCategory ? true : false}
-                          options={[
-                            {
-                              value: 'marketing',
-                              label: renderCategoryTag('marketing')
-                            },
-                            {
-                              value: 'transactional',
-                              label: renderCategoryTag('transactional')
-                            },
-                            {
-                              value: 'welcome',
-                              label: renderCategoryTag('welcome')
-                            },
-                            {
-                              value: 'opt_in',
-                              label: renderCategoryTag('opt_in')
-                            },
-                            {
-                              value: 'unsubscribe',
-                              label: renderCategoryTag('unsubscribe')
-                            },
-                            {
-                              value: 'bounce',
-                              label: renderCategoryTag('bounce')
-                            },
-                            {
-                              value: 'blocklist',
-                              label: renderCategoryTag('blocklist')
-                            }
-                          ]}
-                        />
+                        <TemplateCategorySelect workspaceId={workspace.id} disabled={Boolean(forceCategory)} />
                       </Form.Item>
                     </Col>
                     <Col span={6}>
@@ -1144,7 +1115,7 @@ function EmailTemplateDrawer({
                           <Form.Item
                             name={['email', 'sender_id']}
                             label={
-                              categoryValue === 'marketing'
+                              isMarketingCategory
                                 ? t`Custom sender (marketing email provider)`
                                 : t`Custom sender (transactional email provider)`
                             }

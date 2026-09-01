@@ -36,6 +36,12 @@ export interface BlogSettings {
   feed_max_items?: number
 }
 
+export interface ConsoleFontSettings {
+  family: string
+  url?: string
+  file_name?: string
+}
+
 export interface WorkspaceSettings {
   website_url?: string
   logo_url?: string | null
@@ -49,6 +55,7 @@ export interface WorkspaceSettings {
   custom_endpoint_url?: string
   custom_field_labels?: Record<string, string>
   ui_translations?: UITranslations
+  console_font?: ConsoleFontSettings
   blog_enabled?: boolean
   blog_settings?: BlogSettings
   web_analytics?: import('./web_analytics').WebAnalyticsSettings

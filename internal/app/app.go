@@ -116,6 +116,7 @@ type App struct {
 	listRepo                      domain.ListRepository
 	contactListRepo               domain.ContactListRepository
 	templateRepo                  domain.TemplateRepository
+	templateCategoryRepo          domain.TemplateCategoryRepository
 	broadcastRepo                 domain.BroadcastRepository
 	taskRepo                      domain.TaskRepository
 	transactionalNotificationRepo domain.TransactionalNotificationRepository
@@ -158,6 +159,7 @@ type App struct {
 	listService                      *service.ListService
 	contactListService               *service.ContactListService
 	templateService                  *service.TemplateService
+	templateCategoryService          *service.TemplateCategoryService
 	channelCatalogService            *service.ChannelCatalogService
 	templateBlockService             *service.TemplateBlockService
 	emailService                     *service.EmailService
@@ -483,6 +485,7 @@ func (a *App) InitRepositories() error {
 	a.listRepo = repository.NewListRepository(a.workspaceRepo)
 	a.contactListRepo = repository.NewContactListRepository(a.workspaceRepo)
 	a.templateRepo = repository.NewTemplateRepository(a.workspaceRepo)
+	a.templateCategoryRepo = repository.NewTemplateCategoryRepository(a.workspaceRepo)
 	a.broadcastRepo = repository.NewBroadcastRepository(a.workspaceRepo)
 	a.transactionalNotificationRepo = repository.NewTransactionalNotificationRepository(a.workspaceRepo)
 	a.messageHistoryRepo = repository.NewMessageHistoryRepository(a.workspaceRepo)
@@ -683,6 +686,11 @@ func (a *App) InitServices() error {
 		a.logger,
 		a.config.APIEndpoint,
 	)
+	a.templateService.SetTemplateCategoryRepository(a.templateCategoryRepo)
+	a.templateCategoryService, err = service.NewTemplateCategoryService(a.templateCategoryRepo, a.authService, a.logger)
+	if err != nil {
+		return fmt.Errorf("failed to initialize template category service: %w", err)
+	}
 	a.channelCatalogService, err = service.NewChannelCatalogService(a.authService)
 	if err != nil {
 		return fmt.Errorf("failed to initialize channel catalogue service: %w", err)
@@ -1609,6 +1617,7 @@ func (a *App) InitHandlers() error {
 	listHandler := httpHandler.NewListHandler(a.listService, getJWTSecret, a.logger)
 	contactListHandler := httpHandler.NewContactListHandler(a.contactListService, getJWTSecret, a.logger)
 	templateHandler := httpHandler.NewTemplateHandler(a.templateService, getJWTSecret, a.logger)
+	templateCategoryHandler := httpHandler.NewTemplateCategoryHandler(a.templateCategoryService, getJWTSecret, a.logger)
 	channelCatalogHandler := httpHandler.NewChannelCatalogHandler(a.channelCatalogService, getJWTSecret, a.logger)
 	templateBlockHandler := httpHandler.NewTemplateBlockHandler(a.templateBlockService, getJWTSecret, a.logger)
 	emailHandler := httpHandler.NewEmailHandler(a.emailService, getJWTSecret, a.logger, a.config.Security.SecretKey)
@@ -1742,6 +1751,7 @@ func (a *App) InitHandlers() error {
 	listHandler.RegisterRoutes(a.mux)
 	contactListHandler.RegisterRoutes(a.mux)
 	templateHandler.RegisterRoutes(a.mux)
+	templateCategoryHandler.RegisterRoutes(a.mux)
 	channelCatalogHandler.RegisterRoutes(a.mux)
 	templateBlockHandler.RegisterRoutes(a.mux)
 	emailHandler.RegisterRoutes(a.mux)

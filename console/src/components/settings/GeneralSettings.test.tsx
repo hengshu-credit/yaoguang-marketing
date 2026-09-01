@@ -21,6 +21,14 @@ vi.mock('../../services/api/workspace', () => ({
   }
 }))
 
+vi.mock('../file_manager/context', () => ({
+  useFileManager: () => ({
+    SelectFileButton: ({ buttonText }: { buttonText: string }) => (
+      <button type="button">{buttonText}</button>
+    )
+  })
+}))
+
 // Empty messages: the Lingui macro falls back to the source text as the message.
 i18n.loadAndActivate({ locale: 'en', messages: {} })
 
@@ -162,5 +170,90 @@ describe('GeneralSettings', () => {
       expect(screen.getByText('Please enter workspace name')).toBeInTheDocument()
     )
     expect(workspaceService.update).not.toHaveBeenCalled()
+  })
+
+  it('loads and saves a named marketing-console font', async () => {
+    renderComponent(true, makeWorkspace({ console_font: { family: 'Noto Sans SC' } }))
+
+    const family = screen.getByRole('combobox', { name: 'Font family' })
+    expect(family).toHaveValue('Noto Sans SC')
+    fireEvent.change(family, { target: { value: 'Microsoft YaHei' } })
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() => expect(workspaceService.update).toHaveBeenCalled())
+    expect(sentSettings().console_font).toEqual({ family: 'Microsoft YaHei' })
+  })
+
+  it('preserves an untouched uploaded font when other settings are saved', async () => {
+    renderComponent(
+      true,
+      makeWorkspace({
+        console_font: {
+          family: 'Brand Font',
+          url: 'https://cdn.example.com/brand.woff2',
+          file_name: 'brand.woff2'
+        }
+      })
+    )
+
+    expect(screen.getByRole('radio', { name: 'Uploaded font' })).toBeChecked()
+    expect(await screen.findByText('Selected file: brand.woff2')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText(/Workspace Name/i), { target: { value: 'Renamed WS' } })
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() => expect(workspaceService.update).toHaveBeenCalled())
+    expect(sentSettings().console_font).toEqual({
+      family: 'Brand Font',
+      url: 'https://cdn.example.com/brand.woff2',
+      file_name: 'brand.woff2'
+    })
+  })
+
+  it('restores uploaded font fields on Discard and can save the system fallback', async () => {
+    renderComponent(
+      true,
+      makeWorkspace({
+        console_font: {
+          family: 'Brand Font',
+          url: 'https://cdn.example.com/brand.woff2',
+          file_name: 'brand.woff2'
+        }
+      })
+    )
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Font name' }))
+    const family = await screen.findByRole('combobox', { name: 'Font family' })
+    fireEvent.change(family, { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Discard$/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('radio', { name: 'Uploaded font' })).toBeChecked()
+      expect(screen.getByText('Selected file: brand.woff2')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Font name' }))
+    fireEvent.change(await screen.findByRole('combobox', { name: 'Font family' }), {
+      target: { value: '' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() => expect(workspaceService.update).toHaveBeenCalled())
+    expect(sentSettings().console_font).toEqual({ family: '' })
+  })
+
+  it('shows the configured uploaded font in the read-only view', () => {
+    renderComponent(
+      false,
+      makeWorkspace({
+        console_font: {
+          family: 'Brand Font',
+          url: 'https://cdn.example.com/brand.woff2',
+          file_name: 'brand.woff2'
+        }
+      })
+    )
+
+    expect(screen.getByText('Brand Font')).toBeInTheDocument()
+    expect(screen.getByText('Uploaded font: brand.woff2')).toBeInTheDocument()
   })
 })

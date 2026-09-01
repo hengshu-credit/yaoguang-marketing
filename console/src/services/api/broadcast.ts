@@ -39,6 +39,7 @@ export interface Template {
   channel: string
   email: EmailTemplate
   category: string
+  category_purpose?: 'marketing' | 'transactional'
   template_macro_id?: string
   integration_id?: string
   utm_source?: string

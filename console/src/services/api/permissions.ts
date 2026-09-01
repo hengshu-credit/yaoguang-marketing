@@ -262,6 +262,10 @@ export const PERMISSION_DESCRIPTORS: Record<
           action: msg`Synchronize a configurable large batch and receive one ordered result for every item`,
         },
         {
+          endpoint: "/api/customers.listMemberships.update",
+          action: msg`Add, remove or change list memberships for up to 50 selected Customers and 50 lists in one transaction`,
+        },
+        {
           endpoint: "/api/customers.merge",
           action: msg`Explicitly merge an anonymous Customer into a known Customer and retain an audit redirect`,
         },
@@ -423,6 +427,10 @@ export const PERMISSION_DESCRIPTORS: Record<
           action: msg`Compile MJML to HTML with test data`,
         },
         {
+          endpoint: "/api/templateCategories.list",
+          action: msg`List template categories, including their compliance purpose and usage count`,
+        },
+        {
           endpoint: "/api/templateBlocks.list",
           action: msg`List the workspace's reusable template blocks`,
         },
@@ -440,6 +448,9 @@ export const PERMISSION_DESCRIPTORS: Record<
           action: msg`Change a template's content, in any language`,
         },
         { endpoint: "/api/templates.delete", action: msg`Delete a template` },
+        { endpoint: "/api/templateCategories.create", action: msg`Create a template category and choose its marketing or transactional purpose` },
+        { endpoint: "/api/templateCategories.update", action: msg`Rename, reorder, activate or deactivate a template category` },
+        { endpoint: "/api/templateCategories.delete", action: msg`Delete an unused custom template category` },
         {
           endpoint: "/api/templateBlocks.create",
           action: msg`Create a reusable template block`,

@@ -138,6 +138,96 @@ func TestWorkspaceSettings_UITranslationsValueAndScan(t *testing.T) {
 	assert.Equal(t, settings.UITranslations, decoded.UITranslations)
 }
 
+func TestWorkspaceSettings_ConsoleFontValueAndScan(t *testing.T) {
+	settings := WorkspaceSettings{
+		ConsoleFont: &ConsoleFontSettings{
+			Family:   "Noto Sans SC",
+			URL:      "https://cdn.example.com/fonts/noto.woff2",
+			FileName: "noto.woff2",
+		},
+	}
+
+	value, err := settings.Value()
+	require.NoError(t, err)
+
+	var decoded WorkspaceSettings
+	require.NoError(t, decoded.Scan(value))
+	assert.Equal(t, settings.ConsoleFont, decoded.ConsoleFont)
+}
+
+func TestWorkspaceSettings_ValidateConsoleFont(t *testing.T) {
+	tests := []struct {
+		name     string
+		font     *ConsoleFontSettings
+		wantErr  string
+		wantFont *ConsoleFontSettings
+	}{
+		{name: "omitted setting remains valid"},
+		{
+			name:     "empty setting selects the system fallback",
+			font:     &ConsoleFontSettings{},
+			wantFont: &ConsoleFontSettings{},
+		},
+		{
+			name:     "named font is trimmed",
+			font:     &ConsoleFontSettings{Family: "  Noto Sans SC  "},
+			wantFont: &ConsoleFontSettings{Family: "Noto Sans SC"},
+		},
+		{
+			name:     "ttf upload is valid",
+			font:     &ConsoleFontSettings{Family: "Brand Font", URL: "https://cdn.example.com/brand.ttf", FileName: "brand.TTF"},
+			wantFont: &ConsoleFontSettings{Family: "Brand Font", URL: "https://cdn.example.com/brand.ttf", FileName: "brand.TTF"},
+		},
+		{
+			name:     "otf upload is valid",
+			font:     &ConsoleFontSettings{URL: "http://cdn.example.com/brand.otf", FileName: "brand.otf"},
+			wantFont: &ConsoleFontSettings{URL: "http://cdn.example.com/brand.otf", FileName: "brand.otf"},
+		},
+		{
+			name:     "woff upload is valid",
+			font:     &ConsoleFontSettings{URL: "https://cdn.example.com/brand.woff", FileName: "brand.woff"},
+			wantFont: &ConsoleFontSettings{URL: "https://cdn.example.com/brand.woff", FileName: "brand.woff"},
+		},
+		{
+			name:     "woff2 upload is valid",
+			font:     &ConsoleFontSettings{URL: "https://cdn.example.com/brand.woff2", FileName: "brand.woff2"},
+			wantFont: &ConsoleFontSettings{URL: "https://cdn.example.com/brand.woff2", FileName: "brand.woff2"},
+		},
+		{name: "data URL is rejected", font: &ConsoleFontSettings{URL: "data:font/woff2;base64,AAAA", FileName: "font.woff2"}, wantErr: "console font URL must use http or https"},
+		{name: "javascript URL is rejected", font: &ConsoleFontSettings{URL: "javascript:alert(1)", FileName: "font.woff2"}, wantErr: "console font URL must use http or https"},
+		{name: "unsupported extension is rejected", font: &ConsoleFontSettings{URL: "https://cdn.example.com/font.eot", FileName: "font.eot"}, wantErr: "console font file must be .ttf, .otf, .woff, or .woff2"},
+		{name: "URL requires a filename", font: &ConsoleFontSettings{URL: "https://cdn.example.com/font.woff2"}, wantErr: "console font file name is required"},
+		{name: "family length is bounded by runes", font: &ConsoleFontSettings{Family: strings.Repeat("字", 129)}, wantErr: "console font family cannot exceed 128 characters"},
+		{name: "family cannot be a CSS list", font: &ConsoleFontSettings{Family: "Arial, serif"}, wantErr: "console font family contains unsupported character"},
+		{name: "family cannot contain quotes", font: &ConsoleFontSettings{Family: `Arial"Injected`}, wantErr: "console font family contains unsupported character"},
+		{name: "family cannot contain braces", font: &ConsoleFontSettings{Family: "Arial{color:red}"}, wantErr: "console font family contains unsupported character"},
+		{name: "family cannot contain newlines", font: &ConsoleFontSettings{Family: "Arial\nserif"}, wantErr: "console font family contains unsupported character"},
+		{name: "URL length is bounded", font: &ConsoleFontSettings{URL: "https://example.com/" + strings.Repeat("a", 2049), FileName: "font.woff2"}, wantErr: "console font URL cannot exceed 2048 characters"},
+		{name: "filename length is bounded by runes", font: &ConsoleFontSettings{URL: "https://cdn.example.com/font.ttf", FileName: strings.Repeat("字", 256) + ".ttf"}, wantErr: "console font file name cannot exceed 255 characters"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			settings := WorkspaceSettings{
+				Timezone:        "UTC",
+				DefaultLanguage: "en",
+				Languages:       []string{"en"},
+				ConsoleFont:     test.font,
+			}
+
+			err := settings.Validate("")
+			if test.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), test.wantErr)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, test.wantFont, settings.ConsoleFont)
+		})
+	}
+}
+
 func translationsForTest(count int, value string) map[string]string {
 	translations := make(map[string]string, count)
 	for i := 0; i < count; i++ {
@@ -6002,6 +6092,11 @@ func TestUpdateWorkspaceRequest_PreserveOmitted(t *testing.T) {
 		MarketingEmailProviderID:     "provider-marketing",
 		EmailTrackingEnabled:         true,
 		CustomEndpointURL:            &storedEndpoint,
+		ConsoleFont: &ConsoleFontSettings{
+			Family:   "Stored Font",
+			URL:      "https://cdn.example.com/stored.woff2",
+			FileName: "stored.woff2",
+		},
 	}
 
 	decode := func(t *testing.T, body string) WorkspaceSettings {
@@ -6023,6 +6118,7 @@ func TestUpdateWorkspaceRequest_PreserveOmitted(t *testing.T) {
 		assert.Equal(t, stored.MarketingEmailProviderID, got.MarketingEmailProviderID)
 		assert.True(t, got.EmailTrackingEnabled)
 		assert.Equal(t, stored.CustomEndpointURL, got.CustomEndpointURL)
+		assert.Equal(t, stored.ConsoleFont, got.ConsoleFont)
 		assert.Equal(t, "UTC", got.Timezone, "the keys the body did carry are untouched")
 	})
 
@@ -6032,7 +6128,8 @@ func TestUpdateWorkspaceRequest_PreserveOmitted(t *testing.T) {
 			"email_tracking_enabled": false,
 			"logo_url": null,
 			"marketing_email_provider_id": "",
-			"custom_endpoint_url": "https://new.example.com"
+			"custom_endpoint_url": "https://new.example.com",
+			"console_font": {}
 		}}`)
 		got.PreserveOmitted(stored)
 
@@ -6041,6 +6138,8 @@ func TestUpdateWorkspaceRequest_PreserveOmitted(t *testing.T) {
 		assert.Empty(t, got.MarketingEmailProviderID, "an empty string still unassigns")
 		require.NotNil(t, got.CustomEndpointURL)
 		assert.Equal(t, "https://new.example.com", *got.CustomEndpointURL)
+		require.NotNil(t, got.ConsoleFont)
+		assert.Empty(t, *got.ConsoleFont, "an explicit empty object resets the console font")
 	})
 
 	t.Run("settings built in Go apply whole", func(t *testing.T) {

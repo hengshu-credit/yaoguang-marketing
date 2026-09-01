@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+- **Improvement**: Added workspace-level marketing-console font configuration with editable preset names, uploaded `.ttf`/`.otf`/`.woff`/`.woff2` files through the existing file manager, a multilingual system fallback, and consistent page-header alignment across Audiences, Broadcasts, Templates and File Manager.
+
+## [55.0] - 2026-09-01
+
+- **Feature**: Added Workspace-maintained material-template categories with protected built-in defaults, custom marketing/transactional purposes, ordering, activation, usage-aware deletion, dynamic template filters and shared category selection across Email, SMS, Push and omnichannel editors.
+
 ## [54.0] - 2026-08-31
 
 - **Feature**: Added a country-aware omnichannel material catalogue, versioned templates for WeChat, WeCom, DingTalk, Feishu, WhatsApp, Telegram, LINE, Zalo, Viber, Messenger, Instagram, Kakao, RCS, In-App and generic Webhook content, simulated multi-client live previews, and HMAC-signed generic channel delivery with replay-safe receipts.

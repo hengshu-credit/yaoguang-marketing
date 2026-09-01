@@ -20,6 +20,7 @@ export interface Audience {
   kind: 'static' | 'dynamic' | 'composite'
   active_version: number
   active_build_id?: string
+  definition?: AudienceExpression
 }
 
 export interface AudienceBuild {

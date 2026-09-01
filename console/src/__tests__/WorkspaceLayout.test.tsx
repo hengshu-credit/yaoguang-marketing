@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from '@tanstack/react-router'
 import { isRootUser } from '../services/api/auth'
 import { workspaceService } from '../services/api/workspace'
+import { applyConsoleFont } from '../lib/consoleFont'
 
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: vi.fn()
@@ -42,6 +43,10 @@ vi.mock('../services/api/workspace', () => ({
     getMembers: vi.fn(),
     update: vi.fn()
   }
+}))
+
+vi.mock('../lib/consoleFont', () => ({
+  applyConsoleFont: vi.fn()
 }))
 
 // Providers pulling in react-query and the file manager are noise here.
@@ -134,6 +139,57 @@ describe('WorkspaceLayout workspace catalog scope', () => {
       </I18nProvider>
     )
     expect(screen.getByText('数据分析')).toBeInTheDocument()
+  })
+})
+
+describe('WorkspaceLayout console font scope', () => {
+  beforeEach(() => {
+    i18n.activate('en')
+    signInAsRoot()
+  })
+
+  it('cleans up the previous workspace font before applying the next one', () => {
+    const firstFont = { family: 'Noto Sans SC' }
+    const secondFont = {
+      family: 'Brand Font',
+      url: 'https://cdn.example.com/brand.woff2',
+      file_name: 'brand.woff2'
+    }
+    const firstCleanup = vi.fn()
+    const secondCleanup = vi.fn()
+    vi.mocked(applyConsoleFont)
+      .mockReturnValueOnce(firstCleanup)
+      .mockReturnValueOnce(secondCleanup)
+    vi.mocked(useAuth).mockReturnValue({
+      signout: vi.fn(),
+      refreshWorkspaces: vi.fn(),
+      workspaces: [{ id: 'ws1', name: 'Workspace One', settings: { console_font: firstFont } }],
+      user: { id: 'u1', email: 'root@example.com' }
+    } as never)
+
+    const view = render(<WorkspaceLayout />)
+
+    expect(applyConsoleFont).toHaveBeenCalledWith(
+      firstFont,
+      expect.objectContaining({ onError: expect.any(Function) })
+    )
+
+    vi.mocked(useAuth).mockReturnValue({
+      signout: vi.fn(),
+      refreshWorkspaces: vi.fn(),
+      workspaces: [{ id: 'ws1', name: 'Workspace One', settings: { console_font: secondFont } }],
+      user: { id: 'u1', email: 'root@example.com' }
+    } as never)
+    view.rerender(<WorkspaceLayout />)
+
+    expect(firstCleanup).toHaveBeenCalledTimes(1)
+    expect(applyConsoleFont).toHaveBeenLastCalledWith(
+      secondFont,
+      expect.objectContaining({ onError: expect.any(Function) })
+    )
+
+    view.unmount()
+    expect(secondCleanup).toHaveBeenCalledTimes(1)
   })
 })
 

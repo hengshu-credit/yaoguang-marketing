@@ -8,15 +8,7 @@ interface TemplateSelectorProps {
   name: string
   label: string
   workspaceId: string
-  category?:
-    | 'marketing'
-    | 'transactional'
-    | 'welcome'
-    | 'opt_in'
-    | 'unsubscribe'
-    | 'bounce'
-    | 'blocklist'
-    | 'other'
+  category?: string
   placeholder?: string
   required?: boolean
   rules?: Rule[]

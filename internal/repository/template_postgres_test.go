@@ -1128,3 +1128,23 @@ func TestScanTemplateRoundTripsGenericContentAndTranslation(t *testing.T) {
 	require.NotNil(t, template.Translations["es"].Content)
 	assert.Equal(t, "Hola {{ customer.name }}", template.Translations["es"].Content.Body)
 }
+
+func TestScanTemplateRestoresServerOwnedCategoryPurpose(t *testing.T) {
+	db, mockSQL, err := sqlmock.New()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	columns := []string{
+		"id", "name", "version", "channel", "email", "web", "sms", "push",
+		"content", "content_schema_version", "category", "template_macro_id", "integration_id",
+		"test_data", "settings", "translations", "created_at", "updated_at",
+	}
+	now := time.Now().UTC()
+	mockSQL.ExpectQuery("SELECT").WillReturnRows(sqlmock.NewRows(columns).AddRow(
+		"vip-message", "VIP", 1, "sms", nil, nil, []byte(`{"body":"Hi"}`), nil,
+		nil, nil, "vip", nil, nil, []byte(`{}`), []byte(`{"category_purpose":"marketing"}`), []byte(`{}`), now, now,
+	))
+
+	template, err := scanTemplate(db.QueryRow("SELECT"))
+	require.NoError(t, err)
+	require.Equal(t, domain.TemplateCategoryPurposeMarketing, template.CategoryPurpose)
+}

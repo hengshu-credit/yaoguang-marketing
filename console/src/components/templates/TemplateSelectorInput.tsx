@@ -12,15 +12,7 @@ interface TemplateSelectorInputProps {
   value?: string | null
   onChange?: (value: string | null) => void
   workspaceId: string
-  category?:
-    | 'marketing'
-    | 'transactional'
-    | 'welcome'
-    | 'opt_in'
-    | 'unsubscribe'
-    | 'bounce'
-    | 'blocklist'
-    | 'other'
+  category?: string
   placeholder?: string
   channel?: TemplateChannel
   clearable?: boolean

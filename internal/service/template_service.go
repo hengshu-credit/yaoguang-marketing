@@ -15,10 +15,38 @@ import (
 
 type TemplateService struct {
 	repo          domain.TemplateRepository
+	categoryRepo  domain.TemplateCategoryRepository
 	workspaceRepo domain.WorkspaceRepository
 	authService   domain.AuthService
 	logger        logger.Logger
 	apiEndpoint   string
+}
+
+func (s *TemplateService) SetTemplateCategoryRepository(repo domain.TemplateCategoryRepository) {
+	s.categoryRepo = repo
+}
+
+func (s *TemplateService) stampTemplateCategory(ctx context.Context, workspaceID string, template *domain.Template, allowInactive bool) error {
+	purpose := domain.EffectiveTemplateCategoryPurpose(template.Category, template.CategoryPurpose)
+	if s.categoryRepo != nil {
+		category, err := s.categoryRepo.Get(ctx, workspaceID, template.Category)
+		if err != nil {
+			if errors.Is(err, domain.ErrTemplateCategoryNotFound) {
+				return domain.NewValidationError("template category does not exist")
+			}
+			return fmt.Errorf("load template category: %w", err)
+		}
+		if !category.IsActive && !allowInactive {
+			return domain.NewValidationError("template category is inactive")
+		}
+		purpose = category.Purpose
+	}
+	template.CategoryPurpose = purpose
+	if template.Settings == nil {
+		template.Settings = domain.MapOfAny{}
+	}
+	template.Settings["category_purpose"] = string(purpose)
+	return nil
 }
 
 // updateEmailMetadataBlocks updates mj-title and mj-preview blocks in the email tree
@@ -205,6 +233,9 @@ func (s *TemplateService) CreateTemplate(ctx context.Context, workspaceID string
 	now := time.Now().UTC()
 	template.CreatedAt = now
 	template.UpdatedAt = now
+	if err := s.stampTemplateCategory(ctx, workspaceID, template, false); err != nil {
+		return err
+	}
 
 	// Update mj-title and mj-preview blocks with template metadata
 	s.updateEmailMetadataBlocks(template)
@@ -347,6 +378,12 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, workspaceID string
 	requestedTranslations := template.Translations
 	if template.Translations == nil {
 		template.Translations = existingTemplate.Translations
+	}
+	if template.Settings == nil {
+		template.Settings = existingTemplate.Settings
+	}
+	if err := s.stampTemplateCategory(ctx, workspaceID, template, existingTemplate.Category == template.Category); err != nil {
+		return err
 	}
 
 	// Verify editor_mode hasn't changed (prevent switching between visual and code)

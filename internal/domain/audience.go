@@ -116,14 +116,15 @@ func (e AudienceExpression) VersionHash() (string, error) {
 }
 
 type Audience struct {
-	ID            string       `json:"id"`
-	Name          string       `json:"name"`
-	Description   string       `json:"description,omitempty"`
-	Kind          AudienceKind `json:"kind"`
-	ActiveVersion int          `json:"active_version"`
-	ActiveBuildID string       `json:"active_build_id,omitempty"`
-	CreatedAt     time.Time    `json:"created_at"`
-	UpdatedAt     time.Time    `json:"updated_at"`
+	ID            string              `json:"id"`
+	Name          string              `json:"name"`
+	Description   string              `json:"description,omitempty"`
+	Kind          AudienceKind        `json:"kind"`
+	ActiveVersion int                 `json:"active_version"`
+	ActiveBuildID string              `json:"active_build_id,omitempty"`
+	Definition    *AudienceExpression `json:"definition,omitempty"`
+	CreatedAt     time.Time           `json:"created_at"`
+	UpdatedAt     time.Time           `json:"updated_at"`
 }
 
 type AudienceVersion struct {

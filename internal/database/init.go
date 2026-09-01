@@ -142,6 +142,16 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			PRIMARY KEY (email, list_id)
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_contact_lists_list_id ON contact_lists(list_id)`,
+		`CREATE TABLE IF NOT EXISTS template_categories (
+			id VARCHAR(20) PRIMARY KEY,
+			name VARCHAR(64) NOT NULL,
+			purpose VARCHAR(20) NOT NULL CHECK (purpose IN ('marketing', 'transactional')),
+			sort_order INTEGER NOT NULL DEFAULT 0 CHECK (sort_order BETWEEN 0 AND 10000),
+			is_system BOOLEAN NOT NULL DEFAULT FALSE,
+			is_active BOOLEAN NOT NULL DEFAULT TRUE,
+			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
 		`CREATE TABLE IF NOT EXISTS templates (
 			id VARCHAR(32) NOT NULL,
 			name VARCHAR(255) NOT NULL,
@@ -164,6 +174,23 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			deleted_at TIMESTAMP WITH TIME ZONE,
 			PRIMARY KEY (id, version)
 		)`,
+		`INSERT INTO template_categories (id, name, purpose, sort_order, is_system, is_active) VALUES
+			('marketing', 'Marketing', 'marketing', 10, TRUE, TRUE),
+			('transactional', 'Transactional', 'transactional', 20, TRUE, TRUE),
+			('welcome', 'Welcome', 'transactional', 30, TRUE, TRUE),
+			('opt_in', 'Opt-in', 'transactional', 40, TRUE, TRUE),
+			('unsubscribe', 'Unsubscribe', 'transactional', 50, TRUE, TRUE),
+			('bounce', 'Bounce', 'transactional', 60, TRUE, TRUE),
+			('blocklist', 'Blocklist', 'transactional', 70, TRUE, TRUE),
+			('blog', 'Blog', 'marketing', 80, TRUE, TRUE),
+			('other', 'Other', 'transactional', 90, TRUE, TRUE)
+		ON CONFLICT (id) DO NOTHING`,
+		`INSERT INTO template_categories (id, name, purpose, sort_order, is_system, is_active)
+		SELECT DISTINCT category, INITCAP(REPLACE(category, '_', ' ')), 'transactional', 1000, FALSE, TRUE
+		FROM templates
+		WHERE category <> '' AND category ~ '^[a-z0-9]+([_-][a-z0-9]+)*$' AND LENGTH(category) <= 20
+		ON CONFLICT (id) DO NOTHING`,
+		`CREATE INDEX IF NOT EXISTS idx_template_categories_active_order ON template_categories(is_active, sort_order, id)`,
 		`CREATE TABLE IF NOT EXISTS channel_webhook_nonces (
 			integration_id VARCHAR(255) NOT NULL,
 			nonce VARCHAR(128) NOT NULL,

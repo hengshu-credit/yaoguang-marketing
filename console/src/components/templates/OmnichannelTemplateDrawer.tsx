@@ -10,6 +10,7 @@ import type { ChannelTemplateContent, Template, TemplateTranslation } from '../.
 import { templatesApi } from '../../services/api/template'
 import OmnichannelFields from './OmnichannelFields'
 import OmnichannelPreview from './OmnichannelPreview'
+import TemplateCategorySelect from './TemplateCategorySelect'
 
 interface OmnichannelTemplateDrawerProps {
   workspace: Workspace
@@ -211,7 +212,7 @@ const OmnichannelTemplateDrawer: React.FC<OmnichannelTemplateDrawerProps> = ({
             </Row>
             <Row gutter={12}>
               <Col span={12}><Form.Item label={t`Channel`} name="channel" rules={[{ required: true }]}><Select disabled={Boolean(template)} options={definitions.map((item) => ({ label: item.label_key, value: item.id }))} onChange={(next) => { const nextDefinition = definitions.find((item) => item.id === next); form.setFieldValue('family', nextDefinition?.content_families[0]); setProfile(nextDefinition?.preview_profiles[0]?.id || ''); setPreview(null) }} /></Form.Item></Col>
-              <Col span={12}><Form.Item label={t`Category`} name="category" rules={[{ required: true }]}><Select options={[{ label: t`Marketing`, value: 'marketing' }, { label: t`Transactional`, value: 'transactional' }, { label: t`Other`, value: 'other' }]} /></Form.Item></Col>
+              <Col span={12}><Form.Item label={t`Category`} name="category" rules={[{ required: true }]}><TemplateCategorySelect workspaceId={workspace.id} /></Form.Item></Col>
             </Row>
             <Form.Item label={t`Message type`} name="family" rules={[{ required: true }]}><Select options={definition.content_families.map((item) => ({ label: item.replace(/_/g, ' '), value: item }))} onChange={() => setPreview(null)} /></Form.Item>
             <Tabs activeKey={language} items={languageItems} onChange={(next) => { setLanguage(next); setPreview(null) }} />

@@ -182,13 +182,8 @@ func (e *EmailNodeExecutor) NodeType() domain.NodeType {
 
 // isSubscriptionSensitiveCategory returns true for template categories
 // that should respect contact unsubscribe status (marketing content).
-func isSubscriptionSensitiveCategory(category string) bool {
-	switch domain.TemplateCategory(category) {
-	case domain.TemplateCategoryMarketing, domain.TemplateCategoryBlog:
-		return true
-	default:
-		return false
-	}
+func isSubscriptionSensitiveCategory(category string, purpose domain.TemplateCategoryPurpose) bool {
+	return domain.EffectiveTemplateCategoryPurpose(category, purpose) == domain.TemplateCategoryPurposeMarketing
 }
 
 // Execute processes an email node by enqueuing to the email queue
@@ -248,7 +243,7 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 	}
 
 	// 4b. Check subscription status for marketing/blog emails
-	if isSubscriptionSensitiveCategory(template.Category) && params.Automation.ListID != "" {
+	if isSubscriptionSensitiveCategory(template.Category, template.CategoryPurpose) && params.Automation.ListID != "" {
 		contactList, clErr := e.contactListRepo.GetContactListByIDs(
 			ctx,
 			params.WorkspaceID,

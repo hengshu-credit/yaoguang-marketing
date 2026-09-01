@@ -17,7 +17,8 @@ function EditableRow({
   canWrite,
   saving,
   onSave,
-  onRemove
+  onRemove,
+  horizontal = false
 }: {
   label: string
   value?: string
@@ -25,6 +26,7 @@ function EditableRow({
   saving: boolean
   onSave: (value: string) => Promise<void>
   onRemove?: () => Promise<void>
+  horizontal?: boolean
 }) {
   const { t } = useLingui()
   const [editing, setEditing] = useState(false)
@@ -32,9 +34,9 @@ function EditableRow({
 
   if (editing) {
     return (
-      <div className="py-2">
-        <Typography.Text type="secondary" className="block text-xs">{label}</Typography.Text>
-        <Space.Compact className="mt-1 w-full">
+      <div className={horizontal ? 'grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-start gap-3 py-2' : 'py-2'}>
+        <Typography.Text type="secondary" className={horizontal ? 'min-w-0 pt-2 text-left text-xs' : 'block text-xs'}>{label}</Typography.Text>
+        <Space.Compact className={horizontal ? 'col-span-2 w-full' : 'mt-1 w-full'}>
           <Input value={draft} onChange={(event) => setDraft(event.target.value)} autoFocus />
           <Button
             aria-label={t`Save ${label}`}
@@ -52,11 +54,18 @@ function EditableRow({
   }
 
   return (
-    <div className="group flex min-h-12 items-center justify-between gap-3 border-b border-gray-100 py-2">
-      <div className="min-w-0">
-        <Typography.Text type="secondary" className="block text-xs">{label}</Typography.Text>
-        <Typography.Text className="break-words">{value || '—'}</Typography.Text>
-      </div>
+    <div className={horizontal ? 'group grid min-h-12 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-3 border-b border-gray-100 py-2' : 'group flex min-h-12 items-center justify-between gap-3 border-b border-gray-100 py-2'}>
+      {horizontal ? (
+        <>
+          <Typography.Text type="secondary" className="min-w-0 break-words text-left text-xs">{label}</Typography.Text>
+          <Typography.Text className="min-w-0 break-words text-right">{value || '—'}</Typography.Text>
+        </>
+      ) : (
+        <div className="min-w-0">
+          <Typography.Text type="secondary" className="block text-xs">{label}</Typography.Text>
+          <Typography.Text className="break-words">{value || '—'}</Typography.Text>
+        </div>
+      )}
       {canWrite ? <Space size={0}>
         <Button
           type="text"
@@ -154,6 +163,7 @@ export function CustomerProfilePanel({ customer, canWrite, saving, onUpdate }: C
             saving={saving}
             onSave={(next) => onUpdate({ profile: { attributes: { merge: { [key]: parseAttributeValue(next) } } } })}
             onRemove={() => onUpdate({ profile: { attributes: { unset: [key] } } })}
+            horizontal
           />
         ))}
         {Object.keys(attributes).length === 0 && !addingAttribute ? <Typography.Text type="secondary">{t`No profile attributes`}</Typography.Text> : null}

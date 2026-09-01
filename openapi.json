@@ -3922,6 +3922,62 @@
         }
       }
     },
+    "/api/customers.listMemberships.update": {
+      "post": {
+        "summary": "Adjust list memberships for selected Customers",
+        "description": "Atomically adds, removes, or changes the status of the selected Customer/list cross-product. Add preserves every existing membership and suppression state. Set-status changes existing memberships only. Remove deletes existing memberships. Missing relationships count as unchanged.",
+        "operationId": "updateCustomerListMemberships",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerListMembershipUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Membership transaction committed",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerListMembershipUpdateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/CustomerBadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/CustomerUnauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/CustomerForbidden"
+          },
+          "413": {
+            "$ref": "#/components/responses/CustomerTooLarge"
+          },
+          "500": {
+            "$ref": "#/components/responses/CustomerServerError"
+          }
+        }
+      }
+    },
     "/api/customers.merge": {
       "post": {
         "summary": "Explicitly merge an anonymous Customer into a known Customer",
@@ -5523,17 +5579,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": [
-                "marketing",
-                "transactional",
-                "welcome",
-                "opt_in",
-                "unsubscribe",
-                "bounce",
-                "blocklist",
-                "blog",
-                "other"
-              ]
+              "maxLength": 20
             },
             "description": "Filter templates by category"
           },
@@ -6133,6 +6179,146 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/templateCategories.list": {
+      "get": {
+        "summary": "List Workspace template categories",
+        "operationId": "listTemplateCategories",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include_inactive",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ordered category catalogue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "categories": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TemplateCategoryDefinition"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid workspace request"
+          }
+        }
+      }
+    },
+    "/api/templateCategories.create": {
+      "post": {
+        "summary": "Create a Workspace template category",
+        "operationId": "createTemplateCategory",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTemplateCategoryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Category created"
+          },
+          "400": {
+            "description": "Invalid or duplicate category"
+          }
+        }
+      }
+    },
+    "/api/templateCategories.update": {
+      "post": {
+        "summary": "Update category name, order or active state",
+        "operationId": "updateTemplateCategory",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTemplateCategoryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Category updated"
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        }
+      }
+    },
+    "/api/templateCategories.delete": {
+      "post": {
+        "summary": "Delete an unused custom category",
+        "operationId": "deleteTemplateCategory",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteTemplateCategoryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Category deleted"
+          },
+          "409": {
+            "description": "System category or category in use"
           }
         }
       }
@@ -9005,6 +9191,95 @@
           }
         }
       },
+      "CustomerListMembershipUpdateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workspace_id",
+          "customer_ids",
+          "list_ids",
+          "action"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "customer_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 50,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "list_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 50,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32,
+              "pattern": "^[A-Za-z0-9]+$"
+            }
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "add",
+              "remove",
+              "set_status"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "pending",
+              "unsubscribed",
+              "bounced",
+              "complained"
+            ],
+            "description": "Defaults to active for add, is required for set_status, and is rejected for remove."
+          }
+        }
+      },
+      "CustomerListMembershipUpdateResponse": {
+        "type": "object",
+        "required": [
+          "request_id",
+          "customers",
+          "lists",
+          "changed",
+          "unchanged"
+        ],
+        "properties": {
+          "request_id": {
+            "type": "string"
+          },
+          "customers": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "lists": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "changed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unchanged": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
       "CustomerMergeRequest": {
         "type": "object",
         "additionalProperties": false,
@@ -10476,20 +10751,19 @@
           },
           "category": {
             "type": "string",
-            "enum": [
-              "marketing",
-              "transactional",
-              "welcome",
-              "opt_in",
-              "unsubscribe",
-              "bounce",
-              "blocklist",
-              "blog",
-              "other"
-            ],
-            "description": "Template category",
+            "pattern": "^[a-z0-9]+(?:[_-][a-z0-9]+)*$",
+            "description": "Workspace-maintained template category ID",
             "example": "transactional",
             "maxLength": 20
+          },
+          "category_purpose": {
+            "type": "string",
+            "enum": [
+              "marketing",
+              "transactional"
+            ],
+            "readOnly": true,
+            "description": "Server-resolved compliance purpose of the category"
           },
           "template_macro_id": {
             "type": "string",
@@ -10553,6 +10827,141 @@
           "channel",
           "category"
         ]
+      },
+      "TemplateCategoryDefinition": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "purpose",
+          "sort_order",
+          "is_system",
+          "is_active",
+          "usage_count"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 20,
+            "pattern": "^[a-z0-9]+(?:[_-][a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "marketing",
+              "transactional"
+            ]
+          },
+          "sort_order": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "is_system": {
+            "type": "boolean"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "usage_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateTemplateCategoryRequest": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "id",
+          "name",
+          "purpose",
+          "sort_order"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "maxLength": 20,
+            "pattern": "^[a-z0-9]+(?:[_-][a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "marketing",
+              "transactional"
+            ]
+          },
+          "sort_order": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          }
+        }
+      },
+      "UpdateTemplateCategoryRequest": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "id",
+          "name",
+          "sort_order",
+          "is_active"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "sort_order": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "is_active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DeleteTemplateCategoryRequest": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "id"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        }
       },
       "EmailTemplate": {
         "type": "object",

@@ -3,13 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { I18nProvider } from '@lingui/react'
+import { App } from 'antd'
 import { i18n } from '../../i18n'
 import { CustomerDrawer } from './CustomerDrawer'
 
-const { timelineList, journeyList, deliveryList } = vi.hoisted(() => ({
+const { timelineList, journeyList, deliveryList, updateListMemberships } = vi.hoisted(() => ({
   timelineList: vi.fn(),
   journeyList: vi.fn(),
-  deliveryList: vi.fn()
+  deliveryList: vi.fn(),
+  updateListMemberships: vi.fn()
 }))
 
 vi.mock('../../services/api/customer', async () => {
@@ -17,6 +19,8 @@ vi.mock('../../services/api/customer', async () => {
   return {
     ...actual,
     customerApi: {
+      update: vi.fn(),
+      updateListMemberships,
       get: vi.fn(async () => ({
         customer_id: 'customer-1',
         customer_no: 'U0001202608301000000811111111111141118111111111111111',
@@ -85,7 +89,7 @@ function wrapper({ children }: { children: React.ReactNode }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return (
     <QueryClientProvider client={client}>
-      <I18nProvider i18n={i18n}>{children}</I18nProvider>
+      <I18nProvider i18n={i18n}><App>{children}</App></I18nProvider>
     </QueryClientProvider>
   )
 }
@@ -142,9 +146,12 @@ describe('CustomerDrawer', () => {
       ],
       total: 1
     })
+    updateListMemberships.mockResolvedValue({
+      request_id: 'request-1', customers: 1, lists: 1, changed: 1, unchanged: 0
+    })
   })
 
-  it('renders the Customer 360 foundation with masked identities and consent', async () => {
+  it('renders the Customer 360 foundation without consent information', async () => {
     render(
       <CustomerDrawer
         workspaceId="ws1"
@@ -158,7 +165,8 @@ describe('CustomerDrawer', () => {
     expect((await screen.findAllByText('crm-42')).length).toBeGreaterThan(0)
     expect(screen.getByText('vip')).toBeInTheDocument()
     expect(screen.getAllByText(/a\*\*\*@example\.com/)).toHaveLength(2)
-    expect(screen.getByText(/marketing \/ email/)).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Consent' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/marketing \/ email/)).not.toBeInTheDocument()
     expect(await screen.findByText(/Newsletter · active/)).toBeInTheDocument()
     expect(screen.getByText(/High value customers · v4/)).toBeInTheDocument()
     expect(screen.queryByText('must-never-render')).not.toBeInTheDocument()
@@ -194,5 +202,17 @@ describe('CustomerDrawer', () => {
         expect.objectContaining({ workspace_id: 'ws1', customer_id: 'customer-1' })
       )
     })
+  })
+
+  it('opens list membership adjustment for one customer from Customer 360', async () => {
+    render(
+      <CustomerDrawer workspaceId="ws1" customerId="customer-1" open onClose={vi.fn()} canWrite />,
+      { wrapper }
+    )
+
+    expect(await screen.findByText(/Newsletter · active/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Adjust list memberships' }))
+    expect(await screen.findByText('Operation')).toBeInTheDocument()
+    expect(screen.getByText('This operation applies to 1 selected customers.')).toBeInTheDocument()
   })
 })

@@ -22,6 +22,7 @@ export interface Template {
   content?: ChannelTemplateContent
   content_schema_version?: number
   category: string
+  category_purpose?: 'marketing' | 'transactional'
   template_macro_id?: string
   integration_id?: string
   utm_source?: string

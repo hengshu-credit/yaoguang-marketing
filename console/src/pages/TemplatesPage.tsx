@@ -8,7 +8,7 @@ import {
   Space,
   Modal,
   message,
-  Segmented,
+  Select,
   Tag,
   Input,
   TableColumnType
@@ -35,6 +35,9 @@ import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer
 import SendTemplateModal from '../components/templates/SendTemplateModal'
 import { useLingui } from '@lingui/react/macro'
 import { ContentCenterTabs } from '../components/navigation/WorkspaceSectionTabs'
+import { templateCategoriesApi } from '../services/api/templateCategories'
+import TemplateCategoryManager from '../components/templates/TemplateCategoryManager'
+import { templateCategoryDisplayName } from '../components/templates/templateCategoryLabels'
 
 const { Title, Paragraph, Text } = Typography
 
@@ -123,17 +126,21 @@ export function TemplatesPage() {
     }
   }, [])
 
-  // Backend categories + All
+  const { data: categoryCatalog } = useQuery({
+    queryKey: ['template-categories', workspaceId, true],
+    queryFn: () => templateCategoriesApi.list(workspaceId, true)
+  })
+  const systemCategoryNames: Record<string, string> = {
+    marketing: t`Marketing`, transactional: t`Transactional`, welcome: t`Welcome`, opt_in: t`Opt-in`,
+    unsubscribe: t`Unsubscribe`, bounce: t`Bounce`, blocklist: t`Blocklist`, blog: t`Blog`, other: t`Other`
+  }
+  const categoryDefinitions = categoryCatalog?.categories || []
+  const categoryByID = new Map(categoryDefinitions.map((category) => [category.id, category]))
   const categories = [
     { label: t`All`, value: 'all' },
-    { label: t`Marketing`, value: 'marketing' },
-    { label: t`Transactional`, value: 'transactional' },
-    { label: t`Welcome`, value: 'welcome' },
-    { label: t`Opt-in`, value: 'opt_in' },
-    { label: t`Unsubscribe`, value: 'unsubscribe' },
-    { label: t`Bounce`, value: 'bounce' },
-    { label: t`Blocklist`, value: 'blocklist' },
-    { label: t`Other`, value: 'other' }
+    ...categoryDefinitions
+      .filter((category) => category.is_active || category.id === selectedCategory)
+      .map((category) => ({ label: templateCategoryDisplayName(category, systemCategoryNames), value: category.id }))
   ]
 
   // current workspace from workspaceId
@@ -239,7 +246,12 @@ export function TemplatesPage() {
       title: t`Category`,
       dataIndex: 'category',
       key: 'category',
-      render: (category: string) => renderCategoryTag(category)
+      render: (category: string) => {
+        const definition = categoryByID.get(category)
+        return definition
+          ? <Tag color={definition.purpose === 'marketing' ? 'green' : 'blue'}>{templateCategoryDisplayName(definition, systemCategoryNames)}</Tag>
+          : renderCategoryTag(category)
+      }
     },
     {
       title: t`Sender`,
@@ -249,7 +261,7 @@ export function TemplatesPage() {
         if (record.channel === 'push') return <Text type="secondary">{t`Device notification`}</Text>
         if (record.content) return <Tag color="purple">{t`Signed Webhook`}</Tag>
         if (workspace && record.email?.sender_id) {
-          const isMarketing = record.category === 'marketing'
+          const isMarketing = record.category_purpose === 'marketing' || (!record.category_purpose && record.category === 'marketing')
           const emailProvider = isMarketing ? marketingEmailProvider : transactionalEmailProvider
           if (emailProvider?.email_provider) {
             const sender = emailProvider.email_provider.senders.find(
@@ -413,33 +425,27 @@ export function TemplatesPage() {
   ]
 
   return (
-    <div className="p-6">
+    <div>
       <div className="flex justify-between items-center mb-6">
         <WorkspacePageTitle>{t`Templates`}</WorkspacePageTitle>
-        {workspace && data?.templates && data.templates.length > 0 && (
-          <Tooltip
-            title={
-              !permissions?.templates?.write
-                ? t`You don't have write permission for templates`
-                : undefined
-            }
-          >
-            <span>
-              <CreateTemplateButton workspace={workspace} definitions={channelDefinitions} autoOpenChannel={search.create_channel} buttonProps={{ disabled: !permissions?.templates?.write }} />
-            </span>
-          </Tooltip>
+        <Space>
+          <TemplateCategoryManager workspaceId={workspaceId} canWrite={Boolean(permissions?.templates?.write)} />
+          {workspace && data?.templates && data.templates.length > 0 && (
+            <Tooltip title={!permissions?.templates?.write ? t`You don't have write permission for templates` : undefined}>
+              <span><CreateTemplateButton workspace={workspace} definitions={channelDefinitions} autoOpenChannel={search.create_channel} buttonProps={{ disabled: !permissions?.templates?.write }} /></span>
+            </Tooltip>
           )}
+        </Space>
       </div>
 
       <ContentCenterTabs workspaceId={workspaceId} activeKey="templates" />
 
       <div className="flex justify-between items-center mb-4 gap-4">
-        <Segmented
+        <Select
           options={categories}
-          // Use selectedCategory from search params as value
           value={selectedCategory}
-          // Update search params on change
           onChange={(value) => setSelectedCategory(value as string)}
+          className="min-w-56"
         />
         <Input.Search
           allowClear

@@ -42,6 +42,7 @@ import { timelineChangesSchema } from './table_schemas'
 import { FieldTypeNumber } from './type_number'
 import { FieldTypeJSON } from './type_json'
 import styles from './input.module.css'
+import { segmentFieldLabel, segmentSourceLabel } from './labels'
 
 // Defined in ./tree_completeness so pure callers can use it without importing this module,
 // which pulls in antd and the whole editor. Re-exported here for the existing importers.
@@ -61,6 +62,9 @@ export type TreeNodeInputProps = {
   // Reports the tree as it would stand if the condition currently open in the form were confirmed,
   // and undefined once no condition is open. Lets the drawer preview an in-progress condition.
   onDraftTreeChange?: (draftTree: TreeNode | undefined) => void
+  // Reports whether a leaf form is open. A parent that persists the tree must
+  // not save while the visible form still contains unconfirmed changes.
+  onEditingChange?: (editing: boolean) => void
 }
 
 const fieldTypeRendererDictionary: FieldTypeRendererDictionary = {
@@ -93,11 +97,14 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
 
   const onDraftTreeChangeRef = useRef(props.onDraftTreeChange)
   onDraftTreeChangeRef.current = props.onDraftTreeChange
+  const onEditingChangeRef = useRef(props.onEditingChange)
+  onEditingChangeRef.current = props.onEditingChange
 
   // A draft only ever describes the condition open in the form. Whenever that changes — opened,
   // confirmed, cancelled, or swapped for another condition — the committed tree takes over again.
   useEffect(() => {
     onDraftTreeChangeRef.current?.(undefined)
+    onEditingChangeRef.current?.(Boolean(editingNodeLeaf))
   }, [editingNodeLeaf])
 
   const onDraftLeafChange = (draftLeaf: TreeNode, path: string, pathKey: number) => {
@@ -146,7 +153,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
             {schema.icon && (
               <FontAwesomeIcon icon={schema.icon} style={{ width: 18, marginRight: 8 }} />
             )}
-            {schema.title}
+            {segmentSourceLabel(tableName, schema.title)}
           </span>
         )
       })
@@ -906,8 +913,9 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                                   >
                                     <b>
                                       {props.customFieldLabels?.[filter.field_name] ||
-                                        field?.title ||
-                                        filter.field_name}
+                                        (field
+                                          ? segmentFieldLabel(filter.field_name, field.title)
+                                          : filter.field_name)}
                                     </b>
                                   </Popover>
                                   {fieldTypeRenderer.render(filter, field, props.customFieldLabels)}

@@ -98,6 +98,59 @@ func TestCustomerServiceListStopsBeforeRepositoryWithoutReadPermission(t *testin
 	assert.ErrorAs(t, err, &permission)
 }
 
+func TestCustomerServiceUpdateListMembershipsRequiresWriteAndDelegatesNormalizedRequest(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	repository := mocks.NewMockCustomerRepository(ctrl)
+	workspaceRepository := mocks.NewMockWorkspaceRepository(ctrl)
+	auth := mocks.NewMockAuthService(ctrl)
+	service, err := NewCustomerService(CustomerServiceDependencies{
+		Repository: repository, WorkspaceRepository: workspaceRepository, AuthService: auth, MaxSyncBatchSize: 10_000,
+	})
+	require.NoError(t, err)
+	ctx := context.Background()
+	auth.EXPECT().AuthenticateUserForWorkspace(ctx, "workspace1").Return(ctx, &domain.User{}, customerMembership(false, true), nil)
+	repository.EXPECT().UpdateListMemberships(ctx, gomock.Any()).DoAndReturn(
+		func(_ context.Context, request domain.CustomerListMembershipUpdateRequest) (*domain.CustomerListMembershipUpdateResult, error) {
+			assert.Equal(t, domain.CustomerListMembershipStatusActive, request.Status)
+			return &domain.CustomerListMembershipUpdateResult{Customers: 1, Lists: 2, Changed: 2}, nil
+		},
+	)
+
+	result, err := service.UpdateCustomerListMemberships(ctx, &domain.CustomerListMembershipUpdateRequest{
+		WorkspaceID: "workspace1",
+		CustomerIDs: []string{"11111111-1111-4111-8111-111111111111"},
+		ListIDs:     []string{"newsletter", "vip"},
+		Action:      domain.CustomerListMembershipActionAdd,
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, 2, result.Changed)
+}
+
+func TestCustomerServiceUpdateListMembershipsStopsBeforeRepositoryWithoutWritePermission(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	repository := mocks.NewMockCustomerRepository(ctrl)
+	workspaceRepository := mocks.NewMockWorkspaceRepository(ctrl)
+	auth := mocks.NewMockAuthService(ctrl)
+	service, err := NewCustomerService(CustomerServiceDependencies{
+		Repository: repository, WorkspaceRepository: workspaceRepository, AuthService: auth, MaxSyncBatchSize: 10_000,
+	})
+	require.NoError(t, err)
+	ctx := context.Background()
+	auth.EXPECT().AuthenticateUserForWorkspace(ctx, "workspace1").Return(ctx, &domain.User{}, customerMembership(true, false), nil)
+
+	result, err := service.UpdateCustomerListMemberships(ctx, &domain.CustomerListMembershipUpdateRequest{
+		WorkspaceID: "workspace1",
+		CustomerIDs: []string{"11111111-1111-4111-8111-111111111111"},
+		ListIDs:     []string{"newsletter"},
+		Action:      domain.CustomerListMembershipActionRemove,
+	})
+
+	assert.Nil(t, result)
+	var permission *domain.PermissionError
+	assert.ErrorAs(t, err, &permission)
+}
+
 func TestCustomerServiceUpsertAuthenticatesLoadsWorkspaceSequenceAndHashesCanonicalInput(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	repository := mocks.NewMockCustomerRepository(ctrl)

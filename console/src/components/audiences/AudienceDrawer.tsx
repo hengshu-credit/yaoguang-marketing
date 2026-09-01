@@ -11,6 +11,7 @@ import { TableSchemas } from '../segment/table_schemas'
 interface AudienceDrawerProps {
   open: boolean
   workspaceId: string
+  audienceId?: string
   lists: List[]
   onClose: () => void
   onSaved?: () => void
@@ -25,22 +26,25 @@ const emptyTree = (): TreeNode => ({
 export function AudienceDrawer({
   open,
   workspaceId,
+  audienceId,
   lists,
   onClose,
   onSaved,
   customFieldLabels
 }: AudienceDrawerProps) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const queryClient = useQueryClient()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [tree, setTree] = useState<TreeNode>(emptyTree)
   const [draftTree, setDraftTree] = useState<TreeNode>()
+  const [editingCondition, setEditingCondition] = useState(false)
   const [previewTotal, setPreviewTotal] = useState<number>()
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewStale, setPreviewStale] = useState(false)
   const [previewError, setPreviewError] = useState<string>()
   const [saving, setSaving] = useState(false)
+  const [loadingAudience, setLoadingAudience] = useState(false)
   const [saveError, setSaveError] = useState<string>()
 
   const schemas = useMemo(() => ({
@@ -51,6 +55,48 @@ export function AudienceDrawer({
   }), [])
   const effectiveTree = draftTree ?? tree
   const effectiveHash = JSON.stringify(effectiveTree)
+  const isEditing = Boolean(audienceId)
+
+  useEffect(() => {
+    if (!open) return
+    let active = true
+    setDraftTree(undefined)
+    setEditingCondition(false)
+    setPreviewTotal(undefined)
+    setPreviewError(undefined)
+    setSaveError(undefined)
+    if (!audienceId) {
+      setName('')
+      setDescription('')
+      setTree(emptyTree())
+      setLoadingAudience(false)
+      return
+    }
+
+    setLoadingAudience(true)
+    audienceApi.get(workspaceId, audienceId)
+      .then((item) => {
+        if (!active) return
+        if (!item.definition?.condition) {
+          throw new Error(t`The active audience version has no editable condition tree`)
+        }
+        setName(item.name)
+        setDescription(item.description ?? '')
+        setTree(item.definition.condition)
+      })
+      .catch((error) => {
+        if (!active) return
+        setSaveError(error instanceof Error ? error.message : t`Failed to load audience`)
+      })
+      .finally(() => {
+        if (active) setLoadingAudience(false)
+      })
+    return () => { active = false }
+    // `t` is macro-generated and is not referentially stable in every Lingui
+    // provider. Depending on it here reloads the same audience after each
+    // state update and can keep the drawer in a render/fetch loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audienceId, open, workspaceId])
 
   useEffect(() => {
     if (!open || !isTreeQueryable(effectiveTree)) {
@@ -88,6 +134,7 @@ export function AudienceDrawer({
     setDescription('')
     setTree(emptyTree())
     setDraftTree(undefined)
+    setEditingCondition(false)
     setPreviewTotal(undefined)
     setPreviewError(undefined)
     setSaveError(undefined)
@@ -95,12 +142,20 @@ export function AudienceDrawer({
   }
 
   const save = async () => {
-    if (!name.trim() || !isTreeQueryable(tree)) return
+    if (!name.trim() || !isTreeQueryable(tree) || draftTree !== undefined || editingCondition) return
     setSaving(true)
     setSaveError(undefined)
     try {
-      await audienceApi.create(workspaceId, name.trim(), description.trim(), { condition: tree }, 'dynamic')
+      if (audienceId) {
+        await audienceApi.update(workspaceId, audienceId, { condition: tree })
+      } else {
+        await audienceApi.create(workspaceId, name.trim(), description.trim(), { condition: tree }, 'dynamic')
+      }
       await queryClient.invalidateQueries({ queryKey: ['audiences', workspaceId] })
+      if (audienceId) {
+        await queryClient.invalidateQueries({ queryKey: ['audience', workspaceId, audienceId] })
+        await queryClient.invalidateQueries({ queryKey: ['audience-members'] })
+      }
       onSaved?.()
       resetAndClose()
     } catch (error) {
@@ -114,13 +169,13 @@ export function AudienceDrawer({
     <Drawer
       open={open}
       size="90%"
-      title={t`Create dynamic audience`}
+      title={isEditing ? (i18n.locale === 'zh-CN' ? '编辑动态客群' : t`Edit dynamic audience`) : t`Create dynamic audience`}
       onClose={resetAndClose}
       destroyOnHidden
       extra={(
         <Space>
           <Button onClick={resetAndClose}>{t`Cancel`}</Button>
-          <Button type="primary" loading={saving} disabled={!name.trim() || !isTreeQueryable(tree)} onClick={() => void save()}>
+          <Button type="primary" loading={saving} disabled={loadingAudience || editingCondition || draftTree !== undefined || !name.trim() || !isTreeQueryable(tree)} onClick={() => void save()}>
             {t`Save audience`}
           </Button>
         </Space>
@@ -133,12 +188,13 @@ export function AudienceDrawer({
         title={t`This page stores filter logic, not a live member list`}
         description={t`Marketing runs select the latest audience when execution starts, freeze the candidates, and check every customer again immediately before each message.`}
       />
+      <Spin spinning={loadingAudience}>
       <Form layout="vertical">
         <Form.Item label={t`Audience name`} htmlFor="audience-name" required>
-          <Input id="audience-name" value={name} onChange={(event) => setName(event.target.value)} />
+          <Input id="audience-name" value={name} disabled={isEditing} onChange={(event) => setName(event.target.value)} />
         </Form.Item>
         <Form.Item label={t`Description`}>
-          <Input.TextArea value={description} onChange={(event) => setDescription(event.target.value)} />
+          <Input.TextArea value={description} disabled={isEditing} onChange={(event) => setDescription(event.target.value)} />
         </Form.Item>
         <Form.Item label={t`Filter conditions`} required>
           <TreeNodeInput
@@ -148,6 +204,7 @@ export function AudienceDrawer({
               setDraftTree(undefined)
             }}
             onDraftTreeChange={setDraftTree}
+            onEditingChange={setEditingCondition}
             schemas={schemas}
             lists={lists}
             workspaceId={workspaceId}
@@ -155,6 +212,7 @@ export function AudienceDrawer({
           />
         </Form.Item>
       </Form>
+      </Spin>
       <div className={`mt-4 ${previewStale ? 'opacity-50' : ''}`}>
         <Space>
           {previewLoading && <Spin size="small" />}

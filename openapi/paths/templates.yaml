@@ -18,16 +18,7 @@
         required: false
         schema:
           type: string
-          enum:
-            - marketing
-            - transactional
-            - welcome
-            - opt_in
-            - unsubscribe
-            - bounce
-            - blocklist
-            - blog
-            - other
+          maxLength: 20
         description: Filter templates by category
       - name: channel
         in: query

@@ -301,7 +301,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   const emailProvider = workspace.integrations?.find(
     (i) =>
       i.id ===
-      (record.category === 'marketing'
+      (record.category_purpose === 'marketing' || (!record.category_purpose && record.category === 'marketing')
         ? workspace.settings?.marketing_email_provider_id
         : workspace.settings?.transactional_email_provider_id)
   )?.email_provider

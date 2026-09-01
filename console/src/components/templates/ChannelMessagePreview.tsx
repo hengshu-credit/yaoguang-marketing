@@ -8,6 +8,7 @@ interface ChannelMessagePreviewProps {
   preview: PreviewTemplateResponse
   platform: PushClientProfile
   onPlatformChange: (platform: PushClientProfile) => void
+  showDiagnostics?: boolean
 }
 
 export type PushClientProfile = 'android' | 'ios' | 'web' | 'huawei' | 'honor' | 'xiaomi' | 'oppo' | 'vivo'
@@ -26,7 +27,8 @@ const deviceStyle: React.CSSProperties = {
 const ChannelMessagePreview: React.FC<ChannelMessagePreviewProps> = ({
   preview,
   platform,
-  onPlatformChange
+  onPlatformChange,
+  showDiagnostics = true
 }) => {
   const { t } = useLingui()
 
@@ -41,7 +43,7 @@ const ChannelMessagePreview: React.FC<ChannelMessagePreviewProps> = ({
             </div>
           </div>
         </div>
-        <Card size="small">
+        {showDiagnostics && <Card size="small">
           <Space wrap>
             <Tag color="blue">{preview.sms.encoding.toUpperCase()}</Tag>
             <Text>{preview.sms.segment_count} segment(s)</Text>
@@ -52,7 +54,7 @@ const ChannelMessagePreview: React.FC<ChannelMessagePreviewProps> = ({
               {preview.sms.remaining} {t`units remaining`}
             </Text>
           </Space>
-        </Card>
+        </Card>}
       </Space>
     )
   }
@@ -98,14 +100,14 @@ const ChannelMessagePreview: React.FC<ChannelMessagePreviewProps> = ({
           </Space>
         </Card>
       </div>
-      <Card size="small">
+      {showDiagnostics && <Card size="small">
         <Space wrap>
           <Tag color="purple">{platform}</Tag>
           <Text>{preview.push.payload_bytes} bytes</Text>
           {preview.push.deep_link && <Text type="secondary">{preview.push.deep_link}</Text>}
         </Space>
-      </Card>
-      {preview.push.warnings.map((warning) => (
+      </Card>}
+      {showDiagnostics && preview.push.warnings.map((warning) => (
         <Alert key={warning.code} type="warning" showIcon title={warning.message} />
       ))}
     </Space>

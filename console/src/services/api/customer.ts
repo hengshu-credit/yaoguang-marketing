@@ -110,6 +110,25 @@ export interface CustomerMutationResult {
   version?: number
 }
 
+export type CustomerListMembershipAction = 'add' | 'remove' | 'set_status'
+export type CustomerListMembershipStatus = 'active' | 'pending' | 'unsubscribed' | 'bounced' | 'complained'
+
+export interface CustomerListMembershipUpdateRequest {
+  workspace_id: string
+  customer_ids: string[]
+  list_ids: string[]
+  action: CustomerListMembershipAction
+  status?: CustomerListMembershipStatus
+}
+
+export interface CustomerListMembershipUpdateResult {
+  request_id: string
+  customers: number
+  lists: number
+  changed: number
+  unchanged: number
+}
+
 export const customerQueryKeys = {
   all: (workspaceId: string) => ['customers', workspaceId] as const,
   list: (
@@ -151,5 +170,11 @@ export const customerApi = {
       customer: { locator: { customer_id: customerId }, ...patch }
     })
     return response.customer
+  },
+
+  updateListMemberships: async (
+    request: CustomerListMembershipUpdateRequest
+  ): Promise<CustomerListMembershipUpdateResult> => {
+    return api.post<CustomerListMembershipUpdateResult>('/api/customers.listMemberships.update', request)
   }
 }

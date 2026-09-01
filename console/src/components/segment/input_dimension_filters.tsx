@@ -14,6 +14,7 @@ import { FieldTypeTime } from './type_time'
 import { FieldTypeNumber } from './type_number'
 import { FieldTypeJSON } from './type_json'
 import { useLingui } from '@lingui/react/macro'
+import { segmentFieldLabel } from './labels'
 
 const typeIcon = {
   width: '25px',
@@ -82,7 +83,7 @@ export const InputDimensionFilters = (props: {
                     {field && fieldTypeRenderer && (
                       <Space>
                         <Popover title={t`field: ${filter.field_name}`} content={field.description}>
-                          <b>{props.customFieldLabels?.[filter.field_name] || field.title}</b>
+                          <b>{props.customFieldLabels?.[filter.field_name] || segmentFieldLabel(filter.field_name, field.title)}</b>
                         </Popover>
                         {fieldTypeRenderer.render(filter, field, props.customFieldLabels)}
                       </Space>
@@ -152,6 +153,9 @@ const AddFilterButton = (props: {
 
   // clone fields, and remove existing filters
   const availableFields = clone(props.schema.fields)
+  Object.entries(availableFields).forEach(([fieldName, field]) => {
+    if (field.shown === false) delete availableFields[fieldName]
+  })
   if (props.existingFilters) {
     props.existingFilters.forEach((filter) => {
       delete availableFields[filter.field_name]
@@ -242,7 +246,7 @@ const AddFilterButton = (props: {
                     }
 
                     // Use custom field label if available
-                    const displayLabel = props.customFieldLabels?.[fieldName] || field.title
+                    const displayLabel = props.customFieldLabels?.[fieldName] || segmentFieldLabel(fieldName, field.title)
 
                     return {
                       label: (

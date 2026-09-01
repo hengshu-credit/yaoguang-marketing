@@ -37,6 +37,7 @@ func (handler *CustomerHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/customers.list", auth.RequireAuth()(http.HandlerFunc(handler.handleList)))
 	mux.Handle("/api/customers.upsert", auth.RequireAuth()(http.HandlerFunc(handler.handleUpsert)))
 	mux.Handle("/api/customers.batch", auth.RequireAuth()(http.HandlerFunc(handler.handleBatch)))
+	mux.Handle("/api/customers.listMemberships.update", auth.RequireAuth()(http.HandlerFunc(handler.handleUpdateListMemberships)))
 	mux.Handle("/api/customers.merge", auth.RequireAuth()(http.HandlerFunc(handler.handleMerge)))
 }
 
@@ -138,6 +139,36 @@ func (handler *CustomerHandler) handleBatch(w http.ResponseWriter, r *http.Reque
 		Failed    int                              `json:"failed"`
 		Results   []domain.CustomerBatchItemResult `json:"results"`
 	}{RequestID: requestID, Accepted: result.Accepted, Failed: result.Failed, Results: result.Results})
+}
+
+func (handler *CustomerHandler) handleUpdateListMemberships(w http.ResponseWriter, r *http.Request) {
+	requestID := requestIDFor(r)
+	if !requireCustomerPost(w, r, requestID) {
+		return
+	}
+	var request domain.CustomerListMembershipUpdateRequest
+	if !decodeCustomerRequest(w, r, requestID, &request) {
+		return
+	}
+	result, err := handler.service.UpdateCustomerListMemberships(r.Context(), &request)
+	if err != nil {
+		handler.writeError(w, requestID, err, "update list memberships")
+		return
+	}
+	w.Header().Set("X-Request-ID", requestID)
+	writeJSON(w, http.StatusOK, struct {
+		RequestID string `json:"request_id"`
+		Customers int    `json:"customers"`
+		Lists     int    `json:"lists"`
+		Changed   int    `json:"changed"`
+		Unchanged int    `json:"unchanged"`
+	}{
+		RequestID: requestID,
+		Customers: result.Customers,
+		Lists:     result.Lists,
+		Changed:   result.Changed,
+		Unchanged: result.Unchanged,
+	})
 }
 
 func (handler *CustomerHandler) handleMerge(w http.ResponseWriter, r *http.Request) {

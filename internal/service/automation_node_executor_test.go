@@ -1404,23 +1404,26 @@ func createTestTemplateWithCategory(category string) *domain.Template {
 func TestIsSubscriptionSensitiveCategory(t *testing.T) {
 	tests := []struct {
 		category string
+		purpose  domain.TemplateCategoryPurpose
 		expected bool
 	}{
-		{"marketing", true},
-		{"blog", true},
-		{"transactional", false},
-		{"unsubscribe", false},
-		{"welcome", false},
-		{"opt_in", false},
-		{"bounce", false},
-		{"blocklist", false},
-		{"other", false},
-		{"", false},
+		{"marketing", "", true},
+		{"blog", "", true},
+		{"vip", domain.TemplateCategoryPurposeMarketing, true},
+		{"vip", domain.TemplateCategoryPurposeTransactional, false},
+		{"transactional", "", false},
+		{"unsubscribe", "", false},
+		{"welcome", "", false},
+		{"opt_in", "", false},
+		{"bounce", "", false},
+		{"blocklist", "", false},
+		{"other", "", false},
+		{"", "", false},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.category, func(t *testing.T) {
-			assert.Equal(t, tc.expected, isSubscriptionSensitiveCategory(tc.category))
+			assert.Equal(t, tc.expected, isSubscriptionSensitiveCategory(tc.category, tc.purpose))
 		})
 	}
 }

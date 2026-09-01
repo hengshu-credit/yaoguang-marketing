@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -73,6 +74,28 @@ func TestAudienceServiceRejectsTransitiveReferenceCycle(t *testing.T) {
 	service, _ := NewAudienceService(repository)
 	_, err := service.UpdateDefinition(context.Background(), "workspace-1", "audience-a", domain.AudienceExpression{LeafType: domain.AudienceLeafAudience, RefID: "audience-b"})
 	assert.ErrorContains(t, err, "dependency cycle")
+}
+
+func TestAudienceServiceGetReturnsTheActiveVersionDefinition(t *testing.T) {
+	definition := domain.AudienceExpression{Condition: &domain.TreeNode{
+		Kind: "leaf",
+		Leaf: &domain.TreeNodeLeaf{Source: "contacts", Contact: &domain.ContactCondition{Filters: []*domain.DimensionFilter{{
+			FieldName: "profile_status", FieldType: "string", Operator: "equals", StringValues: []string{"unpaid"},
+		}}}},
+	}}
+	repository := audienceRepositoryStub{
+		audiences: map[string]domain.Audience{"audience-1": {ID: "audience-1", ActiveVersion: 3}},
+		versions:  map[string]domain.AudienceVersion{"audience-1": {AudienceID: "audience-1", Version: 3, Definition: definition}},
+	}
+	service, err := NewAudienceService(repository)
+	require.NoError(t, err)
+
+	item, err := service.Get(context.Background(), "workspace-1", "audience-1")
+	require.NoError(t, err)
+	payload, err := json.Marshal(item)
+	require.NoError(t, err)
+	assert.Contains(t, string(payload), `"definition":{"condition"`)
+	assert.Contains(t, string(payload), `"profile_status"`)
 }
 
 type audienceRuntimeRepositoryStub struct {

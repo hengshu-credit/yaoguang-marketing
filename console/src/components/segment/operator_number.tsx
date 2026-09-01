@@ -1,6 +1,7 @@
 import { Form, InputNumber, Tag } from 'antd'
 import Messages from './messages'
 import { DimensionFilter, IOperator, Operator } from '../../services/api/segment'
+import { segmentControlLabel, segmentOperatorLabel } from './labels'
 
 export type OperatorNumberProps = {
   value: string | undefined
@@ -20,7 +21,7 @@ export class OperatorNumber implements IOperator {
   render(filter: DimensionFilter) {
     return (
       <>
-        <span className="opacity-60 pt-0.5">{this.label}</span>
+        <span className="opacity-60 pt-0.5">{segmentOperatorLabel(this.type, this.label)}</span>
         <span>
           <Tag variant="filled" color="blue">
             {filter.number_values?.[0]}
@@ -37,7 +38,7 @@ export class OperatorNumber implements IOperator {
         dependencies={['operator']}
         rules={[{ required: true, type: 'number', message: Messages.RequiredField }]}
       >
-        <InputNumber style={{ width: '100%' }} placeholder="enter a value" />
+        <InputNumber style={{ width: '100%' }} placeholder={segmentControlLabel('enter_value')} />
       </Form.Item>
     )
   }

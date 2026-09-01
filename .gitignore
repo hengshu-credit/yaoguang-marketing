@@ -43,6 +43,6 @@ tests/integration/diagnostics/*.json
 # and has no business in the history — they weigh ~60 MB each.
 *.mmdb
 !data/GeoLite2-City.mmdb
-
+.playwright-cli
 
 TODO.md

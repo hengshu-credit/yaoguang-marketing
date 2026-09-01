@@ -27,7 +27,12 @@ func TestQueryBuilderBuildCustomerIDSQLUsesCustomerAuthorityAndPlaceholderOffset
 
 	sqlText, args, err := NewQueryBuilder().BuildCustomerIDSQL(tree, 2)
 	require.NoError(t, err)
-	assert.Equal(t, "SELECT DISTINCT contacts.customer_id FROM contacts WHERE contacts.customer_id IS NOT NULL AND ((SELECT cp.status FROM contact_profiles cp WHERE cp.email = contacts.email) = $3)", sqlText)
+	assert.Contains(t, sqlText, "SELECT customer.id AS customer_id FROM customers customer")
+	assert.Contains(t, sqlText, "LEFT JOIN customer_profiles profile ON profile.customer_id = customer.id")
+	assert.Contains(t, sqlText, "profile.status")
+	assert.Contains(t, sqlText, "contact_profiles")
+	assert.Contains(t, sqlText, "= $3")
+	assert.NotContains(t, sqlText, "SELECT DISTINCT contacts.customer_id FROM contacts")
 	assert.Equal(t, []interface{}{"unpaid"}, args)
 }
 
@@ -44,8 +49,59 @@ func TestQueryBuilderBuildCustomerMatchSQLBindsCustomerAfterConditionValues(t *t
 
 	sqlText, args, err := NewQueryBuilder().BuildCustomerMatchSQL(tree, 4)
 	require.NoError(t, err)
-	assert.Equal(t, "SELECT EXISTS (SELECT 1 FROM contacts WHERE contacts.customer_id = $6 AND (country = $5))", sqlText)
+	assert.Contains(t, sqlText, "SELECT EXISTS (SELECT 1 FROM customers customer")
+	assert.Contains(t, sqlText, "LEFT JOIN customer_profiles profile ON profile.customer_id = customer.id")
+	assert.Contains(t, sqlText, "customer.id = $6")
+	assert.Contains(t, sqlText, "profile.attributes")
+	assert.Contains(t, sqlText, "= $5")
 	assert.Equal(t, []interface{}{"CN"}, args)
+}
+
+func TestQueryBuilderBuildCustomerIDSQLUsesCanonicalAudienceFactsWithLegacyFallback(t *testing.T) {
+	qb := NewQueryBuilder()
+
+	t.Run("list membership is customer keyed", func(t *testing.T) {
+		status := "active"
+		query, args, err := qb.BuildCustomerIDSQL(&domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{Source: "contact_lists", ContactList: &domain.ContactListCondition{
+				Operator: "in", ListID: "repayment", Status: &status,
+			}},
+		}, 0)
+		require.NoError(t, err)
+		assert.Contains(t, query, "FROM customer_list_memberships membership")
+		assert.Contains(t, query, "membership.customer_id = customer.id")
+		assert.Contains(t, query, "FROM contact_lists legacy_membership")
+		assert.Contains(t, query, "legacy_membership.customer_id = customer.id")
+		assert.Equal(t, []interface{}{"repayment", "active"}, args)
+	})
+
+	t.Run("tag membership is customer keyed", func(t *testing.T) {
+		query, args, err := qb.BuildCustomerIDSQL(&domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{Source: "contacts", Contact: &domain.ContactCondition{Filters: []*domain.DimensionFilter{{
+				FieldName: "profile_tags", FieldType: "string", Operator: "equals", StringValues: []string{"overdue"},
+			}}}},
+		}, 0)
+		require.NoError(t, err)
+		assert.Contains(t, query, "FROM customer_tags tag")
+		assert.Contains(t, query, "tag.customer_id = customer.id")
+		assert.Contains(t, query, "FROM contact_tags legacy_tag")
+		assert.Equal(t, []interface{}{"overdue"}, args)
+	})
+
+	t.Run("timeline is customer keyed with legacy email fallback", func(t *testing.T) {
+		query, args, err := qb.BuildCustomerIDSQL(&domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{Source: "contact_timeline", ContactTimeline: &domain.ContactTimelineCondition{
+				Kind: "email.opened", CountOperator: "at_least", CountValue: 1,
+			}},
+		}, 0)
+		require.NoError(t, err)
+		assert.Contains(t, query, "ct.customer_id = customer.id")
+		assert.Contains(t, query, "legacy_contact.customer_id = customer.id")
+		assert.Equal(t, []interface{}{"email.opened", 1}, args)
+	})
 }
 
 func TestQueryBuilder_BuildSQL_SimpleConditions(t *testing.T) {

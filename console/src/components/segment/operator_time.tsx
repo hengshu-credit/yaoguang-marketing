@@ -2,6 +2,7 @@ import { DatePicker, Form, InputNumber, Tag } from 'antd'
 import { DimensionFilter, IOperator, Operator } from '../../services/api/segment'
 import Messages from './messages'
 import dayjs from 'dayjs'
+import { segmentControlLabel, segmentOperatorLabel } from './labels'
 
 // Format date for display (converts ISO8601 to readable format)
 const formatDateDisplay = (dateStr: string | undefined): string => {
@@ -58,7 +59,7 @@ export class OperatorBeforeDate implements IOperator {
   render(filter: DimensionFilter) {
     return (
       <>
-        <span className="opacity-60 pt-0.5">{this.label}</span>
+        <span className="opacity-60 pt-0.5">{segmentOperatorLabel(this.type, this.label)}</span>
         <span>
           <Tag variant="filled" color="blue">
             {formatDateDisplay(filter.string_values?.[0])}
@@ -80,7 +81,7 @@ export class OperatorAfterDate implements IOperator {
   render(filter: DimensionFilter) {
     return (
       <>
-        <span className="opacity-60 pt-0.5">{this.label}</span>
+        <span className="opacity-60 pt-0.5">{segmentOperatorLabel(this.type, this.label)}</span>
         <span>
           <Tag variant="filled" color="blue">
             {formatDateDisplay(filter.string_values?.[0])}
@@ -102,7 +103,7 @@ export class OperatorInDateRange implements IOperator {
   render(filter: DimensionFilter) {
     return (
       <>
-        <span className="opacity-60 pt-0.5">{this.label}</span>
+        <span className="opacity-60 pt-0.5">{segmentOperatorLabel(this.type, this.label)}</span>
         <span>
           <Tag variant="filled" color="blue">
             {formatDateDisplay(filter.string_values?.[0])}
@@ -128,7 +129,7 @@ export class OperatorNotInDateRange implements IOperator {
   render(filter: DimensionFilter) {
     return (
       <>
-        <span className="opacity-60 pt-0.5">{this.label}</span>
+        <span className="opacity-60 pt-0.5">{segmentOperatorLabel(this.type, this.label)}</span>
         <span>
           <Tag variant="filled" color="blue">
             {formatDateDisplay(filter.string_values?.[0])}
@@ -147,7 +148,7 @@ export class OperatorNotInDateRange implements IOperator {
   }
 }
 
-const formItemDayCount = (
+const formItemDayCount = () => (
   <>
     <Form.Item
       name={['string_values', 0]}
@@ -163,9 +164,9 @@ const formItemDayCount = (
         return value !== null && value !== undefined ? String(value) : undefined
       }}
     >
-      <InputNumber min={1} step={1} placeholder="days" style={{ width: 100 }} />
+      <InputNumber min={1} step={1} placeholder={segmentControlLabel('days')} style={{ width: 100 }} />
     </Form.Item>
-    <span style={{ marginLeft: 8 }}>days</span>
+    <span style={{ marginLeft: 8 }}>{segmentControlLabel('days')}</span>
   </>
 )
 
@@ -176,19 +177,19 @@ export class OperatorInTheLastDays implements IOperator {
   render(filter: DimensionFilter) {
     return (
       <>
-        <span className="opacity-60 pt-0.5">{this.label}</span>
+        <span className="opacity-60 pt-0.5">{segmentOperatorLabel(this.type, this.label)}</span>
         <span>
           <Tag variant="filled" color="blue">
             {filter.string_values?.[0]}
           </Tag>
         </span>
-        <span className="opacity-60 pt-0.5">days</span>
+        <span className="opacity-60 pt-0.5">{segmentControlLabel('days')}</span>
       </>
     )
   }
 
   renderFormItems() {
-    return formItemDayCount
+    return formItemDayCount()
   }
 }
 
@@ -202,7 +203,7 @@ export class OperatorNotInTheLastDays implements IOperator {
   render(filter: DimensionFilter) {
     return (
       <>
-        <span className="opacity-60 pt-0.5">{this.label}</span>
+        <span className="opacity-60 pt-0.5">{segmentOperatorLabel(this.type, this.label)}</span>
         <span>
           <Tag variant="filled" color="blue">
             {filter.string_values?.[0]}
@@ -214,6 +215,6 @@ export class OperatorNotInTheLastDays implements IOperator {
   }
 
   renderFormItems() {
-    return formItemDayCount
+    return formItemDayCount()
   }
 }

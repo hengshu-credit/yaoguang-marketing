@@ -9,7 +9,6 @@ import {
   Input,
   Row,
   Segmented,
-  Select,
   Space,
   Tabs
 } from 'antd'
@@ -30,6 +29,7 @@ import type { Workspace } from '../../services/api/types'
 import { templatesApi } from '../../services/api/template'
 import ChannelMessagePreview from './ChannelMessagePreview'
 import type { PushClientProfile } from './ChannelMessagePreview'
+import TemplateCategorySelect from './TemplateCategorySelect'
 
 type MessageChannel = 'sms' | 'push'
 
@@ -96,8 +96,14 @@ const MessageTemplateDrawer: React.FC<MessageTemplateDrawerProps> = ({
   const [preview, setPreview] = useState<PreviewTemplateResponse | null>(null)
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [platform, setPlatform] = useState<PushClientProfile>('android')
-  const channel = Form.useWatch('channel', form) || 'sms'
   const sourceTemplate = template || fromTemplate
+  const channel = Form.useWatch('channel', form) || sourceTemplate?.channel || defaultChannel || 'sms'
+  const watchedSMSBody = Form.useWatch('sms_body', form)
+  const watchedSenderID = Form.useWatch('sender_id', form)
+  const watchedPushTitle = Form.useWatch('push_title', form)
+  const watchedPushBody = Form.useWatch('push_body', form)
+  const watchedImageURL = Form.useWatch('image_url', form)
+  const watchedDeepLink = Form.useWatch('deep_link', form)
 
   const defaultLanguage = workspace.settings?.default_language || 'en'
   const [previewLanguage, setPreviewLanguage] = useState(defaultLanguage)
@@ -133,6 +139,41 @@ const MessageTemplateDrawer: React.FC<MessageTemplateDrawerProps> = ({
       translations
     }
   }, [defaultChannel, fromTemplate, sourceTemplate, template])
+
+  const localPreview = useMemo<PreviewTemplateResponse>(() => {
+    if (channel === 'sms') {
+      const body = watchedSMSBody ?? initialValues.sms_body ?? ''
+      return {
+        channel: 'sms',
+        resolved_language: previewLanguage,
+        fallback_used: false,
+        sms: {
+          body,
+          sender_id: watchedSenderID ?? initialValues.sender_id,
+          encoding: 'gsm-7',
+          character_count: Array.from(body).length,
+          unit_count: 0,
+          segment_count: 0,
+          per_segment: 160,
+          remaining: 160
+        }
+      }
+    }
+    return {
+      channel: 'push',
+      resolved_language: previewLanguage,
+      fallback_used: false,
+      push: {
+        title: watchedPushTitle ?? initialValues.push_title ?? '',
+        body: watchedPushBody ?? initialValues.push_body ?? '',
+        image_url: watchedImageURL ?? initialValues.image_url,
+        deep_link: watchedDeepLink ?? initialValues.deep_link,
+        platform: platform === 'ios' || platform === 'web' ? platform : 'android',
+        payload_bytes: 0,
+        warnings: []
+      }
+    }
+  }, [channel, initialValues, platform, previewLanguage, watchedDeepLink, watchedImageURL, watchedPushBody, watchedPushTitle, watchedSMSBody, watchedSenderID])
 
   const buildPayload = (values: MessageTemplateFormValues) => {
     const translations: Record<string, TemplateTranslation> = {}
@@ -237,6 +278,9 @@ const MessageTemplateDrawer: React.FC<MessageTemplateDrawerProps> = ({
   }
 
   const openDrawer = () => {
+    form.setFieldsValue(initialValues)
+    setPreview(null)
+    setPreviewError(null)
     setOpen(true)
   }
 
@@ -363,6 +407,7 @@ const MessageTemplateDrawer: React.FC<MessageTemplateDrawerProps> = ({
               layout="vertical"
               initialValues={initialValues}
               onFinish={(values) => saveMutation.mutate(values)}
+              onValuesChange={() => setPreview(null)}
             >
               <Row gutter={12}>
                 <Col span={12}>
@@ -391,14 +436,7 @@ const MessageTemplateDrawer: React.FC<MessageTemplateDrawerProps> = ({
                 </Col>
                 <Col span={12}>
                   <Form.Item label={t`Category`} name="category" rules={[{ required: true }]}>
-                    <Select
-                      options={[
-                        { label: t`Marketing`, value: 'marketing' },
-                        { label: t`Transactional`, value: 'transactional' },
-                        { label: t`Welcome`, value: 'welcome' },
-                        { label: t`Other`, value: 'other' }
-                      ]}
-                    />
+                    <TemplateCategorySelect workspaceId={workspace.id} />
                   </Form.Item>
                 </Col>
               </Row>
@@ -421,19 +459,20 @@ const MessageTemplateDrawer: React.FC<MessageTemplateDrawerProps> = ({
           </Col>
           <Col xs={24} lg={11}>
             {previewError && <Alert type="error" showIcon title={previewError} className="mb-4" />}
-            {preview ? (
-              <ChannelMessagePreview
-                preview={preview}
-                platform={platform}
-                onPlatformChange={(nextPlatform) => {
-                  setPlatform(nextPlatform)
-                  setPreview(null)
-                }}
-              />
-            ) : (
+            <ChannelMessagePreview
+              preview={preview || localPreview}
+              platform={platform}
+              showDiagnostics={Boolean(preview)}
+              onPlatformChange={(nextPlatform) => {
+                setPlatform(nextPlatform)
+                setPreview(null)
+              }}
+            />
+            {!preview && (
               <Alert
                 type="info"
                 showIcon
+                className="mt-4"
                 title={t`Preview uses the server Liquid renderer and your current unsaved values.`}
               />
             )}

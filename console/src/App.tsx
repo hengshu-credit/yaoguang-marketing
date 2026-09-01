@@ -44,13 +44,11 @@ const queryClient = new QueryClient({
   }
 })
 
-const appFontFamily = 'AlimamaFangYuanTiVF, "PingFang SC", "Microsoft YaHei", sans-serif'
-
 const theme: ThemeConfig = {
   token: {
     colorPrimary: '#7763F1',
     colorLink: '#7763F1',
-    fontFamily: appFontFamily
+    fontFamily: 'var(--console-font-family)'
   },
   components: {
     Layout: {

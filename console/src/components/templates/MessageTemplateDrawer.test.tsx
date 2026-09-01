@@ -12,19 +12,23 @@ const workspace = {
   settings: { default_language: 'en', languages: ['en', 'fr'] }
 } as unknown as Workspace
 
-function renderDrawer() {
+function renderDrawer(defaultChannel?: 'sms' | 'push') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
       <AntApp>
-        <MessageTemplateDrawer workspace={workspace} />
+        <MessageTemplateDrawer
+          workspace={workspace}
+          defaultChannel={defaultChannel}
+          buttonContent={defaultChannel === 'push' ? 'Continue with Push' : undefined}
+        />
       </AntApp>
     </QueryClientProvider>
   )
 }
 
 describe('MessageTemplateDrawer', () => {
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => vi.mocked(templatesApi.preview).mockRestore())
 
   it('previews an unsaved localized SMS draft through the server', async () => {
     const previewSpy = vi.spyOn(templatesApi, 'preview').mockResolvedValue({
@@ -61,5 +65,22 @@ describe('MessageTemplateDrawer', () => {
       )
     })
     expect(await screen.findByText('Hello Alice')).toBeInTheDocument()
+  })
+
+  it('initializes the selected Push client preview and mirrors draft fields immediately', async () => {
+    const user = userEvent.setup()
+    const previewSpy = vi.spyOn(templatesApi, 'preview')
+    renderDrawer('push')
+
+    await user.click(screen.getByRole('button', { name: 'Continue with Push' }))
+
+    expect(screen.getByRole('radio', { name: 'Push' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: 'Android' })).toBeChecked()
+    await user.type(screen.getByLabelText('Title'), 'Draft push title')
+    await user.type(screen.getByLabelText('Message'), 'Draft push body')
+
+    expect(await screen.findByText('Draft push title')).toBeVisible()
+    expect(await screen.findAllByText('Draft push body')).not.toHaveLength(0)
+    expect(previewSpy).not.toHaveBeenCalled()
   })
 })

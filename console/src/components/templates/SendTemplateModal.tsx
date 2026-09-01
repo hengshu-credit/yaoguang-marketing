@@ -81,7 +81,7 @@ export default function SendTemplateModal({
   useEffect(() => {
     if (isOpen && workspace && emailIntegrations.length > 0 && !selectedIntegrationId) {
       const defaultId =
-        template?.category === 'marketing'
+        template?.category_purpose === 'marketing' || (!template?.category_purpose && template?.category === 'marketing')
           ? workspace.settings?.marketing_email_provider_id
           : workspace.settings?.transactional_email_provider_id
 

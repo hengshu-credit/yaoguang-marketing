@@ -338,6 +338,118 @@ type CustomerListMembershipInput struct {
 	Status string `json:"status,omitempty"`
 }
 
+const (
+	MaxCustomerListMembershipBatchCustomers = 50
+	MaxCustomerListMembershipBatchLists     = 50
+)
+
+type CustomerListMembershipAction string
+
+const (
+	CustomerListMembershipActionAdd       CustomerListMembershipAction = "add"
+	CustomerListMembershipActionRemove    CustomerListMembershipAction = "remove"
+	CustomerListMembershipActionSetStatus CustomerListMembershipAction = "set_status"
+)
+
+type CustomerListMembershipStatus = ContactListStatus
+
+const (
+	CustomerListMembershipStatusActive       = ContactListStatusActive
+	CustomerListMembershipStatusPending      = ContactListStatusPending
+	CustomerListMembershipStatusUnsubscribed = ContactListStatusUnsubscribed
+	CustomerListMembershipStatusBounced      = ContactListStatusBounced
+	CustomerListMembershipStatusComplained   = ContactListStatusComplained
+)
+
+type CustomerListMembershipUpdateRequest struct {
+	WorkspaceID string                       `json:"workspace_id"`
+	CustomerIDs []string                     `json:"customer_ids"`
+	ListIDs     []string                     `json:"list_ids"`
+	Action      CustomerListMembershipAction `json:"action"`
+	Status      CustomerListMembershipStatus `json:"status,omitempty"`
+}
+
+type CustomerListMembershipUpdateResult struct {
+	Customers int `json:"customers"`
+	Lists     int `json:"lists"`
+	Changed   int `json:"changed"`
+	Unchanged int `json:"unchanged"`
+}
+
+func (request *CustomerListMembershipUpdateRequest) Validate() error {
+	if request == nil {
+		return fmt.Errorf("request is required")
+	}
+	request.WorkspaceID = strings.TrimSpace(request.WorkspaceID)
+	if request.WorkspaceID == "" || utf8.RuneCountInString(request.WorkspaceID) > 32 || !govalidator.IsAlphanumeric(request.WorkspaceID) {
+		return fmt.Errorf("workspace_id must be alphanumeric and contain 1 to 32 characters")
+	}
+	if len(request.CustomerIDs) == 0 {
+		return fmt.Errorf("customer_ids must contain at least one customer")
+	}
+	if len(request.CustomerIDs) > MaxCustomerListMembershipBatchCustomers {
+		return fmt.Errorf("customer_ids cannot contain more than %d customers", MaxCustomerListMembershipBatchCustomers)
+	}
+	seenCustomers := make(map[string]struct{}, len(request.CustomerIDs))
+	for index, rawCustomerID := range request.CustomerIDs {
+		parsed, err := uuid.Parse(strings.TrimSpace(rawCustomerID))
+		if err != nil || parsed == uuid.Nil {
+			return fmt.Errorf("customer_ids[%d] must be a non-nil UUID", index)
+		}
+		customerID := parsed.String()
+		if _, exists := seenCustomers[customerID]; exists {
+			return fmt.Errorf("duplicate customer_id %s", customerID)
+		}
+		seenCustomers[customerID] = struct{}{}
+		request.CustomerIDs[index] = customerID
+	}
+	if len(request.ListIDs) == 0 {
+		return fmt.Errorf("list_ids must contain at least one list")
+	}
+	if len(request.ListIDs) > MaxCustomerListMembershipBatchLists {
+		return fmt.Errorf("list_ids cannot contain more than %d lists", MaxCustomerListMembershipBatchLists)
+	}
+	seenLists := make(map[string]struct{}, len(request.ListIDs))
+	for index, rawListID := range request.ListIDs {
+		listID := trimUnicodeSpace(rawListID)
+		if listID == "" || utf8.RuneCountInString(listID) > 32 || !govalidator.IsAlphanumeric(listID) {
+			return fmt.Errorf("list_ids[%d] must be alphanumeric and contain 1 to 32 characters", index)
+		}
+		if _, exists := seenLists[listID]; exists {
+			return fmt.Errorf("duplicate list_id %s", listID)
+		}
+		seenLists[listID] = struct{}{}
+		request.ListIDs[index] = listID
+	}
+	request.Action = CustomerListMembershipAction(strings.ToLower(strings.TrimSpace(string(request.Action))))
+	request.Status = CustomerListMembershipStatus(strings.ToLower(strings.TrimSpace(string(request.Status))))
+	switch request.Action {
+	case CustomerListMembershipActionAdd:
+		if request.Status == "" {
+			request.Status = CustomerListMembershipStatusActive
+		}
+	case CustomerListMembershipActionSetStatus:
+		if request.Status == "" {
+			return fmt.Errorf("status is required when action is set_status")
+		}
+	case CustomerListMembershipActionRemove:
+		if request.Status != "" {
+			return fmt.Errorf("status is not allowed when action is remove")
+		}
+		return nil
+	default:
+		return fmt.Errorf("action must be add, remove, or set_status")
+	}
+	switch request.Status {
+	case CustomerListMembershipStatusActive, CustomerListMembershipStatusPending,
+		CustomerListMembershipStatusUnsubscribed, CustomerListMembershipStatusBounced,
+		CustomerListMembershipStatusComplained:
+		return nil
+	default:
+		return fmt.Errorf("status must be active, pending, unsubscribed, bounced, or complained")
+	}
+}
+
 type CustomerUpsertInput struct {
 	Locator            *CustomerLocator               `json:"locator,omitempty"`
 	ExternalUserID     *string                        `json:"external_user_id,omitempty"`
@@ -748,6 +860,7 @@ type CustomerService interface {
 	ListCustomers(ctx context.Context, request *CustomerListRequest) (*CustomerListResponse, error)
 	UpsertCustomer(ctx context.Context, request *UpsertCustomerRequest) (*CustomerMutationResult, error)
 	UpsertCustomerBatch(ctx context.Context, request *CustomerBatchUpsertRequest) (*CustomerBatchUpsertResponse, error)
+	UpdateCustomerListMemberships(ctx context.Context, request *CustomerListMembershipUpdateRequest) (*CustomerListMembershipUpdateResult, error)
 	MergeCustomer(ctx context.Context, request *CustomerMergeRequest) (*CustomerMergeResult, error)
 }
 
@@ -835,6 +948,7 @@ type CustomerRepository interface {
 	Upsert(ctx context.Context, command CustomerUpsertCommand) (*CustomerMutationResult, error)
 	Get(ctx context.Context, workspaceID string, locator CustomerLocator) (*Customer, error)
 	List(ctx context.Context, workspaceID string, request CustomerListRequest) (*CustomerListResponse, error)
+	UpdateListMemberships(ctx context.Context, request CustomerListMembershipUpdateRequest) (*CustomerListMembershipUpdateResult, error)
 	Merge(ctx context.Context, command CustomerMergeCommand) (*CustomerMergeResult, error)
 }
 

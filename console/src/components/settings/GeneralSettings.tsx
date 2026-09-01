@@ -9,6 +9,11 @@ import { LANGUAGE_OPTIONS } from '../../lib/languages'
 import { LogoInput } from './LogoInput'
 import { SettingsSaveBar } from './SettingsSaveBar'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
+import {
+  ConsoleFontSettings,
+  type ConsoleFontMode
+} from './ConsoleFontSettings'
+import type { ConsoleFontSettings as ConsoleFontConfig } from '../../services/api/workspace'
 
 interface GeneralSettingsProps {
   workspace: Workspace | null
@@ -25,6 +30,8 @@ interface GeneralSettingsFormValues {
   custom_endpoint_url?: string
   languages?: string[]
   default_language?: string
+  console_font_mode: ConsoleFontMode
+  console_font: ConsoleFontConfig
 }
 
 /**
@@ -33,6 +40,7 @@ interface GeneralSettingsFormValues {
  * loaded".
  */
 function toFormValues(workspace: Workspace | null): GeneralSettingsFormValues {
+  const consoleFont = workspace?.settings.console_font
   return {
     name: workspace?.name || '',
     website_url: workspace?.settings.website_url || '',
@@ -41,7 +49,13 @@ function toFormValues(workspace: Workspace | null): GeneralSettingsFormValues {
     email_tracking_enabled: workspace?.settings.email_tracking_enabled || false,
     custom_endpoint_url: workspace?.settings.custom_endpoint_url || '',
     languages: workspace?.settings.languages || ['en'],
-    default_language: workspace?.settings.default_language || 'en'
+    default_language: workspace?.settings.default_language || 'en',
+    console_font_mode: consoleFont?.url ? 'upload' : 'name',
+    console_font: {
+      family: consoleFont?.family || '',
+      ...(consoleFont?.url ? { url: consoleFont.url } : {}),
+      ...(consoleFont?.file_name ? { file_name: consoleFont.file_name } : {})
+    }
   }
 }
 
@@ -73,6 +87,14 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
 
     setSavingSettings(true)
     try {
+      const consoleFont: ConsoleFontConfig = {
+        family: values.console_font?.family?.trim() || ''
+      }
+      if (values.console_font_mode === 'upload' && values.console_font?.url) {
+        consoleFont.url = values.console_font.url
+        consoleFont.file_name = values.console_font.file_name
+      }
+
       await workspaceService.update({
         ...workspace,
         name: values.name,
@@ -89,7 +111,8 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
           // body carries, and both the server and every reader here treat it as unset.
           custom_endpoint_url: values.custom_endpoint_url || '',
           languages: values.languages || ['en'],
-          default_language: values.default_language || 'en'
+          default_language: values.default_language || 'en',
+          console_font: consoleFont
         }
       })
 
@@ -147,6 +170,15 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
               />
             ) : (
               t`Not set`
+            )}
+          </Descriptions.Item>
+
+          <Descriptions.Item label={t`Marketing console font`}>
+            <div>{workspace?.settings.console_font?.family || t`System default`}</div>
+            {workspace?.settings.console_font?.url && (
+              <div style={{ color: '#8c8c8c' }}>
+                {t`Uploaded font: ${workspace.settings.console_font.file_name || workspace.settings.console_font.url}`}
+              </div>
             )}
           </Descriptions.Item>
 
@@ -209,6 +241,8 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
         </Form.Item>
 
         <LogoInput />
+
+        <ConsoleFontSettings onChange={handleFormChange} />
 
         <Form.Item
           name="timezone"

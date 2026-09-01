@@ -409,9 +409,8 @@ describe('Page Smoke Tests', () => {
     it('BroadcastsPage renders without error', async () => {
       const Wrapper = createWrapper()
       expect(() => render(<BroadcastsPage />, { wrapper: Wrapper })).not.toThrow()
-      await waitFor(() => {
-        expect(document.body).toBeTruthy()
-      })
+      const heading = await screen.findByRole('heading', { level: 1, name: 'Broadcasts' })
+      expect(heading.closest('.p-6')).toBeNull()
     })
 
     it('ContactsPage renders without error', async () => {
@@ -440,6 +439,8 @@ describe('Page Smoke Tests', () => {
         'aria-selected',
         'true'
       )
+      const heading = screen.getByRole('heading', { level: 1, name: 'Templates' })
+      expect(heading.closest('.p-6')).toBeNull()
     })
 
     it('AutomationsPage renders without error', async () => {
@@ -484,6 +485,8 @@ describe('Page Smoke Tests', () => {
         'aria-selected',
         'true'
       )
+      const heading = screen.getByRole('heading', { level: 1, name: 'File Manager' })
+      expect(heading.closest('.p-6')).toBeNull()
     })
 
     it('BlogPage renders without error', async () => {

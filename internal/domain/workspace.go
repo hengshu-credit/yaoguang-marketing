@@ -8,9 +8,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/crypto"
@@ -479,6 +483,62 @@ func (b *BlogSettings) Scan(value interface{}) error {
 	return json.Unmarshal(cloned, b)
 }
 
+// ConsoleFontSettings configures the authenticated marketing console's font.
+// Uploaded font binaries remain in the workspace file manager; only their
+// browser-readable URL and display metadata live in workspace settings.
+type ConsoleFontSettings struct {
+	Family   string `json:"family,omitempty"`
+	URL      string `json:"url,omitempty"`
+	FileName string `json:"file_name,omitempty"`
+}
+
+// Validate normalizes and validates the console font without accepting a raw
+// CSS expression. The frontend turns Family into one quoted family name and
+// supplies its own fallback stack.
+func (font *ConsoleFontSettings) Validate() error {
+	if font == nil {
+		return nil
+	}
+
+	font.Family = strings.TrimSpace(font.Family)
+	font.URL = strings.TrimSpace(font.URL)
+	font.FileName = strings.TrimSpace(font.FileName)
+
+	if utf8.RuneCountInString(font.Family) > 128 {
+		return fmt.Errorf("console font family cannot exceed 128 characters")
+	}
+	for _, char := range font.Family {
+		if unicode.IsLetter(char) || unicode.IsNumber(char) || char == ' ' || char == '-' || char == '_' || char == '.' {
+			continue
+		}
+		return fmt.Errorf("console font family contains unsupported character %q", char)
+	}
+
+	if utf8.RuneCountInString(font.URL) > 2048 {
+		return fmt.Errorf("console font URL cannot exceed 2048 characters")
+	}
+	if utf8.RuneCountInString(font.FileName) > 255 {
+		return fmt.Errorf("console font file name cannot exceed 255 characters")
+	}
+	if font.URL == "" {
+		return nil
+	}
+
+	parsedURL, err := url.Parse(font.URL)
+	if err != nil || parsedURL.Host == "" || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+		return fmt.Errorf("console font URL must use http or https")
+	}
+	if font.FileName == "" {
+		return fmt.Errorf("console font file name is required when a URL is configured")
+	}
+	switch strings.ToLower(filepath.Ext(font.FileName)) {
+	case ".ttf", ".otf", ".woff", ".woff2":
+		return nil
+	default:
+		return fmt.Errorf("console font file must be .ttf, .otf, .woff, or .woff2")
+	}
+}
+
 // WorkspaceSettings contains configurable workspace settings
 type WorkspaceSettings struct {
 	WebsiteURL                   string              `json:"website_url,omitempty"`
@@ -500,6 +560,7 @@ type WorkspaceSettings struct {
 	CustomEndpointURL *string                      `json:"custom_endpoint_url,omitempty"`
 	CustomFieldLabels map[string]string            `json:"custom_field_labels,omitempty"`
 	UITranslations    map[string]map[string]string `json:"ui_translations,omitempty"`
+	ConsoleFont       *ConsoleFontSettings         `json:"console_font,omitempty"`
 	BlogEnabled       bool                         `json:"blog_enabled"`            // Enable blog feature at workspace level
 	BlogSettings      *BlogSettings                `json:"blog_settings,omitempty"` // Blog styling and SEO settings
 	WebAnalytics      *WebAnalyticsSettings        `json:"web_analytics,omitempty"` // Web analytics configuration
@@ -540,6 +601,10 @@ func (ws *WorkspaceSettings) Validate(passphrase string) error {
 
 	if ws.CoverURL != "" && !govalidator.IsURL(ws.CoverURL) {
 		return fmt.Errorf("invalid cover URL: %s", ws.CoverURL)
+	}
+
+	if err := ws.ConsoleFont.Validate(); err != nil {
+		return err
 	}
 
 	// Validate custom endpoint URL if provided
@@ -1606,6 +1671,7 @@ var preservableWorkspaceSettingKeys = []string{
 	"marketing_email_provider_id",
 	"email_tracking_enabled",
 	"custom_endpoint_url",
+	"console_font",
 }
 
 // UnmarshalJSON decodes the request and records which settings the body left out.
@@ -1670,6 +1736,7 @@ func (ws *WorkspaceSettings) PreserveOmitted(stored WorkspaceSettings) {
 	keep("marketing_email_provider_id", func() { ws.MarketingEmailProviderID = stored.MarketingEmailProviderID })
 	keep("email_tracking_enabled", func() { ws.EmailTrackingEnabled = stored.EmailTrackingEnabled })
 	keep("custom_endpoint_url", func() { ws.CustomEndpointURL = stored.CustomEndpointURL })
+	keep("console_font", func() { ws.ConsoleFont = stored.ConsoleFont })
 }
 
 func (r *UpdateWorkspaceRequest) Validate(passphrase string) error {

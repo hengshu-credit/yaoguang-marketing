@@ -26,7 +26,8 @@ const lists = [
 
 const renderListForm = (
   contactList: ContactListCondition,
-  onDraftChange: (leaf: TreeNode) => void
+  onDraftChange: (leaf: TreeNode) => void,
+  onChange: (leaf: TreeNode) => void = vi.fn()
 ) => {
   const node: TreeNode = { kind: 'leaf', leaf: { source: 'contact_lists', contact_list: contactList } }
   const editingNodeLeaf: EditingNodeLeaf = { ...node, path: '', key: 0 }
@@ -35,7 +36,7 @@ const renderListForm = (
     <I18nProvider i18n={i18n}>
       <LeafContactListForm
         value={node}
-        onChange={vi.fn()}
+        onChange={onChange}
         onDraftChange={onDraftChange}
         source="contact_lists"
         schema={TableSchemas.contact_lists}
@@ -129,6 +130,32 @@ describe('leaf forms — draft reporting', () => {
     await waitFor(() => expect(onDraftChange).toHaveBeenCalled())
     // A draft is not a commit: the tree only changes on Confirm
     expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('drops the hidden status when list membership changes to not in', async () => {
+    const onDraftChange = vi.fn()
+    renderListForm({ operator: 'in', list_id: 'newsletter', status: 'active' }, onDraftChange)
+
+    openSelect(0)
+    fireEvent.click(await screen.findByTitle('is not in'))
+
+    await waitFor(() => expect(onDraftChange).toHaveBeenCalled())
+    const condition = lastDraft(onDraftChange).leaf?.contact_list
+    expect(condition?.operator).toBe('not_in')
+    expect(condition?.status).toBeUndefined()
+  })
+
+  it('commits not in without the previously selected status', async () => {
+    const onChange = vi.fn()
+    renderListForm({ operator: 'in', list_id: 'newsletter', status: 'active' }, vi.fn(), onChange)
+
+    openSelect(0)
+    fireEvent.click(await screen.findByTitle('is not in'))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+
+    await waitFor(() => expect(onChange).toHaveBeenCalled())
+    const saved = onChange.mock.calls[0][0] as TreeNode
+    expect(saved.leaf?.contact_list).toEqual({ operator: 'not_in', list_id: 'newsletter' })
   })
 
   it('reports an activity condition as the event kind is picked', async () => {

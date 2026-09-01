@@ -1107,8 +1107,8 @@ type WebAnalyticsRepository interface {
 	// flush has committed and outside its transaction.
 	ProjectContactNavigation(ctx context.Context, workspaceID string, sessions []*WebSession) error
 
-	// EnsureMonthlyPartitions creates the monthly partitions covering the given
-	// months for all three tables (idempotent).
+	// EnsureMonthlyPartitions creates event-ledger and web-analytics monthly
+	// partitions covering the given months (idempotent).
 	EnsureMonthlyPartitions(ctx context.Context, workspaceID string, months []time.Time) error
 
 	// ListPartitions returns partition names of the given parent table.

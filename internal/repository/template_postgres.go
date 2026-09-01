@@ -492,6 +492,9 @@ func scanTemplate(scanner interface {
 	if contentSchemaVersion.Valid {
 		template.ContentSchemaVersion = int(contentSchemaVersion.Int64)
 	}
+	if value, ok := template.Settings["category_purpose"].(string); ok {
+		template.CategoryPurpose = domain.TemplateCategoryPurpose(value)
+	}
 
 	// Unmarshal translations JSON, always initialize to empty map for consistency
 	template.Translations = make(map[string]domain.TemplateTranslation)

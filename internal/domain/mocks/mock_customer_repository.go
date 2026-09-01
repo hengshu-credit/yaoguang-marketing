@@ -80,6 +80,21 @@ func (mr *MockCustomerRepositoryMockRecorder) Merge(arg0, arg1 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Merge", reflect.TypeOf((*MockCustomerRepository)(nil).Merge), arg0, arg1)
 }
 
+// UpdateListMemberships mocks base method.
+func (m *MockCustomerRepository) UpdateListMemberships(arg0 context.Context, arg1 domain.CustomerListMembershipUpdateRequest) (*domain.CustomerListMembershipUpdateResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateListMemberships", arg0, arg1)
+	ret0, _ := ret[0].(*domain.CustomerListMembershipUpdateResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateListMemberships indicates an expected call of UpdateListMemberships.
+func (mr *MockCustomerRepositoryMockRecorder) UpdateListMemberships(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateListMemberships", reflect.TypeOf((*MockCustomerRepository)(nil).UpdateListMemberships), arg0, arg1)
+}
+
 // Upsert mocks base method.
 func (m *MockCustomerRepository) Upsert(arg0 context.Context, arg1 domain.CustomerUpsertCommand) (*domain.CustomerMutationResult, error) {
 	m.ctrl.T.Helper()

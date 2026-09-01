@@ -712,6 +712,7 @@ func TestAppInitHandlers(t *testing.T) {
 		"/api/customers.get",
 		"/api/customers.upsert",
 		"/api/customers.batch",
+		"/api/customers.listMemberships.update",
 		"/api/customers.merge",
 	}
 

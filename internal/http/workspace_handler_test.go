@@ -955,6 +955,65 @@ func TestWorkspaceHandler_Update_ServiceError(t *testing.T) {
 	assert.Equal(t, "Failed to update workspace", response["error"])
 }
 
+func TestWorkspaceHandler_Update_ConsoleFont(t *testing.T) {
+	_, workspaceService, mux, secretKey, _ := setupTest(t)
+	wantFont := &domain.ConsoleFontSettings{
+		Family:   "Noto Sans SC",
+		URL:      "https://cdn.example.com/fonts/noto.woff2",
+		FileName: "noto.woff2",
+	}
+	workspaceService.EXPECT().
+		UpdateWorkspace(gomock.Any(), "workspace1", "Workspace", gomock.Any()).
+		DoAndReturn(func(_ context.Context, id, name string, settings domain.WorkspaceSettings) (*domain.Workspace, error) {
+			assert.Equal(t, wantFont, settings.ConsoleFont)
+			return &domain.Workspace{ID: id, Name: name, Settings: settings}, nil
+		})
+
+	body, err := json.Marshal(domain.UpdateWorkspaceRequest{
+		ID:   "workspace1",
+		Name: "Workspace",
+		Settings: domain.WorkspaceSettings{
+			Timezone:        "UTC",
+			DefaultLanguage: "en",
+			Languages:       []string{"en"},
+			ConsoleFont:     wantFont,
+		},
+	})
+	require.NoError(t, err)
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.update", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+	w := httptest.NewRecorder()
+
+	mux.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var response domain.Workspace
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Equal(t, wantFont, response.Settings.ConsoleFont)
+}
+
+func TestWorkspaceHandler_Update_ConsoleFontRejectsInvalidURL(t *testing.T) {
+	_, _, mux, secretKey, _ := setupTest(t)
+	body := `{
+		"id":"workspace1",
+		"name":"Workspace",
+		"settings":{
+			"timezone":"UTC",
+			"default_language":"en",
+			"languages":["en"],
+			"console_font":{"family":"Bad Font","url":"data:font/woff2;base64,AAAA","file_name":"bad.woff2"}
+		}
+	}`
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces.update", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+	w := httptest.NewRecorder()
+
+	mux.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "console font URL must use http or https")
+}
+
 func TestWorkspaceHandler_Delete_MethodNotAllowed(t *testing.T) {
 	handler, _, _, secretKey, _ := setupTest(t)
 

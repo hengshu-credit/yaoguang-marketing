@@ -27,7 +27,9 @@ vi.mock('../contexts/AuthContext', () => ({
 vi.mock('../services/api/marketing', () => ({ audienceApi: { list: vi.fn(), delete: vi.fn() } }))
 vi.mock('../services/api/list', () => ({ listsApi: { list: vi.fn(), delete: vi.fn() } }))
 vi.mock('../components/audiences/AudienceDrawer', () => ({
-  AudienceDrawer: () => <div>Audience drawer</div>
+  AudienceDrawer: ({ audienceId }: { audienceId?: string }) => (
+    <div>{audienceId ? `Editing audience ${audienceId}` : 'Audience drawer'}</div>
+  )
 }))
 vi.mock('../components/lists/ListDrawer', () => ({
   CreateListDrawer: ({ list, buttonProps }: { list?: { name: string }; buttonProps?: { buttonContent?: ReactNode; disabled?: boolean } }) => (
@@ -84,7 +86,24 @@ it('shows lists and dynamic audiences as linked rows in one audience table', asy
   expect(screen.getByText('Dynamic')).toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Create list' })).toBeEnabled()
   expect(screen.getByRole('button', { name: 'Create dynamic audience' })).toBeEnabled()
+  fireEvent.click(screen.getByRole('button', { name: 'Edit Recently active customers' }))
+  expect(screen.getByText('Editing audience audience-1')).toBeInTheDocument()
   expect(screen.queryByRole('link', { name: 'Manage lists' })).not.toBeInTheDocument()
+})
+
+it('lets the workspace layout own the page-edge padding', async () => {
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <AudiencesPage />
+    </QueryClientProvider>
+  )
+
+  const heading = await screen.findByRole('heading', {
+    level: 1,
+    name: 'Audience segmentation'
+  })
+  expect(heading.closest('.p-6')).toBeNull()
+  expect(heading.parentElement?.parentElement).toHaveClass('flex-col', 'sm:flex-row')
 })
 
 it('keeps list editing and guarded deletion on the unified audience page', async () => {

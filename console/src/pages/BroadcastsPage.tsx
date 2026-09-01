@@ -782,7 +782,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                   const emailProvider = currentWorkspace?.integrations?.find(
                     (i: Integration) =>
                       i.id ===
-                      (variation.template?.category === 'marketing'
+                      (variation.template?.category_purpose === 'marketing' || (!variation.template?.category_purpose && variation.template?.category === 'marketing')
                         ? currentWorkspace.settings?.marketing_email_provider_id
                         : currentWorkspace.settings?.transactional_email_provider_id)
                   )?.email_provider
@@ -1545,7 +1545,7 @@ export function BroadcastsPage() {
   const hasMarketingEmailProvider = currentWorkspace?.settings?.marketing_email_provider_id
 
   return (
-    <div className="p-6">
+    <div>
       <div className="flex justify-between items-center mb-6">
         <WorkspacePageTitle>{t`Broadcasts`}</WorkspacePageTitle>
         {currentWorkspace && (hasBroadcasts || hasActiveFilter) && (

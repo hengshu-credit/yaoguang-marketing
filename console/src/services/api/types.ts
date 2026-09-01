@@ -19,6 +19,7 @@ export type {
 export type {
   TemplateBlock,
   WorkspaceSettings,
+  ConsoleFontSettings,
   FileManagerSettings,
   EmailProviderKind,
   Sender,

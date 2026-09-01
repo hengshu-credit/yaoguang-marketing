@@ -6,6 +6,7 @@ import { Currencies, Currency } from '../../lib/currencies'
 import { CountriesFormOptions } from '../../lib/countries_timezones'
 import { Languages } from '../../lib/languages'
 import { TIMEZONE_OPTIONS } from '../../lib/timezones'
+import { segmentOperatorLabel } from './labels'
 
 export type OperatorContainsProps = {
   value: string | undefined
@@ -27,7 +28,7 @@ export class OperatorContains implements IOperator {
     const values = filter.string_values || []
     return (
       <>
-        <span className="opacity-60 pt-0.5">{this.label}</span>
+        <span className="opacity-60 pt-0.5">{segmentOperatorLabel(this.type, this.label)}</span>
         <span>
           {values.map((value, i) => {
             return (

@@ -8,6 +8,7 @@ import { CountriesFormOptions } from '../../lib/countries_timezones'
 import { TIMEZONE_OPTIONS } from '../../lib/timezones'
 import { Languages } from '../../lib/languages'
 import dayjs from 'dayjs'
+import { segmentControlLabel, segmentOperatorLabel } from './labels'
 
 // Format date for display (converts ISO8601 to readable format)
 const formatDateDisplay = (dateStr: string | undefined): string => {
@@ -61,7 +62,7 @@ export class OperatorEquals implements IOperator {
     }
     return (
       <>
-        <span className="opacity-60 pt-0.5">{this.label}</span>
+        <span className="opacity-60 pt-0.5">{segmentOperatorLabel(this.type, this.label)}</span>
         <span>
           <Tag variant="filled" color="blue">
             {value}
@@ -73,7 +74,7 @@ export class OperatorEquals implements IOperator {
 
   renderFormItems(fieldType: FieldTypeValue, fieldName: string, _form: FormInstance) {
     const rule: Rule = { required: true, type: 'string', message: Messages.RequiredField }
-    let input = <Input placeholder="enter a value" />
+    let input = <Input placeholder={segmentControlLabel('enter_value')} />
     let inputName = ['string_values', 0]
 
     switch (fieldType) {
@@ -164,7 +165,7 @@ export class OperatorEquals implements IOperator {
         break
       case 'number':
         inputName = ['number_values', 0]
-        input = <InputNumber placeholder="Enter a value" style={{ width: '100%' }} />
+        input = <InputNumber placeholder={segmentControlLabel('enter_value')} style={{ width: '100%' }} />
         rule.type = 'number'
 
         if (fieldName.indexOf('is_') > -1 || fieldName.indexOf('consent_') > -1) {

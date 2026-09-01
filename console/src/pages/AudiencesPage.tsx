@@ -32,6 +32,7 @@ export function AudiencesPage() {
   const { permissions } = useWorkspacePermissions(workspaceId)
   const queryClient = useQueryClient()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [editingAudienceId, setEditingAudienceId] = useState<string>()
   const [listToDelete, setListToDelete] = useState<List | null>(null)
   const [confirmationInput, setConfirmationInput] = useState('')
   const [deleteError, setDeleteError] = useState<string>()
@@ -147,13 +148,22 @@ export function AudiencesPage() {
             {t`Delete`}
           </Button>
         </Space>
-      ) : <Text type="secondary">—</Text>
+      ) : (
+        <Button
+          type="link"
+          aria-label={`${t`Edit`} ${row.name}`}
+          disabled={!canWrite}
+          onClick={() => setEditingAudienceId(row.id)}
+        >
+          {t`Edit`}
+        </Button>
+      )
     }
   ]
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-start gap-4 mb-6">
+    <div>
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
         <div>
           <WorkspacePageTitle style={{ marginBottom: 4 }}>{t`Audience segmentation`}</WorkspacePageTitle>
           <Paragraph type="secondary" className="!mb-0">
@@ -170,7 +180,10 @@ export function AudiencesPage() {
             icon={<PlusOutlined />}
             aria-label={t`Create dynamic audience`}
             disabled={!canWrite}
-            onClick={() => setDrawerOpen(true)}
+            onClick={() => {
+              setEditingAudienceId(undefined)
+              setDrawerOpen(true)
+            }}
           >
             {t`Create dynamic audience`}
           </Button>
@@ -192,11 +205,15 @@ export function AudiencesPage() {
       )}
 
       <AudienceDrawer
-        open={drawerOpen}
+        open={drawerOpen || Boolean(editingAudienceId)}
         workspaceId={workspaceId}
+        audienceId={editingAudienceId}
         lists={(lists.data?.lists ?? []).map((list) => ({ id: list.id, name: list.name }))}
         customFieldLabels={workspace?.settings?.custom_field_labels}
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => {
+          setDrawerOpen(false)
+          setEditingAudienceId(undefined)
+        }}
       />
       <Modal
         title={t`Delete List`}

@@ -745,6 +745,8 @@ const extensions = {
   '.wks': 'application/vnd.ms-works',
   '.wm': 'video/x-ms-wm',
   '.wma': 'audio/x-ms-wma',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
   '.wmd': 'application/x-ms-wmd',
   '.wmf': 'application/x-msmetafile',
   '.wml': 'text/vnd.wap.wml',

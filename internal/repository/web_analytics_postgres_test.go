@@ -299,6 +299,8 @@ func TestFlushBatch(t *testing.T) {
 		mock.ExpectRollback()
 
 		// EnsureMonthlyPartitions for 2024-05 (past month → no autovacuum ALTER).
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS event_ledger_202405 PARTITION OF").
+			WillReturnResult(sqlmock.NewResult(0, 0))
 		for range schema.WebAnalyticsTableNames {
 			mock.ExpectExec("CREATE TABLE IF NOT EXISTS web_(sessions|pages|goals)_y2024m05 PARTITION OF").
 				WillReturnResult(sqlmock.NewResult(0, 0))
@@ -323,6 +325,8 @@ func TestFlushBatch(t *testing.T) {
 		mock.ExpectExec("INSERT INTO web_sessions").
 			WillReturnError(&pq.Error{Code: "23514", Message: `no partition of relation "web_sessions" found for row`})
 		mock.ExpectRollback()
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS event_ledger_202405 PARTITION OF").
+			WillReturnResult(sqlmock.NewResult(0, 0))
 		for range schema.WebAnalyticsTableNames {
 			mock.ExpectExec("CREATE TABLE IF NOT EXISTS").WillReturnResult(sqlmock.NewResult(0, 0))
 		}
@@ -360,6 +364,8 @@ func TestEnsureMonthlyPartitions(t *testing.T) {
 		defer cleanup()
 
 		month := time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC)
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS event_ledger_202405").
+			WillReturnResult(sqlmock.NewResult(0, 0))
 		for _, table := range schema.WebAnalyticsTableNames {
 			mock.ExpectExec("CREATE TABLE IF NOT EXISTS " + schema.WebAnalyticsPartitionName(table, month)).
 				WillReturnResult(sqlmock.NewResult(0, 0))
@@ -373,6 +379,8 @@ func TestEnsureMonthlyPartitions(t *testing.T) {
 		defer cleanup()
 
 		month := time.Now().UTC()
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS event_ledger_" + month.Format("200601")).
+			WillReturnResult(sqlmock.NewResult(0, 0))
 		for _, table := range schema.WebAnalyticsTableNames {
 			mock.ExpectExec("CREATE TABLE IF NOT EXISTS " + schema.WebAnalyticsPartitionName(table, month)).
 				WillReturnResult(sqlmock.NewResult(0, 0))

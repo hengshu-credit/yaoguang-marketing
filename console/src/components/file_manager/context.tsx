@@ -9,7 +9,7 @@ interface FileManagerContextValue {
 }
 
 interface SelectFileButtonProps {
-  onSelect: (url: string) => void
+  onSelect: (url: string, item: StorageObject) => void
   acceptFileType?: string
   acceptItem?: (item: StorageObject) => boolean
   buttonText?: string
@@ -44,7 +44,7 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
 
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [currentOptions, setCurrentOptions] = useState<{
-    onSelect: (url: string) => void
+    onSelect: (url: string, item: StorageObject) => void
     acceptFileType?: string
     acceptItem?: (item: StorageObject) => boolean
     maxFileSizeWarning?: number
@@ -73,7 +73,7 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
         }
 
         // File is under threshold, proceed normally
-        currentOptions.onSelect(selectedFile.file_info.url)
+        currentOptions.onSelect(selectedFile.file_info.url, selectedFile)
         message.success(t`Selected: ${selectedFile.name}`)
         closeModal()
       }
@@ -83,7 +83,7 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
   // Handle confirm large file selection
   const handleConfirmLargeFile = () => {
     if (pendingFile && currentOptions?.onSelect) {
-      currentOptions.onSelect(pendingFile.file_info.url)
+      currentOptions.onSelect(pendingFile.file_info.url, pendingFile)
       message.success(t`Selected: ${pendingFile.name}`)
     }
     setWarningModalVisible(false)

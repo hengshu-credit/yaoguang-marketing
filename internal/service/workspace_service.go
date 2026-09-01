@@ -488,6 +488,7 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 	}
 
 	existingWorkspace.Settings.CustomEndpointURL = settings.CustomEndpointURL
+	existingWorkspace.Settings.ConsoleFont = settings.ConsoleFont
 	// Note: Custom field labels and blog settings are intentionally NOT updated here.
 	// They are each managed exclusively via dedicated, permission-checked endpoints
 	// (/api/workspaces.setCustomFieldLabels for labels, /api/workspaces.setBlogSettings

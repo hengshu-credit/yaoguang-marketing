@@ -26,6 +26,7 @@ import { workspaceService } from '../services/api/workspace'
 import { clearWorkspaceCatalog, setWorkspaceCatalog } from '../i18n/workspaceCatalog'
 import { createEmptyPermissions, createFullPermissions } from '../services/api/permissions'
 import { isRootUser } from '../services/api/auth'
+import { applyConsoleFont } from '../lib/consoleFont'
 import {
   BarChartOutlined,
   FileTextOutlined,
@@ -53,7 +54,8 @@ export function WorkspaceLayout() {
   const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   const { signout, workspaces, user, refreshWorkspaces } = useAuth()
-  const workspaceTranslations = workspaces.find((workspace) => workspace.id === workspaceId)?.settings.ui_translations
+  const currentWorkspace = workspaces.find((workspace) => workspace.id === workspaceId)
+  const workspaceTranslations = currentWorkspace?.settings.ui_translations
   const navigate = useNavigate()
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth)
   const narrow = viewportWidth < 768
@@ -81,6 +83,16 @@ export function WorkspaceLayout() {
   useEffect(() => {
     if (narrow) setCollapsed(true)
   }, [currentPath, narrow])
+
+  useEffect(
+    () =>
+      applyConsoleFont(currentWorkspace?.settings.console_font, {
+        onError: () => {
+          message.warning(t`Uploaded console font could not be loaded. Using the system font instead.`)
+        }
+      }),
+    [currentWorkspace?.settings.console_font, t]
+  )
 
   useEffect(() => {
     void setWorkspaceCatalog(workspaceId, workspaceTranslations ?? {}).catch((error) => {
@@ -184,7 +196,7 @@ export function WorkspaceLayout() {
 
   // Function to handle workspace settings update
   const handleUpdateWorkspaceSettings = async (settings: FileManagerSettings): Promise<void> => {
-    const workspace = workspaces.find((w) => w.id === workspaceId)
+    const workspace = currentWorkspace
     if (!workspace) {
       message.error(t`Workspace not found`)
       return
@@ -568,7 +580,7 @@ export function WorkspaceLayout() {
             <Content style={{ backgroundColor: '#F9F9F9', minWidth: 0 }}>
               <FileManagerProvider
                 key={`fm-${workspaceId}-${!userPermissions?.templates?.write}`}
-                settings={workspaces.find((w) => w.id === workspaceId)?.settings.file_manager}
+                settings={currentWorkspace?.settings.file_manager}
                 onUpdateSettings={handleUpdateWorkspaceSettings}
                 readOnly={!userPermissions?.templates?.write}
               >

@@ -82,6 +82,7 @@ describe('permission row details', () => {
 	    expect(within(details).getByText('/api/customers.get')).toBeInTheDocument()
 	    expect(within(details).getByText('/api/customers.upsert')).toBeInTheDocument()
 	    expect(within(details).getByText('/api/customers.batch')).toBeInTheDocument()
+	    expect(within(details).getByText('/api/customers.listMemberships.update')).toBeInTheDocument()
 	    expect(within(details).getByText('/api/customers.merge')).toBeInTheDocument()
 	    expect(details.textContent).toContain('anonymous Customer into a known Customer')
 	  })

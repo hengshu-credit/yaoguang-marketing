@@ -115,6 +115,7 @@ type Template struct {
 	Content              *ChannelTemplateContent        `json:"content,omitempty"`
 	ContentSchemaVersion int                            `json:"content_schema_version,omitempty"`
 	Category             string                         `json:"category"`
+	CategoryPurpose      TemplateCategoryPurpose        `json:"category_purpose,omitempty"`
 	TemplateMacroID      *string                        `json:"template_macro_id,omitempty"`
 	IntegrationID        *string                        `json:"integration_id,omitempty"` // Set if template is managed by an integration (e.g., Supabase)
 	TestData             MapOfAny                       `json:"test_data,omitempty"`

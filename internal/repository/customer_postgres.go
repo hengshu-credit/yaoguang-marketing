@@ -204,6 +204,148 @@ func (r *CustomerPostgresRepository) List(ctx context.Context, workspaceID strin
 	return response, nil
 }
 
+func (r *CustomerPostgresRepository) UpdateListMemberships(ctx context.Context, request domain.CustomerListMembershipUpdateRequest) (*domain.CustomerListMembershipUpdateResult, error) {
+	if err := request.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid customer list membership update: %w", err)
+	}
+	result := &domain.CustomerListMembershipUpdateResult{
+		Customers: len(request.CustomerIDs),
+		Lists:     len(request.ListIDs),
+	}
+	now := r.now()
+	err := r.workspaceRepo.WithWorkspaceTransaction(ctx, request.WorkspaceID, func(tx *sql.Tx) error {
+		if err := validateCustomerListMembershipTargets(ctx, tx, request.CustomerIDs, request.ListIDs); err != nil {
+			return err
+		}
+		changed, changedCustomerIDs, err := mutateCustomerListMemberships(ctx, tx, request, now)
+		if err != nil {
+			return err
+		}
+		if len(changedCustomerIDs) > 0 {
+			if _, err := tx.ExecContext(ctx, `UPDATE customers SET version = version + 1, updated_at = $2
+				WHERE id = ANY($1::uuid[])`, pq.Array(changedCustomerIDs), now); err != nil {
+				return fmt.Errorf("update customer versions after list membership change: %w", err)
+			}
+		}
+		if err := syncCustomerListMembershipProjection(ctx, tx, request, now); err != nil {
+			return err
+		}
+		result.Changed = changed
+		result.Unchanged = len(request.CustomerIDs)*len(request.ListIDs) - changed
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func validateCustomerListMembershipTargets(ctx context.Context, tx *sql.Tx, customerIDs, listIDs []string) error {
+	if err := validateRequestedIDs(ctx, tx,
+		`SELECT id FROM customers WHERE id = ANY($1::uuid[]) AND merged_into_id IS NULL`, customerIDs, "customer_ids"); err != nil {
+		return err
+	}
+	return validateRequestedIDs(ctx, tx, `SELECT id FROM lists WHERE id = ANY($1::text[])`, listIDs, "list_ids")
+}
+
+func validateRequestedIDs(ctx context.Context, tx *sql.Tx, query string, requested []string, field string) error {
+	rows, err := tx.QueryContext(ctx, query, pq.Array(requested))
+	if err != nil {
+		return fmt.Errorf("validate %s for list membership update: %w", field, err)
+	}
+	defer rows.Close()
+	found := make(map[string]struct{}, len(requested))
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return fmt.Errorf("scan %s for list membership update: %w", field, err)
+		}
+		found[id] = struct{}{}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate %s for list membership update: %w", field, err)
+	}
+	missing := make([]string, 0)
+	for _, id := range requested {
+		if _, exists := found[id]; !exists {
+			missing = append(missing, id)
+		}
+	}
+	if len(missing) > 0 {
+		return domain.NewValidationError(fmt.Sprintf("%s contain missing or unavailable values: %s", field, strings.Join(missing, ", ")))
+	}
+	return nil
+}
+
+func mutateCustomerListMemberships(ctx context.Context, tx *sql.Tx, request domain.CustomerListMembershipUpdateRequest, now time.Time) (int, []string, error) {
+	var query string
+	var args []interface{}
+	switch request.Action {
+	case domain.CustomerListMembershipActionAdd:
+		query = `WITH changed AS (
+			INSERT INTO customer_list_memberships (customer_id, list_id, status, created_at, updated_at)
+			SELECT selected_customer.customer_id, selected_list.list_id, $3, $4, $4
+			FROM unnest($1::uuid[]) AS selected_customer(customer_id)
+			CROSS JOIN unnest($2::text[]) AS selected_list(list_id)
+			ON CONFLICT (customer_id, list_id) DO NOTHING
+			RETURNING customer_id
+		)
+		SELECT COUNT(*), ARRAY(SELECT DISTINCT customer_id::text FROM changed ORDER BY customer_id::text) FROM changed`
+		args = []interface{}{pq.Array(request.CustomerIDs), pq.Array(request.ListIDs), request.Status, now}
+	case domain.CustomerListMembershipActionSetStatus:
+		query = `WITH changed AS (
+			UPDATE customer_list_memberships SET status = $3, updated_at = $4
+			WHERE customer_id = ANY($1::uuid[]) AND list_id = ANY($2::text[]) AND status <> $3
+			RETURNING customer_id
+		)
+		SELECT COUNT(*), ARRAY(SELECT DISTINCT customer_id::text FROM changed ORDER BY customer_id::text) FROM changed`
+		args = []interface{}{pq.Array(request.CustomerIDs), pq.Array(request.ListIDs), request.Status, now}
+	case domain.CustomerListMembershipActionRemove:
+		query = `WITH changed AS (
+			DELETE FROM customer_list_memberships
+			WHERE customer_id = ANY($1::uuid[]) AND list_id = ANY($2::text[])
+			RETURNING customer_id
+		)
+		SELECT COUNT(*), ARRAY(SELECT DISTINCT customer_id::text FROM changed ORDER BY customer_id::text) FROM changed`
+		args = []interface{}{pq.Array(request.CustomerIDs), pq.Array(request.ListIDs)}
+	default:
+		return 0, nil, fmt.Errorf("unsupported customer list membership action %q", request.Action)
+	}
+	var changed int
+	changedCustomerIDs := []string{}
+	if err := tx.QueryRowContext(ctx, query, args...).Scan(&changed, pq.Array(&changedCustomerIDs)); err != nil {
+		return 0, nil, fmt.Errorf("%s customer list memberships: %w", request.Action, err)
+	}
+	return changed, changedCustomerIDs, nil
+}
+
+func syncCustomerListMembershipProjection(ctx context.Context, tx *sql.Tx, request domain.CustomerListMembershipUpdateRequest, now time.Time) error {
+	if request.Action == domain.CustomerListMembershipActionRemove {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM contact_lists
+			WHERE customer_id = ANY($1::uuid[]) AND list_id = ANY($2::text[])`,
+			pq.Array(request.CustomerIDs), pq.Array(request.ListIDs)); err != nil {
+			return fmt.Errorf("remove customer contact-list projections: %w", err)
+		}
+		return nil
+	}
+	conflict := `DO UPDATE SET customer_id = EXCLUDED.customer_id
+		WHERE contact_lists.customer_id IS NULL`
+	if request.Action == domain.CustomerListMembershipActionSetStatus {
+		conflict = `DO UPDATE SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at,
+			deleted_at = NULL, customer_id = EXCLUDED.customer_id`
+	}
+	query := `INSERT INTO contact_lists (email, list_id, status, created_at, updated_at, deleted_at, customer_id)
+		SELECT contact.email, membership.list_id, membership.status, membership.created_at, $3, NULL, membership.customer_id
+		FROM customer_list_memberships AS membership
+		JOIN contacts AS contact ON contact.customer_id = membership.customer_id
+		WHERE membership.customer_id = ANY($1::uuid[]) AND membership.list_id = ANY($2::text[])
+		ON CONFLICT (email, list_id) ` + conflict
+	if _, err := tx.ExecContext(ctx, query, pq.Array(request.CustomerIDs), pq.Array(request.ListIDs), now); err != nil {
+		return fmt.Errorf("sync customer contact-list projections: %w", err)
+	}
+	return nil
+}
+
 func loadCustomerSummaryChildren(ctx context.Context, db customerQueryer, customers []domain.CustomerSummary) error {
 	if len(customers) == 0 {
 		return nil

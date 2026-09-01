@@ -12,6 +12,7 @@ import { OperatorContains } from './operator_contains'
 import { OperatorNumber } from './operator_number'
 import { OperatorInArray } from './operator_array'
 import { JSONPathInput } from './input_json_path'
+import { segmentOperatorLabel } from './labels'
 
 // Note: This class contains string labels that cannot use useLingui as they are class properties.
 // The labels like 'JSON Path', 'Value Type', 'String', 'Number', 'Date', placeholder 'select an operator',
@@ -131,7 +132,7 @@ export class FieldTypeJSON implements FieldTypeRenderer {
                   popupMatchSelectWidth={false}
                   options={filteredOperators.map((op: IOperator) => ({
                     value: op.type,
-                    label: op.label
+                    label: segmentOperatorLabel(op.type, op.label)
                   }))}
                 />
               </Form.Item>

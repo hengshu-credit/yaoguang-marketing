@@ -202,14 +202,14 @@ func (qb *QueryBuilder) BuildCustomerIDSQL(tree *domain.TreeNode, placeholderOff
 		return "", nil, fmt.Errorf("invalid tree: %w", err)
 	}
 
-	condition, args, _, err := qb.parseNode(tree, placeholderOffset+1)
+	condition, args, _, err := qb.parseCustomerNode(tree, placeholderOffset+1)
 	if err != nil {
 		return "", nil, err
 	}
 	if condition == "" {
 		return "", nil, fmt.Errorf("condition tree produced no predicate")
 	}
-	return "SELECT DISTINCT contacts.customer_id FROM contacts WHERE contacts.customer_id IS NOT NULL AND " + condition, args, nil
+	return "SELECT customer.id AS customer_id FROM customers customer LEFT JOIN customer_profiles profile ON profile.customer_id = customer.id WHERE customer.merged_into_id IS NULL AND " + condition, args, nil
 }
 
 // BuildCustomerMatchSQL compiles the same condition semantics as
@@ -227,7 +227,7 @@ func (qb *QueryBuilder) BuildCustomerMatchSQL(tree *domain.TreeNode, placeholder
 		return "", nil, fmt.Errorf("invalid tree: %w", err)
 	}
 
-	condition, args, nextPlaceholder, err := qb.parseNode(tree, placeholderOffset+1)
+	condition, args, nextPlaceholder, err := qb.parseCustomerNode(tree, placeholderOffset+1)
 	if err != nil {
 		return "", nil, err
 	}
@@ -235,7 +235,7 @@ func (qb *QueryBuilder) BuildCustomerMatchSQL(tree *domain.TreeNode, placeholder
 		return "", nil, fmt.Errorf("condition tree produced no predicate")
 	}
 	query := fmt.Sprintf(
-		"SELECT EXISTS (SELECT 1 FROM contacts WHERE contacts.customer_id = $%d AND %s)",
+		"SELECT EXISTS (SELECT 1 FROM customers customer LEFT JOIN customer_profiles profile ON profile.customer_id = customer.id WHERE customer.merged_into_id IS NULL AND customer.id = $%d AND %s)",
 		nextPlaceholder,
 		condition,
 	)
@@ -370,6 +370,14 @@ func (qb *QueryBuilder) parseFilter(filter *domain.DimensionFilter, argIndex int
 	if !ok {
 		return "", nil, argIndex, fmt.Errorf("invalid field name: %s", filter.FieldName)
 	}
+	return qb.parseFilterWithConfig(filter, argIndex, mode, fieldCfg)
+}
+
+// parseFilterWithConfig applies the common operator/value semantics to a
+// caller-selected, trusted SQL expression. BuildSQL supplies the legacy
+// contacts whitelist; the Audience Customer compiler supplies expressions
+// rooted in customers/customer_profiles.
+func (qb *QueryBuilder) parseFilterWithConfig(filter *domain.DimensionFilter, argIndex int, mode castMode, fieldCfg fieldConfig) (string, []interface{}, int, error) {
 	if fieldCfg.fieldType == "audience_tags" {
 		return qb.buildAudienceTagCondition(filter, argIndex)
 	}

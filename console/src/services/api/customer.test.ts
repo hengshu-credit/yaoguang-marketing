@@ -71,4 +71,36 @@ describe('customerApi', () => {
       }
     })
   })
+
+  it('updates list memberships for selected customers and lists in one request', async () => {
+    vi.mocked(api.post).mockResolvedValue({
+      request_id: 'request-1',
+      customers: 2,
+      lists: 2,
+      changed: 3,
+      unchanged: 1
+    })
+
+    await expect(customerApi.updateListMemberships({
+      workspace_id: 'ws1',
+      customer_ids: ['customer-1', 'customer-2'],
+      list_ids: ['newsletter', 'vip'],
+      action: 'set_status',
+      status: 'unsubscribed'
+    })).resolves.toEqual({
+      request_id: 'request-1',
+      customers: 2,
+      lists: 2,
+      changed: 3,
+      unchanged: 1
+    })
+
+    expect(api.post).toHaveBeenCalledWith('/api/customers.listMemberships.update', {
+      workspace_id: 'ws1',
+      customer_ids: ['customer-1', 'customer-2'],
+      list_ids: ['newsletter', 'vip'],
+      action: 'set_status',
+      status: 'unsubscribed'
+    })
+  })
 })

@@ -116,7 +116,7 @@ export function FileManagerPage() {
   // console.log('currentWorkspace', currentWorkspace)
 
   return (
-    <div className="p-6">
+    <div>
       <div className="flex justify-between items-center mb-6">
         <WorkspacePageTitle>{t`File Manager`}</WorkspacePageTitle>
       </div>

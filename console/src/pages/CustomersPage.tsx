@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from '@tanstack/react-router'
 import {
   Alert,
@@ -24,6 +24,7 @@ import {
 } from '../services/api/customer'
 import { CustomerDrawer } from '../components/customers/CustomerDrawer'
 import { CustomerImportPanel } from '../components/customers/CustomerImportPanel'
+import { CustomerListMembershipModal } from '../components/customers/CustomerListMembershipModal'
 import { useWorkspacePermissions } from '../contexts/AuthContext'
 import { WorkspacePageTitle } from '../components/navigation/WorkspacePageTitle'
 
@@ -40,8 +41,10 @@ function useNarrowCustomerLayout() {
 export function CustomersPage() {
   const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/customers' })
+  const queryClient = useQueryClient()
   const narrow = useNarrowCustomerLayout()
   const { permissions } = useWorkspacePermissions(workspaceId)
+  const canWrite = Boolean(permissions?.customers?.write)
   const [activeSection, setActiveSection] = useState('directory')
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
@@ -49,6 +52,8 @@ export function CustomersPage() {
   const [cursor, setCursor] = useState('')
   const [cursorHistory, setCursorHistory] = useState<string[]>([])
   const [selectedCustomerID, setSelectedCustomerID] = useState<string | null>(null)
+  const [selectedCustomerIDs, setSelectedCustomerIDs] = useState<string[]>([])
+  const [membershipModalOpen, setMembershipModalOpen] = useState(false)
 
   const request = useMemo<CustomerListRequest>(
     () => ({
@@ -69,21 +74,25 @@ export function CustomersPage() {
     setSearch(value.trim())
     setCursor('')
     setCursorHistory([])
+    setSelectedCustomerIDs([])
   }
   const changeMerged = (checked: boolean) => {
     setIncludeMerged(checked)
     setCursor('')
     setCursorHistory([])
+    setSelectedCustomerIDs([])
   }
   const nextPage = () => {
     if (!query.data?.next_cursor) return
     setCursorHistory((history) => [...history, cursor])
     setCursor(query.data.next_cursor!)
+    setSelectedCustomerIDs([])
   }
   const previousPage = () => {
     setCursorHistory((history) => {
       if (history.length === 0) return history
       setCursor(history[history.length - 1])
+      setSelectedCustomerIDs([])
       return history.slice(0, -1)
     })
   }
@@ -132,6 +141,14 @@ export function CustomersPage() {
   ]
 
   const customers = query.data?.customers ?? []
+  const finishMembershipUpdate = () => {
+    setMembershipModalOpen(false)
+    setSelectedCustomerIDs([])
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: customerQueryKeys.all(workspaceId) }),
+      queryClient.invalidateQueries({ queryKey: ['lists', workspaceId] })
+    ])
+  }
 
   return (
     <Space orientation="vertical" size="large" style={{ width: '100%', minWidth: 0 }}>
@@ -144,7 +161,10 @@ export function CustomersPage() {
 
       <Tabs
         activeKey={activeSection}
-        onChange={setActiveSection}
+        onChange={(key) => {
+          setActiveSection(key)
+          setSelectedCustomerIDs([])
+        }}
         items={[
           { key: 'directory', label: t`Customer directory` },
           { key: 'import', label: t`Batch import` }
@@ -167,6 +187,21 @@ export function CustomersPage() {
           {t`Include merged customers`}
         </Checkbox>
       </Space>
+
+      {canWrite && selectedCustomerIDs.length > 0 ? (
+        <Card size="small">
+          <Space wrap style={{ width: '100%', justifyContent: 'space-between' }}>
+            <Typography.Text strong>
+              {selectedCustomerIDs.length === 1
+                ? t`1 customer selected`
+                : t`${selectedCustomerIDs.length} customers selected`}
+            </Typography.Text>
+            <Button type="primary" onClick={() => setMembershipModalOpen(true)}>
+              {t`Adjust list memberships`}
+            </Button>
+          </Space>
+        </Card>
+      ) : null}
 
       {query.isError && (
         <Alert
@@ -191,6 +226,20 @@ export function CustomersPage() {
                 onClick={() => setSelectedCustomerID(customer.customer_id)}
               >
                 <Space orientation="vertical" size="small" style={{ width: '100%' }}>
+                  {canWrite ? (
+                    <Checkbox
+                      aria-label={t`Select customer ${customer.customer_no}`}
+                      checked={selectedCustomerIDs.includes(customer.customer_id)}
+                      onClick={(event) => event.stopPropagation()}
+                      onChange={(event) => {
+                        setSelectedCustomerIDs((selected) => event.target.checked
+                          ? [...selected, customer.customer_id]
+                          : selected.filter((id) => id !== customer.customer_id))
+                      }}
+                    >
+                      {t`Select customer`}
+                    </Checkbox>
+                  ) : null}
                   <Typography.Text strong style={{ wordBreak: 'break-all' }}>
                     {customer.customer_no}
                   </Typography.Text>
@@ -216,6 +265,13 @@ export function CustomersPage() {
           pagination={false}
           scroll={{ x: 900 }}
           locale={{ emptyText: <Empty description={t`No customers found`} /> }}
+          rowSelection={canWrite ? {
+            selectedRowKeys: selectedCustomerIDs,
+            onChange: (keys) => setSelectedCustomerIDs(keys.map(String)),
+            getCheckboxProps: (customer) => ({
+              'aria-label': t`Select customer ${customer.customer_no}`
+            })
+          } : undefined}
           onRow={(customer) => ({
             onClick: () => setSelectedCustomerID(customer.customer_id),
             style: { cursor: 'pointer' }
@@ -237,13 +293,20 @@ export function CustomersPage() {
         customerId={selectedCustomerID}
         open={Boolean(selectedCustomerID)}
         onClose={() => setSelectedCustomerID(null)}
-        canWrite={Boolean(permissions?.customers?.write)}
+        canWrite={canWrite}
+      />
+      <CustomerListMembershipModal
+        workspaceId={workspaceId}
+        customerIds={selectedCustomerIDs}
+        open={membershipModalOpen}
+        onClose={() => setMembershipModalOpen(false)}
+        onSuccess={finishMembershipUpdate}
       />
         </>
       ) : (
         <CustomerImportPanel
           workspaceId={workspaceId}
-          canWrite={Boolean(permissions?.customers?.write)}
+          canWrite={canWrite}
           canBindLists={Boolean(permissions?.lists?.read || permissions?.lists?.write)}
         />
       )}

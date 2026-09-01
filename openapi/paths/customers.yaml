@@ -154,6 +154,40 @@
       '500':
         $ref: '#/components/responses/CustomerServerError'
 
+/api/customers.listMemberships.update:
+  post:
+    summary: Adjust list memberships for selected Customers
+    description: Atomically adds, removes, or changes the status of the selected Customer/list cross-product. Add preserves every existing membership and suppression state. Set-status changes existing memberships only. Remove deletes existing memberships. Missing relationships count as unchanged.
+    operationId: updateCustomerListMemberships
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/customer.yaml#/CustomerListMembershipUpdateRequest'
+    responses:
+      '200':
+        description: Membership transaction committed
+        headers:
+          X-Request-ID:
+            schema: { type: string }
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/customer.yaml#/CustomerListMembershipUpdateResponse'
+      '400':
+        $ref: '#/components/responses/CustomerBadRequest'
+      '401':
+        $ref: '#/components/responses/CustomerUnauthorized'
+      '403':
+        $ref: '#/components/responses/CustomerForbidden'
+      '413':
+        $ref: '#/components/responses/CustomerTooLarge'
+      '500':
+        $ref: '#/components/responses/CustomerServerError'
+
 /api/customers.merge:
   post:
     summary: Explicitly merge an anonymous Customer into a known Customer

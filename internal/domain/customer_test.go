@@ -589,6 +589,49 @@ func TestCustomerListRequestRejectsMalformedCursor(t *testing.T) {
 	assert.ErrorContains(t, err, "cursor")
 }
 
+func TestCustomerListMembershipUpdateRequestDefaultsAddStatusAndNormalizesIDs(t *testing.T) {
+	request := CustomerListMembershipUpdateRequest{
+		WorkspaceID: " workspace123 ",
+		CustomerIDs: []string{" 11111111-1111-4111-8111-111111111111 ", "22222222-2222-4222-8222-222222222222"},
+		ListIDs:     []string{"newsletter", "vip"},
+		Action:      CustomerListMembershipActionAdd,
+	}
+
+	require.NoError(t, request.Validate())
+	assert.Equal(t, "workspace123", request.WorkspaceID)
+	assert.Equal(t, "11111111-1111-4111-8111-111111111111", request.CustomerIDs[0])
+	assert.Equal(t, CustomerListMembershipStatusActive, request.Status)
+}
+
+func TestCustomerListMembershipUpdateRequestValidatesBatchOperation(t *testing.T) {
+	validCustomerID := "11111111-1111-4111-8111-111111111111"
+	tests := []struct {
+		name    string
+		request CustomerListMembershipUpdateRequest
+		wantErr string
+	}{
+		{name: "requires customers", request: CustomerListMembershipUpdateRequest{WorkspaceID: "workspace123", ListIDs: []string{"vip"}, Action: CustomerListMembershipActionAdd}, wantErr: "customer_ids"},
+		{name: "limits customers", request: CustomerListMembershipUpdateRequest{WorkspaceID: "workspace123", CustomerIDs: make([]string, MaxCustomerListMembershipBatchCustomers+1), ListIDs: []string{"vip"}, Action: CustomerListMembershipActionAdd}, wantErr: "50"},
+		{name: "rejects malformed customer", request: CustomerListMembershipUpdateRequest{WorkspaceID: "workspace123", CustomerIDs: []string{"not-a-uuid"}, ListIDs: []string{"vip"}, Action: CustomerListMembershipActionAdd}, wantErr: "non-nil UUID"},
+		{name: "rejects duplicate customer", request: CustomerListMembershipUpdateRequest{WorkspaceID: "workspace123", CustomerIDs: []string{validCustomerID, validCustomerID}, ListIDs: []string{"vip"}, Action: CustomerListMembershipActionAdd}, wantErr: "duplicate customer_id"},
+		{name: "requires lists", request: CustomerListMembershipUpdateRequest{WorkspaceID: "workspace123", CustomerIDs: []string{validCustomerID}, Action: CustomerListMembershipActionAdd}, wantErr: "list_ids"},
+		{name: "rejects malformed list", request: CustomerListMembershipUpdateRequest{WorkspaceID: "workspace123", CustomerIDs: []string{validCustomerID}, ListIDs: []string{"not-valid!"}, Action: CustomerListMembershipActionAdd}, wantErr: "alphanumeric"},
+		{name: "rejects duplicate list", request: CustomerListMembershipUpdateRequest{WorkspaceID: "workspace123", CustomerIDs: []string{validCustomerID}, ListIDs: []string{"vip", "vip"}, Action: CustomerListMembershipActionAdd}, wantErr: "duplicate list_id"},
+		{name: "requires action", request: CustomerListMembershipUpdateRequest{WorkspaceID: "workspace123", CustomerIDs: []string{validCustomerID}, ListIDs: []string{"vip"}}, wantErr: "action"},
+		{name: "requires status for change", request: CustomerListMembershipUpdateRequest{WorkspaceID: "workspace123", CustomerIDs: []string{validCustomerID}, ListIDs: []string{"vip"}, Action: CustomerListMembershipActionSetStatus}, wantErr: "status"},
+		{name: "rejects invalid status", request: CustomerListMembershipUpdateRequest{WorkspaceID: "workspace123", CustomerIDs: []string{validCustomerID}, ListIDs: []string{"vip"}, Action: CustomerListMembershipActionSetStatus, Status: "paused"}, wantErr: "status"},
+		{name: "rejects status for remove", request: CustomerListMembershipUpdateRequest{WorkspaceID: "workspace123", CustomerIDs: []string{validCustomerID}, ListIDs: []string{"vip"}, Action: CustomerListMembershipActionRemove, Status: CustomerListMembershipStatusActive}, wantErr: "status"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.request.Validate()
+			require.Error(t, err)
+			assert.ErrorContains(t, err, tt.wantErr)
+		})
+	}
+}
+
 func stringPointer(value string) *string { return &value }
 
 func stringSlicePointer(value []string) *[]string { return &value }

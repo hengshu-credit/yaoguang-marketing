@@ -1,11 +1,12 @@
 import { IOperator, Operator } from '../../services/api/segment'
+import { segmentOperatorLabel } from './labels'
 
 export class OperatorSet implements IOperator {
   type: Operator = 'is_set'
   label = 'is set'
 
   render() {
-    return <span className="opacity-60 pt-0.5">{this.label}</span>
+    return <span className="opacity-60 pt-0.5">{segmentOperatorLabel(this.type, this.label)}</span>
   }
 
   renderFormItems() {
@@ -18,7 +19,7 @@ export class OperatorNotSet implements IOperator {
   label = 'is not set'
 
   render() {
-    return <span className="opacity-60 pt-0.5">{this.label}</span>
+    return <span className="opacity-60 pt-0.5">{segmentOperatorLabel(this.type, this.label)}</span>
   }
 
   renderFormItems() {

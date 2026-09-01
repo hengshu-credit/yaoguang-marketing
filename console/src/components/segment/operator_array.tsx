@@ -1,6 +1,7 @@
 import { Form, Input } from 'antd'
 import Messages from './messages'
 import { DimensionFilter, IOperator } from '../../services/api/segment'
+import { segmentOperatorLabel } from './labels'
 
 // Operator for checking if a value is in a JSON array
 // Note: The labels 'in array' are used in class properties which are not React components,
@@ -19,7 +20,7 @@ export class OperatorInArray implements IOperator {
     const value = filter.string_values && filter.string_values[0]
     return (
       <>
-        <b>in array</b> <span style={{ marginLeft: '0.5rem' }}>{value}</span>
+        <b>{segmentOperatorLabel(this.type, this.label)}</b> <span style={{ marginLeft: '0.5rem' }}>{value}</span>
       </>
     )
   }

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, App, Drawer, Empty, Space, Spin, Tabs, Tag, Typography } from 'antd'
+import { Alert, App, Button, Drawer, Empty, Space, Spin, Tabs, Tag, Typography } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { customerApi, customerQueryKeys, type CustomerUpdatePatch } from '../../services/api/customer'
 import { listsApi } from '../../services/api/list'
@@ -10,6 +10,7 @@ import { CustomerDeliveriesTab } from './CustomerDeliveriesTab'
 import { CustomerProfilePanel } from './CustomerProfilePanel'
 import { JourneyTraceDrawer } from '../automations/JourneyTraceDrawer'
 import { ActionableError } from '../errors/ActionableError'
+import { CustomerListMembershipModal } from './CustomerListMembershipModal'
 
 interface CustomerDrawerProps {
   workspaceId: string
@@ -25,6 +26,7 @@ export function CustomerDrawer({ workspaceId, customerId, open, onClose, canWrit
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState('summary')
   const [traceInstanceId, setTraceInstanceId] = useState<string>()
+  const [membershipModalOpen, setMembershipModalOpen] = useState(false)
   const query = useQuery({
     queryKey: customerQueryKeys.detail(workspaceId, customerId ?? ''),
     queryFn: () => customerApi.get(workspaceId, customerId!),
@@ -60,7 +62,7 @@ export function CustomerDrawer({ workspaceId, customerId, open, onClose, canWrit
         title={t`Customer 360`}
         open={open}
         onClose={onClose}
-        width={1200}
+        size={1200}
         styles={{ wrapper: { maxWidth: '100vw' }, body: { padding: 0, overflow: 'hidden' } }}
         destroyOnHidden
       >
@@ -80,14 +82,17 @@ export function CustomerDrawer({ workspaceId, customerId, open, onClose, canWrit
                 <Alert className="mb-5" type="info" showIcon title={t`This customer was merged`} description={<Space orientation="vertical" size={0}><Typography.Text>{t`Showing the surviving customer profile.`}</Typography.Text><Typography.Text copyable>{resolvedFrom || customer.merged_into_id}</Typography.Text></Space>} />
               ) : null}
 
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4">
                 <section className="rounded-lg border border-gray-200 p-4" aria-labelledby="customer-lists-title">
-                  <Typography.Title id="customer-lists-title" level={5} className="mt-0">{t`List memberships`}</Typography.Title>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <Typography.Title id="customer-lists-title" level={5} className="m-0">{t`List memberships`}</Typography.Title>
+                    {canWrite ? (
+                      <Button size="small" onClick={() => setMembershipModalOpen(true)}>
+                        {t`Adjust list memberships`}
+                      </Button>
+                    ) : null}
+                  </div>
                   {(customer.list_memberships?.length ?? 0) > 0 ? <Space wrap>{customer.list_memberships!.map((membership) => <Tag key={membership.list_id} color={membership.status === 'active' ? 'blue' : 'default'}>{listNames.get(membership.list_id) || membership.list_id} · {membership.status}</Tag>)}</Space> : <Typography.Text type="secondary">{t`No list memberships`}</Typography.Text>}
-                </section>
-                <section className="rounded-lg border border-gray-200 p-4" aria-labelledby="customer-consents-title">
-                  <Typography.Title id="customer-consents-title" level={5} className="mt-0">{t`Consent`}</Typography.Title>
-                  {(customer.consents?.length ?? 0) > 0 ? <Space orientation="vertical">{customer.consents!.map((consent) => <Space key={consent.id} wrap><Typography.Text>{consent.purpose} / {consent.channel}</Typography.Text><Tag color={consent.status === 'granted' ? 'green' : 'default'}>{consent.status}</Tag></Space>)}</Space> : <Typography.Text type="secondary">{t`No consent records`}</Typography.Text>}
                 </section>
               </div>
 
@@ -111,6 +116,21 @@ export function CustomerDrawer({ workspaceId, customerId, open, onClose, canWrit
           </div>
         ) : null}
       </Drawer>
+      <CustomerListMembershipModal
+        workspaceId={workspaceId}
+        customerIds={customerId ? [customerId] : []}
+        currentListIds={customer?.list_memberships?.map((membership) => membership.list_id)}
+        open={open && membershipModalOpen}
+        onClose={() => setMembershipModalOpen(false)}
+        onSuccess={() => {
+          setMembershipModalOpen(false)
+          void Promise.all([
+            queryClient.invalidateQueries({ queryKey: customerQueryKeys.detail(workspaceId, customerId ?? '') }),
+            queryClient.invalidateQueries({ queryKey: customerQueryKeys.all(workspaceId) }),
+            queryClient.invalidateQueries({ queryKey: ['lists', workspaceId] })
+          ])
+        }}
+      />
       <JourneyTraceDrawer workspaceId={workspaceId} journeyInstanceId={traceInstanceId} open={Boolean(traceInstanceId)} onClose={() => setTraceInstanceId(undefined)} />
     </>
   )

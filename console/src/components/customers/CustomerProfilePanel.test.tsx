@@ -37,6 +37,18 @@ function renderPanel(onUpdate = vi.fn(async () => undefined), canWrite = true) {
 }
 
 describe('CustomerProfilePanel', () => {
+  it('renders profile attribute names and values side by side', () => {
+    renderPanel()
+
+    const attributeName = screen.getByText('tier')
+    const attributeValue = screen.getByText('gold')
+    const attributeRow = attributeName.closest('.group')
+
+    expect(attributeRow).toHaveClass('grid', 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]')
+    expect(attributeName).toHaveClass('text-left')
+    expect(attributeValue).toHaveClass('text-right')
+  })
+
   it('updates an existing profile field inline', async () => {
     const onUpdate = renderPanel()
 

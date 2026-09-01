@@ -35,7 +35,8 @@ vi.stubGlobal('ResizeObserver', ResizeObserverStub)
  */
 const renderActivityForm = (
   timeline: ContactTimelineCondition,
-  onDraftChange: (leaf: TreeNode) => void
+  onDraftChange: (leaf: TreeNode) => void,
+  onChange: (leaf: TreeNode) => void = vi.fn()
 ) => {
   const node: TreeNode = {
     kind: 'leaf',
@@ -52,7 +53,7 @@ const renderActivityForm = (
       <I18nProvider i18n={i18n}>
         <LeafActionForm
           value={node}
-          onChange={vi.fn()}
+          onChange={onChange}
           onDraftChange={onDraftChange}
           source="contact_timeline"
           schema={TableSchemas.contact_timeline}
@@ -216,5 +217,52 @@ describe('Activity condition — web navigation kinds', () => {
     renderActivityForm({ ...baseTimeline, kind: 'email.opened' }, vi.fn())
 
     expect(screen.getByTestId('template-picker')).toBeInTheDocument()
+  })
+
+  it('drops hidden message scope when an email activity becomes a web activity', async () => {
+    const templateID = 'template-1'
+    const broadcastID = 'broadcast-1'
+    const linkURL = '/repay'
+    const onDraftChange = vi.fn()
+    renderActivityForm({
+      ...baseTimeline,
+      kind: 'email.clicked',
+      template_id: templateID,
+      broadcast_id: broadcastID,
+      link_url: linkURL
+    }, onDraftChange)
+
+    openKindSelect()
+    fireEvent.click(screen.getByText('View web page'))
+
+    await waitFor(() => expect(onDraftChange).toHaveBeenCalled())
+    const timeline = lastDraft(onDraftChange).leaf?.contact_timeline
+    expect(timeline?.kind).toBe('web.pageview')
+    expect(timeline?.template_id).toBeUndefined()
+    expect(timeline?.broadcast_id).toBeUndefined()
+    expect(timeline?.link_url).toBeUndefined()
+  })
+
+  it('commits a web activity without the previous email message scope', async () => {
+    const onChange = vi.fn()
+    renderActivityForm({
+      ...baseTimeline,
+      kind: 'email.clicked',
+      template_id: 'template-1',
+      broadcast_id: 'broadcast-1',
+      link_url: '/repay'
+    }, vi.fn(), onChange)
+
+    openKindSelect()
+    fireEvent.click(screen.getByText('View web page'))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+
+    await waitFor(() => expect(onChange).toHaveBeenCalled())
+    const saved = onChange.mock.calls[0][0] as TreeNode
+    const timeline = saved.leaf?.contact_timeline
+    expect(timeline?.kind).toBe('web.pageview')
+    expect(timeline?.template_id).toBeUndefined()
+    expect(timeline?.broadcast_id).toBeUndefined()
+    expect(timeline?.link_url).toBeUndefined()
   })
 })

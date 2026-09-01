@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { I18nProvider } from '@lingui/react'
+import { App } from 'antd'
 import { i18n } from '../i18n'
 import { customerApi } from '../services/api/customer'
 import { CustomersPage } from './CustomersPage'
@@ -14,6 +15,7 @@ vi.mock('@tanstack/react-router', async () => {
 
 vi.mock('../services/api/customer', () => ({
   customerQueryKeys: {
+    all: (workspaceId: string) => ['customers', workspaceId],
     list: (workspaceId: string, request: unknown) => ['customers', workspaceId, 'list', request]
   },
   customerApi: {
@@ -31,6 +33,17 @@ vi.mock('../services/api/customer', () => ({
         }
       ],
       next_cursor: 'next-page'
+    })),
+    updateListMemberships: vi.fn(async () => ({
+      request_id: 'request-1', customers: 1, lists: 1, changed: 1, unchanged: 0
+    }))
+  }
+}))
+
+vi.mock('../services/api/list', () => ({
+  listsApi: {
+    list: vi.fn(async () => ({
+      lists: [{ id: 'newsletter', name: 'Newsletter', is_double_optin: false, is_public: false, created_at: '', updated_at: '' }]
     }))
   }
 }))
@@ -48,13 +61,17 @@ function wrapper({ children }: { children: React.ReactNode }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
   return (
     <QueryClientProvider client={client}>
-      <I18nProvider i18n={i18n}>{children}</I18nProvider>
+      <I18nProvider i18n={i18n}><App>{children}</App></I18nProvider>
     </QueryClientProvider>
   )
 }
 
 describe('CustomersPage', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1024 })
+    window.dispatchEvent(new Event('resize'))
+  })
 
   it('renders the primary page title at the shared 24px size', async () => {
     render(<CustomersPage />, { wrapper })
@@ -94,5 +111,28 @@ describe('CustomersPage', () => {
         expect.objectContaining({ workspace_id: 'ws1', cursor: 'next-page' })
       )
     })
+  })
+
+  it('selects customers and opens the bulk list membership adjustment', async () => {
+    render(<CustomersPage />, { wrapper })
+    await screen.findByText('crm-42')
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Select customer U0001/ }))
+
+    expect(screen.getByText('1 customer selected')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Adjust list memberships' }))
+    expect(await screen.findByRole('dialog', { name: 'Adjust list memberships' })).toBeInTheDocument()
+    expect(screen.getByText('This operation applies to 1 selected customers.')).toBeInTheDocument()
+  })
+
+  it('offers the same customer selection action on narrow screens', async () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 375 })
+    render(<CustomersPage />, { wrapper })
+
+    const checkbox = await screen.findByRole('checkbox', { name: /Select customer U0001/ })
+    fireEvent.click(checkbox)
+
+    expect(screen.getByText('1 customer selected')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Adjust list memberships' })).toBeInTheDocument()
   })
 })

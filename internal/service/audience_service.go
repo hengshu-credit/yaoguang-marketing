@@ -246,7 +246,16 @@ func (s *AudienceService) Get(ctx context.Context, workspaceID, audienceID strin
 	if err != nil {
 		return nil, err
 	}
-	return s.repository.GetAudience(authorized, workspaceID, audienceID)
+	item, err := s.repository.GetAudience(authorized, workspaceID, audienceID)
+	if err != nil {
+		return nil, err
+	}
+	version, err := s.repository.GetAudienceVersion(authorized, workspaceID, item.ID, item.ActiveVersion)
+	if err != nil {
+		return nil, fmt.Errorf("load active audience version: %w", err)
+	}
+	item.Definition = &version.Definition
+	return item, nil
 }
 
 func (s *AudienceService) List(ctx context.Context, workspaceID string, limit, offset int) ([]domain.Audience, int, error) {

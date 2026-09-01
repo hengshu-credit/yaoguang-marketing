@@ -748,6 +748,114 @@ func TestCustomerRepositoryUpsertAtomicallyUpdatesProfileIdentityTagsListsAndCon
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestCustomerRepositoryAddListMembershipsDoesNotOverwriteExistingSuppression(t *testing.T) {
+	now := time.Date(2026, 9, 1, 9, 10, 11, 0, time.UTC)
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	ctrl := gomock.NewController(t)
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	expectWorkspaceTransaction(workspaceRepo, db, "workspace1")
+	customerIDs := []string{"11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"}
+	listIDs := []string{"newsletter", "vip"}
+
+	mock.ExpectBegin()
+	expectCustomerListMembershipTargets(mock, customerIDs, listIDs)
+	mock.ExpectQuery(`INSERT INTO customer_list_memberships.*ON CONFLICT \(customer_id, list_id\) DO NOTHING.*SELECT COUNT\(\*\)`).
+		WithArgs(pq.Array(customerIDs), pq.Array(listIDs), "active", now).
+		WillReturnRows(sqlmock.NewRows([]string{"changed", "customer_ids"}).AddRow(3, `{11111111-1111-4111-8111-111111111111,22222222-2222-4222-8222-222222222222}`))
+	mock.ExpectExec(`UPDATE customers SET version = version \+ 1, updated_at = \$2 WHERE id = ANY\(\$1::uuid\[\]\)`).
+		WithArgs(pq.Array(customerIDs), now).WillReturnResult(sqlmock.NewResult(0, 2))
+	mock.ExpectExec(`INSERT INTO contact_lists.*SELECT contact.email, membership.list_id, membership.status.*ON CONFLICT \(email, list_id\) DO UPDATE SET customer_id = EXCLUDED.customer_id.*WHERE contact_lists.customer_id IS NULL`).
+		WithArgs(pq.Array(customerIDs), pq.Array(listIDs), now).WillReturnResult(sqlmock.NewResult(0, 3))
+	mock.ExpectCommit()
+
+	repo, err := NewCustomerRepository(workspaceRepo, "secret")
+	require.NoError(t, err)
+	repo.now = func() time.Time { return now }
+	result, err := repo.UpdateListMemberships(context.Background(), domain.CustomerListMembershipUpdateRequest{
+		WorkspaceID: "workspace1", CustomerIDs: customerIDs, ListIDs: listIDs,
+		Action: domain.CustomerListMembershipActionAdd, Status: domain.CustomerListMembershipStatusActive,
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, 3, result.Changed)
+	assert.Equal(t, 1, result.Unchanged)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCustomerRepositorySetListMembershipStatusOnlyUpdatesExistingMemberships(t *testing.T) {
+	now := time.Date(2026, 9, 1, 9, 10, 11, 0, time.UTC)
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	ctrl := gomock.NewController(t)
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	expectWorkspaceTransaction(workspaceRepo, db, "workspace1")
+	customerIDs := []string{"11111111-1111-4111-8111-111111111111"}
+	listIDs := []string{"newsletter", "vip"}
+
+	mock.ExpectBegin()
+	expectCustomerListMembershipTargets(mock, customerIDs, listIDs)
+	mock.ExpectQuery(`UPDATE customer_list_memberships SET status = \$3.*status <> \$3.*SELECT COUNT\(\*\)`).
+		WithArgs(pq.Array(customerIDs), pq.Array(listIDs), "unsubscribed", now).
+		WillReturnRows(sqlmock.NewRows([]string{"changed", "customer_ids"}).AddRow(1, `{11111111-1111-4111-8111-111111111111}`))
+	mock.ExpectExec(`UPDATE customers SET version = version \+ 1`).
+		WithArgs(pq.Array(customerIDs), now).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`INSERT INTO contact_lists.*SELECT contact.email, membership.list_id, membership.status.*ON CONFLICT \(email, list_id\) DO UPDATE SET status = EXCLUDED.status`).
+		WithArgs(pq.Array(customerIDs), pq.Array(listIDs), now).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	repo, err := NewCustomerRepository(workspaceRepo, "secret")
+	require.NoError(t, err)
+	repo.now = func() time.Time { return now }
+	result, err := repo.UpdateListMemberships(context.Background(), domain.CustomerListMembershipUpdateRequest{
+		WorkspaceID: "workspace1", CustomerIDs: customerIDs, ListIDs: listIDs,
+		Action: domain.CustomerListMembershipActionSetStatus, Status: domain.CustomerListMembershipStatusUnsubscribed,
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, result.Changed)
+	assert.Equal(t, 1, result.Unchanged)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCustomerRepositoryRemoveListMembershipsDeletesAuthorityAndProjection(t *testing.T) {
+	now := time.Date(2026, 9, 1, 9, 10, 11, 0, time.UTC)
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer db.Close()
+	ctrl := gomock.NewController(t)
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	expectWorkspaceTransaction(workspaceRepo, db, "workspace1")
+	customerIDs := []string{"11111111-1111-4111-8111-111111111111"}
+	listIDs := []string{"newsletter", "vip"}
+
+	mock.ExpectBegin()
+	expectCustomerListMembershipTargets(mock, customerIDs, listIDs)
+	mock.ExpectQuery(`DELETE FROM customer_list_memberships.*RETURNING customer_id.*SELECT COUNT\(\*\)`).
+		WithArgs(pq.Array(customerIDs), pq.Array(listIDs)).
+		WillReturnRows(sqlmock.NewRows([]string{"changed", "customer_ids"}).AddRow(1, `{11111111-1111-4111-8111-111111111111}`))
+	mock.ExpectExec(`UPDATE customers SET version = version \+ 1`).
+		WithArgs(pq.Array(customerIDs), now).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`DELETE FROM contact_lists WHERE customer_id = ANY\(\$1::uuid\[\]\) AND list_id = ANY\(\$2::text\[\]\)`).
+		WithArgs(pq.Array(customerIDs), pq.Array(listIDs)).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	repo, err := NewCustomerRepository(workspaceRepo, "secret")
+	require.NoError(t, err)
+	repo.now = func() time.Time { return now }
+	result, err := repo.UpdateListMemberships(context.Background(), domain.CustomerListMembershipUpdateRequest{
+		WorkspaceID: "workspace1", CustomerIDs: customerIDs, ListIDs: listIDs,
+		Action: domain.CustomerListMembershipActionRemove,
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, result.Changed)
+	assert.Equal(t, 1, result.Unchanged)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestProjectCustomerContactUpdatesExistingProjectionWithoutEmailInPatch(t *testing.T) {
 	now := time.Date(2026, 8, 30, 1, 2, 3, 0, time.UTC)
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
@@ -977,6 +1085,21 @@ func pointerTo(value string) *string { return &value }
 
 func customerListMembershipsPointer(value []domain.CustomerListMembershipInput) *[]domain.CustomerListMembershipInput {
 	return &value
+}
+
+func expectCustomerListMembershipTargets(mock sqlmock.Sqlmock, customerIDs, listIDs []string) {
+	customerRows := sqlmock.NewRows([]string{"id"})
+	for _, customerID := range customerIDs {
+		customerRows.AddRow(customerID)
+	}
+	listRows := sqlmock.NewRows([]string{"id"})
+	for _, listID := range listIDs {
+		listRows.AddRow(listID)
+	}
+	mock.ExpectQuery(`SELECT id FROM customers WHERE id = ANY\(\$1::uuid\[\]\).*merged_into_id IS NULL`).
+		WithArgs(pq.Array(customerIDs)).WillReturnRows(customerRows)
+	mock.ExpectQuery(`SELECT id FROM lists WHERE id = ANY\(\$1::text\[\]\)`).
+		WithArgs(pq.Array(listIDs)).WillReturnRows(listRows)
 }
 
 func expectCustomerAggregateChildren(mock sqlmock.Sqlmock, now time.Time) {

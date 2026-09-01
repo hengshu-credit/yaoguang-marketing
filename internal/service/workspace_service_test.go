@@ -5445,6 +5445,9 @@ func TestUpdateWorkspace_OmittedSettingsKeepStoredValues(t *testing.T) {
 			MarketingEmailProviderID:     "provider-marketing",
 			EmailTrackingEnabled:         true,
 			CustomEndpointURL:            &storedEndpoint,
+			ConsoleFont: &domain.ConsoleFontSettings{
+				Family: "Stored Font",
+			},
 		}
 	}
 
@@ -5566,6 +5569,21 @@ func TestUpdateWorkspace_OmittedSettingsKeepStoredValues(t *testing.T) {
 			"clearing the file manager outright must take its credential with it")
 		assert.Equal(t, "provider-marketing", saved.Settings.MarketingEmailProviderID,
 			"the sibling the body did not name is untouched")
+	})
+
+	t.Run("console font named by the body is saved", func(t *testing.T) {
+		saved := run(t, `{
+			"id": "testworkspace",
+			"name": "Renamed",
+			"settings": {
+				"timezone": "UTC", "default_language": "en", "languages": ["en"],
+				"console_font": {"family": "Arial"}
+			}
+		}`)
+
+		require.NotNil(t, saved.Settings.ConsoleFont)
+		assert.Equal(t, "Arial", saved.Settings.ConsoleFont.Family,
+			"the general-settings allowlist must carry the requested console font into the repository")
 	})
 }
 
