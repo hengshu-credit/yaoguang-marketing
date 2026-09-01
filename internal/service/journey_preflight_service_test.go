@@ -93,4 +93,30 @@ func TestJourneyPreflightRequiresExplicitWarningConfirmation(t *testing.T) {
 	require.NoError(t, service.ValidateAutomationPreflight(context.Background(), request, result.SummaryHash, true))
 }
 
+func TestJourneyPreflightHashRoundTripsWithSubsecondClock(t *testing.T) {
+	now := time.Date(2026, 8, 30, 10, 0, 0, 123456789, time.UTC)
+	automation := &domain.Automation{
+		ID: "journey-subsecond", WorkspaceID: "ws", Name: "subsecond", Status: domain.AutomationStatusDraft,
+		Trigger:    &domain.TimelineTriggerConfig{EventKind: "contact.created", Frequency: domain.TriggerFrequencyOnce},
+		RootNodeID: "delay", UpdatedAt: now,
+		Nodes: []*domain.AutomationNode{{
+			ID: "delay", AutomationID: "journey-subsecond", Type: domain.NodeTypeDelay,
+			Config: map[string]interface{}{"duration": 1, "unit": "days"},
+		}},
+	}
+	service, err := NewJourneyPreflightService(
+		journeyPreflightSourceStub{snapshot: &domain.JourneyPreflightSnapshot{Automation: automation, HasFrequencyPolicy: true}},
+		nil,
+		func() time.Time { return now },
+	)
+	require.NoError(t, err)
+	request := domain.JourneyPreflightRequest{WorkspaceID: "ws", AutomationID: automation.ID}
+
+	result, err := service.PreflightAutomation(context.Background(), request)
+	require.NoError(t, err)
+	require.Zero(t, result.BlockingCount)
+	require.Zero(t, result.WarningCount)
+	require.NoError(t, service.ValidateAutomationPreflight(context.Background(), request, result.SummaryHash, false))
+}
+
 func stringPtr(value string) *string { return &value }

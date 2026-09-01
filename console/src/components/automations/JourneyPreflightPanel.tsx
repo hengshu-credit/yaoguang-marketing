@@ -74,6 +74,7 @@ export function JourneyPreflightPanel({
       })
       onActivated?.()
     } catch (cause) {
+      setResult(undefined)
       setError(cause)
     } finally {
       setActivating(false)

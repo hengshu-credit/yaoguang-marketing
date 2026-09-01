@@ -57,7 +57,8 @@ func (s *JourneyPreflightService) PreflightAutomation(ctx context.Context, reque
 	now := s.now().UTC()
 	result := &domain.JourneyPreflightResult{
 		WorkspaceID: request.WorkspaceID, AutomationID: request.AutomationID,
-		Issues: []domain.JourneyPreflightIssue{}, GeneratedAt: now, ExpiresAt: now.Add(journeyPreflightTTL),
+		Issues: []domain.JourneyPreflightIssue{}, GeneratedAt: now,
+		ExpiresAt: time.Unix(now.Add(journeyPreflightTTL).Unix(), 0).UTC(),
 	}
 	add := func(code string, severity domain.JourneyPreflightSeverity, title, description, nodeID, fixPath string) {
 		result.Issues = append(result.Issues, domain.JourneyPreflightIssue{Code: code, Severity: severity, Title: title, Description: description, NodeID: nodeID, FixPath: fixPath})

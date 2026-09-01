@@ -96,4 +96,26 @@ describe('JourneyPreflightPanel', () => {
     })
     expect(onActivated).toHaveBeenCalled()
   })
+
+  it('removes a stale successful result when activation validation fails', async () => {
+    const user = userEvent.setup()
+    vi.mocked(automationApi.preflight).mockResolvedValue({
+      ...warningResult,
+      blocking_count: 0,
+      warning_count: 0,
+      issues: []
+    })
+    vi.mocked(automationApi.activate).mockRejectedValue(
+      new Error('journey activation preflight changed; run preflight again')
+    )
+    renderPanel()
+
+    const activate = await screen.findByRole('button', { name: 'Activate journey' })
+    expect(screen.getByText('Ready to activate')).toBeVisible()
+    await user.click(activate)
+
+    await waitFor(() => {
+      expect(screen.queryByText('Ready to activate')).not.toBeInTheDocument()
+    })
+  })
 })
