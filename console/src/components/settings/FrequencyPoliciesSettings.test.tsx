@@ -27,8 +27,10 @@ describe('FrequencyPoliciesSettings', () => {
   it('renders the frequency settings page from the active language catalog', async () => {
     render(<FrequencyPoliciesSettings workspaceId="workspace-1" />)
 
-    const heading = await screen.findByRole('heading', { name: 'Message frequency control' })
+    const heading = await screen.findByRole('heading', { level: 1, name: 'Message frequency control' })
     expect(heading).toBeInTheDocument()
+    expect(heading.style.fontSize).toBe('24px')
+    expect(heading.style.fontWeight).toBe('500')
     expect(heading.nextElementSibling).toHaveTextContent('Limit marketing messages per customer and channel.')
     expect(screen.getByText('The three levels are independent')).toBeInTheDocument()
   })

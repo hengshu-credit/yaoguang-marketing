@@ -11,6 +11,7 @@ import { Workspace, FileManagerSettings } from '../services/api/types'
 import { useWorkspacePermissions } from '../contexts/AuthContext'
 import { ContentCenterTabs } from '../components/navigation/WorkspaceSectionTabs'
 import { workspaceFileManagerRoute } from '../router'
+import { WorkspacePageTitle } from '../components/navigation/WorkspacePageTitle'
 
 export function FileManagerPage() {
   const { t } = useLingui()
@@ -117,7 +118,7 @@ export function FileManagerPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">{t`File Manager`}</div>
+        <WorkspacePageTitle>{t`File Manager`}</WorkspacePageTitle>
       </div>
 
       <ContentCenterTabs workspaceId={workspaceId} activeKey="file-manager" />

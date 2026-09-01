@@ -811,8 +811,8 @@ msgstr "在包装中添加块"
 msgid "Add card"
 msgstr "添加卡片"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:81
-#: src/components/integrations/ChannelWebhookIntegration.tsx:96
+#: src/components/integrations/ChannelWebhookIntegration.tsx:80
+#: src/components/integrations/ChannelWebhookIntegration.tsx:95
 msgid "Add Channel Webhook"
 msgstr "添加渠道 Webhook"
 
@@ -882,7 +882,7 @@ msgstr "添加 Header"
 msgid "Add imported customers to lists"
 msgstr "将导入的客户添加到名单"
 
-#: src/components/settings/Integrations.tsx:2651
+#: src/components/settings/Integrations.tsx:2659
 msgid "Add Integration"
 msgstr "添加集成"
 
@@ -926,7 +926,7 @@ msgstr "添加客户属性"
 
 #: src/components/settings/Integrations.tsx:2342
 #: src/components/settings/Integrations.tsx:2398
-#: src/components/settings/Integrations.tsx:2695
+#: src/components/settings/Integrations.tsx:2703
 msgid "Add Sender"
 msgstr "添加发件人"
 
@@ -1073,6 +1073,10 @@ msgstr "向上对齐"
 msgid "Alignment"
 msgstr "对齐"
 
+#: src/App.tsx:132
+msgid "Alkaid Marketing Platform"
+msgstr "瑶光营销平台"
+
 #: src/components/analytics/EmailMetricsChart.tsx:284
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:118
 #: src/components/web_analytics/tabs/FiltersTab.tsx:146
@@ -1148,7 +1152,7 @@ msgstr "所有工作区覆盖项都将恢复为内置默认值。"
 msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 msgstr "允许接收邮件来触发事务通知。需要 TLS 证书。"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:101
+#: src/components/integrations/ChannelWebhookIntegration.tsx:100
 msgid "Allowed channels"
 msgstr "允许的渠道"
 
@@ -1896,8 +1900,8 @@ msgstr "日期之前"
 msgid "Before User Created Hook"
 msgstr "在用户创建 Hook 之前"
 
-msgid "Belonging to at least one of the following segments"
-msgstr "属于以下至少一个细分群体"
+#~ msgid "Belonging to at least one of the following segments"
+#~ msgstr "属于以下至少一个细分群体"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:480
 msgid "Best and worst pages"
@@ -2453,12 +2457,12 @@ msgstr "营销活动"
 #: src/components/settings/CustomFieldsConfiguration.tsx:291
 #: src/components/settings/EditPermissionsDrawer.tsx:80
 #: src/components/settings/Integrations.tsx:2567
-#: src/components/settings/Integrations.tsx:2700
-#: src/components/settings/Integrations.tsx:2735
-#: src/components/settings/Integrations.tsx:2782
-#: src/components/settings/Integrations.tsx:2830
-#: src/components/settings/Integrations.tsx:2877
-#: src/components/settings/Integrations.tsx:2914
+#: src/components/settings/Integrations.tsx:2708
+#: src/components/settings/Integrations.tsx:2743
+#: src/components/settings/Integrations.tsx:2790
+#: src/components/settings/Integrations.tsx:2838
+#: src/components/settings/Integrations.tsx:2885
+#: src/components/settings/Integrations.tsx:2922
 #: src/components/settings/SystemSettingsDrawer.tsx:170
 #: src/components/settings/UITranslationsSettings.tsx:361
 #: src/components/settings/WebhookCard.tsx:430
@@ -2674,7 +2678,7 @@ msgstr "变化状况 {0}"
 msgid "Channel"
 msgstr "渠道"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:80
+#: src/components/integrations/ChannelWebhookIntegration.tsx:79
 msgid "Channel delivery Webhooks"
 msgstr "渠道投递 Webhook"
 
@@ -2693,11 +2697,11 @@ msgstr "频道组"
 msgid "Channel scope"
 msgstr "渠道范围"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:69
+#: src/components/integrations/ChannelWebhookIntegration.tsx:68
 msgid "Channel Webhook created"
 msgstr "渠道 Webhook 已创建"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:69
+#: src/components/integrations/ChannelWebhookIntegration.tsx:68
 msgid "Channel Webhook updated"
 msgstr "渠道 Webhook 已更新"
 
@@ -3256,7 +3260,7 @@ msgstr "连接"
 msgid "Connect and manage external services"
 msgstr "连接并管理外部服务"
 
-#: src/components/settings/Integrations.tsx:2903
+#: src/components/settings/Integrations.tsx:2911
 #: src/components/settings/ZapierSettings.tsx:286
 msgid "Connect Zapier"
 msgstr "连接 Zapier"
@@ -3283,11 +3287,11 @@ msgstr "连续交付失败 : {consecutiveFailures}"
 msgid "Consent"
 msgstr "授权同意"
 
-#: src/components/settings/Integrations.tsx:2673
+#: src/components/settings/Integrations.tsx:2681
 msgid "Consider connecting a marketing email provider to send newsletters, promotional campaigns, and announcements to engage with your audience."
 msgstr "建议连接营销邮件服务商，用于发送简报、推广活动和公告，与受众保持互动。"
 
-#: src/components/settings/Integrations.tsx:2668
+#: src/components/settings/Integrations.tsx:2676
 msgid "Consider connecting a transactional email provider to be able to use transactional emails for account notifications, password resets, and other important system messages."
 msgstr "建议连接事务邮件服务商，用于发送账户通知、密码重置和其他重要系统消息。"
 
@@ -4640,7 +4644,7 @@ msgstr "删除可取消此连接的 API 密钥, 因此任何 Zap 仍然使用它
 msgid "Deleting this webhook breaks the Zap that created it. The Zap stays switched on in Zapier and reports no error — it simply stops receiving events."
 msgstr "删除此 Webhook 会使创建它的 Zap 失效。该 Zap 在 Zapier 中仍显示为启用且不会报错，但将停止接收事件。"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:80
+#: src/components/integrations/ChannelWebhookIntegration.tsx:79
 msgid "Deliver new messaging channels through a signed HTTPS bridge."
 msgstr "通过签名 HTTPS 网关投递新增消息渠道。"
 
@@ -5124,7 +5128,7 @@ msgstr "编辑"
 #: src/components/blog/PostsTable.tsx:349
 #: src/components/email_builder/EmailBuilder.tsx:839
 #: src/components/email_builder/ui/ImportFontInput.tsx:209
-#: src/components/integrations/ChannelWebhookIntegration.tsx:87
+#: src/components/integrations/ChannelWebhookIntegration.tsx:86
 #: src/components/settings/Integrations.tsx:353
 #: src/components/settings/Integrations.tsx:1449
 #: src/components/settings/Integrations.tsx:1608
@@ -5207,7 +5211,7 @@ msgstr "编辑群发"
 msgid "Edit Category"
 msgstr "编辑类别"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:96
+#: src/components/integrations/ChannelWebhookIntegration.tsx:95
 msgid "Edit Channel Webhook"
 msgstr "编辑渠道 Webhook"
 
@@ -5282,7 +5286,7 @@ msgstr "编辑规则"
 msgid "Edit segment"
 msgstr "编辑段"
 
-#: src/components/settings/Integrations.tsx:2695
+#: src/components/settings/Integrations.tsx:2703
 msgid "Edit Sender"
 msgstr "编辑发件人"
 
@@ -5324,7 +5328,7 @@ msgstr "编辑值"
 msgid "Edit Webhook"
 msgstr "编辑 Webhook"
 
-#: src/components/settings/Integrations.tsx:2903
+#: src/components/settings/Integrations.tsx:2911
 msgid "Edit Zapier connection"
 msgstr "编辑 Zapier 连接"
 
@@ -5373,7 +5377,7 @@ msgstr "邮件"
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
 #: src/components/frequency/FrequencyPolicyForm.tsx:85
 #: src/components/messages/MessageHistoryTab.tsx:219
-#: src/components/settings/Integrations.tsx:2710
+#: src/components/settings/Integrations.tsx:2718
 #: src/components/settings/WorkspaceMembers.tsx:101
 #: src/components/timeline/ContactTimeline.tsx:584
 #: src/pages/ContactsPage.tsx:369
@@ -5470,7 +5474,7 @@ msgstr "邮件选项 :"
 msgid "Email Preview"
 msgstr "邮件预览"
 
-#: src/components/settings/Integrations.tsx:2663
+#: src/components/settings/Integrations.tsx:2671
 msgid "Email Provider Configuration Needed"
 msgstr "需要配置邮件服务商"
 
@@ -5676,11 +5680,11 @@ msgstr "输入翻译，或选择“恢复默认”以使用默认值"
 msgid "Enter a unique alphanumeric ID"
 msgstr "输入唯一的字母数字 ID"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:99
+#: src/components/integrations/ChannelWebhookIntegration.tsx:98
 msgid "Enter an absolute HTTPS URL"
 msgstr "请输入完整的 HTTPS URL"
 
-#: src/components/settings/Integrations.tsx:2748
+#: src/components/settings/Integrations.tsx:2756
 msgid "Enter an email address to receive a test email:"
 msgstr "输入接收测试邮件的邮件地址 :"
 
@@ -6520,7 +6524,7 @@ msgstr "恢复群发失败"
 msgid "Failed to save audience"
 msgstr "保存客群失败"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:72
+#: src/components/integrations/ChannelWebhookIntegration.tsx:71
 msgid "Failed to save Channel Webhook"
 msgstr "保存渠道 Webhook 失败"
 
@@ -7464,7 +7468,7 @@ msgstr "HTML 预览"
 msgid "HTML Preview of {0}"
 msgstr "HTML 预览 {0}"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:99
+#: src/components/integrations/ChannelWebhookIntegration.tsx:98
 msgid "HTTPS endpoint"
 msgstr "HTTPS 地址"
 
@@ -8266,7 +8270,7 @@ msgstr "铅"
 msgid "Learn how to enable SMTP bridge"
 msgstr "学习如何启用 SMTP 桥"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:100
+#: src/components/integrations/ChannelWebhookIntegration.tsx:99
 msgid "Leave blank to keep the current secret"
 msgstr "留空以保留当前密钥"
 
@@ -9272,7 +9276,7 @@ msgstr "N/A"
 #: src/components/blog/CategoryDrawer.tsx:130
 #: src/components/errors/ActionableError.tsx:34
 #: src/components/file_manager/fileManager.tsx:868
-#: src/components/integrations/ChannelWebhookIntegration.tsx:98
+#: src/components/integrations/ChannelWebhookIntegration.tsx:97
 #: src/components/lists/ListDrawer.tsx:185
 #: src/components/segment/button_upsert.tsx:442
 #: src/components/settings/Integrations.tsx:390
@@ -9280,7 +9284,7 @@ msgstr "N/A"
 #: src/components/settings/Integrations.tsx:1640
 #: src/components/settings/Integrations.tsx:1707
 #: src/components/settings/Integrations.tsx:1771
-#: src/components/settings/Integrations.tsx:2720
+#: src/components/settings/Integrations.tsx:2728
 #: src/components/settings/WebhooksSettings.tsx:272
 #: src/components/templates/MessageTemplateDrawer.tsx:374
 #: src/components/templates/OmnichannelTemplateDrawer.tsx:210
@@ -11863,7 +11867,7 @@ msgstr "重复 X 语句"
 msgid "Repeat Y"
 msgstr "重复 Y"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:100
+#: src/components/integrations/ChannelWebhookIntegration.tsx:99
 msgid "Replace secret"
 msgstr "替换密钥"
 
@@ -12327,15 +12331,15 @@ msgstr "沙盒模式"
 #: src/components/email_builder/ui/BlockToolbar.tsx:209
 #: src/components/email_builder/ui/StringPopoverInput.tsx:103
 #: src/components/file_manager/buttonSettings.tsx:312
-#: src/components/integrations/ChannelWebhookIntegration.tsx:96
+#: src/components/integrations/ChannelWebhookIntegration.tsx:95
 #: src/components/lists/ListDrawer.tsx:170
 #: src/components/settings/CustomFieldsConfiguration.tsx:293
 #: src/components/settings/Integrations.tsx:2570
-#: src/components/settings/Integrations.tsx:2703
-#: src/components/settings/Integrations.tsx:2790
-#: src/components/settings/Integrations.tsx:2838
-#: src/components/settings/Integrations.tsx:2885
-#: src/components/settings/Integrations.tsx:2921
+#: src/components/settings/Integrations.tsx:2711
+#: src/components/settings/Integrations.tsx:2798
+#: src/components/settings/Integrations.tsx:2846
+#: src/components/settings/Integrations.tsx:2893
+#: src/components/settings/Integrations.tsx:2929
 #: src/components/settings/SystemSettingsDrawer.tsx:239
 #: src/components/settings/WebhooksSettings.tsx:253
 #: src/components/templates/CreateTemplateDrawer.tsx:272
@@ -12541,11 +12545,11 @@ msgstr "第二个值必须大于第一个值"
 msgid "Secret"
 msgstr "机密"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:91
+#: src/components/integrations/ChannelWebhookIntegration.tsx:90
 msgid "Secret configured"
 msgstr "已配置密钥"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:91
+#: src/components/integrations/ChannelWebhookIntegration.tsx:90
 msgid "Secret configured, ends in {hint}"
 msgstr "已配置密钥，末尾为 {hint}"
 
@@ -13080,7 +13084,7 @@ msgstr "发送或调度群发"
 msgid "Send Test"
 msgstr "发送测试"
 
-#: src/components/settings/Integrations.tsx:2744
+#: src/components/settings/Integrations.tsx:2752
 #: src/components/templates/SendTemplateModal.tsx:263
 #: src/components/templates/SendTemplateModal.tsx:277
 #: src/pages/BroadcastsPage.tsx:965
@@ -13442,7 +13446,7 @@ msgstr "签名 Webhook"
 msgid "Signing out..."
 msgstr "签名..."
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:100
+#: src/components/integrations/ChannelWebhookIntegration.tsx:99
 msgid "Signing secret"
 msgstr "签名密钥"
 
@@ -14358,7 +14362,7 @@ msgstr "这里无法提供测试: Zapier钩子 URL 总是成功的回答, 所以
 msgid "Test duration (hours)"
 msgstr "试验时间(小时)"
 
-#: src/components/settings/Integrations.tsx:2730
+#: src/components/settings/Integrations.tsx:2738
 msgid "Test Email Provider"
 msgstr "测试邮件服务商"
 
@@ -14980,7 +14984,7 @@ msgstr "这将注册或更新此邮件服务商的 Webhook 端点 。"
 msgid "This will replace all content with the default language template. Continue?"
 msgstr "这将用默认语言模板取代所有内容 。 继续?"
 
-#: src/components/settings/Integrations.tsx:2756
+#: src/components/settings/Integrations.tsx:2764
 msgid "This will send a real test email to the address provided."
 msgstr "这将发送一个真实的测试邮件到所提供的地址 。"
 
@@ -15024,7 +15028,7 @@ msgstr "时限"
 msgid "Timeline"
 msgstr "时间线"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:102
+#: src/components/integrations/ChannelWebhookIntegration.tsx:101
 msgid "Timeout (seconds)"
 msgstr "超时时间（秒）"
 

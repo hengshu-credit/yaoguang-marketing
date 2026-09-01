@@ -30,6 +30,7 @@ import {
   getStatusesForGroup
 } from '../services/api/broadcast'
 import { listsApi } from '../services/api/list'
+import { WorkspacePageTitle } from '../components/navigation/WorkspacePageTitle'
 import { taskApi } from '../services/api/task'
 import {
   getBroadcastVariationStats,
@@ -1546,7 +1547,7 @@ export function BroadcastsPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">{t`Broadcasts`}</div>
+        <WorkspacePageTitle>{t`Broadcasts`}</WorkspacePageTitle>
         {currentWorkspace && (hasBroadcasts || hasActiveFilter) && (
           <Space>
             <Tooltip

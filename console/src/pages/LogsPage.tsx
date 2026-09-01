@@ -5,6 +5,7 @@ import { useLingui } from '@lingui/react/macro'
 import { MessageHistoryTab } from '../components/messages/MessageHistoryTab'
 import { InboundWebhookEventsTab } from '../components/webhooks/InboundWebhookEventsTab'
 import { OutgoingWebhooksTab } from '../components/webhooks/OutgoingWebhooksTab'
+import { WorkspacePageTitle } from '../components/navigation/WorkspacePageTitle'
 
 const { Text } = Typography
 
@@ -25,7 +26,7 @@ export function LogsPage() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <div className="text-2xl font-medium">{t`Logs`}</div>
+        <WorkspacePageTitle>{t`Logs`}</WorkspacePageTitle>
         <Text type="secondary">{t`Monitor message delivery status and webhook events`}</Text>
       </div>
 

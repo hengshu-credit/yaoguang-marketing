@@ -30,6 +30,7 @@ import { CreateTemplateButton, TemplateEditorButton } from '../components/templa
 import { channelsApi } from '../services/api/channels'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import dayjs from '../lib/dayjs'
+import { WorkspacePageTitle } from '../components/navigation/WorkspacePageTitle'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
 import { useLingui } from '@lingui/react/macro'
@@ -414,7 +415,7 @@ export function TemplatesPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">{t`Templates`}</div>
+        <WorkspacePageTitle>{t`Templates`}</WorkspacePageTitle>
         {workspace && data?.templates && data.templates.length > 0 && (
           <Tooltip
             title={

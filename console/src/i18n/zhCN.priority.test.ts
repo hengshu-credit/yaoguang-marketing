@@ -85,7 +85,6 @@ const priorityTranslations: Record<string, string> = {
   '3. Data Feeds': '3. 数据源',
   '4. Content': '4. 内容',
   'Select a list': '选择列表',
-  'Belonging to at least one of the following segments': '属于以下至少一个细分群体',
   'Exclude unsubscribed, bounced & complained recipients': '排除已退订、退信及投诉的收件人',
   'No broadcasts found': '未找到群发',
   'Create your first broadcast to get started': '创建第一个群发以开始使用',

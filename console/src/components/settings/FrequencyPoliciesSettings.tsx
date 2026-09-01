@@ -3,8 +3,9 @@ import { Alert, message, Skeleton, Space, Typography } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { FrequencyPolicyForm } from '../frequency/FrequencyPolicyForm'
 import { frequencyPolicyApi, type FrequencyPolicy, type FrequencyPolicyScope, type SaveFrequencyPolicyRequest } from '../../services/api/frequency_policy'
+import { WorkspacePageTitle } from '../navigation/WorkspacePageTitle'
 
-const { Title, Paragraph } = Typography
+const { Paragraph } = Typography
 
 export function FrequencyPoliciesSettings({ workspaceId }: { workspaceId: string }) {
   const { t } = useLingui()
@@ -33,7 +34,7 @@ export function FrequencyPoliciesSettings({ workspaceId }: { workspaceId: string
   return (
     <Space orientation="vertical" size="large" style={{ width: '100%' }}>
       <div>
-        <Title level={2}>{t`Message frequency control`}</Title>
+        <WorkspacePageTitle style={{ marginBottom: 8 }}>{t`Message frequency control`}</WorkspacePageTitle>
         <Paragraph type="secondary">
           {t`Limit marketing messages per customer and channel.`} {t`Reaching any level blocks this delivery; infrastructure failures defer it instead of allowing it.`}
         </Paragraph>

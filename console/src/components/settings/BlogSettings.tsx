@@ -417,6 +417,7 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
             <SettingsSectionHeader
               title={t`RSS / Feeds`}
               description={t`Configure how your blog's RSS and JSON feeds are generated.`}
+              primary={false}
               className="!mb-4"
             />
 

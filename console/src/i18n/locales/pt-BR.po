@@ -796,8 +796,8 @@ msgstr "Adicionar bloco no wrapper"
 msgid "Add card"
 msgstr ""
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:81
-#: src/components/integrations/ChannelWebhookIntegration.tsx:96
+#: src/components/integrations/ChannelWebhookIntegration.tsx:80
+#: src/components/integrations/ChannelWebhookIntegration.tsx:95
 msgid "Add Channel Webhook"
 msgstr ""
 
@@ -867,7 +867,7 @@ msgstr ""
 msgid "Add imported customers to lists"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2651
+#: src/components/settings/Integrations.tsx:2659
 msgid "Add Integration"
 msgstr "Adicionar Integracao"
 
@@ -911,7 +911,7 @@ msgstr ""
 
 #: src/components/settings/Integrations.tsx:2342
 #: src/components/settings/Integrations.tsx:2398
-#: src/components/settings/Integrations.tsx:2695
+#: src/components/settings/Integrations.tsx:2703
 msgid "Add Sender"
 msgstr "Adicionar Remetente"
 
@@ -1058,6 +1058,10 @@ msgstr "Alinhar acima"
 msgid "Alignment"
 msgstr "Alinhamento"
 
+#: src/App.tsx:132
+msgid "Alkaid Marketing Platform"
+msgstr "Plataforma de Marketing Alkaid"
+
 #: src/components/analytics/EmailMetricsChart.tsx:284
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:118
 #: src/components/web_analytics/tabs/FiltersTab.tsx:146
@@ -1133,7 +1137,7 @@ msgstr "Todas as substituições do espaço de trabalho voltarão aos valores pa
 msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 msgstr "Permitir recebimento de emails para disparar notificações transacionais. Requer certificados TLS."
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:101
+#: src/components/integrations/ChannelWebhookIntegration.tsx:100
 msgid "Allowed channels"
 msgstr ""
 
@@ -2435,12 +2439,12 @@ msgstr "Campanhas"
 #: src/components/settings/CustomFieldsConfiguration.tsx:291
 #: src/components/settings/EditPermissionsDrawer.tsx:80
 #: src/components/settings/Integrations.tsx:2567
-#: src/components/settings/Integrations.tsx:2700
-#: src/components/settings/Integrations.tsx:2735
-#: src/components/settings/Integrations.tsx:2782
-#: src/components/settings/Integrations.tsx:2830
-#: src/components/settings/Integrations.tsx:2877
-#: src/components/settings/Integrations.tsx:2914
+#: src/components/settings/Integrations.tsx:2708
+#: src/components/settings/Integrations.tsx:2743
+#: src/components/settings/Integrations.tsx:2790
+#: src/components/settings/Integrations.tsx:2838
+#: src/components/settings/Integrations.tsx:2885
+#: src/components/settings/Integrations.tsx:2922
 #: src/components/settings/SystemSettingsDrawer.tsx:170
 #: src/components/settings/UITranslationsSettings.tsx:361
 #: src/components/settings/WebhookCard.tsx:430
@@ -2656,7 +2660,7 @@ msgstr "Alterar Status para {0}"
 msgid "Channel"
 msgstr "Canal"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:80
+#: src/components/integrations/ChannelWebhookIntegration.tsx:79
 msgid "Channel delivery Webhooks"
 msgstr ""
 
@@ -2675,11 +2679,11 @@ msgstr "Grupos de canais"
 msgid "Channel scope"
 msgstr ""
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:69
+#: src/components/integrations/ChannelWebhookIntegration.tsx:68
 msgid "Channel Webhook created"
 msgstr ""
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:69
+#: src/components/integrations/ChannelWebhookIntegration.tsx:68
 msgid "Channel Webhook updated"
 msgstr ""
 
@@ -3238,7 +3242,7 @@ msgstr "Conectar"
 msgid "Connect and manage external services"
 msgstr "Conecte e gerencie serviços externos"
 
-#: src/components/settings/Integrations.tsx:2903
+#: src/components/settings/Integrations.tsx:2911
 #: src/components/settings/ZapierSettings.tsx:286
 msgid "Connect Zapier"
 msgstr "Conectar o Zapier"
@@ -3265,11 +3269,11 @@ msgstr "Falhas de entrega consecutivas: {consecutiveFailures}"
 msgid "Consent"
 msgstr "Consentimento"
 
-#: src/components/settings/Integrations.tsx:2673
+#: src/components/settings/Integrations.tsx:2681
 msgid "Consider connecting a marketing email provider to send newsletters, promotional campaigns, and announcements to engage with your audience."
 msgstr "Considere conectar um provedor de email marketing para enviar newsletters, campanhas promocionais e anúncios para engajar sua audiência."
 
-#: src/components/settings/Integrations.tsx:2668
+#: src/components/settings/Integrations.tsx:2676
 msgid "Consider connecting a transactional email provider to be able to use transactional emails for account notifications, password resets, and other important system messages."
 msgstr "Considere conectar um provedor de email transacional para poder usar emails transacionais para notificações de conta, redefinição de senha e outras mensagens importantes do sistema."
 
@@ -4622,7 +4626,7 @@ msgstr "Excluir revoga a chave API que esta conexão criou, então qualquer Zap 
 msgid "Deleting this webhook breaks the Zap that created it. The Zap stays switched on in Zapier and reports no error — it simply stops receiving events."
 msgstr "Excluir este webhook quebra o Zap que o criou. O Zap continua ligado no Zapier e não relata nenhum erro: ele simplesmente para de receber eventos."
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:80
+#: src/components/integrations/ChannelWebhookIntegration.tsx:79
 msgid "Deliver new messaging channels through a signed HTTPS bridge."
 msgstr ""
 
@@ -5106,7 +5110,7 @@ msgstr "editar"
 #: src/components/blog/PostsTable.tsx:349
 #: src/components/email_builder/EmailBuilder.tsx:839
 #: src/components/email_builder/ui/ImportFontInput.tsx:209
-#: src/components/integrations/ChannelWebhookIntegration.tsx:87
+#: src/components/integrations/ChannelWebhookIntegration.tsx:86
 #: src/components/settings/Integrations.tsx:353
 #: src/components/settings/Integrations.tsx:1449
 #: src/components/settings/Integrations.tsx:1608
@@ -5189,7 +5193,7 @@ msgstr "Editar Broadcast"
 msgid "Edit Category"
 msgstr "Editar Categoria"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:96
+#: src/components/integrations/ChannelWebhookIntegration.tsx:95
 msgid "Edit Channel Webhook"
 msgstr ""
 
@@ -5264,7 +5268,7 @@ msgstr "Editar regra"
 msgid "Edit segment"
 msgstr "Editar segmento"
 
-#: src/components/settings/Integrations.tsx:2695
+#: src/components/settings/Integrations.tsx:2703
 msgid "Edit Sender"
 msgstr "Editar Remetente"
 
@@ -5306,7 +5310,7 @@ msgstr "Editar valor"
 msgid "Edit Webhook"
 msgstr "Editar Webhook"
 
-#: src/components/settings/Integrations.tsx:2903
+#: src/components/settings/Integrations.tsx:2911
 msgid "Edit Zapier connection"
 msgstr "Editar conexão do Zapier"
 
@@ -5355,7 +5359,7 @@ msgstr "email"
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
 #: src/components/frequency/FrequencyPolicyForm.tsx:85
 #: src/components/messages/MessageHistoryTab.tsx:219
-#: src/components/settings/Integrations.tsx:2710
+#: src/components/settings/Integrations.tsx:2718
 #: src/components/settings/WorkspaceMembers.tsx:101
 #: src/components/timeline/ContactTimeline.tsx:584
 #: src/pages/ContactsPage.tsx:369
@@ -5452,7 +5456,7 @@ msgstr "Opções de Email:"
 msgid "Email Preview"
 msgstr "Pré-visualização de Email"
 
-#: src/components/settings/Integrations.tsx:2663
+#: src/components/settings/Integrations.tsx:2671
 msgid "Email Provider Configuration Needed"
 msgstr "Configuração de Provedor de Email Necessária"
 
@@ -5658,11 +5662,11 @@ msgstr "Insira uma tradução ou use Restaurar para herdar o valor padrão"
 msgid "Enter a unique alphanumeric ID"
 msgstr "Digite um ID alfanumérico único"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:99
+#: src/components/integrations/ChannelWebhookIntegration.tsx:98
 msgid "Enter an absolute HTTPS URL"
 msgstr ""
 
-#: src/components/settings/Integrations.tsx:2748
+#: src/components/settings/Integrations.tsx:2756
 msgid "Enter an email address to receive a test email:"
 msgstr "Digite um endereço de email para receber um email de teste:"
 
@@ -6502,7 +6506,7 @@ msgstr "Falha ao retomar broadcast"
 msgid "Failed to save audience"
 msgstr ""
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:72
+#: src/components/integrations/ChannelWebhookIntegration.tsx:71
 msgid "Failed to save Channel Webhook"
 msgstr ""
 
@@ -7446,7 +7450,7 @@ msgstr "Pré-visualização HTML"
 msgid "HTML Preview of {0}"
 msgstr "Pré-visualização HTML de {0}"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:99
+#: src/components/integrations/ChannelWebhookIntegration.tsx:98
 msgid "HTTPS endpoint"
 msgstr ""
 
@@ -8240,7 +8244,7 @@ msgstr "Lead"
 msgid "Learn how to enable SMTP bridge"
 msgstr "Aprenda como habilitar o relay SMTP"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:100
+#: src/components/integrations/ChannelWebhookIntegration.tsx:99
 msgid "Leave blank to keep the current secret"
 msgstr ""
 
@@ -9246,7 +9250,7 @@ msgstr "N/D"
 #: src/components/blog/CategoryDrawer.tsx:130
 #: src/components/errors/ActionableError.tsx:34
 #: src/components/file_manager/fileManager.tsx:868
-#: src/components/integrations/ChannelWebhookIntegration.tsx:98
+#: src/components/integrations/ChannelWebhookIntegration.tsx:97
 #: src/components/lists/ListDrawer.tsx:185
 #: src/components/segment/button_upsert.tsx:442
 #: src/components/settings/Integrations.tsx:390
@@ -9254,7 +9258,7 @@ msgstr "N/D"
 #: src/components/settings/Integrations.tsx:1640
 #: src/components/settings/Integrations.tsx:1707
 #: src/components/settings/Integrations.tsx:1771
-#: src/components/settings/Integrations.tsx:2720
+#: src/components/settings/Integrations.tsx:2728
 #: src/components/settings/WebhooksSettings.tsx:272
 #: src/components/templates/MessageTemplateDrawer.tsx:374
 #: src/components/templates/OmnichannelTemplateDrawer.tsx:210
@@ -11833,7 +11837,7 @@ msgstr "Repetir X"
 msgid "Repeat Y"
 msgstr "Repetir Y"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:100
+#: src/components/integrations/ChannelWebhookIntegration.tsx:99
 msgid "Replace secret"
 msgstr ""
 
@@ -12297,15 +12301,15 @@ msgstr "Modo Sandbox"
 #: src/components/email_builder/ui/BlockToolbar.tsx:209
 #: src/components/email_builder/ui/StringPopoverInput.tsx:103
 #: src/components/file_manager/buttonSettings.tsx:312
-#: src/components/integrations/ChannelWebhookIntegration.tsx:96
+#: src/components/integrations/ChannelWebhookIntegration.tsx:95
 #: src/components/lists/ListDrawer.tsx:170
 #: src/components/settings/CustomFieldsConfiguration.tsx:293
 #: src/components/settings/Integrations.tsx:2570
-#: src/components/settings/Integrations.tsx:2703
-#: src/components/settings/Integrations.tsx:2790
-#: src/components/settings/Integrations.tsx:2838
-#: src/components/settings/Integrations.tsx:2885
-#: src/components/settings/Integrations.tsx:2921
+#: src/components/settings/Integrations.tsx:2711
+#: src/components/settings/Integrations.tsx:2798
+#: src/components/settings/Integrations.tsx:2846
+#: src/components/settings/Integrations.tsx:2893
+#: src/components/settings/Integrations.tsx:2929
 #: src/components/settings/SystemSettingsDrawer.tsx:239
 #: src/components/settings/WebhooksSettings.tsx:253
 #: src/components/templates/CreateTemplateDrawer.tsx:272
@@ -12511,11 +12515,11 @@ msgstr "O segundo valor deve ser maior que o primeiro"
 msgid "Secret"
 msgstr "Segredo"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:91
+#: src/components/integrations/ChannelWebhookIntegration.tsx:90
 msgid "Secret configured"
 msgstr ""
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:91
+#: src/components/integrations/ChannelWebhookIntegration.tsx:90
 msgid "Secret configured, ends in {hint}"
 msgstr ""
 
@@ -13050,7 +13054,7 @@ msgstr "Enviar ou Agendar Broadcast"
 msgid "Send Test"
 msgstr "Enviar Teste"
 
-#: src/components/settings/Integrations.tsx:2744
+#: src/components/settings/Integrations.tsx:2752
 #: src/components/templates/SendTemplateModal.tsx:263
 #: src/components/templates/SendTemplateModal.tsx:277
 #: src/pages/BroadcastsPage.tsx:965
@@ -13412,7 +13416,7 @@ msgstr ""
 msgid "Signing out..."
 msgstr "Saindo..."
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:100
+#: src/components/integrations/ChannelWebhookIntegration.tsx:99
 msgid "Signing secret"
 msgstr ""
 
@@ -14328,7 +14332,7 @@ msgstr "Entregas de teste não estão disponíveis aqui: as URLs de hook do Zapi
 msgid "Test duration (hours)"
 msgstr "Duração do teste (horas)"
 
-#: src/components/settings/Integrations.tsx:2730
+#: src/components/settings/Integrations.tsx:2738
 msgid "Test Email Provider"
 msgstr "Testar Provedor de Email"
 
@@ -14950,7 +14954,7 @@ msgstr "Isso registrará ou atualizará os endpoints de webhook para este proved
 msgid "This will replace all content with the default language template. Continue?"
 msgstr "Isso substituirá todo o conteúdo pelo template do idioma padrão. Continuar?"
 
-#: src/components/settings/Integrations.tsx:2756
+#: src/components/settings/Integrations.tsx:2764
 msgid "This will send a real test email to the address provided."
 msgstr "Isso enviará um email de teste real para o endereço fornecido."
 
@@ -14994,7 +14998,7 @@ msgstr "período"
 msgid "Timeline"
 msgstr "Linha do Tempo"
 
-#: src/components/integrations/ChannelWebhookIntegration.tsx:102
+#: src/components/integrations/ChannelWebhookIntegration.tsx:101
 msgid "Timeout (seconds)"
 msgstr ""
 

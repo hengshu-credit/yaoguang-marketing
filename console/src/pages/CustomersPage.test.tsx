@@ -56,6 +56,14 @@ function wrapper({ children }: { children: React.ReactNode }) {
 describe('CustomersPage', () => {
   beforeEach(() => vi.clearAllMocks())
 
+  it('renders the primary page title at the shared 24px size', async () => {
+    render(<CustomersPage />, { wrapper })
+
+    const heading = await screen.findByRole('heading', { level: 1, name: 'Customers' })
+    expect(heading.style.fontSize).toBe('24px')
+    expect(heading.style.fontWeight).toBe('500')
+  })
+
   it('searches Customer identifiers and opens the 360 drawer from a row', async () => {
     render(<CustomersPage />, { wrapper })
 

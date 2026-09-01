@@ -30,6 +30,7 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ListStats } from '../components/lists/ListStats'
 import { useLingui } from '@lingui/react/macro'
+import { WorkspacePageTitle } from '../components/navigation/WorkspacePageTitle'
 
 const { Title, Paragraph, Text } = Typography
 
@@ -153,7 +154,7 @@ export function ListsPage() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <div className="text-2xl font-medium">{t`Lists`}</div>
+          <WorkspacePageTitle>{t`Lists`}</WorkspacePageTitle>
           <Paragraph type="secondary" className="mb-0 mt-1">
             {t`Create reusable customer groups and monitor their live membership counts.`}
           </Paragraph>

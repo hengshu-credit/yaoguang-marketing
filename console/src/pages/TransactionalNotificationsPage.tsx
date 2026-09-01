@@ -30,6 +30,7 @@ import {
   faCircleCheck,
   faCircleXmark
 } from '@fortawesome/free-regular-svg-icons'
+import { WorkspacePageTitle } from '../components/navigation/WorkspacePageTitle'
 import { faTerminal, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons'
 import UpsertTransactionalNotificationDrawer from '../components/transactional/UpsertTransactionalNotificationDrawer'
 import { useState } from 'react'
@@ -386,7 +387,7 @@ export function TransactionalNotificationsPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">{t`Transactional Notifications`}</div>
+        <WorkspacePageTitle>{t`Transactional Notifications`}</WorkspacePageTitle>
         {currentWorkspace && hasNotifications && (
           <Space size="middle">
             <Segmented

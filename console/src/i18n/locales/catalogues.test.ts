@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, it, expect } from 'vitest'
 import { locales } from '..'
+import { parsePOCatalog } from '../po'
 
 // `lingui extract` writes every newly discovered msgid into every catalogue with an empty
 // msgstr, and nothing downstream complains about the ones left that way: Lingui falls back
@@ -18,6 +19,18 @@ const LOCALES_DIR = import.meta.dirname
 // English is the source locale: its msgids are its translations, and `lingui extract`
 // fills its msgstrs in for that reason.
 const SOURCE_LOCALE = 'en'
+
+const browserTitles = {
+  en: 'Alkaid Marketing Platform',
+  fr: 'Plateforme marketing Alkaïd',
+  es: 'Plataforma de marketing Alkaid',
+  de: 'Alkaid-Marketingplattform',
+  ca: 'Plataforma de màrqueting Alkaid',
+  'pt-BR': 'Plataforma de Marketing Alkaid',
+  ja: 'アルカイド・マーケティングプラットフォーム',
+  it: 'Piattaforma di marketing Alkaid',
+  'zh-CN': '瑶光营销平台',
+} as const
 
 interface CatalogueEntries {
   translated: string[]
@@ -79,5 +92,12 @@ describe('shipped translation catalogues', () => {
     // assertion below pass for a catalogue that is empty, unreadable or reformatted.
     expect(translated.length).toBeGreaterThan(0)
     expect(untranslated).toEqual([])
+  })
+
+  it.each(locales)('%s ships the localized browser title', (locale) => {
+    const entries = parsePOCatalog(readFileSync(join(LOCALES_DIR, `${locale}.po`), 'utf8'))
+    const title = entries.find((entry) => entry.msgid === 'Alkaid Marketing Platform')
+
+    expect(title?.msgstr).toBe(browserTitles[locale])
   })
 })

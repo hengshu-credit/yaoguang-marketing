@@ -1,10 +1,11 @@
 import { useLingui } from '@lingui/react/macro'
 import { ContentCenterTabs } from '../navigation/WorkspaceSectionTabs'
+import { WorkspacePageTitle } from '../navigation/WorkspacePageTitle'
 
 const BlogPageHeader: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
   const { t } = useLingui()
   return <div className="px-6 pt-6">
-    <h1 className="mb-6 text-2xl font-medium">{t`Categories`}</h1>
+    <WorkspacePageTitle style={{ marginBottom: 24 }}>{t`Categories`}</WorkspacePageTitle>
     <ContentCenterTabs workspaceId={workspaceId} activeKey="blog" />
   </div>
 }

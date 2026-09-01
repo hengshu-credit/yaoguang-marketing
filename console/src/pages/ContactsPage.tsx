@@ -29,6 +29,7 @@ import { DeleteContactModal } from '../components/contacts/DeleteContactModal'
 import { SegmentsFilter } from '../components/contacts/SegmentsFilter'
 import { BulkActionsBar } from '../components/contacts/BulkActionsBar'
 import { BulkActionProgressModal } from '../components/contacts/BulkActionProgressModal'
+import { WorkspacePageTitle } from '../components/navigation/WorkspacePageTitle'
 import {
   useBulkContactAction,
   SkippedAction,
@@ -1017,7 +1018,7 @@ export function ContactsPage() {
       {/* Header with title and actions */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
-          <div role="heading" aria-level={2} className="text-2xl font-medium">{t`Contacts`}</div>
+          <WorkspacePageTitle>{t`Contacts`}</WorkspacePageTitle>
           {totalContactsData?.total_contacts !== undefined && (
             <Tag variant="filled" color="blue">
               {numbro(totalContactsData.total_contacts).format({

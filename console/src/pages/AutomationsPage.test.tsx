@@ -105,6 +105,14 @@ describe('AutomationsPage template reference query', () => {
     automationSearch.current = {}
   })
 
+  it('renders the primary page title at the shared 24px size', async () => {
+    renderPage()
+
+    const heading = await screen.findByRole('heading', { level: 1, name: 'Automations' })
+    expect(heading.style.fontSize).toBe('24px')
+    expect(heading.style.fontWeight).toBe('500')
+  })
+
   it('fetches all email templates (no category filter) so email nodes resolve any selected template', async () => {
     // The automation email-node picker (EmailConfigForm -> TemplateSelectorInput)
     // is category-agnostic, so the canvas reference list must be too. Restricting

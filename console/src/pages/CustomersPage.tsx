@@ -25,6 +25,7 @@ import {
 import { CustomerDrawer } from '../components/customers/CustomerDrawer'
 import { CustomerImportPanel } from '../components/customers/CustomerImportPanel'
 import { useWorkspacePermissions } from '../contexts/AuthContext'
+import { WorkspacePageTitle } from '../components/navigation/WorkspacePageTitle'
 
 function useNarrowCustomerLayout() {
   const [narrow, setNarrow] = useState(() => window.innerWidth < 768)
@@ -135,9 +136,7 @@ export function CustomersPage() {
   return (
     <Space orientation="vertical" size="large" style={{ width: '100%', minWidth: 0 }}>
       <div>
-        <Typography.Title level={2} style={{ marginBottom: 4 }}>
-          {t`Customers`}
-        </Typography.Title>
+        <WorkspacePageTitle style={{ marginBottom: 4 }}>{t`Customers`}</WorkspacePageTitle>
         <Typography.Text type="secondary">
           {t`Unified customer profiles and identity aliases for this workspace.`}
         </Typography.Text>

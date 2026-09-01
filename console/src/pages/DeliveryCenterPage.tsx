@@ -11,6 +11,7 @@ import { deliveryStatusOptions, type DeliveryFilters } from '../components/deliv
 import { CustomerDrawer } from '../components/customers/CustomerDrawer'
 import { ActionableError } from '../components/errors/ActionableError'
 import { useWorkspacePermissions } from '../contexts/AuthContext'
+import { WorkspacePageTitle } from '../components/navigation/WorkspacePageTitle'
 
 const PAGE_SIZE = 50
 interface ResolutionForm {
@@ -130,7 +131,7 @@ export function DeliveryCenterPage() {
   return (
     <Space orientation="vertical" size="large" style={{ width: '100%', minWidth: 0 }}>
       <div>
-        <Typography.Title level={2} style={{ marginBottom: 4 }}>{t`Delivery Center`}</Typography.Title>
+        <WorkspacePageTitle style={{ marginBottom: 4 }}>{t`Delivery Center`}</WorkspacePageTitle>
         <Typography.Text type="secondary">{t`Track every send decision, provider attempt and uncertain outcome in one place.`}</Typography.Text>
       </div>
       <Alert type="warning" showIcon title={t`Uncertain and permanently failed deliveries need attention`} description={t`An uncertain provider result is never retried automatically. Verify it first to avoid duplicate customer contact.`} />

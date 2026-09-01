@@ -400,7 +400,10 @@ describe('Page Smoke Tests', () => {
         'aria-selected',
         'true'
       )
-      expect(screen.getByRole('heading', { level: 1, name: 'Marketing Overview' })).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Marketing Overview' })).not.toBeInTheDocument()
+      expect(
+        screen.getByText('Track message performance, engagement and delivery trends across marketing channels.')
+      ).toBeInTheDocument()
     })
 
     it('BroadcastsPage renders without error', async () => {
@@ -518,7 +521,10 @@ describe('Page Smoke Tests', () => {
         'true'
       )
       expect(screen.getByRole('link', { name: 'Website Overview' })).toBeInTheDocument()
-      expect(screen.getByRole('heading', { level: 1, name: 'Live Visitors' })).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Live Visitors' })).not.toBeInTheDocument()
+      expect(
+        screen.getByText('Monitor active sessions, locations, pages and acquisition sources in near real time.')
+      ).toBeInTheDocument()
     })
 
     it('DebugSegmentPage renders without error', async () => {

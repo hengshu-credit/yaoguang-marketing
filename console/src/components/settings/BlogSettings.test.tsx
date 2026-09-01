@@ -96,6 +96,14 @@ describe('BlogSettings', () => {
     expect(screen.getByPlaceholderText('My Blog WS')).toBeInTheDocument()
   })
 
+  it('keeps Blog as the only primary page heading', () => {
+    renderComponent(true)
+
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+    expect(screen.getByRole('heading', { level: 1, name: 'Blog' })).toBeInTheDocument()
+    expect(screen.getByText('RSS / Feeds').tagName).toBe('DIV')
+  })
+
   it('holds the save bar back until the form is touched', () => {
     renderComponent(true)
     expect(screen.queryByRole('button', { name: /Save Changes/i })).toBeNull()

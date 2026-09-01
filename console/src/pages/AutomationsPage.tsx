@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Row, Col, Typography, Space, App, Empty, Pagination, Drawer, Button } from 'antd'
+import { Row, Col, Space, App, Empty, Pagination, Drawer, Button } from 'antd'
 import { useParams, useSearch } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { PlusOutlined } from '@ant-design/icons'
@@ -15,8 +15,7 @@ import { JourneyPreflightPanel } from '../components/automations/JourneyPrefligh
 import { ActionableError } from '../components/errors/ActionableError'
 import { audienceApi } from '../services/api/marketing'
 import { AutomationAudienceRunModal } from '../components/automations/AutomationAudienceRunModal'
-
-const { Title } = Typography
+import { WorkspacePageTitle } from '../components/navigation/WorkspacePageTitle'
 
 export function AutomationsPage() {
   const { t } = useLingui()
@@ -177,9 +176,7 @@ export function AutomationsPage() {
     <div>
       <Row justify="space-between" align="middle" className="mb-6">
         <Col>
-          <Title level={4} style={{ margin: 0 }}>
-            {t`Automations`}
-          </Title>
+          <WorkspacePageTitle>{t`Automations`}</WorkspacePageTitle>
         </Col>
         <Col>
           <Space>

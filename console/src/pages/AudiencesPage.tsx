@@ -9,8 +9,9 @@ import { listsApi } from '../services/api/list'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import { AudienceDrawer } from '../components/audiences/AudienceDrawer'
 import { ActionableError } from '../components/errors/ActionableError'
+import { WorkspacePageTitle } from '../components/navigation/WorkspacePageTitle'
 
-const { Title, Paragraph, Text } = Typography
+const { Paragraph, Text } = Typography
 
 export function AudiencesPage() {
   const { t } = useLingui()
@@ -41,7 +42,7 @@ export function AudiencesPage() {
     <div className="p-6">
       <div className="flex justify-between items-start gap-4 mb-6">
         <div>
-          <Title level={3} className="!mb-1">{t`Audience segmentation`}</Title>
+          <WorkspacePageTitle style={{ marginBottom: 4 }}>{t`Audience segmentation`}</WorkspacePageTitle>
           <Paragraph type="secondary" className="!mb-0">
             {t`Define reusable audiences from customer attributes, status, lists, activity, and goals.`}
           </Paragraph>
