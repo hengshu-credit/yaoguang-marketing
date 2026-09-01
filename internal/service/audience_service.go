@@ -74,6 +74,10 @@ func (s *AudienceService) authorize(ctx context.Context, workspaceID string, per
 }
 
 func (s *AudienceService) authorizeContactRead(ctx context.Context, workspaceID string) (context.Context, error) {
+	return s.authorizeContactReadForResource(ctx, workspaceID, domain.PermissionResourceSegments)
+}
+
+func (s *AudienceService) authorizeContactReadForResource(ctx context.Context, workspaceID string, resource domain.PermissionResource) (context.Context, error) {
 	if s.auth == nil {
 		return ctx, nil
 	}
@@ -81,8 +85,8 @@ func (s *AudienceService) authorizeContactRead(ctx context.Context, workspaceID 
 	if err != nil {
 		return ctx, err
 	}
-	if membership == nil || !membership.HasPermission(domain.PermissionResourceSegments, domain.PermissionTypeRead) {
-		return ctx, domain.NewPermissionError(domain.PermissionResourceSegments, domain.PermissionTypeRead, "Insufficient permissions")
+	if membership == nil || !membership.HasPermission(resource, domain.PermissionTypeRead) {
+		return ctx, domain.NewPermissionError(resource, domain.PermissionTypeRead, "Insufficient permissions")
 	}
 	if !membership.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeRead) {
 		return ctx, domain.NewPermissionError(domain.PermissionResourceContacts, domain.PermissionTypeRead, "Insufficient permissions")
@@ -261,12 +265,19 @@ func (s *AudienceService) BuildStatus(ctx context.Context, workspaceID, buildID 
 	return s.repository.GetAudienceBuild(authorized, workspaceID, buildID)
 }
 
-func (s *AudienceService) Members(ctx context.Context, workspaceID, buildID, after string, limit int) ([]domain.CustomerSummary, string, error) {
-	authorized, err := s.authorize(ctx, workspaceID, domain.PermissionTypeRead)
+func (s *AudienceService) Members(ctx context.Context, workspaceID string, request domain.AudienceMemberQuery) ([]domain.AudienceMember, string, error) {
+	if err := request.Validate(); err != nil {
+		return nil, "", err
+	}
+	resource := domain.PermissionResourceSegments
+	if request.ListID != "" {
+		resource = domain.PermissionResourceLists
+	}
+	authorized, err := s.authorizeContactReadForResource(ctx, workspaceID, resource)
 	if err != nil {
 		return nil, "", err
 	}
-	return s.repository.ListAudienceMembers(authorized, workspaceID, buildID, after, limit)
+	return s.repository.ListAudienceMembers(authorized, workspaceID, request)
 }
 
 func (s *AudienceService) Delete(ctx context.Context, workspaceID, audienceID string) error {

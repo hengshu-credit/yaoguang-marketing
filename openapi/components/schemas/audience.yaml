@@ -57,3 +57,19 @@ AudienceBuild:
     last_customer_id: { type: string, format: uuid }
     member_count: { type: integer, format: int64, minimum: 0 }
     error_detail: { type: string }
+
+AudienceMember:
+  type: object
+  required: [customer, subscriptions]
+  properties:
+    customer:
+      $ref: './customer.yaml#/CustomerSummary'
+    subscriptions:
+      type: array
+      description: All of the customer's current list memberships and subscription statuses.
+      items:
+        $ref: './customer.yaml#/CustomerListMembership'
+    joined_at:
+      type: string
+      format: date-time
+      description: Time the customer joined the selected list. Present only for a list source.

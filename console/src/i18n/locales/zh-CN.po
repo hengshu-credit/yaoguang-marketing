@@ -97,12 +97,12 @@ msgid "{0, plural, one {Exported # row} other {Exported # rows}}"
 msgstr "{0, plural, one {已导出 # 行} other {已导出 # 行}}"
 
 #. placeholder {0}: awaitingConfirmation.toLocaleString()
-#: src/pages/BroadcastsPage.tsx:208
+#: src/pages/BroadcastsPage.tsx:209
 msgid "{0} awaiting confirmation"
 msgstr "{0} 条待确认"
 
 #. placeholder {0}: result.blocking_count
-#: src/components/automations/JourneyPreflightPanel.tsx:167
+#: src/components/automations/JourneyPreflightPanel.tsx:168
 msgid "{0} blocking issue(s) must be fixed."
 msgstr "必须修复 {0} 个阻断问题。"
 
@@ -114,7 +114,7 @@ msgstr "{0} 位候选客户，{1} 位已进入流程"
 
 #. placeholder {0}: delivery.confirmed.toLocaleString()
 #. placeholder {1}: delivery.failed.toLocaleString()
-#: src/pages/BroadcastsPage.tsx:216
+#: src/pages/BroadcastsPage.tsx:217
 msgid "{0} confirmed and {1} failed."
 msgstr "{0} 条已确认，{1} 条失败。"
 
@@ -124,7 +124,7 @@ msgid "{0} contacts"
 msgstr "{0} 联系人"
 
 #. placeholder {0}: delivery.unknown.toLocaleString()
-#: src/pages/BroadcastsPage.tsx:185
+#: src/pages/BroadcastsPage.tsx:186
 msgid "{0} deliveries have an uncertain provider result and require reconciliation. They will not be retried automatically."
 msgstr "{0} 条投递的服务商结果不确定，需要核对；系统不会自动重试。"
 
@@ -186,7 +186,7 @@ msgid "{0} in {1}"
 msgstr "{1} 时间 {0}"
 
 #. placeholder {0}: delivery.unknown.toLocaleString()
-#: src/pages/BroadcastsPage.tsx:187
+#: src/pages/BroadcastsPage.tsx:188
 msgid "{0} need reconciliation"
 msgstr "{0} 条需要核对"
 
@@ -206,7 +206,7 @@ msgstr "{1} 条规则中有 {0} 条匹配"
 #. placeholder {1}: delivery.submitting.toLocaleString()
 #. placeholder {2}: delivery.accepted.toLocaleString()
 #. placeholder {3}: delivery.confirmed.toLocaleString()
-#: src/pages/BroadcastsPage.tsx:203
+#: src/pages/BroadcastsPage.tsx:204
 msgid "{0} queued, {1} submitting, {2} accepted by provider, and {3} confirmed."
 msgstr "{0} 条排队中，{1} 条提交中，{2} 条已被服务商接收，{3} 条已确认。"
 
@@ -296,23 +296,23 @@ msgid "{0} total unsubscribes (hidden from chart)"
 msgstr "{0} 总计未订阅( 隐藏在图表中)"
 
 #. placeholder {0}: result.warning_count
-#: src/components/automations/JourneyPreflightPanel.tsx:169
+#: src/components/automations/JourneyPreflightPanel.tsx:170
 msgid "{0} warning(s) require confirmation."
 msgstr "有 {0} 个警告需要确认。"
 
 #. placeholder {0}: range[0]
 #. placeholder {1}: range[1]
-#: src/pages/AutomationsPage.tsx:259
+#: src/pages/AutomationsPage.tsx:256
 msgid "{0}-{1} of {total} automations"
 msgstr "{0}-{1}，共 {total} 个自动化流程"
 
 #. placeholder {0}: range[0]
 #. placeholder {1}: range[1]
-#: src/pages/BroadcastsPage.tsx:1665
+#: src/pages/BroadcastsPage.tsx:1666
 msgid "{0}-{1} of {total} broadcasts"
 msgstr "{0}-{1}，共 {total} 个群发任务"
 
-#: src/pages/BroadcastsPage.tsx:925
+#: src/pages/BroadcastsPage.tsx:926
 msgid "{clicks} clicks out of {recipients} recipients"
 msgstr "{recipients} 位收件人中共产生 {clicks} 次点击"
 
@@ -365,7 +365,7 @@ msgstr "{minutes} 分钟 {remainingSeconds} 秒"
 msgid "{minutes}m {seconds}s"
 msgstr "{minutes} 分钟 {seconds} 秒"
 
-#: src/pages/BroadcastsPage.tsx:890
+#: src/pages/BroadcastsPage.tsx:891
 msgid "{opens} opens out of {recipients} recipients"
 msgstr "{opens} 打开 {recipients} 收件人"
 
@@ -396,6 +396,10 @@ msgstr "{selectedCount, plural, one {已选择 # 个联系人} other {已选择 
 #: src/components/contacts/BulkActionsBar.tsx:230
 msgid "{selectedCount, plural, one {This will permanently delete # contact. This action cannot be undone.} other {This will permanently delete # contacts. This action cannot be undone.}}"
 msgstr "{selectedCount, plural, one {将永久删除 # 个联系人。此操作无法撤销。} other {将永久删除 # 个联系人。此操作无法撤销。}}"
+
+#: src/pages/AudienceMembersPage.tsx:174
+#~ msgid "{sourceName} customers"
+#~ msgstr "{sourceName} 客户"
 
 #: src/components/timeline/ContactTimeline.tsx:228
 msgid "{totalSeconds}s"
@@ -482,7 +486,7 @@ msgstr "+{0} 更多"
 msgid "+{hiddenCount} more"
 msgstr "+{hiddenCount} 更多"
 
-#: src/pages/BroadcastsPage.tsx:909
+#: src/pages/BroadcastsPage.tsx:910
 msgid "0 clicks out of 0 recipients"
 msgstr "0 点击0个收件人"
 
@@ -490,7 +494,7 @@ msgstr "0 点击0个收件人"
 msgid "0 contacts"
 msgstr "0 联系人"
 
-#: src/pages/BroadcastsPage.tsx:878
+#: src/pages/BroadcastsPage.tsx:879
 msgid "0 opens out of 0 recipients"
 msgstr "在0个收件人中, 0 个打开"
 
@@ -622,7 +626,7 @@ msgstr "需要一个树"
 msgid "A value is required..."
 msgstr "需要一个值..."
 
-#: src/pages/BroadcastsPage.tsx:286
+#: src/pages/BroadcastsPage.tsx:287
 msgid "A winner has been selected. Emails are being sent to the remaining recipients."
 msgstr "已选出一名胜者。 邮件将发送给其余的收件人。"
 
@@ -631,19 +635,19 @@ msgstr "已选出一名胜者。 邮件将发送给其余的收件人。"
 #: src/components/automations/nodes/ABTestNode.tsx:47
 #: src/components/automations/nodes/StatNode.tsx:93
 #: src/components/automations/nodes/StatNode.tsx:346
-#: src/pages/BroadcastsPage.tsx:1194
+#: src/pages/BroadcastsPage.tsx:1195
 msgid "A/B Test"
 msgstr "A/B 测试"
 
-#: src/pages/BroadcastsPage.tsx:278
+#: src/pages/BroadcastsPage.tsx:279
 msgid "A/B test has completed. Select a winner to send to the remaining recipients."
 msgstr "A/B测试已经完成。 选择要发送给其余收件人的赢家 。"
 
-#: src/pages/BroadcastsPage.tsx:265
+#: src/pages/BroadcastsPage.tsx:266
 msgid "A/B test is in progress. Emails are being sent to the test group."
 msgstr "A/B测试正在进行中。 邮件正在发送到测试组。"
 
-#: src/pages/BroadcastsPage.tsx:267
+#: src/pages/BroadcastsPage.tsx:268
 msgid "A/B Testing"
 msgstr "A/B 测试"
 
@@ -651,7 +655,7 @@ msgstr "A/B 测试"
 msgid "Accept Invitation"
 msgstr "接受邀请"
 
-#: src/pages/DeliveryCenterPage.tsx:51
+#: src/pages/DeliveryCenterPage.tsx:52
 msgid "Accepted by provider"
 msgstr "服务商已接收"
 
@@ -661,14 +665,15 @@ msgstr "访问密钥"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:589
 #: src/components/web_analytics/filters/TestFilterModal.tsx:183
-#: src/pages/DeliveryCenterPage.tsx:125
+#: src/pages/DeliveryCenterPage.tsx:126
 msgid "Action"
 msgstr "行动"
 
 #: src/components/blog/PostsTable.tsx:296
 #: src/components/blog/RecentThemesTable.tsx:179
 #: src/components/customers/CustomerImportPanel.tsx:158
-#: src/pages/BroadcastsPage.tsx:939
+#: src/pages/AudiencesPage.tsx:128
+#: src/pages/BroadcastsPage.tsx:940
 msgid "Actions"
 msgstr "行动"
 
@@ -684,8 +689,8 @@ msgstr "激活自动化"
 #~ msgid "Activate automation?"
 #~ msgstr "启动自动化?"
 
-#: src/components/automations/JourneyPreflightPanel.tsx:174
-#: src/components/automations/JourneyPreflightPanel.tsx:180
+#: src/components/automations/JourneyPreflightPanel.tsx:175
+#: src/components/automations/JourneyPreflightPanel.tsx:181
 msgid "Activate journey"
 msgstr "启用自动化旅程"
 
@@ -693,9 +698,9 @@ msgstr "启用自动化旅程"
 msgid "Activation check"
 msgstr "启用检查"
 
-#: src/components/automations/JourneyPreflightPanel.tsx:89
-#: src/components/automations/JourneyPreflightPanel.tsx:94
-#: src/pages/AutomationsPage.tsx:284
+#: src/components/automations/JourneyPreflightPanel.tsx:90
+#: src/components/automations/JourneyPreflightPanel.tsx:95
+#: src/pages/AutomationsPage.tsx:281
 msgid "Activation preflight"
 msgstr "启用前检查"
 
@@ -705,7 +710,9 @@ msgstr "启用前检查"
 #: src/components/contacts/ContactDetailsDrawer.tsx:582
 #: src/components/contacts/SegmentsFilter.tsx:53
 #: src/components/lists/ListStats.tsx:66
-#: src/pages/ContactsPage.tsx:392
+#: src/pages/AudienceMembersPage.tsx:83
+#: src/pages/AudienceMembersPage.tsx:200
+#: src/pages/ContactsPage.tsx:393
 msgid "Active"
 msgstr "活动"
 
@@ -714,7 +721,7 @@ msgid "Active filters"
 msgstr "活动过滤器"
 
 #: src/components/analytics/NewContactsTable.tsx:88
-#: src/pages/ContactsPage.tsx:559
+#: src/pages/ContactsPage.tsx:560
 msgid "Active subscriber"
 msgstr "活动订阅者"
 
@@ -741,7 +748,7 @@ msgstr "活动时间线"
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:109
 #: src/components/web_analytics/tabs/FiltersTab.tsx:128
-#: src/pages/ContactsPage.tsx:1085
+#: src/pages/ContactsPage.tsx:1086
 msgid "Add"
 msgstr "添加"
 
@@ -944,7 +951,7 @@ msgstr "添加标签..."
 
 #: src/components/contacts/BulkActionsBar.tsx:92
 #: src/components/contacts/BulkActionsBar.tsx:134
-#: src/pages/ContactsPage.tsx:275
+#: src/pages/ContactsPage.tsx:276
 msgid "Add to list"
 msgstr "添加到列表中"
 
@@ -972,8 +979,8 @@ msgid "Additional context about this event"
 msgstr "关于这一事件的其他背景"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:140
-#: src/pages/ContactsPage.tsx:433
-#: src/pages/ContactsPage.tsx:718
+#: src/pages/ContactsPage.tsx:434
+#: src/pages/ContactsPage.tsx:719
 msgid "Address"
 msgstr "地址"
 
@@ -1012,7 +1019,7 @@ msgstr "之后"
 
 #. placeholder {0}: broadcast.test_settings.test_duration_hours
 #. placeholder {1}: broadcast.test_settings.auto_send_winner_metric === 'open_rate' ? t`opens` : t`clicks`
-#: src/pages/BroadcastsPage.tsx:1212
+#: src/pages/BroadcastsPage.tsx:1213
 msgid "After {0} hours based on highest {1}"
 msgstr "之后 {0} 按最高时数计算 {1}"
 
@@ -1073,15 +1080,15 @@ msgstr "向上对齐"
 msgid "Alignment"
 msgstr "对齐"
 
-#: src/App.tsx:132
+#: src/App.tsx:135
 msgid "Alkaid Marketing Platform"
 msgstr "瑶光营销平台"
 
 #: src/components/analytics/EmailMetricsChart.tsx:284
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:118
 #: src/components/web_analytics/tabs/FiltersTab.tsx:146
-#: src/pages/BroadcastsPage.tsx:1581
-#: src/pages/TemplatesPage.tsx:127
+#: src/pages/BroadcastsPage.tsx:1582
+#: src/pages/TemplatesPage.tsx:128
 msgid "All"
 msgstr "全部"
 
@@ -1090,7 +1097,7 @@ msgid "ALL"
 msgstr "ALL"
 
 #. placeholder {0}: progressStats.enqueuedCount.toLocaleString()
-#: src/pages/BroadcastsPage.tsx:237
+#: src/pages/BroadcastsPage.tsx:238
 msgid "All {0} emails have been processed."
 msgstr "全体 {0} 邮件已经处理。"
 
@@ -1118,7 +1125,7 @@ msgstr "除邮箱外，所有联系人字段均为可选项。"
 msgid "All dimensions selected"
 msgstr "选择所有尺寸"
 
-#: src/pages/BroadcastsPage.tsx:238
+#: src/pages/BroadcastsPage.tsx:239
 msgid "All emails have been sent."
 msgstr "所有邮件都已发送。"
 
@@ -1212,11 +1219,11 @@ msgstr "一个尚未成为联系人的地址成为联系人,并载有所报告�
 msgid "An error occurred during export"
 msgstr "导出时发生错误"
 
-#: src/pages/FileManagerPage.tsx:38
+#: src/pages/FileManagerPage.tsx:39
 msgid "An error occurred with the file manager"
 msgstr "文件管理器出错"
 
-#: src/pages/DeliveryCenterPage.tsx:136
+#: src/pages/DeliveryCenterPage.tsx:137
 msgid "An uncertain provider result is never retried automatically. Verify it first to avoid duplicate customer contact."
 msgstr "服务商结果不确定时不会自动重试。请先核实，避免重复触达客户。"
 
@@ -1224,7 +1231,6 @@ msgstr "服务商结果不确定时不会自动重试。请先核实，避免重
 msgid "Analytics"
 msgstr "营销分析"
 
-#: src/components/navigation/DataAnalyticsPageShell.tsx:49
 #: src/components/navigation/WorkspaceSectionTabs.tsx:184
 msgid "Analytics Annotations"
 msgstr "分析标注"
@@ -1297,6 +1303,10 @@ msgstr "任何字段变化触发自动化"
 msgid "Any goal name"
 msgstr "任意目标名称"
 
+#: src/pages/AudienceMembersPage.tsx:197
+msgid "Any status"
+msgstr "任意状态"
+
 #: src/components/segment/form_leaf.tsx:426
 msgid "Any template"
 msgstr "任意模板"
@@ -1309,7 +1319,7 @@ msgid "anytime"
 msgstr "随时"
 
 #: src/components/transactional/ApiCommandModal.tsx:976
-#: src/pages/TransactionalNotificationsPage.tsx:181
+#: src/pages/TransactionalNotificationsPage.tsx:182
 msgid "API Command"
 msgstr "API 命令"
 
@@ -1402,9 +1412,9 @@ msgstr "应用编译( R)"
 msgid "Apply filter"
 msgstr "应用过滤器"
 
-#: src/pages/DeliveryCenterPage.tsx:117
-#~ msgid "Apply filters"
-#~ msgstr "应用筛选"
+#: src/pages/AudienceMembersPage.tsx:255
+msgid "Apply filters"
+msgstr "应用筛选"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:434
 msgid "Are you sure you want to cancel the operation? Progress will be saved and you can resume later."
@@ -1424,7 +1434,7 @@ msgid "Are you sure you want to delete \"{0}\"?"
 msgstr "您确定要删除 \"{0}\"?"
 
 #. placeholder {0}: broadcastToDelete.name
-#: src/pages/BroadcastsPage.tsx:1749
+#: src/pages/BroadcastsPage.tsx:1750
 msgid "Are you sure you want to delete the broadcast \"{0}\"?"
 msgstr "您确定要删除群发吗 \"{0}\"?"
 
@@ -1438,7 +1448,7 @@ msgid "Are you sure you want to delete the invitation for {0}?"
 msgstr "您确定要删除邀请 {0}?"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:323
+#: src/pages/ListsPage.tsx:324
 msgid "Are you sure you want to delete the list \"{0}\"?"
 msgstr "您确定要删除列表 \"{0}\"?"
 
@@ -1459,7 +1469,7 @@ msgstr "确定删除这个 Header 吗？"
 msgid "Are you sure you want to delete this node?"
 msgstr "您确定要删除此节点吗 ?"
 
-#: src/pages/TemplatesPage.tsx:371
+#: src/pages/TemplatesPage.tsx:372
 msgid "Are you sure you want to delete this template?"
 msgstr "您确定要删除此模板吗 ?"
 
@@ -1500,7 +1510,7 @@ msgid "Are you sure you want to remove this variation?"
 msgstr "您确定要删除此变异吗 ?"
 
 #. placeholder {0}: record.templateName
-#: src/pages/BroadcastsPage.tsx:1014
+#: src/pages/BroadcastsPage.tsx:1015
 msgid "Are you sure you want to select \"{0}\" as the winner? The broadcast will be sent to the remaining recipients."
 msgstr "您确定要选择 \"{0}\" 作为胜利者? 群发将发给其余的接收者。"
 
@@ -1566,23 +1576,36 @@ msgstr "附录"
 msgid "Attempts"
 msgstr "尝试"
 
+#: src/pages/AudienceMembersPage.tsx:231
+#: src/pages/AudienceMembersPage.tsx:233
+msgid "Attribute key"
+msgstr "属性字段"
+
 #: src/components/customers/CustomerProfilePanel.tsx:162
 msgid "Attribute name"
 msgstr "属性名称"
+
+#: src/pages/AudienceMembersPage.tsx:241
+#: src/pages/AudienceMembersPage.tsx:243
+msgid "Attribute value"
+msgstr "属性值"
 
 #: src/components/web_analytics/tabs/FiltersTab.tsx:124
 #~ msgid "Attribution rules"
 #~ msgstr "归属规则"
 
-#: src/components/navigation/DataAnalyticsPageShell.tsx:45
 #: src/components/navigation/WorkspaceSectionTabs.tsx:173
 msgid "Attribution Rules"
 msgstr "归因规则"
 
 #: src/i18n/catalogInventory.ts:9
-#: src/pages/BroadcastsPage.tsx:1061
+#: src/pages/BroadcastsPage.tsx:1062
 msgid "Audience"
 msgstr "客群"
+
+#: src/pages/AudienceMembersPage.tsx:184
+msgid "Audience membership and customer facts are evaluated from the current audience definition."
+msgstr "客群成员及客户信息均根据当前客群定义实时计算。"
 
 #: src/components/audiences/AudienceDrawer.tsx:137
 msgid "Audience name"
@@ -1596,7 +1619,7 @@ msgstr "客群通知"
 msgid "Audience notification journey"
 msgstr "客群通知自动化旅程"
 
-#: src/pages/AudiencesPage.tsx:44
+#: src/pages/AudiencesPage.tsx:156
 msgid "Audience segmentation"
 msgstr "客群划分"
 
@@ -1675,7 +1698,7 @@ msgstr "自动残疾"
 msgid "Auto-reply"
 msgstr "自动复制"
 
-#: src/pages/BroadcastsPage.tsx:1203
+#: src/pages/BroadcastsPage.tsx:1204
 msgid "Auto-send Winner"
 msgstr "自动发送胜者"
 
@@ -1695,7 +1718,7 @@ msgstr "自动发送赢家"
 msgid "Automation"
 msgstr "自动化"
 
-#: src/pages/AutomationsPage.tsx:300
+#: src/pages/AutomationsPage.tsx:297
 msgid "Automation activated successfully"
 msgstr "成功启动自动化"
 
@@ -1703,7 +1726,7 @@ msgstr "成功启动自动化"
 msgid "Automation created successfully"
 msgstr "成功创建自动化"
 
-#: src/pages/AutomationsPage.tsx:138
+#: src/pages/AutomationsPage.tsx:137
 msgid "Automation deleted successfully"
 msgstr "自动删除成功"
 
@@ -1719,7 +1742,7 @@ msgstr "自动化旅程"
 msgid "Automation Journeys"
 msgstr "营销自动化"
 
-#: src/pages/AutomationsPage.tsx:123
+#: src/pages/AutomationsPage.tsx:122
 msgid "Automation paused successfully"
 msgstr "自动暂停成功"
 
@@ -1737,7 +1760,7 @@ msgstr "自动化:触发器标识"
 
 #: src/components/settings/PermissionsMatrix.tsx:127
 #: src/components/settings/UITranslationsSettings.tsx:110
-#: src/pages/AutomationsPage.tsx:181
+#: src/pages/AutomationsPage.tsx:179
 #: src/services/api/errors.ts:222
 msgid "Automations"
 msgstr "自动化"
@@ -1786,6 +1809,10 @@ msgstr "AWS 密钥"
 #: src/components/web_analytics/filters/TestFilterModal.tsx:271
 msgid "Back"
 msgstr "回来"
+
+#: src/pages/AudienceMembersPage.tsx:176
+msgid "Back to audiences"
+msgstr "返回客群划分"
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:57
 msgid "Backfill cancelled"
@@ -1874,7 +1901,7 @@ msgstr "基本认证(用户名/密码)"
 msgid "Basic Information"
 msgstr "基本情况"
 
-#: src/pages/CustomersPage.tsx:151
+#: src/pages/CustomersPage.tsx:150
 msgid "Batch import"
 msgstr "批量导入"
 
@@ -1958,11 +1985,11 @@ msgstr "块设置面板"
 msgid "Block type:"
 msgstr "块类型 :"
 
-#: src/components/automations/JourneyPreflightPanel.tsx:133
+#: src/components/automations/JourneyPreflightPanel.tsx:134
 msgid "Blocking"
 msgstr "阻断"
 
-#: src/pages/TemplatesPage.tsx:134
+#: src/pages/TemplatesPage.tsx:135
 msgid "Blocklist"
 msgstr "块状"
 
@@ -2089,7 +2116,7 @@ msgstr "弹跳"
 #: src/components/timeline/ContactTimeline.tsx:653
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:189
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:72
-#: src/pages/TemplatesPage.tsx:133
+#: src/pages/TemplatesPage.tsx:134
 msgid "Bounce"
 msgstr "弹跳"
 
@@ -2148,8 +2175,10 @@ msgstr "弹跳类型"
 #: src/components/messages/MessageHistoryTab.tsx:166
 #: src/components/messages/MessageHistoryTab.tsx:171
 #: src/components/messages/MessageHistoryTable.tsx:298
-#: src/pages/ContactsPage.tsx:395
-#: src/pages/TransactionalNotificationsPage.tsx:251
+#: src/pages/AudienceMembersPage.tsx:86
+#: src/pages/AudienceMembersPage.tsx:203
+#: src/pages/ContactsPage.tsx:396
+#: src/pages/TransactionalNotificationsPage.tsx:252
 msgid "Bounced"
 msgstr "弹跳"
 
@@ -2220,27 +2249,27 @@ msgid "Broadcast"
 msgstr "群发"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1496
+#: src/pages/BroadcastsPage.tsx:1497
 msgid "Broadcast \"{0}\" cancelled successfully"
 msgstr "群发 \"{0}\" 成功取消"
 
 #. placeholder {0}: broadcastToDelete.name
-#: src/pages/BroadcastsPage.tsx:1438
+#: src/pages/BroadcastsPage.tsx:1439
 msgid "Broadcast \"{0}\" deleted successfully"
 msgstr "群发 \"{0}\" 成功删除"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1464
+#: src/pages/BroadcastsPage.tsx:1465
 msgid "Broadcast \"{0}\" paused successfully"
 msgstr "群发 \"{0}\" 暂停成功"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1534
+#: src/pages/BroadcastsPage.tsx:1535
 msgid "Broadcast \"{0}\" refreshed"
 msgstr "群发 \"{0}\" 刷新过"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1480
+#: src/pages/BroadcastsPage.tsx:1481
 msgid "Broadcast \"{0}\" resumed successfully"
 msgstr "群发 \"{0}\" 成功恢复"
 
@@ -2263,7 +2292,7 @@ msgstr "群发成功创建"
 msgid "Broadcast ID"
 msgstr "群发 ID"
 
-#: src/pages/BroadcastsPage.tsx:1760
+#: src/pages/BroadcastsPage.tsx:1761
 msgid "Broadcast ID copied to clipboard"
 msgstr "群发ID 复制到剪贴板"
 
@@ -2278,7 +2307,7 @@ msgstr "群发成功更新"
 #: src/components/analytics/EmailMetricsChart.tsx:285
 #: src/components/settings/PermissionsMatrix.tsx:122
 #: src/components/settings/UITranslationsSettings.tsx:116
-#: src/pages/BroadcastsPage.tsx:1549
+#: src/pages/BroadcastsPage.tsx:1550
 #: src/services/api/errors.ts:217
 msgid "Broadcasts"
 msgstr "邮件群发"
@@ -2306,7 +2335,7 @@ msgstr "浏览器"
 msgid "Browsers"
 msgstr "浏览器"
 
-#: src/components/navigation/DataAnalyticsPageShell.tsx:38
+#: src/components/navigation/DataAnalyticsPageShell.tsx:27
 msgid "Build a focused report by combining dimensions, metrics, filters and comparisons."
 msgstr "通过组合维度、指标、筛选条件和对比，构建聚焦的分析报告。"
 
@@ -2338,7 +2367,7 @@ msgstr "对联系人的批量记录自定义事件"
 msgid "Bulk synchronize contact profiles, lifecycle status, tags and events (list memberships also need Lists write)"
 msgstr "批量同步联系人档案、生命周期状态、标签和事件（同步列表成员关系还需要“列表”写入权限）"
 
-#: src/pages/ContactsPage.tsx:1065
+#: src/pages/ContactsPage.tsx:1066
 msgid "Bulk Update"
 msgstr "批量更新"
 
@@ -2484,13 +2513,14 @@ msgstr "营销活动"
 #: src/components/web_analytics/filters/FilterTable.tsx:292
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:105
 #: src/components/web_analytics/toolbar.tsx:94
-#: src/pages/BroadcastsPage.tsx:631
-#: src/pages/BroadcastsPage.tsx:653
-#: src/pages/BroadcastsPage.tsx:1017
-#: src/pages/BroadcastsPage.tsx:1733
-#: src/pages/ListsPage.tsx:307
-#: src/pages/TemplatesPage.tsx:379
-#: src/pages/TransactionalNotificationsPage.tsx:149
+#: src/pages/AudiencesPage.tsx:204
+#: src/pages/BroadcastsPage.tsx:632
+#: src/pages/BroadcastsPage.tsx:654
+#: src/pages/BroadcastsPage.tsx:1018
+#: src/pages/BroadcastsPage.tsx:1734
+#: src/pages/ListsPage.tsx:308
+#: src/pages/TemplatesPage.tsx:380
+#: src/pages/TransactionalNotificationsPage.tsx:150
 msgid "Cancel"
 msgstr "取消"
 
@@ -2506,11 +2536,11 @@ msgstr "取消运行中的回填"
 msgid "Cancel backfill?"
 msgstr "取消回填吗 ?"
 
-#: src/pages/BroadcastsPage.tsx:670
+#: src/pages/BroadcastsPage.tsx:671
 msgid "Cancel Broadcast"
 msgstr "取消群发"
 
-#: src/pages/BroadcastsPage.tsx:674
+#: src/pages/BroadcastsPage.tsx:675
 msgid "Cancel broadcast?"
 msgstr "取消群发?"
 
@@ -2526,10 +2556,10 @@ msgstr "取消操作吗 ?"
 msgid "Cancel Upload?"
 msgstr "取消上传吗 ?"
 
-#: src/pages/BroadcastsPage.tsx:251
-#: src/pages/BroadcastsPage.tsx:438
-#: src/pages/BroadcastsPage.tsx:1151
-#: src/pages/DeliveryCenterPage.tsx:58
+#: src/pages/BroadcastsPage.tsx:252
+#: src/pages/BroadcastsPage.tsx:439
+#: src/pages/BroadcastsPage.tsx:1152
+#: src/pages/DeliveryCenterPage.tsx:59
 msgid "Cancelled"
 msgstr "已取消"
 
@@ -2562,7 +2592,7 @@ msgstr "资本化"
 msgid "Card"
 msgstr "卡片"
 
-#: src/components/blog/BlogPageHeader.tsx:7
+#: src/components/blog/BlogPageHeader.tsx:8
 msgid "Categories"
 msgstr "类别"
 
@@ -2574,7 +2604,7 @@ msgstr "类别"
 #: src/components/templates/CreateTemplateDrawer.tsx:1030
 #: src/components/templates/MessageTemplateDrawer.tsx:393
 #: src/components/templates/OmnichannelTemplateDrawer.tsx:214
-#: src/pages/TemplatesPage.tsx:238
+#: src/pages/TemplatesPage.tsx:239
 msgid "Category"
 msgstr "分类"
 
@@ -2674,7 +2704,7 @@ msgstr "变化状况 {0}"
 #: src/components/web_analytics/FilterBuilder.tsx:55
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:179
 #: src/components/web_analytics/tabs/DashboardTab.tsx:170
-#: src/pages/DeliveryCenterPage.tsx:121
+#: src/pages/DeliveryCenterPage.tsx:122
 msgid "Channel"
 msgstr "渠道"
 
@@ -2726,11 +2756,11 @@ msgstr "检查"
 msgid "Check for Updates"
 msgstr "检查更新"
 
-#: src/pages/DeliveryCenterPage.tsx:166
+#: src/pages/DeliveryCenterPage.tsx:167
 msgid "Check provider again"
 msgstr "再次查询服务商"
 
-#: src/components/automations/JourneyPreflightPanel.tsx:97
+#: src/components/automations/JourneyPreflightPanel.tsx:98
 msgid "Check the trigger, flow, templates, providers, variables, and message frequency policies before activation."
 msgstr "启用前检查触发器、流程、模板、服务商、变量和消息频控策略。"
 
@@ -2738,7 +2768,7 @@ msgstr "启用前检查触发器、流程、模板、服务商、变量和消息
 msgid "Check your connection and try again."
 msgstr "请检查网络连接后重试。"
 
-#: src/components/automations/JourneyPreflightPanel.tsx:109
+#: src/components/automations/JourneyPreflightPanel.tsx:110
 msgid "Checking journey..."
 msgstr "正在检查自动化旅程..."
 
@@ -2808,7 +2838,7 @@ msgstr "全部清除"
 msgid "Clear field"
 msgstr "清除字段"
 
-#: src/pages/BroadcastsPage.tsx:1679
+#: src/pages/BroadcastsPage.tsx:1680
 msgid "Clear filters"
 msgstr "清除过滤器"
 
@@ -2873,14 +2903,14 @@ msgstr "点击"
 msgid "clicked link contains"
 msgstr "点击链接包含"
 
-#: src/pages/BroadcastsPage.tsx:1212
+#: src/pages/BroadcastsPage.tsx:1213
 msgid "clicks"
 msgstr "点击"
 
 #: src/components/analytics/EmailMetricsChart.tsx:269
 #: src/components/analytics/EmailMetricsChart.tsx:402
 #: src/components/broadcasts/BroadcastStats.tsx:225
-#: src/pages/BroadcastsPage.tsx:902
+#: src/pages/BroadcastsPage.tsx:903
 msgid "Clicks"
 msgstr "点击"
 
@@ -2931,7 +2961,7 @@ msgstr "克隆邮件模板"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:260
 #: src/components/templates/CreateTemplateDrawer.tsx:780
-#: src/pages/TemplatesPage.tsx:338
+#: src/pages/TemplatesPage.tsx:339
 msgid "Clone Template"
 msgstr "克隆模板"
 
@@ -2960,7 +2990,7 @@ msgid "Closed Captions (CC)"
 msgstr "结案说明(CC)"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:678
-#: src/pages/TemplatesPage.tsx:231
+#: src/pages/TemplatesPage.tsx:232
 msgid "Code"
 msgstr "代码"
 
@@ -3064,7 +3094,9 @@ msgstr "投诉邮件"
 #: src/components/messages/MessageHistoryTab.tsx:182
 #: src/components/messages/MessageHistoryTab.tsx:184
 #: src/components/messages/MessageHistoryTable.tsx:306
-#: src/pages/ContactsPage.tsx:396
+#: src/pages/AudienceMembersPage.tsx:87
+#: src/pages/AudienceMembersPage.tsx:204
+#: src/pages/ContactsPage.tsx:397
 msgid "Complained"
 msgstr "申诉"
 
@@ -3089,7 +3121,7 @@ msgid "Complement, don't repeat the subject line"
 msgstr "补充,不要重复主题行"
 
 #: src/components/customers/CustomerImportPanel.tsx:110
-#: src/pages/BroadcastsPage.tsx:242
+#: src/pages/BroadcastsPage.tsx:243
 msgid "Complete"
 msgstr "完成"
 
@@ -3119,12 +3151,12 @@ msgstr "已完成"
 #: src/components/automations/nodes/StatNode.tsx:201
 #: src/components/automations/nodes/StatNode.tsx:270
 #: src/components/automations/nodes/StatNode.tsx:359
-#: src/pages/BroadcastsPage.tsx:434
-#: src/pages/BroadcastsPage.tsx:1132
+#: src/pages/BroadcastsPage.tsx:435
+#: src/pages/BroadcastsPage.tsx:1133
 msgid "Completed"
 msgstr "已完成"
 
-#: src/pages/BroadcastsPage.tsx:218
+#: src/pages/BroadcastsPage.tsx:219
 msgid "Completed with failures"
 msgstr "已完成，但有失败记录"
 
@@ -3177,7 +3209,7 @@ msgstr "配置 {nodeLabel}"
 msgid "Configure a custom domain for email links, notification center, and web publications. DNS verification will be performed before saving to ensure you control this domain."
 msgstr "配置邮件链接、通知中心和网络出版物的自定义域名。 在保存前将进行 DNS 验证以确保您控制此域 。"
 
-#: src/components/settings/FrequencyPoliciesSettings.tsx:45
+#: src/components/settings/FrequencyPoliciesSettings.tsx:46
 msgid "Configure both campaign protection and a Workspace-wide safety limit. Automation entry frequency remains configured in the Journey."
 msgstr "建议同时配置活动级保护和 Workspace 全量安全底线。自动化入场频次仍在自动化旅程中配置。"
 
@@ -3202,7 +3234,7 @@ msgid "Configure outgoing webhooks to receive real-time notifications when event
 msgstr "配置正在发送的 Webhooks , 以便在您工作区中发生事件时接收实时通知 。"
 
 #: src/components/broadcasts/SendOrScheduleModal.tsx:212
-#: src/pages/BroadcastsPage.tsx:1618
+#: src/pages/BroadcastsPage.tsx:1619
 msgid "Configure Provider"
 msgstr "配置服务商"
 
@@ -3243,12 +3275,12 @@ msgstr "确认"
 msgid "Confirm a contact exists and list everything it is subscribed to (also needs Lists read)"
 msgstr "确认联系人的存在, 并列出它所订阅的一切( 也需要读取列表)"
 
-#: src/pages/DeliveryCenterPage.tsx:172
+#: src/pages/DeliveryCenterPage.tsx:173
 msgid "Confirm resolution"
 msgstr "确认处理结果"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:95
-#: src/pages/DeliveryCenterPage.tsx:52
+#: src/pages/DeliveryCenterPage.tsx:53
 msgid "Confirmed"
 msgstr "确认"
 
@@ -3313,7 +3345,7 @@ msgstr "成功添加到列表中的联系人"
 msgid "Contact created successfully"
 msgstr "成功创建联系人"
 
-#: src/pages/ContactsPage.tsx:197
+#: src/pages/ContactsPage.tsx:198
 msgid "Contact deleted successfully"
 msgstr "联系人已成功删除"
 
@@ -3372,12 +3404,12 @@ msgstr "联系人成功更新"
 
 #: src/components/settings/PermissionsMatrix.tsx:118
 #: src/components/settings/UITranslationsSettings.tsx:114
-#: src/pages/ContactsPage.tsx:1020
+#: src/pages/ContactsPage.tsx:1021
 #: src/services/api/errors.ts:213
 msgid "Contacts"
 msgstr "联系人"
 
-#: src/pages/ContactsPage.tsx:1002
+#: src/pages/ContactsPage.tsx:1003
 msgid "Contacts keeps the existing email-first workflows available. Use Customers for the unified customer profile, external user ID, phone and other identity aliases."
 msgstr "联系人页面继续支持现有的邮箱优先工作流。统一客户画像、外部用户 ID、手机号及其他身份标识请使用客户页面。"
 
@@ -3417,9 +3449,13 @@ msgstr "集装箱铺设"
 msgid "contains"
 msgstr "包含"
 
+#: src/pages/AudienceMembersPage.tsx:246
+msgid "Contains this value"
+msgstr "包含此值"
+
 #: src/components/broadcasts/HeadersEditor.tsx:58
 #: src/components/broadcasts/HeadersEditor.tsx:139
-#: src/pages/TemplatesPage.tsx:268
+#: src/pages/TemplatesPage.tsx:269
 msgid "Content"
 msgstr "内容"
 
@@ -3475,7 +3511,6 @@ msgstr "控制搜索引擎如何索引和跟踪您的博客链接"
 msgid "Conv. Rate"
 msgstr "约。 费率"
 
-#: src/components/navigation/DataAnalyticsPageShell.tsx:41
 #: src/components/navigation/WorkspaceSectionTabs.tsx:162
 msgid "Conversion Goals"
 msgstr "转化目标"
@@ -3511,7 +3546,7 @@ msgstr "复制"
 msgid "Copy {0} Code"
 msgstr "复制 {0} 代码"
 
-#: src/pages/BroadcastsPage.tsx:1753
+#: src/pages/BroadcastsPage.tsx:1754
 msgid "Copy to clipboard"
 msgstr "复制到剪贴板"
 
@@ -3603,9 +3638,9 @@ msgstr "国家"
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:232
 #: src/components/web_analytics/tabs/DashboardTab.tsx:215
 #: src/components/web_analytics/tabs/DashboardTab.tsx:220
-#: src/pages/ContactsPage.tsx:376
-#: src/pages/ContactsPage.tsx:430
-#: src/pages/ContactsPage.tsx:700
+#: src/pages/ContactsPage.tsx:377
+#: src/pages/ContactsPage.tsx:431
+#: src/pages/ContactsPage.tsx:701
 msgid "Country"
 msgstr "国家"
 
@@ -3714,25 +3749,29 @@ msgstr "创建 API 密钥"
 
 #: src/components/automations/UpsertAutomationDrawer.tsx:154
 #: src/components/automations/UpsertAutomationDrawer.tsx:318
-#: src/pages/AutomationsPage.tsx:203
+#: src/pages/AutomationsPage.tsx:200
 msgid "Create Automation"
 msgstr "创建自动化"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:388
-#: src/pages/BroadcastsPage.tsx:1564
-#: src/pages/BroadcastsPage.tsx:1702
+#: src/pages/BroadcastsPage.tsx:1565
+#: src/pages/BroadcastsPage.tsx:1703
 msgid "Create Broadcast"
 msgstr "创建群发"
 
 #: src/components/audiences/AudienceDrawer.tsx:117
-#: src/pages/AudiencesPage.tsx:54
-#: src/pages/AudiencesPage.tsx:63
+#: src/pages/AudiencesPage.tsx:169
+#: src/pages/AudiencesPage.tsx:173
 msgid "Create dynamic audience"
 msgstr "创建动态客群"
 
 #: src/components/blog/RecentThemesTable.tsx:213
 msgid "Create First Theme"
 msgstr "创建第一个主题"
+
+#: src/pages/AudiencesPage.tsx:164
+msgid "Create list"
+msgstr "创建名单"
 
 #: src/components/lists/ListDrawer.tsx:154
 msgid "Create List"
@@ -3787,8 +3826,8 @@ msgid "Create New Theme - {0}"
 msgstr "创建新主题 - {0}"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:197
-#: src/pages/TransactionalNotificationsPage.tsx:407
-#: src/pages/TransactionalNotificationsPage.tsx:459
+#: src/pages/TransactionalNotificationsPage.tsx:408
+#: src/pages/TransactionalNotificationsPage.tsx:460
 msgid "Create Notification"
 msgstr "创建通知"
 
@@ -3800,7 +3839,7 @@ msgstr "创建全渠道模板"
 msgid "Create or update one Customer profile with an idempotency key"
 msgstr "使用幂等键创建或更新单个客户档案"
 
-#: src/pages/ListsPage.tsx:158
+#: src/pages/ListsPage.tsx:159
 msgid "Create reusable customer groups and monitor their live membership counts."
 msgstr "创建可复用的客群，并实时监控人数。"
 
@@ -3844,7 +3883,7 @@ msgstr "创建 Webhook"
 msgid "Create Workspace"
 msgstr "创建工作区"
 
-#: src/pages/AutomationsPage.tsx:230
+#: src/pages/AutomationsPage.tsx:227
 msgid "Create your first automation"
 msgstr "创建您的第一个自动化"
 
@@ -3852,7 +3891,7 @@ msgstr "创建您的第一个自动化"
 msgid "Create your first blog post to get started"
 msgstr "创建您第一个启动的博客文章"
 
-#: src/pages/BroadcastsPage.tsx:1687
+#: src/pages/BroadcastsPage.tsx:1688
 msgid "Create your first broadcast to get started"
 msgstr "创建第一个群发以开始使用"
 
@@ -3860,11 +3899,11 @@ msgstr "创建第一个群发以开始使用"
 msgid "Create Your First Category"
 msgstr "创建您的第一类"
 
-#: src/pages/ListsPage.tsx:294
+#: src/pages/ListsPage.tsx:295
 msgid "Create your first list to get started"
 msgstr "创建您要启动的第一个列表"
 
-#: src/pages/TransactionalNotificationsPage.tsx:446
+#: src/pages/TransactionalNotificationsPage.tsx:447
 msgid "Create your first notification to get started"
 msgstr "创建第一条通知以开始使用"
 
@@ -3872,7 +3911,7 @@ msgstr "创建第一条通知以开始使用"
 msgid "Create Your First Post"
 msgstr "创建您的第一个邮箱"
 
-#: src/pages/TemplatesPage.tsx:474
+#: src/pages/TemplatesPage.tsx:475
 msgid "Create your first template to get started"
 msgstr "创建您启动的第一个模板"
 
@@ -3883,16 +3922,16 @@ msgstr "创建"
 #: src/components/automations/config/TriggerConfigForm.tsx:80
 #: src/components/customers/CustomerProfilePanel.tsx:189
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:418
-#: src/pages/DeliveryCenterPage.tsx:124
-#: src/pages/TemplatesPage.tsx:294
+#: src/pages/DeliveryCenterPage.tsx:125
+#: src/pages/TemplatesPage.tsx:295
 msgid "Created"
 msgstr "已创建"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:536
 #: src/components/messages/MessageHistoryTable.tsx:135
 #: src/components/messages/MessageHistoryTable.tsx:336
-#: src/pages/ContactsPage.tsx:435
-#: src/pages/ContactsPage.tsx:738
+#: src/pages/ContactsPage.tsx:436
+#: src/pages/ContactsPage.tsx:739
 msgid "Created At"
 msgstr "创建时间"
 
@@ -3944,6 +3983,10 @@ msgstr "当前"
 #: src/pages/DebugSegmentPage.tsx:89
 msgid "Current Segment Tree JSON"
 msgstr "当前段树 JSON"
+
+#: src/pages/AudienceMembersPage.tsx:114
+msgid "Current subscription status"
+msgstr "当前订阅状态"
 
 #: src/components/settings/Integrations.tsx:2455
 msgid "custom"
@@ -4172,7 +4215,7 @@ msgstr "自定义字符串字段"
 #: src/components/automations/JourneyTraceDrawer.tsx:89
 #: src/components/delivery/DeliveryFiltersBar.tsx:60
 #: src/i18n/catalogInventory.ts:8
-#: src/pages/DeliveryCenterPage.tsx:161
+#: src/pages/DeliveryCenterPage.tsx:162
 msgid "Customer"
 msgstr "客户"
 
@@ -4180,11 +4223,15 @@ msgstr "客户"
 msgid "Customer 360"
 msgstr "客户 360 视图"
 
+#: src/pages/AudienceMembersPage.tsx:139
+msgid "Customer attributes"
+msgstr "客户属性"
+
 #: src/components/customers/CustomerImportPanel.tsx:77
 msgid "Customer CSV import"
 msgstr "客户 CSV 导入"
 
-#: src/pages/CustomersPage.tsx:150
+#: src/pages/CustomersPage.tsx:149
 msgid "Customer directory"
 msgstr "客户目录"
 
@@ -4197,7 +4244,8 @@ msgid "Customer ID or number"
 msgstr "客户 ID 或客户编号"
 
 #: src/components/errors/ActionableError.tsx:32
-#: src/pages/CustomersPage.tsx:92
+#: src/pages/AudienceMembersPage.tsx:102
+#: src/pages/CustomersPage.tsx:93
 msgid "Customer number"
 msgstr "客户编号"
 
@@ -4220,6 +4268,14 @@ msgstr "客户写权限可以替换标签和名单成员关系，并可将匿名
 msgid "Customers"
 msgstr "客户管理"
 
+#: src/pages/AudienceMembersPage.tsx:179
+msgid "Customers in {sourceName}"
+msgstr "{sourceName}中的客户"
+
+#: src/pages/AudienceMembersPage.tsx:226
+msgid "Customers who performed this event"
+msgstr "筛选执行过此事件的客户"
+
 #: src/components/settings/UITranslationsSettings.tsx:326
 #: src/components/settings/UITranslationsSettings.tsx:342
 msgid "Customize the static interface text used throughout this workspace."
@@ -4229,7 +4285,7 @@ msgstr "自定义此工作区中使用的静态界面文案。"
 msgid "Daily"
 msgstr "日报"
 
-#: src/components/settings/BlogSettings.tsx:477
+#: src/components/settings/BlogSettings.tsx:478
 #: src/components/settings/DeleteWorkspace.tsx:45
 #: src/components/settings/SettingsSidebar.tsx:149
 msgid "Danger Zone"
@@ -4296,7 +4352,7 @@ msgstr "深链接"
 #: src/components/templates/MessageTemplateDrawer.tsx:285
 #: src/components/templates/OmnichannelTemplateDrawer.tsx:183
 #: src/components/templates/SendTemplateModal.tsx:66
-#: src/pages/TemplatesPage.tsx:262
+#: src/pages/TemplatesPage.tsx:263
 msgid "default"
 msgstr "默认"
 
@@ -4323,7 +4379,7 @@ msgstr "默认属性"
 msgid "Default Language"
 msgstr "默认语言"
 
-#: src/pages/BroadcastsPage.tsx:809
+#: src/pages/BroadcastsPage.tsx:810
 msgid "Default sender"
 msgstr "默认发件人"
 
@@ -4350,11 +4406,11 @@ msgstr "默认元标题"
 msgid "Defaults to SMTP host"
 msgstr "SMTP 主机的默认值"
 
-#: src/pages/DeliveryCenterPage.tsx:54
+#: src/pages/DeliveryCenterPage.tsx:55
 msgid "Deferred"
 msgstr "已延后"
 
-#: src/pages/AudiencesPage.tsx:46
+#: src/pages/AudiencesPage.tsx:158
 msgid "Define reusable audiences from customer attributes, status, lists, activity, and goals."
 msgstr "根据客户属性、状态、名单、行为和目标事件定义可复用客群。"
 
@@ -4397,15 +4453,22 @@ msgstr "延迟"
 #: src/components/web_analytics/filters/FilterTable.tsx:136
 #: src/components/web_analytics/filters/FilterTable.tsx:291
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
-#: src/pages/BroadcastsPage.tsx:1743
-#: src/pages/ContactsPage.tsx:946
-#: src/pages/ListsPage.tsx:317
+#: src/pages/AudiencesPage.tsx:145
+#: src/pages/AudiencesPage.tsx:213
+#: src/pages/BroadcastsPage.tsx:1744
+#: src/pages/ContactsPage.tsx:947
+#: src/pages/ListsPage.tsx:318
 msgid "Delete"
 msgstr "删除"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:563
 msgid "DELETE"
 msgstr "DELETE"
+
+#. placeholder {0}: row.name
+#: src/pages/AudiencesPage.tsx:141
+msgid "Delete {0}"
+msgstr "删除 {0}"
 
 #. placeholder {0}: selectedRowKeys.length
 #: src/components/file_manager/fileManager.tsx:771
@@ -4498,8 +4561,8 @@ msgstr "删除块"
 msgid "Delete Block"
 msgstr "删除块"
 
-#: src/pages/BroadcastsPage.tsx:693
-#: src/pages/BroadcastsPage.tsx:1728
+#: src/pages/BroadcastsPage.tsx:694
+#: src/pages/BroadcastsPage.tsx:1729
 msgid "Delete Broadcast"
 msgstr "删除群发"
 
@@ -4513,7 +4576,7 @@ msgstr "删除联系人"
 
 #: src/components/contacts/BulkActionsBar.tsx:215
 #: src/components/contacts/BulkUpdateDrawer.tsx:596
-#: src/pages/ContactsPage.tsx:264
+#: src/pages/ContactsPage.tsx:265
 msgid "Delete contacts"
 msgstr "删除联系人"
 
@@ -4548,8 +4611,9 @@ msgstr "删除 Header"
 msgid "Delete invitation"
 msgstr "删除邀请"
 
-#: src/pages/ListsPage.tsx:213
-#: src/pages/ListsPage.tsx:302
+#: src/pages/AudiencesPage.tsx:200
+#: src/pages/ListsPage.tsx:214
+#: src/pages/ListsPage.tsx:303
 msgid "Delete List"
 msgstr "删除列表"
 
@@ -4567,15 +4631,15 @@ msgstr "删除文章"
 msgid "Delete segment"
 msgstr "删除段"
 
-#: src/pages/TemplatesPage.tsx:358
+#: src/pages/TemplatesPage.tsx:359
 msgid "Delete Template"
 msgstr "删除模板"
 
-#: src/pages/TemplatesPage.tsx:368
+#: src/pages/TemplatesPage.tsx:369
 msgid "Delete template?"
 msgstr "删除模板吗 ?"
 
-#: src/pages/TransactionalNotificationsPage.tsx:145
+#: src/pages/TransactionalNotificationsPage.tsx:146
 msgid "Delete the notification?"
 msgstr "删除通知?"
 
@@ -4664,7 +4728,7 @@ msgstr "已交付"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:67
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:84
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:239
-#: src/pages/TransactionalNotificationsPage.tsx:217
+#: src/pages/TransactionalNotificationsPage.tsx:218
 msgid "Delivered"
 msgstr "已交付"
 
@@ -4686,7 +4750,7 @@ msgid "Delivery blocked by frequency control"
 msgstr "投递已被频控拦截"
 
 #: src/layouts/WorkspaceLayout.tsx:307
-#: src/pages/DeliveryCenterPage.tsx:133
+#: src/pages/DeliveryCenterPage.tsx:134
 msgid "Delivery Center"
 msgstr "投递中心"
 
@@ -4694,11 +4758,11 @@ msgstr "投递中心"
 msgid "Delivery channel"
 msgstr "触达渠道"
 
-#: src/pages/DeliveryCenterPage.tsx:151
+#: src/pages/DeliveryCenterPage.tsx:152
 msgid "Delivery details"
 msgstr "投递详情"
 
-#: src/pages/DeliveryCenterPage.tsx:160
+#: src/pages/DeliveryCenterPage.tsx:161
 msgid "Delivery ID"
 msgstr "投递 ID"
 
@@ -4714,7 +4778,7 @@ msgstr "投递结果不确定"
 msgid "Delivery time"
 msgstr "投递时间"
 
-#: src/pages/DeliveryCenterPage.tsx:182
+#: src/pages/DeliveryCenterPage.tsx:183
 msgid "Describe the verification evidence and reason"
 msgstr "请说明核实依据和处理原因"
 
@@ -4728,8 +4792,9 @@ msgstr "描述这个图像..."
 #: src/components/lists/ListDrawer.tsx:206
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:308
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
-#: src/pages/ListsPage.tsx:258
-#: src/pages/TransactionalNotificationsPage.tsx:266
+#: src/pages/AudiencesPage.tsx:117
+#: src/pages/ListsPage.tsx:259
+#: src/pages/TransactionalNotificationsPage.tsx:267
 msgid "Description"
 msgstr "描述"
 
@@ -4762,7 +4827,7 @@ msgstr "从网站 URL 检测"
 msgid "Device"
 msgstr "设备"
 
-#: src/pages/TemplatesPage.tsx:248
+#: src/pages/TemplatesPage.tsx:249
 msgid "Device notification"
 msgstr "设备通知"
 
@@ -4797,7 +4862,7 @@ msgid "Dimensions:"
 msgstr "尺寸 :"
 
 #: src/components/settings/BlogSettings.tsx:204
-#: src/components/settings/BlogSettings.tsx:482
+#: src/components/settings/BlogSettings.tsx:483
 msgid "Disable Blog"
 msgstr "禁用博客"
 
@@ -4829,7 +4894,7 @@ msgstr "已禁用"
 msgid "Disabled for this notification"
 msgstr "禁用此通知"
 
-#: src/components/settings/BlogSettings.tsx:479
+#: src/components/settings/BlogSettings.tsx:480
 msgid "Disabling the blog will remove all SEO settings and make your blog inaccessible to visitors. This action will affect your blog's visibility and search engine rankings."
 msgstr "关闭博客将删除所有 SEO 设置, 让访问者无法访问您的博客 。 此动作将影响您博客的知名度和搜索引擎排名 。"
 
@@ -4951,7 +5016,7 @@ msgid "Double Opt-in"
 msgstr "双重确认订阅"
 
 #: src/components/lists/ListDrawer.tsx:250
-#: src/pages/ListsPage.tsx:272
+#: src/pages/ListsPage.tsx:273
 msgid "Double Opt-in Template"
 msgstr "双切入模板"
 
@@ -4974,8 +5039,8 @@ msgstr "下载 {0} 文件"
 
 #: src/components/automations/AutomationCard.tsx:63
 #: src/components/blog/PostStatusTag.tsx:33
-#: src/pages/BroadcastsPage.tsx:144
-#: src/pages/BroadcastsPage.tsx:1582
+#: src/pages/BroadcastsPage.tsx:145
+#: src/pages/BroadcastsPage.tsx:1583
 msgid "Draft"
 msgstr "草案"
 
@@ -4999,7 +5064,7 @@ msgstr "在树上拖动此块"
 msgid "Drop files here to upload"
 msgstr "在此丢弃文件上传"
 
-#: src/pages/AudiencesPage.tsx:73
+#: src/pages/AudiencesPage.tsx:112
 msgid "Dynamic"
 msgstr "动态"
 
@@ -5119,7 +5184,7 @@ msgstr "例如,欢迎——第1天"
 msgid "Each contact enters the automation only once"
 msgstr "每个联系人只输入一次自动化"
 
-#: src/pages/ListsPage.tsx:79
+#: src/pages/ListsPage.tsx:80
 msgid "edit"
 msgstr "编辑"
 
@@ -5138,8 +5203,8 @@ msgstr "编辑"
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:91
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:154
 #: src/components/web_analytics/filters/FilterTable.tsx:140
-#: src/pages/ContactsPage.tsx:940
-#: src/pages/TransactionalNotificationsPage.tsx:157
+#: src/pages/ContactsPage.tsx:941
+#: src/pages/TransactionalNotificationsPage.tsx:158
 msgid "Edit"
 msgstr "编辑"
 
@@ -5203,7 +5268,7 @@ msgid "Edit broadcast"
 msgstr "编辑群发"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:388
-#: src/pages/BroadcastsPage.tsx:596
+#: src/pages/BroadcastsPage.tsx:597
 msgid "Edit Broadcast"
 msgstr "编辑群发"
 
@@ -5243,9 +5308,13 @@ msgstr "编辑 HTML 内容"
 msgid "Edit Liquid Content"
 msgstr "编辑 Liquid 内容"
 
+#: src/pages/AudiencesPage.tsx:136
+msgid "Edit list"
+msgstr "编辑名单"
+
 #: src/components/lists/ListDrawer.tsx:154
 #: src/components/lists/ListDrawer.tsx:157
-#: src/pages/ListsPage.tsx:229
+#: src/pages/ListsPage.tsx:230
 msgid "Edit List"
 msgstr "编辑列表"
 
@@ -5298,7 +5367,7 @@ msgstr "编辑标签"
 #: src/components/templates/CreateTemplateDrawer.tsx:780
 #: src/components/templates/MessageTemplateDrawer.tsx:337
 #: src/components/templates/OmnichannelTemplateDrawer.tsx:193
-#: src/pages/TemplatesPage.tsx:319
+#: src/pages/TemplatesPage.tsx:320
 msgid "Edit Template"
 msgstr "编辑模板"
 
@@ -5380,8 +5449,8 @@ msgstr "邮件"
 #: src/components/settings/Integrations.tsx:2718
 #: src/components/settings/WorkspaceMembers.tsx:101
 #: src/components/timeline/ContactTimeline.tsx:584
-#: src/pages/ContactsPage.tsx:369
-#: src/pages/ContactsPage.tsx:536
+#: src/pages/ContactsPage.tsx:370
+#: src/pages/ContactsPage.tsx:537
 #: src/pages/SignInPage.tsx:221
 #: src/pages/SignInPage.tsx:228
 msgid "Email"
@@ -5410,7 +5479,7 @@ msgid "Email Body Payload"
 msgstr "邮件正文数据"
 
 #: src/components/analytics/NewContactsTable.tsx:105
-#: src/pages/ContactsPage.tsx:576
+#: src/pages/ContactsPage.tsx:577
 msgid "Email bounced"
 msgstr "邮件已退信"
 
@@ -5423,7 +5492,7 @@ msgstr "邮件群发"
 msgid "Email client preview"
 msgstr "邮件客户端预览"
 
-#: src/pages/ContactsPage.tsx:1001
+#: src/pages/ContactsPage.tsx:1002
 msgid "Email compatibility view"
 msgstr "邮箱联系人兼容视图"
 
@@ -5478,7 +5547,7 @@ msgstr "邮件预览"
 msgid "Email Provider Configuration Needed"
 msgstr "需要配置邮件服务商"
 
-#: src/pages/BroadcastsPage.tsx:1607
+#: src/pages/BroadcastsPage.tsx:1608
 msgid "Email Provider Required"
 msgstr "需要邮件服务商"
 
@@ -5524,7 +5593,7 @@ msgstr "邮件 :"
 
 #. placeholder {0}: progressStats.processed.toLocaleString()
 #. placeholder {1}: progressStats.remaining.toLocaleString()
-#: src/pages/BroadcastsPage.tsx:224
+#: src/pages/BroadcastsPage.tsx:225
 msgid "Emails are being delivered. {0} sent, {1} remaining."
 msgstr "正在发送邮件。 {0} 发送 {1} 剩余。"
 
@@ -5708,7 +5777,7 @@ msgstr "输入背景图像 URL"
 msgid "Enter BCC email addresses"
 msgstr "输入 BCC 邮件地址"
 
-#: src/pages/BroadcastsPage.tsx:1766
+#: src/pages/BroadcastsPage.tsx:1767
 msgid "Enter broadcast ID to confirm"
 msgstr "输入群发ID以确认"
 
@@ -5788,7 +5857,8 @@ msgstr "输入链接 URL 或 {{ url }}"
 msgid "Enter list description"
 msgstr "输入列表描述"
 
-#: src/pages/ListsPage.tsx:329
+#: src/pages/AudiencesPage.tsx:222
+#: src/pages/ListsPage.tsx:330
 msgid "Enter list ID to confirm"
 msgstr "输入要确认的列表ID"
 
@@ -5827,6 +5897,11 @@ msgstr "请输入自动化:触发器标识"
 #: src/components/frequency/FrequencyPolicyForm.tsx:52
 msgid "Enter the campaign ID"
 msgstr "请输入活动 ID"
+
+#. placeholder {0}: listToDelete.name
+#: src/pages/AudiencesPage.tsx:219
+msgid "Enter the list ID to confirm deletion of \"{0}\"."
+msgstr "请输入名单 ID 以确认删除“{0}”。"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:339
 msgid "Enter the name of the custom event (e.g., 'purchase', 'signup')"
@@ -5920,7 +5995,7 @@ msgstr "等于"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:930
 #: src/components/messages/MessageHistoryTable.tsx:134
 #: src/components/messages/MessageHistoryTable.tsx:322
-#: src/pages/BroadcastsPage.tsx:510
+#: src/pages/BroadcastsPage.tsx:511
 msgid "Error"
 msgstr "错误"
 
@@ -5931,7 +6006,7 @@ msgstr "错误"
 #: src/components/messages/MessageHistoryTab.tsx:603
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:492
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:448
-#: src/pages/TransactionalNotificationsPage.tsx:373
+#: src/pages/TransactionalNotificationsPage.tsx:374
 msgid "Error loading data"
 msgstr "加载数据时出错"
 
@@ -5993,6 +6068,11 @@ msgstr "事件 / 定时触发限制"
 msgid "event name"
 msgstr "事件名称"
 
+#: src/pages/AudienceMembersPage.tsx:221
+#: src/pages/AudienceMembersPage.tsx:223
+msgid "Event name"
+msgstr "事件名称"
+
 #: src/components/automations/config/TriggerConfigForm.tsx:337
 msgid "Event Name"
 msgstr "事件名称"
@@ -6051,11 +6131,11 @@ msgstr "没错"
 msgid "Excerpt"
 msgstr "节选"
 
-#: src/components/settings/BlogSettings.tsx:447
+#: src/components/settings/BlogSettings.tsx:448
 msgid "Excerpt only"
 msgstr "只摘录"
 
-#: src/pages/BroadcastsPage.tsx:1093
+#: src/pages/BroadcastsPage.tsx:1094
 msgid "Exclude Unsubscribed"
 msgstr "排除未订阅"
 
@@ -6105,7 +6185,7 @@ msgstr "扩展"
 msgid "Expires:"
 msgstr "过期 :"
 
-#: src/pages/DeliveryCenterPage.tsx:159
+#: src/pages/DeliveryCenterPage.tsx:160
 msgid "Explanation"
 msgstr "说明"
 
@@ -6120,7 +6200,7 @@ msgstr "探索"
 #: src/components/contacts/ExportContactsModal.tsx:323
 #: src/components/email_builder/MjmlCodeEditor.tsx:643
 #: src/components/templates/ImportExportButton.tsx:416
-#: src/pages/ContactsPage.tsx:1043
+#: src/pages/ContactsPage.tsx:1044
 msgid "Export"
 msgstr "导出"
 
@@ -6152,13 +6232,13 @@ msgstr "导出所有联系人"
 #: src/components/messages/MessageHistoryTab.tsx:226
 #: src/components/messages/MessageHistoryTable.tsx:128
 #: src/components/messages/MessageHistoryTable.tsx:154
-#: src/pages/ContactsPage.tsx:370
+#: src/pages/ContactsPage.tsx:371
 msgid "External ID"
 msgstr "外部标识"
 
 #: src/components/customers/CustomerProfilePanel.tsx:120
 #: src/components/errors/ActionableError.tsx:33
-#: src/pages/CustomersPage.tsx:98
+#: src/pages/CustomersPage.tsx:99
 msgid "External user ID"
 msgstr "外部用户 ID"
 
@@ -6189,15 +6269,15 @@ msgstr "失败"
 #: src/components/settings/WebhookCard.tsx:394
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:89
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:257
-#: src/pages/BroadcastsPage.tsx:259
-#: src/pages/BroadcastsPage.tsx:436
-#: src/pages/BroadcastsPage.tsx:503
-#: src/pages/BroadcastsPage.tsx:1586
-#: src/pages/TransactionalNotificationsPage.tsx:234
+#: src/pages/BroadcastsPage.tsx:260
+#: src/pages/BroadcastsPage.tsx:437
+#: src/pages/BroadcastsPage.tsx:504
+#: src/pages/BroadcastsPage.tsx:1587
+#: src/pages/TransactionalNotificationsPage.tsx:235
 msgid "Failed"
 msgstr "失败"
 
-#: src/pages/DeliveryCenterPage.tsx:56
+#: src/pages/DeliveryCenterPage.tsx:57
 msgid "Failed permanently"
 msgstr "永久失败"
 
@@ -6217,7 +6297,7 @@ msgstr "接受邀请失败"
 msgid "Failed to add to list: {error}"
 msgstr "添加到列表失败 : {error}"
 
-#: src/pages/BroadcastsPage.tsx:1501
+#: src/pages/BroadcastsPage.tsx:1502
 msgid "Failed to cancel broadcast"
 msgstr "取消群发失败"
 
@@ -6297,7 +6377,7 @@ msgstr "创建工作区失败"
 #~ msgid "Failed to delete automation"
 #~ msgstr "删除自动化失败"
 
-#: src/pages/BroadcastsPage.tsx:1451
+#: src/pages/BroadcastsPage.tsx:1452
 msgid "Failed to delete broadcast"
 msgstr "删除群发失败"
 
@@ -6306,7 +6386,7 @@ msgstr "删除群发失败"
 msgid "Failed to delete category"
 msgstr "删除分类失败"
 
-#: src/pages/ContactsPage.tsx:211
+#: src/pages/ContactsPage.tsx:212
 msgid "Failed to delete contact"
 msgstr "删除联系人失败"
 
@@ -6322,11 +6402,12 @@ msgstr "删除集成失败"
 msgid "Failed to delete invitation"
 msgstr "删除邀请失败"
 
-#: src/pages/ListsPage.tsx:122
+#: src/pages/AudiencesPage.tsx:88
+#: src/pages/ListsPage.tsx:123
 msgid "Failed to delete list"
 msgstr "删除列表失败"
 
-#: src/pages/TransactionalNotificationsPage.tsx:356
+#: src/pages/TransactionalNotificationsPage.tsx:357
 msgid "Failed to delete notification"
 msgstr "删除通知失败"
 
@@ -6338,7 +6419,7 @@ msgstr "删除邮件失败"
 msgid "Failed to delete segment"
 msgstr "删除细分群体失败"
 
-#: src/pages/TemplatesPage.tsx:174
+#: src/pages/TemplatesPage.tsx:175
 msgid "Failed to delete template: {errorMsg}"
 msgstr "删除模板失败 : {errorMsg}"
 
@@ -6428,7 +6509,7 @@ msgstr "加载群发失败"
 msgid "Failed to load contact lists"
 msgstr "加载联系人列表失败"
 
-#: src/components/settings/FrequencyPoliciesSettings.tsx:17
+#: src/components/settings/FrequencyPoliciesSettings.tsx:18
 msgid "Failed to load frequency policies"
 msgstr "触达频控策略加载失败"
 
@@ -6444,7 +6525,7 @@ msgstr "加载 Webhook 订阅失败"
 #~ msgid "Failed to pause automation"
 #~ msgstr "暂停自动化失败"
 
-#: src/pages/BroadcastsPage.tsx:1469
+#: src/pages/BroadcastsPage.tsx:1470
 msgid "Failed to pause broadcast"
 msgstr "暂停群发失败"
 
@@ -6516,7 +6597,7 @@ msgstr "重新发送邀请失败"
 msgid "Failed to resend magic code"
 msgstr "验证码重新发送失败"
 
-#: src/pages/BroadcastsPage.tsx:1485
+#: src/pages/BroadcastsPage.tsx:1486
 msgid "Failed to resume broadcast"
 msgstr "恢复群发失败"
 
@@ -6544,7 +6625,7 @@ msgstr "保存字段失败"
 msgid "Failed to save Firecrawl integration"
 msgstr "保存 Firecrawl 集成失败"
 
-#: src/components/settings/FrequencyPoliciesSettings.tsx:28
+#: src/components/settings/FrequencyPoliciesSettings.tsx:29
 msgid "Failed to save frequency policy"
 msgstr "触达频控策略保存失败"
 
@@ -6596,7 +6677,7 @@ msgstr "保存 Zapier 集成失败"
 msgid "Failed to schedule broadcast"
 msgstr "群发调度失败"
 
-#: src/pages/BroadcastsPage.tsx:415
+#: src/pages/BroadcastsPage.tsx:416
 msgid "Failed to select winner"
 msgstr "选择赢家失败"
 
@@ -6675,7 +6756,7 @@ msgstr "更新自定义字段标签失败"
 msgid "Failed to update field"
 msgstr "更新字段失败"
 
-#: src/pages/FileManagerPage.tsx:85
+#: src/pages/FileManagerPage.tsx:86
 msgid "Failed to update file manager settings"
 msgstr "更新文件管理器设置失败"
 
@@ -6799,7 +6880,7 @@ msgstr "文件太大了 。 最大尺寸为1MB."
 #: src/components/file_manager/context.tsx:155
 #: src/components/navigation/WorkspaceSectionTabs.tsx:84
 #: src/components/settings/UITranslationsSettings.tsx:108
-#: src/pages/FileManagerPage.tsx:120
+#: src/pages/FileManagerPage.tsx:121
 msgid "File Manager"
 msgstr "文件管理"
 
@@ -6807,7 +6888,7 @@ msgstr "文件管理"
 msgid "File manager error: "
 msgstr "文件管理器错误 : "
 
-#: src/pages/FileManagerPage.tsx:82
+#: src/pages/FileManagerPage.tsx:83
 msgid "File manager settings updated successfully"
 msgstr "成功更新文件管理器设置"
 
@@ -6860,6 +6941,7 @@ msgstr "在事件属性上过滤"
 #: src/components/delivery/DeliveryFiltersBar.tsx:195
 #: src/components/messages/MessageHistoryTab.tsx:586
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:352
+#: src/pages/AudienceMembersPage.tsx:188
 msgid "Filters"
 msgstr "筛选器"
 
@@ -6876,7 +6958,7 @@ msgid "Filters — cleared"
 msgstr "过滤器——已清除"
 
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:82
-#: src/pages/ContactsPage.tsx:1098
+#: src/pages/ContactsPage.tsx:1099
 msgid "Filters:"
 msgstr "过滤器 :"
 
@@ -6909,18 +6991,18 @@ msgstr "Firecrawl 集成成功保存"
 #: src/components/contacts/ContactDetailsDrawer.tsx:441
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:91
 #: src/components/contacts/ExportContactsModal.tsx:56
-#: src/pages/ContactsPage.tsx:371
-#: src/pages/ContactsPage.tsx:426
-#: src/pages/ContactsPage.tsx:673
+#: src/pages/ContactsPage.tsx:372
+#: src/pages/ContactsPage.tsx:427
+#: src/pages/ContactsPage.tsx:674
 msgid "First Name"
 msgstr "名称"
 
-#: src/components/automations/JourneyPreflightPanel.tsx:147
+#: src/components/automations/JourneyPreflightPanel.tsx:148
 msgid "Fix"
 msgstr "去修复"
 
 #. placeholder {0}: issue.title
-#: src/components/automations/JourneyPreflightPanel.tsx:144
+#: src/components/automations/JourneyPreflightPanel.tsx:145
 msgid "Fix {0}"
 msgstr "修复 {0}"
 
@@ -7021,6 +7103,10 @@ msgstr "拆分 - 相同的通知 external_id 不会被送两次。"
 msgid "For each customer in"
 msgstr "每位客户在"
 
+#: src/pages/AudienceMembersPage.tsx:236
+msgid "For example, tier"
+msgstr "例如：tier"
+
 #: src/components/transactional/ApiCommandModal.tsx:564
 msgid "for template variables"
 msgstr "模板变量"
@@ -7064,7 +7150,7 @@ msgstr "频次"
 msgid "Frequency Cap"
 msgstr "频控"
 
-#: src/components/settings/FrequencyPoliciesSettings.tsx:26
+#: src/components/settings/FrequencyPoliciesSettings.tsx:27
 msgid "Frequency policy saved as a new version"
 msgstr "触达频控策略已保存为新版本"
 
@@ -7092,7 +7178,7 @@ msgstr "发件人名称"
 msgid "From Name (override)"
 msgstr "从名称( 覆盖)"
 
-#: src/pages/BroadcastsPage.tsx:857
+#: src/pages/BroadcastsPage.tsx:858
 msgid "From:"
 msgstr "发件人:"
 
@@ -7100,14 +7186,14 @@ msgstr "发件人:"
 msgid "Full Access"
 msgstr "完全访问"
 
-#: src/components/settings/BlogSettings.tsx:446
+#: src/components/settings/BlogSettings.tsx:447
 msgid "Full content"
 msgstr "内容"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:443
-#: src/pages/ContactsPage.tsx:373
-#: src/pages/ContactsPage.tsx:428
-#: src/pages/ContactsPage.tsx:687
+#: src/pages/ContactsPage.tsx:374
+#: src/pages/ContactsPage.tsx:429
+#: src/pages/ContactsPage.tsx:688
 msgid "Full Name"
 msgstr "完整名称"
 
@@ -7376,7 +7462,7 @@ msgstr "帮助屏幕阅读器描述图像"
 msgid "Hide"
 msgstr "隐藏"
 
-#: src/pages/BroadcastsPage.tsx:761
+#: src/pages/BroadcastsPage.tsx:762
 msgid "Hide Details"
 msgstr "隐藏细节"
 
@@ -7484,7 +7570,7 @@ msgstr "https://fonts.googleapis.com/css?family=... 或 {{ font_url }}"
 msgid "I ran {maxRounds} rounds of tool calls without reaching an answer and stopped there. Ask a narrower question and I will try again."
 msgstr "我已执行 {maxRounds} 轮工具调用，但仍未得到答案，因此停止。请缩小问题范围，我会再试一次。"
 
-#: src/components/automations/JourneyPreflightPanel.tsx:160
+#: src/components/automations/JourneyPreflightPanel.tsx:161
 msgid "I understand these warnings and want to activate this journey."
 msgstr "我已了解这些警告，仍要启用此自动化旅程。"
 
@@ -7523,8 +7609,8 @@ msgstr "图标/ Favicon URL"
 #: src/components/automations/AutomationCard.tsx:293
 #: src/components/messages/MessageHistoryTable.tsx:211
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:355
-#: src/pages/ListsPage.tsx:256
-#: src/pages/TransactionalNotificationsPage.tsx:264
+#: src/pages/ListsPage.tsx:257
+#: src/pages/TransactionalNotificationsPage.tsx:265
 msgid "ID"
 msgstr "ID"
 
@@ -7536,12 +7622,12 @@ msgstr "ID 只能包含小写字母和数字"
 msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "ID只能包含小写字母、数字和下划线"
 
-#: src/pages/BroadcastsPage.tsx:1774
-#: src/pages/ListsPage.tsx:335
+#: src/pages/BroadcastsPage.tsx:1775
+#: src/pages/ListsPage.tsx:336
 msgid "ID doesn't match"
 msgstr "ID 不匹配"
 
-#: src/pages/TemplatesPage.tsx:224
+#: src/pages/TemplatesPage.tsx:225
 msgid "ID for API:"
 msgstr "API 的标识 :"
 
@@ -7618,7 +7704,8 @@ msgid "Identity"
 msgstr "身份标识"
 
 #: src/components/customers/CustomerProfilePanel.tsx:173
-#: src/pages/CustomersPage.tsx:104
+#: src/pages/AudienceMembersPage.tsx:107
+#: src/pages/CustomersPage.tsx:105
 msgid "Identity aliases"
 msgstr "身份标识别名"
 
@@ -7667,7 +7754,7 @@ msgstr "隐性TLS( SMTPS)"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:631
 #: src/components/templates/ImportExportButton.tsx:387
-#: src/pages/ContactsPage.tsx:1036
+#: src/pages/ContactsPage.tsx:1037
 msgid "Import"
 msgstr "导入"
 
@@ -7761,7 +7848,7 @@ msgid "in"
 msgstr "输入"
 
 #. placeholder {0}: broadcast.schedule.timezone
-#: src/pages/BroadcastsPage.tsx:1119
+#: src/pages/BroadcastsPage.tsx:1120
 msgid "in {0}"
 msgstr "输入 {0}"
 
@@ -7770,7 +7857,7 @@ msgstr "输入 {0}"
 msgid "in date range"
 msgstr "日期范围"
 
-#: src/pages/BroadcastsPage.tsx:1118
+#: src/pages/BroadcastsPage.tsx:1119
 msgid "in recipients timezone"
 msgstr "在收件人时区中"
 
@@ -7806,11 +7893,11 @@ msgstr "包含明确的呼吁行动"
 msgid "Include external_user_id, email or phone; at least one customer identifier is required."
 msgstr "请包含 external_user_id、email 或 phone；至少需要一个客户标识。"
 
-#: src/pages/CustomersPage.tsx:168
+#: src/pages/CustomersPage.tsx:167
 msgid "Include merged customers"
 msgstr "包含已合并客户"
 
-#: src/pages/LogsPage.tsx:42
+#: src/pages/LogsPage.tsx:43
 msgid "Incoming Webhooks"
 msgstr "来袭的 Webhooks"
 
@@ -7831,7 +7918,7 @@ msgstr "索引,但不要跟随链接"
 msgid "Inflight"
 msgstr "飞行"
 
-#: src/pages/BroadcastsPage.tsx:852
+#: src/pages/BroadcastsPage.tsx:853
 msgid "Info"
 msgstr "资讯"
 
@@ -8096,14 +8183,14 @@ msgstr "斜体"
 msgid "Item"
 msgstr "配置项"
 
-#: src/components/settings/BlogSettings.tsx:427
+#: src/components/settings/BlogSettings.tsx:428
 msgid "Items per feed"
 msgstr "每条饲料的项目"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:450
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:101
-#: src/pages/ContactsPage.tsx:434
-#: src/pages/ContactsPage.tsx:732
+#: src/pages/ContactsPage.tsx:435
+#: src/pages/ContactsPage.tsx:733
 msgid "Job Title"
 msgstr "职称"
 
@@ -8114,6 +8201,15 @@ msgstr "已加入"
 #: src/components/automations/config/TriggerConfigForm.tsx:107
 msgid "Joined"
 msgstr "已经加入"
+
+#: src/pages/AudienceMembersPage.tsx:133
+msgid "Joined list at"
+msgstr "加入名单时间"
+
+#: src/pages/AudienceMembersPage.tsx:209
+#: src/pages/AudienceMembersPage.tsx:210
+msgid "Joined list between"
+msgstr "加入名单时间范围"
 
 #: src/components/automations/JourneyTraceDrawer.tsx:87
 #: src/i18n/catalogInventory.ts:11
@@ -8208,9 +8304,9 @@ msgstr "登陆页面"
 #: src/components/customers/CustomerProfilePanel.tsx:122
 #: src/components/templates/SendTemplateModal.tsx:326
 #: src/components/templates/TemplatePreviewDrawer.tsx:420
-#: src/pages/ContactsPage.tsx:375
-#: src/pages/ContactsPage.tsx:431
-#: src/pages/ContactsPage.tsx:706
+#: src/pages/ContactsPage.tsx:376
+#: src/pages/ContactsPage.tsx:432
+#: src/pages/ContactsPage.tsx:707
 msgid "Language"
 msgstr "语言"
 
@@ -8256,9 +8352,9 @@ msgstr "上次修改"
 #: src/components/contacts/ContactDetailsDrawer.tsx:442
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:92
 #: src/components/contacts/ExportContactsModal.tsx:59
-#: src/pages/ContactsPage.tsx:372
-#: src/pages/ContactsPage.tsx:427
-#: src/pages/ContactsPage.tsx:680
+#: src/pages/ContactsPage.tsx:373
+#: src/pages/ContactsPage.tsx:428
+#: src/pages/ContactsPage.tsx:681
 msgid "Last Name"
 msgstr "姓"
 
@@ -8343,7 +8439,7 @@ msgstr "字母间距"
 msgid "Lighter"
 msgstr "更轻"
 
-#: src/components/settings/FrequencyPoliciesSettings.tsx:38
+#: src/components/settings/FrequencyPoliciesSettings.tsx:39
 msgid "Limit marketing messages per customer and channel."
 msgstr "按客户和渠道限制营销消息触达次数。"
 
@@ -8427,13 +8523,14 @@ msgstr "支持 Liquid 变量"
 #: src/components/messages/MessageHistoryTable.tsx:229
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:231
 #: src/components/web_analytics/tabs/DashboardTab.tsx:220
-#: src/pages/BroadcastsPage.tsx:1085
-#: src/pages/ContactsPage.tsx:379
+#: src/pages/AudiencesPage.tsx:112
+#: src/pages/BroadcastsPage.tsx:1086
+#: src/pages/ContactsPage.tsx:380
 msgid "List"
 msgstr "列表"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:116
+#: src/pages/ListsPage.tsx:117
 msgid "List \"{0}\" deleted successfully"
 msgstr "清单 \"{0}\" 成功删除"
 
@@ -8509,7 +8606,7 @@ msgstr "列出已发送消息，包括收件人地址、投递和互动时间，
 #: src/components/automations/nodes/StatNode.tsx:95
 #: src/components/automations/nodes/StatNode.tsx:257
 #: src/components/contacts/ExportContactsModal.tsx:80
-#: src/pages/ContactsPage.tsx:389
+#: src/pages/ContactsPage.tsx:390
 msgid "List Status"
 msgstr "列表状态"
 
@@ -8581,9 +8678,9 @@ msgstr "列表 :"
 #: src/components/customers/CustomerImportPanel.tsx:153
 #: src/components/settings/PermissionsMatrix.tsx:120
 #: src/components/settings/UITranslationsSettings.tsx:113
-#: src/pages/ContactsPage.tsx:424
-#: src/pages/ContactsPage.tsx:544
-#: src/pages/ListsPage.tsx:156
+#: src/pages/ContactsPage.tsx:425
+#: src/pages/ContactsPage.tsx:545
+#: src/pages/ListsPage.tsx:157
 #: src/services/api/errors.ts:215
 msgid "Lists"
 msgstr "列表"
@@ -8592,7 +8689,7 @@ msgstr "列表"
 msgid "Lists could not be loaded. You can still import without list binding."
 msgstr "名单加载失败，您仍可不绑定名单直接导入。"
 
-#: src/pages/ListsPage.tsx:143
+#: src/pages/ListsPage.tsx:144
 msgid "Lists refreshed"
 msgstr "列表已刷新"
 
@@ -8610,7 +8707,6 @@ msgstr "实时"
 msgid "Live automation"
 msgstr "已发布自动化流程"
 
-#: src/components/navigation/DataAnalyticsPageShell.tsx:33
 #: src/components/navigation/WorkspaceSectionTabs.tsx:140
 msgid "Live Visitors"
 msgstr "实时访客"
@@ -8627,7 +8723,7 @@ msgstr "LLM 集成成功保存"
 #: src/components/messages/MessageHistoryTable.tsx:445
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:554
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:521
-#: src/pages/ContactsPage.tsx:1189
+#: src/pages/ContactsPage.tsx:1190
 msgid "Load More"
 msgstr "加载更多"
 
@@ -8648,11 +8744,11 @@ msgstr "加载工作区记录；读取或写入权限均可访问"
 msgid "Loaded the latest version of this template (v{0})."
 msgstr "已加载此模板的最新版本（v{0}）。"
 
-#: src/pages/AutomationsPage.tsx:213
+#: src/pages/AutomationsPage.tsx:210
 msgid "Loading automations..."
 msgstr "正在加载自动化..."
 
-#: src/pages/DeliveryCenterPage.tsx:152
+#: src/pages/DeliveryCenterPage.tsx:153
 msgid "Loading delivery details..."
 msgstr "正在加载投递详情..."
 
@@ -8695,12 +8791,12 @@ msgstr "正在加载 Webhook 状态..."
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:499
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:455
 #: src/layouts/RootLayout.tsx:90
-#: src/pages/ContactsPage.tsx:531
-#: src/pages/ContactsPage.tsx:1181
-#: src/pages/ListsPage.tsx:149
-#: src/pages/LogsPage.tsx:18
-#: src/pages/TemplatesPage.tsx:207
-#: src/pages/TransactionalNotificationsPage.tsx:383
+#: src/pages/ContactsPage.tsx:532
+#: src/pages/ContactsPage.tsx:1182
+#: src/pages/ListsPage.tsx:150
+#: src/pages/LogsPage.tsx:19
+#: src/pages/TemplatesPage.tsx:208
+#: src/pages/TransactionalNotificationsPage.tsx:384
 msgid "Loading..."
 msgstr "加载中..."
 
@@ -8722,7 +8818,7 @@ msgid "Logout"
 msgstr "注销"
 
 #: src/components/settings/UITranslationsSettings.tsx:109
-#: src/pages/LogsPage.tsx:28
+#: src/pages/LogsPage.tsx:29
 msgid "Logs"
 msgstr "日志"
 
@@ -8791,8 +8887,8 @@ msgid "Makes the wrapper span the entire email viewport width, ignoring containe
 msgstr "使包件横跨整个邮件视图宽度,忽略容器限制(通常为600px). 有用于全血背景和英雄部分."
 
 #: src/pages/AudiencesPage.tsx:51
-msgid "Manage lists"
-msgstr "管理名单"
+#~ msgid "Manage lists"
+#~ msgstr "管理名单"
 
 #: src/components/settings/WorkspaceMembers.tsx:434
 msgid "Manage your workspace members"
@@ -8804,7 +8900,7 @@ msgstr "管理"
 
 #. placeholder {0}: integration.name
 #. placeholder {1}: integration.type
-#: src/pages/TransactionalNotificationsPage.tsx:134
+#: src/pages/TransactionalNotificationsPage.tsx:135
 msgid "Managed by {0} ({1} integration)"
 msgstr "管理单位 {0} ({1} 融入社会)"
 
@@ -8825,7 +8921,7 @@ msgstr "地图"
 msgid "Map fields"
 msgstr "字段映射"
 
-#: src/components/navigation/DataAnalyticsPageShell.tsx:46
+#: src/components/navigation/DataAnalyticsPageShell.tsx:29
 msgid "Map incoming traffic to channels and normalize source dimensions as sessions arrive."
 msgstr "将流量映射到渠道，并在会话到达时标准化来源维度。"
 
@@ -8842,13 +8938,13 @@ msgstr "将 CSV 列映射到联系人字段，其中"
 #~ msgstr "标出解释图表的日期——发射,运动,停机——它们作为标注在仪表板和瞄准图上的垂直."
 
 #: src/components/analytics/NewContactsTable.tsx:110
-#: src/pages/ContactsPage.tsx:581
+#: src/pages/ContactsPage.tsx:582
 msgid "Marked as spam"
 msgstr "标记为垃圾邮件"
 
 #: src/components/templates/MessageTemplateDrawer.tsx:396
 #: src/components/templates/OmnichannelTemplateDrawer.tsx:214
-#: src/pages/TemplatesPage.tsx:128
+#: src/pages/TemplatesPage.tsx:129
 msgid "Marketing"
 msgstr "营销"
 
@@ -8872,7 +8968,6 @@ msgstr "需要营销邮件服务商"
 msgid "Marketing Emails"
 msgstr "营销邮件"
 
-#: src/components/navigation/DataAnalyticsPageShell.tsx:25
 #: src/components/navigation/WorkspaceSectionTabs.tsx:114
 msgid "Marketing Overview"
 msgstr "营销概览"
@@ -8889,7 +8984,7 @@ msgstr "营销任务实际启动时使用最新客群规则冻结候选客户，
 msgid "Matched"
 msgstr "匹配"
 
-#: src/pages/ContactsPage.tsx:651
+#: src/pages/ContactsPage.tsx:652
 msgid "Matched on:"
 msgstr "匹配于 :"
 
@@ -8921,7 +9016,7 @@ msgstr "最大并发实例数"
 msgid "Maximum deliveries"
 msgstr "最多触达（次）"
 
-#: src/components/settings/BlogSettings.tsx:428
+#: src/components/settings/BlogSettings.tsx:429
 msgid "Maximum number of posts to include in the RSS/JSON feed (1–20)"
 msgstr "RSS/JSON 订阅源中最多包含的文章数（1–20）"
 
@@ -8933,7 +9028,7 @@ msgstr "最大范围为2年"
 msgid "Maximum range is 2 years. Dates are read in {timezone}."
 msgstr "最大范围为2年. 日期在 {timezone}."
 
-#: src/components/navigation/DataAnalyticsPageShell.tsx:42
+#: src/components/navigation/DataAnalyticsPageShell.tsx:28
 msgid "Measure the actions that matter and compare conversion performance across segments."
 msgstr "衡量关键行为，并对比不同客群的转化表现。"
 
@@ -8992,8 +9087,8 @@ msgid "Member removed successfully"
 msgstr "成功删除成员"
 
 #: src/pages/AudiencesPage.tsx:77
-msgid "Members are evaluated only for previews and when a marketing run starts."
-msgstr "系统仅在预览和营销任务启动时计算客群成员。"
+#~ msgid "Members are evaluated only for previews and when a marketing run starts."
+#~ msgstr "系统仅在预览和营销任务启动时计算客群成员。"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:303
 #: src/components/templates/CreateTemplateDrawer.tsx:320
@@ -9001,7 +9096,7 @@ msgstr "系统仅在预览和营销任务启动时计算客群成员。"
 #: src/components/templates/MessageTemplateDrawer.tsx:310
 #: src/components/templates/OmnichannelFields.tsx:55
 #: src/components/templates/OmnichannelFields.tsx:67
-#: src/pages/BroadcastsPage.tsx:496
+#: src/pages/BroadcastsPage.tsx:497
 msgid "Message"
 msgstr "消息"
 
@@ -9010,13 +9105,13 @@ msgid "Message frequency"
 msgstr "消息频控"
 
 #: src/components/automations/JourneyCreateWizard.tsx:422
-#: src/components/settings/FrequencyPoliciesSettings.tsx:36
+#: src/components/settings/FrequencyPoliciesSettings.tsx:37
 #: src/components/settings/SettingsSidebar.tsx:72
 msgid "Message frequency control"
 msgstr "触达频控"
 
 #: src/components/settings/PermissionsMatrix.tsx:125
-#: src/pages/LogsPage.tsx:37
+#: src/pages/LogsPage.tsx:38
 #: src/services/api/errors.ts:220
 msgid "Message History"
 msgstr "信件历史"
@@ -9208,11 +9303,11 @@ msgstr "型号"
 msgid "Modest Branding"
 msgstr "中标"
 
-#: src/components/navigation/DataAnalyticsPageShell.tsx:34
+#: src/components/navigation/DataAnalyticsPageShell.tsx:26
 msgid "Monitor active sessions, locations, pages and acquisition sources in near real time."
 msgstr "近实时监控活跃会话、位置、页面和获客来源。"
 
-#: src/pages/LogsPage.tsx:29
+#: src/pages/LogsPage.tsx:30
 msgid "Monitor message delivery status and webhook events"
 msgstr "监测消息发送状况和网络浏览活动"
 
@@ -9228,7 +9323,6 @@ msgstr "每月"
 msgid "More options"
 msgstr "更多选项"
 
-#: src/components/navigation/DataAnalyticsPageShell.tsx:37
 #: src/components/navigation/WorkspaceSectionTabs.tsx:151
 msgid "Multidimensional Analysis"
 msgstr "多维分析"
@@ -9244,7 +9338,7 @@ msgid "Must match how the value is stored on the event. Dates are compared as IS
 msgstr "必须匹配该值在事件上的存储方式 。 日期与ISO-8601比较."
 
 #: src/components/settings/BlogSettings.tsx:346
-#: src/components/settings/BlogSettings.tsx:457
+#: src/components/settings/BlogSettings.tsx:458
 msgid "My Amazing Blog"
 msgstr "我的神奇博客"
 
@@ -9264,9 +9358,9 @@ msgstr "我的海关级"
 msgid "my-tenant"
 msgstr "我的租户"
 
-#: src/pages/BroadcastsPage.tsx:810
-#: src/pages/BroadcastsPage.tsx:881
-#: src/pages/BroadcastsPage.tsx:916
+#: src/pages/BroadcastsPage.tsx:811
+#: src/pages/BroadcastsPage.tsx:882
+#: src/pages/BroadcastsPage.tsx:917
 msgid "N/A"
 msgstr "N/A"
 
@@ -9291,6 +9385,7 @@ msgstr "N/A"
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:119
 #: src/components/web_analytics/filters/FilterTable.tsx:192
 #: src/components/web_analytics/filters/TestFilterModal.tsx:230
+#: src/pages/AudiencesPage.tsx:95
 msgid "Name"
 msgstr "名称"
 
@@ -9323,7 +9418,7 @@ msgstr "原生"
 msgid "Navigation"
 msgstr "导航"
 
-#: src/pages/DeliveryCenterPage.tsx:57
+#: src/pages/DeliveryCenterPage.tsx:58
 msgid "Needs confirmation"
 msgstr "待确认"
 
@@ -9387,15 +9482,16 @@ msgstr "新工作区"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:359
 #: src/components/templates/CreateTemplateDrawer.tsx:809
 #: src/components/templates/CreateTemplateDrawer.tsx:830
-#: src/pages/CustomersPage.tsx:232
+#: src/pages/AudienceMembersPage.tsx:287
+#: src/pages/CustomersPage.tsx:231
 msgid "Next"
 msgstr "下一步"
 
-#: src/pages/CustomersPage.tsx:231
+#: src/pages/CustomersPage.tsx:230
 msgid "Next page"
 msgstr "下一页"
 
-#: src/pages/BroadcastsPage.tsx:459
+#: src/pages/BroadcastsPage.tsx:460
 msgid "Next Run"
 msgstr "下一个运行"
 
@@ -9436,7 +9532,7 @@ msgstr "下一个运行"
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:153
 #: src/components/web_analytics/filters/BackfillStatus.tsx:84
 #: src/components/web_analytics/filters/FilterTable.tsx:272
-#: src/pages/BroadcastsPage.tsx:678
+#: src/pages/BroadcastsPage.tsx:679
 msgid "No"
 msgstr "否"
 
@@ -9466,7 +9562,11 @@ msgstr "未回复。 请再试一次"
 msgid "No attribution rules yet. Create the first one to start shaping your traffic data."
 msgstr "还没有归属规则 创建第一个开始构建您的流量数据 。"
 
-#: src/pages/AutomationsPage.tsx:216
+#: src/pages/AudiencesPage.tsx:181
+msgid "No audiences yet"
+msgstr "暂无客群或名单"
+
+#: src/pages/AutomationsPage.tsx:213
 msgid "No automations yet"
 msgstr "尚未实现自动化"
 
@@ -9474,15 +9574,15 @@ msgstr "尚未实现自动化"
 msgid "No backfill has run yet. Run one to apply these rules to historical sessions and goals."
 msgstr "还没有回填 运行一个将这些规则应用于历史会议和目标."
 
-#: src/components/automations/JourneyPreflightPanel.tsx:118
+#: src/components/automations/JourneyPreflightPanel.tsx:119
 msgid "No blocking issues or warnings were found."
 msgstr "未发现阻断问题或警告。"
 
-#: src/pages/BroadcastsPage.tsx:1685
+#: src/pages/BroadcastsPage.tsx:1686
 msgid "No broadcasts found"
 msgstr "未找到群发"
 
-#: src/pages/BroadcastsPage.tsx:1673
+#: src/pages/BroadcastsPage.tsx:1674
 msgid "No broadcasts match your filters"
 msgstr "没有与过滤器匹配的群发"
 
@@ -9529,7 +9629,7 @@ msgstr "无条件"
 msgid "No consent records"
 msgstr "暂无同意记录"
 
-#: src/pages/ContactsPage.tsx:1180
+#: src/pages/ContactsPage.tsx:1181
 msgid "No contacts found. Add some contacts to get started."
 msgstr "未找到联系人 。 添加一些联系人开始 。"
 
@@ -9551,10 +9651,14 @@ msgstr "没有可用的 CSV 数据"
 msgid "No customer activity yet"
 msgstr "暂无客户活动"
 
-#: src/pages/CustomersPage.tsx:185
-#: src/pages/CustomersPage.tsx:219
+#: src/pages/CustomersPage.tsx:184
+#: src/pages/CustomersPage.tsx:218
 msgid "No customers found"
 msgstr "未找到客户"
+
+#: src/pages/AudienceMembersPage.tsx:278
+msgid "No customers match these filters"
+msgstr "没有符合筛选条件的客户"
 
 #: src/components/analytics/ChartVisualization.tsx:395
 #: src/components/web_analytics/DimensionTableWidget.tsx:283
@@ -9582,7 +9686,7 @@ msgstr "未配置默认发件人"
 msgid "No deliveries for this customer"
 msgstr "该客户暂无投递记录"
 
-#: src/pages/DeliveryCenterPage.tsx:147
+#: src/pages/DeliveryCenterPage.tsx:148
 msgid "No deliveries match these filters"
 msgstr "没有符合当前筛选条件的投递记录"
 
@@ -9601,8 +9705,8 @@ msgid "No draft posts"
 msgstr "没有草稿文章"
 
 #: src/pages/AudiencesPage.tsx:62
-msgid "No dynamic audiences yet"
-msgstr "暂无动态客群"
+#~ msgid "No dynamic audiences yet"
+#~ msgstr "暂无动态客群"
 
 #: src/components/templates/TemplatePreviewDrawer.tsx:323
 msgid "no email"
@@ -9628,7 +9732,7 @@ msgstr "无错误"
 msgid "No Errors"
 msgstr "无错误"
 
-#: src/pages/CustomersPage.tsx:198
+#: src/pages/CustomersPage.tsx:197
 msgid "No external user ID"
 msgstr "无外部用户 ID"
 
@@ -9684,7 +9788,7 @@ msgstr "不绑定名单"
 msgid "No list memberships"
 msgstr "未加入任何名单"
 
-#: src/pages/ListsPage.tsx:292
+#: src/pages/ListsPage.tsx:293
 msgid "No lists found"
 msgstr "未找到列表"
 
@@ -9809,7 +9913,7 @@ msgid "No tags"
 msgstr "无标签"
 
 #: src/components/templates/TemplateSelectorInput.tsx:228
-#: src/pages/TemplatesPage.tsx:472
+#: src/pages/TemplatesPage.tsx:473
 msgid "No templates found"
 msgstr "未找到模板"
 
@@ -9818,11 +9922,11 @@ msgstr "未找到模板"
 msgid "No templates found for {0} category"
 msgstr "没有找到模板 {0} 类别"
 
-#: src/pages/TemplatesPage.tsx:494
+#: src/pages/TemplatesPage.tsx:495
 msgid "No templates found for category \"{selectedCategory}\""
 msgstr "未找到类别模板 \"{selectedCategory}\""
 
-#: src/pages/TemplatesPage.tsx:464
+#: src/pages/TemplatesPage.tsx:465
 msgid "No templates match your search"
 msgstr "没有匹配搜索的模板"
 
@@ -9842,7 +9946,7 @@ msgstr "暂无追踪事件"
 msgid "No traffic in the last 24 hours"
 msgstr "过去24小时没有车流量"
 
-#: src/pages/TransactionalNotificationsPage.tsx:444
+#: src/pages/TransactionalNotificationsPage.tsx:445
 msgid "No transactional notifications found"
 msgstr "未找到事务通知"
 
@@ -9875,7 +9979,7 @@ msgid "No Yaoguang Marketing account is linked to that identity. Ask an administ
 msgstr "该身份尚未关联瑶光营销平台账号，请先联系管理员邀请您加入。"
 
 #. placeholder {0}: issue.node_id
-#: src/components/automations/JourneyPreflightPanel.tsx:139
+#: src/components/automations/JourneyPreflightPanel.tsx:140
 msgid "Node: {0}"
 msgstr "节点：{0}"
 
@@ -9984,7 +10088,7 @@ msgstr "未标记的频道"
 msgid "Note: mj-raw components can only be placed directly in mj-body or mj-head, not inside mj-wrapper. Consider moving the mj-raw content outside the wrapper or converting it to appropriate MJML components."
 msgstr "注:mj-raw组件只能直接放置在mj-body或mj-head,不能放置在mj-wrapper内部. 考虑将 mj-raw 内容移到包装器外或转换为适当 MJML 组件。"
 
-#: src/pages/TemplatesPage.tsx:373
+#: src/pages/TemplatesPage.tsx:374
 msgid "Note: The template will be hidden from your workspace but preserved to maintain the ability to preview previously sent broadcasts and messages that used this template."
 msgstr "说明: 模板将隐藏在您的工作区中, 但保留以保持预览先前发送的使用此模板的群发和信件的能力 。"
 
@@ -10140,7 +10244,7 @@ msgstr "只有工作区所有者才能修改集成"
 msgid "Open a tab to inspect this customer's timeline, journeys or deliveries."
 msgstr "打开相应标签页以查看该客户的时间线、旅程或投递记录。"
 
-#: src/pages/ContactsPage.tsx:1013
+#: src/pages/ContactsPage.tsx:1014
 msgid "Open Customers"
 msgstr "打开客户页面"
 
@@ -10201,14 +10305,14 @@ msgstr "打开"
 msgid "Opened"
 msgstr "已打开"
 
-#: src/pages/BroadcastsPage.tsx:1212
+#: src/pages/BroadcastsPage.tsx:1213
 msgid "opens"
 msgstr "打开"
 
 #: src/components/analytics/EmailMetricsChart.tsx:268
 #: src/components/analytics/EmailMetricsChart.tsx:375
 #: src/components/broadcasts/BroadcastStats.tsx:201
-#: src/pages/BroadcastsPage.tsx:871
+#: src/pages/BroadcastsPage.tsx:872
 msgid "Opens"
 msgstr "打开"
 
@@ -10235,7 +10339,7 @@ msgstr "操作结果:"
 msgid "Operations"
 msgstr "业务"
 
-#: src/pages/TemplatesPage.tsx:131
+#: src/pages/TemplatesPage.tsx:132
 msgid "Opt-in"
 msgstr "选入"
 
@@ -10305,7 +10409,7 @@ msgstr "OS"
 #: src/components/settings/WebhooksSettings.tsx:353
 #: src/components/templates/MessageTemplateDrawer.tsx:399
 #: src/components/templates/OmnichannelTemplateDrawer.tsx:214
-#: src/pages/TemplatesPage.tsx:135
+#: src/pages/TemplatesPage.tsx:136
 msgid "Other"
 msgstr "其他人员"
 
@@ -10313,7 +10417,7 @@ msgstr "其他人员"
 msgid "Outbound webhook subscriptions — where the workspace POSTs its own events — and their delivery log."
 msgstr "出站 Webhook 订阅（工作区用它将自身事件 POST 到外部地址）及其投递日志。"
 
-#: src/pages/LogsPage.tsx:49
+#: src/pages/LogsPage.tsx:50
 msgid "Outgoing Webhooks"
 msgstr "正在发送的 Webhooks"
 
@@ -10448,18 +10552,18 @@ msgstr "暂停自动化"
 msgid "Pause automation?"
 msgstr "暂停自动化?"
 
-#: src/pages/BroadcastsPage.tsx:623
+#: src/pages/BroadcastsPage.tsx:624
 msgid "Pause Broadcast"
 msgstr "暂停群发"
 
-#: src/pages/BroadcastsPage.tsx:627
+#: src/pages/BroadcastsPage.tsx:628
 msgid "Pause broadcast?"
 msgstr "暂停群发?"
 
 #: src/components/automations/AutomationCard.tsx:67
-#: src/pages/BroadcastsPage.tsx:170
-#: src/pages/BroadcastsPage.tsx:440
-#: src/pages/BroadcastsPage.tsx:1138
+#: src/pages/BroadcastsPage.tsx:171
+#: src/pages/BroadcastsPage.tsx:441
+#: src/pages/BroadcastsPage.tsx:1139
 msgid "Paused"
 msgstr "暂停"
 
@@ -10476,13 +10580,15 @@ msgstr "有效载荷 :"
 #: src/components/settings/WorkspaceMembers.tsx:136
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:85
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:245
-#: src/pages/BroadcastsPage.tsx:430
-#: src/pages/ContactsPage.tsx:393
+#: src/pages/AudienceMembersPage.tsx:84
+#: src/pages/AudienceMembersPage.tsx:201
+#: src/pages/BroadcastsPage.tsx:431
+#: src/pages/ContactsPage.tsx:394
 msgid "Pending"
 msgstr "待决"
 
 #: src/components/analytics/NewContactsTable.tsx:93
-#: src/pages/ContactsPage.tsx:564
+#: src/pages/ContactsPage.tsx:565
 msgid "Pending confirmation"
 msgstr "待确认"
 
@@ -10534,9 +10640,9 @@ msgstr "权限成功更新"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:93
 #: src/components/contacts/ExportContactsModal.tsx:62
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:339
-#: src/pages/ContactsPage.tsx:374
-#: src/pages/ContactsPage.tsx:429
-#: src/pages/ContactsPage.tsx:694
+#: src/pages/ContactsPage.tsx:375
+#: src/pages/ContactsPage.tsx:430
+#: src/pages/ContactsPage.tsx:695
 msgid "Phone"
 msgstr "电话"
 
@@ -10564,7 +10670,7 @@ msgstr "选择胜出的A/B变体,发给其余观众"
 msgid "Plain text (only safe behind a TLS-terminating proxy)"
 msgstr "纯文本( 只在 TLS 终止代理后安全)"
 
-#: src/pages/DeliveryCenterPage.tsx:47
+#: src/pages/DeliveryCenterPage.tsx:48
 msgid "Planned"
 msgstr "计划中"
 
@@ -10726,7 +10832,7 @@ msgstr "请输入自动化名称"
 msgid "Please enter an email address"
 msgstr "请输入邮件地址"
 
-#: src/pages/DeliveryCenterPage.tsx:181
+#: src/pages/DeliveryCenterPage.tsx:182
 msgid "Please enter at least 8 characters"
 msgstr "请至少输入 8 个字符"
 
@@ -10952,11 +11058,11 @@ msgstr "此内容首选 URL (高级)"
 msgid "Preparing backfill..."
 msgstr "准备回填..."
 
-#: src/pages/BroadcastsPage.tsx:158
+#: src/pages/BroadcastsPage.tsx:159
 msgid "Preparing emails for delivery. Contacts are being added to the sending queue."
 msgstr "准备发送邮件 。 正在向发送队列添加联系人 。"
 
-#: src/pages/BroadcastsPage.tsx:160
+#: src/pages/BroadcastsPage.tsx:161
 msgid "Preparing..."
 msgstr "准备..."
 
@@ -10968,8 +11074,8 @@ msgstr "按 Enter 键或点击“确定”确认，按 Escape 键取消"
 msgid "Press Enter to confirm, Escape to cancel"
 msgstr "按 Enter 键确认, 退出取消"
 
-#: src/pages/ListsPage.tsx:63
-#: src/pages/ListsPage.tsx:72
+#: src/pages/ListsPage.tsx:64
+#: src/pages/ListsPage.tsx:73
 msgid "preview"
 msgstr "预览"
 
@@ -11011,12 +11117,12 @@ msgstr "需要预览模式"
 msgid "Preview Results"
 msgstr "预览结果"
 
-#: src/pages/TransactionalNotificationsPage.tsx:83
+#: src/pages/TransactionalNotificationsPage.tsx:84
 msgid "Preview template"
 msgstr "预览模板"
 
-#: src/pages/BroadcastsPage.tsx:981
-#: src/pages/TemplatesPage.tsx:399
+#: src/pages/BroadcastsPage.tsx:982
+#: src/pages/TemplatesPage.tsx:400
 msgid "Preview Template"
 msgstr "预览模板"
 
@@ -11054,7 +11160,8 @@ msgstr "预览您的邮件"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:367
 #: src/components/templates/CreateTemplateDrawer.tsx:814
 #: src/components/templates/CreateTemplateDrawer.tsx:835
-#: src/pages/CustomersPage.tsx:229
+#: src/pages/AudienceMembersPage.tsx:286
+#: src/pages/CustomersPage.tsx:228
 msgid "Previous"
 msgstr "上一步"
 
@@ -11090,7 +11197,7 @@ msgstr "过去91天"
 msgid "Previous month"
 msgstr "上个月"
 
-#: src/pages/CustomersPage.tsx:228
+#: src/pages/CustomersPage.tsx:227
 msgid "Previous page"
 msgstr "上一页"
 
@@ -11136,7 +11243,7 @@ msgstr "需要优先权"
 msgid "Priority:"
 msgstr "优先级 :"
 
-#: src/pages/ListsPage.tsx:266
+#: src/pages/ListsPage.tsx:267
 msgid "Private"
 msgstr "私营"
 
@@ -11203,7 +11310,7 @@ msgstr "配置文件创建"
 msgid "Profile Updated"
 msgstr "配置文件已更新"
 
-#: src/pages/BroadcastsPage.tsx:480
+#: src/pages/BroadcastsPage.tsx:481
 msgid "Progress"
 msgstr "进展"
 
@@ -11218,23 +11325,23 @@ msgstr "跨活动和自动化统一保护每位客户，适合作为 Workspace �
 #: src/components/delivery/DeliveryFiltersBar.tsx:61
 #: src/components/errors/ActionableError.tsx:36
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:344
-#: src/pages/DeliveryCenterPage.tsx:163
+#: src/pages/DeliveryCenterPage.tsx:164
 msgid "Provider"
 msgstr "供应商"
 
-#: src/pages/DeliveryCenterPage.tsx:163
+#: src/pages/DeliveryCenterPage.tsx:164
 msgid "Provider attempts"
 msgstr "服务商提交记录"
 
-#: src/pages/DeliveryCenterPage.tsx:176
+#: src/pages/DeliveryCenterPage.tsx:177
 msgid "Provider confirmed delivery"
 msgstr "服务商已确认投递成功"
 
-#: src/pages/DeliveryCenterPage.tsx:178
+#: src/pages/DeliveryCenterPage.tsx:179
 msgid "Provider confirmed it was not accepted; retry is safe"
 msgstr "服务商确认未接收，可安全重试"
 
-#: src/pages/DeliveryCenterPage.tsx:177
+#: src/pages/DeliveryCenterPage.tsx:178
 msgid "Provider confirmed permanent failure"
 msgstr "服务商已确认永久失败"
 
@@ -11243,7 +11350,7 @@ msgid "Provider name"
 msgstr "供应商名称"
 
 #: src/components/lists/ListDrawer.tsx:214
-#: src/pages/ListsPage.tsx:262
+#: src/pages/ListsPage.tsx:263
 msgid "Public"
 msgstr "公开"
 
@@ -11311,11 +11418,11 @@ msgstr "购买"
 msgid "Push"
 msgstr "推送"
 
-#: src/pages/DeliveryCenterPage.tsx:49
+#: src/pages/DeliveryCenterPage.tsx:50
 msgid "Queued"
 msgstr "排队中"
 
-#: src/pages/BroadcastsPage.tsx:675
+#: src/pages/BroadcastsPage.tsx:676
 msgid "Queued emails will not be sent. In-flight sends will complete."
 msgstr "不发送已排队的邮件 。 飞行中发送将完成。"
 
@@ -11359,7 +11466,7 @@ msgstr "业务系统上报流失风险事件时，重新触达客户。"
 msgid "Re-register"
 msgstr "重新登记"
 
-#: src/components/settings/FrequencyPoliciesSettings.tsx:38
+#: src/components/settings/FrequencyPoliciesSettings.tsx:39
 msgid "Reaching any level blocks this delivery; infrastructure failures defer it instead of allowing it."
 msgstr "任意一层达到上限都会阻止本次触达；基础设施异常时会延后，不会放行。"
 
@@ -11509,7 +11616,7 @@ msgstr "读读 Zapier 设置指南"
 msgid "Reading Time"
 msgstr "读取时间"
 
-#: src/components/automations/JourneyPreflightPanel.tsx:117
+#: src/components/automations/JourneyPreflightPanel.tsx:118
 msgid "Ready to activate"
 msgstr "可以启用"
 
@@ -11521,11 +11628,11 @@ msgstr "准备发送"
 msgid "Ready to use"
 msgstr "准备使用"
 
-#: src/pages/DeliveryCenterPage.tsx:163
+#: src/pages/DeliveryCenterPage.tsx:164
 msgid "Reason"
 msgstr "原因"
 
-#: src/pages/BroadcastsPage.tsx:1143
+#: src/pages/BroadcastsPage.tsx:1144
 msgid "Reason:"
 msgstr "原因:"
 
@@ -11588,7 +11695,7 @@ msgstr "recipient@example.com"
 #~ msgstr "活动开始后收件人不会变化"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:98
-#: src/pages/BroadcastsPage.tsx:1221
+#: src/pages/BroadcastsPage.tsx:1222
 msgid "Recommended"
 msgstr "建议"
 
@@ -11596,7 +11703,7 @@ msgstr "建议"
 msgid "Recommended for {normalizedCountry}"
 msgstr "推荐用于 {normalizedCountry}"
 
-#: src/pages/BroadcastsPage.tsx:1219
+#: src/pages/BroadcastsPage.tsx:1220
 msgid "Recommended Winner"
 msgstr "建议赢家"
 
@@ -11610,11 +11717,11 @@ msgstr "建议:150-160字符"
 msgid "Recommended: 50-60 characters"
 msgstr "建议:50-60字符"
 
-#: src/pages/DeliveryCenterPage.tsx:164
+#: src/pages/DeliveryCenterPage.tsx:165
 msgid "Reconciliation history"
 msgstr "核对历史"
 
-#: src/components/navigation/DataAnalyticsPageShell.tsx:50
+#: src/components/navigation/DataAnalyticsPageShell.tsx:30
 msgid "Record launches, campaigns and incidents so changes in charts retain their business context."
 msgstr "记录发布、营销活动和事件，为图表变化保留业务背景。"
 
@@ -11669,12 +11776,12 @@ msgstr "参考文件"
 #: src/components/messages/MessageHistoryTable.tsx:360
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:429
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:429
-#: src/pages/ContactsPage.tsx:910
-#: src/pages/ListsPage.tsx:163
+#: src/pages/ContactsPage.tsx:911
+#: src/pages/ListsPage.tsx:164
 msgid "Refresh"
 msgstr "刷新"
 
-#: src/pages/BroadcastsPage.tsx:582
+#: src/pages/BroadcastsPage.tsx:583
 msgid "Refresh Broadcast"
 msgstr "刷新群发"
 
@@ -11786,7 +11893,7 @@ msgstr "删除字段"
 
 #: src/components/contacts/BulkActionsBar.tsx:94
 #: src/components/contacts/BulkActionsBar.tsx:148
-#: src/pages/ContactsPage.tsx:314
+#: src/pages/ContactsPage.tsx:315
 msgid "Remove from list"
 msgstr "从列表中删除"
 
@@ -11884,7 +11991,7 @@ msgstr "回复转发已设置。入站回复还要求您域名的 MX 记录指�
 msgid "Reply to"
 msgstr "回复至"
 
-#: src/pages/BroadcastsPage.tsx:861
+#: src/pages/BroadcastsPage.tsx:862
 msgid "Reply To:"
 msgstr "对:"
 
@@ -11956,12 +12063,13 @@ msgstr "重新发送代码"
 msgid "Resend invitation"
 msgstr "重新发送邀请"
 
-#: src/pages/DeliveryCenterPage.tsx:48
+#: src/pages/DeliveryCenterPage.tsx:49
 msgid "Reserved"
 msgstr "已预留"
 
 #: src/components/templates/TemplateTranslationsTab.tsx:254
 #: src/components/templates/TemplateTranslationsTab.tsx:257
+#: src/pages/AudienceMembersPage.tsx:257
 #: src/pages/DebugSegmentPage.tsx:83
 msgid "Reset"
 msgstr "重置"
@@ -11986,7 +12094,7 @@ msgstr "重置集成同步任务, 因此它从头开始重运行"
 msgid "Reset formatting"
 msgstr "重设格式"
 
-#: src/pages/TemplatesPage.tsx:499
+#: src/pages/TemplatesPage.tsx:500
 msgid "reset the filter"
 msgstr "重置过滤器"
 
@@ -11994,11 +12102,11 @@ msgstr "重置过滤器"
 msgid "Reset translation"
 msgstr "重置翻译"
 
-#: src/pages/DeliveryCenterPage.tsx:167
+#: src/pages/DeliveryCenterPage.tsx:168
 msgid "Resolve status"
 msgstr "确认并处理状态"
 
-#: src/pages/DeliveryCenterPage.tsx:172
+#: src/pages/DeliveryCenterPage.tsx:173
 msgid "Resolve uncertain delivery"
 msgstr "处理结果不确定的投递"
 
@@ -12100,11 +12208,11 @@ msgstr "继续"
 msgid "Resume a paused broadcast, continuing the send"
 msgstr "恢复已暂停的群发并继续发送"
 
-#: src/pages/BroadcastsPage.tsx:645
+#: src/pages/BroadcastsPage.tsx:646
 msgid "Resume Broadcast"
 msgstr "恢复群发"
 
-#: src/pages/BroadcastsPage.tsx:649
+#: src/pages/BroadcastsPage.tsx:650
 msgid "Resume broadcast?"
 msgstr "恢复群发?"
 
@@ -12124,7 +12232,8 @@ msgstr "继续上传"
 msgid "Retain invalid rows"
 msgstr "保留无效行"
 
-#: src/pages/CustomersPage.tsx:178
+#: src/pages/AudienceMembersPage.tsx:267
+#: src/pages/CustomersPage.tsx:177
 msgid "Retry"
 msgstr "重试"
 
@@ -12132,7 +12241,7 @@ msgstr "重试"
 msgid "Retry later"
 msgstr "延后重试"
 
-#: src/pages/DeliveryCenterPage.tsx:125
+#: src/pages/DeliveryCenterPage.tsx:126
 msgid "Review"
 msgstr "查看"
 
@@ -12220,7 +12329,7 @@ msgstr "立即执行回填任务"
 msgid "Run a segment build/recompute task immediately"
 msgstr "立即运行一段构建/ 重算任务"
 
-#: src/components/automations/JourneyPreflightPanel.tsx:101
+#: src/components/automations/JourneyPreflightPanel.tsx:102
 msgid "Run again"
 msgstr "重新检查"
 
@@ -12268,7 +12377,7 @@ msgstr "运行测试"
 msgid "Run Test"
 msgstr "运行测试"
 
-#: src/pages/BroadcastsPage.tsx:432
+#: src/pages/BroadcastsPage.tsx:433
 msgid "Running"
 msgstr "运行"
 
@@ -12303,7 +12412,7 @@ msgstr "S3 密钥"
 msgid "Same Window"
 msgstr "相同的窗口"
 
-#: src/pages/BroadcastsPage.tsx:1196
+#: src/pages/BroadcastsPage.tsx:1197
 msgid "Sample Percentage"
 msgstr "样本百分比"
 
@@ -12453,9 +12562,9 @@ msgid "Schedule or immediately send a broadcast to its entire audience"
 msgstr "定时或立即向全部受众发送群发"
 
 #: src/components/blog/PostStatusTag.tsx:20
-#: src/pages/BroadcastsPage.tsx:152
-#: src/pages/BroadcastsPage.tsx:1112
-#: src/pages/BroadcastsPage.tsx:1583
+#: src/pages/BroadcastsPage.tsx:153
+#: src/pages/BroadcastsPage.tsx:1113
+#: src/pages/BroadcastsPage.tsx:1584
 msgid "Scheduled"
 msgstr "计划"
 
@@ -12489,12 +12598,12 @@ msgid "Screen width below which mobile layout is activated. Common values: 480px
 msgstr "屏幕宽度, 下方启动移动布局 。 通用值:480px,600px,768px"
 
 #: src/components/web_analytics/FilterBuilder.tsx:332
-#: src/pages/CustomersPage.tsx:163
+#: src/pages/CustomersPage.tsx:162
 msgid "Search"
 msgstr "搜索"
 
-#: src/pages/BroadcastsPage.tsx:1591
-#: src/pages/TemplatesPage.tsx:445
+#: src/pages/BroadcastsPage.tsx:1592
+#: src/pages/TemplatesPage.tsx:446
 msgid "Search by name"
 msgstr "按名称搜索"
 
@@ -12502,7 +12611,7 @@ msgstr "按名称搜索"
 msgid "Search channels"
 msgstr "搜索渠道"
 
-#: src/pages/CustomersPage.tsx:164
+#: src/pages/CustomersPage.tsx:163
 msgid "Search customer number, external ID, email or phone"
 msgstr "搜索客户编号、外部用户 ID、邮箱或手机号"
 
@@ -12655,9 +12764,9 @@ msgstr "树段重设"
 #: src/components/contacts/SegmentsFilter.tsx:230
 #: src/components/settings/PermissionsMatrix.tsx:130
 #: src/components/settings/UITranslationsSettings.tsx:115
-#: src/pages/BroadcastsPage.tsx:1066
-#: src/pages/ContactsPage.tsx:425
-#: src/pages/ContactsPage.tsx:625
+#: src/pages/BroadcastsPage.tsx:1067
+#: src/pages/ContactsPage.tsx:426
+#: src/pages/ContactsPage.tsx:626
 #: src/services/api/errors.ts:225
 msgid "Segments"
 msgstr "细分群体"
@@ -12669,7 +12778,7 @@ msgstr "细分群体"
 #: src/components/settings/BlogSettings.tsx:376
 #: src/components/templates/TemplateSelectorInput.tsx:208
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
-#: src/pages/BroadcastsPage.tsx:1024
+#: src/pages/BroadcastsPage.tsx:1025
 msgid "Select"
 msgstr "选择"
 
@@ -12805,7 +12914,7 @@ msgstr "选择列"
 msgid "Select confirmation email template"
 msgstr "选择确认邮件模板"
 
-#: src/components/settings/BlogSettings.tsx:445
+#: src/components/settings/BlogSettings.tsx:446
 msgid "Select content mode"
 msgstr "选择内容模式"
 
@@ -12845,7 +12954,7 @@ msgstr "选择事件"
 msgid "Select event type to test:"
 msgstr "选择要测试的事件类型 :"
 
-#: src/components/settings/BlogSettings.tsx:430
+#: src/components/settings/BlogSettings.tsx:431
 msgid "Select feed size"
 msgstr "选择种子大小"
 
@@ -12987,7 +13096,7 @@ msgstr "选择要删除联系人的列表"
 msgid "Select which segment this trigger applies to"
 msgstr "选择此触发器适用于哪段"
 
-#: src/pages/BroadcastsPage.tsx:1013
+#: src/pages/BroadcastsPage.tsx:1014
 msgid "Select Winner"
 msgstr "选择赢家"
 
@@ -13004,7 +13113,7 @@ msgstr "选择要预填配置的存储服务商 :"
 msgid "Selected dimensions, in order:"
 msgstr "选定维度,顺序为:"
 
-#: src/pages/BroadcastsPage.tsx:1230
+#: src/pages/BroadcastsPage.tsx:1231
 msgid "Selected Winner"
 msgstr "选中胜者"
 
@@ -13071,7 +13180,7 @@ msgstr "发送验证码"
 msgid "Send Now"
 msgstr "马上发送"
 
-#: src/pages/BroadcastsPage.tsx:722
+#: src/pages/BroadcastsPage.tsx:723
 msgid "Send or Schedule"
 msgstr "发送或调度"
 
@@ -13087,8 +13196,8 @@ msgstr "发送测试"
 #: src/components/settings/Integrations.tsx:2752
 #: src/components/templates/SendTemplateModal.tsx:263
 #: src/components/templates/SendTemplateModal.tsx:277
-#: src/pages/BroadcastsPage.tsx:965
-#: src/pages/TemplatesPage.tsx:389
+#: src/pages/BroadcastsPage.tsx:966
+#: src/pages/TemplatesPage.tsx:390
 msgid "Send Test Email"
 msgstr "发送测试邮件"
 
@@ -13098,7 +13207,7 @@ msgstr "使用 SMTP 网关发送事务通知，适合与现有的 SMTP 邮件系
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1085
 #: src/components/templates/SendTemplateModal.tsx:303
-#: src/pages/TemplatesPage.tsx:244
+#: src/pages/TemplatesPage.tsx:245
 msgid "Sender"
 msgstr "发件人"
 
@@ -13118,12 +13227,12 @@ msgstr "发件人名称"
 msgid "Senders"
 msgstr "发件人"
 
-#: src/pages/BroadcastsPage.tsx:1584
+#: src/pages/BroadcastsPage.tsx:1585
 msgid "Sending"
 msgstr "发送"
 
 #. placeholder {0}: progressStats.remaining.toLocaleString()
-#: src/pages/BroadcastsPage.tsx:230
+#: src/pages/BroadcastsPage.tsx:231
 msgid "Sending {0} remaining"
 msgstr "发送 {0} 剩余"
 
@@ -13131,7 +13240,7 @@ msgstr "发送 {0} 剩余"
 msgid "Sending emails..."
 msgstr "正在发送邮件..."
 
-#: src/pages/BroadcastsPage.tsx:167
+#: src/pages/BroadcastsPage.tsx:168
 msgid "Sending has been paused. You can resume at any time."
 msgstr "发送已暂停 。 你可以随时复职。"
 
@@ -13149,8 +13258,8 @@ msgstr "发送"
 #: src/components/messages/MessageHistoryTab.tsx:101
 #: src/components/messages/MessageHistoryTab.tsx:103
 #: src/components/messages/MessageHistoryTable.tsx:258
-#: src/pages/BroadcastsPage.tsx:1585
-#: src/pages/TransactionalNotificationsPage.tsx:200
+#: src/pages/BroadcastsPage.tsx:1586
+#: src/pages/TransactionalNotificationsPage.tsx:201
 msgid "Sent"
 msgstr "发送"
 
@@ -13403,7 +13512,7 @@ msgstr "显示"
 msgid "Show Controls"
 msgstr "显示控件"
 
-#: src/pages/BroadcastsPage.tsx:766
+#: src/pages/BroadcastsPage.tsx:767
 msgid "Show Details"
 msgstr "显示细节"
 
@@ -13438,7 +13547,7 @@ msgid "Sign in with SSO"
 msgstr "与 SSO 签约"
 
 #: src/components/templates/ChannelPicker.tsx:82
-#: src/pages/TemplatesPage.tsx:249
+#: src/pages/TemplatesPage.tsx:250
 msgid "Signed Webhook"
 msgstr "签名 Webhook"
 
@@ -13674,7 +13783,7 @@ msgstr "您编辑期间有人保存了版本 {0}（您开始编辑时为 {1}）�
 msgid "Something went wrong"
 msgstr "出问题了"
 
-#: src/pages/DeliveryCenterPage.tsx:122
+#: src/pages/DeliveryCenterPage.tsx:123
 msgid "Source"
 msgstr "来源"
 
@@ -13761,7 +13870,7 @@ msgstr "未来无法开始日期"
 msgid "Start Fresh"
 msgstr "开始新鲜"
 
-#: src/pages/AutomationsPage.tsx:190
+#: src/pages/AutomationsPage.tsx:187
 msgid "Start from audience"
 msgstr "从客群启动"
 
@@ -13803,7 +13912,7 @@ msgstr "开始写..."
 msgid "started"
 msgstr "开始"
 
-#: src/pages/BroadcastsPage.tsx:1126
+#: src/pages/BroadcastsPage.tsx:1127
 msgid "Started"
 msgstr "开始"
 
@@ -13833,11 +13942,11 @@ msgstr "状态"
 #: src/components/web_analytics/filters/FilterTable.tsx:264
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:82
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:378
-#: src/pages/BroadcastsPage.tsx:453
-#: src/pages/CustomersPage.tsx:115
-#: src/pages/DeliveryCenterPage.tsx:120
-#: src/pages/DeliveryCenterPage.tsx:158
-#: src/pages/DeliveryCenterPage.tsx:163
+#: src/pages/BroadcastsPage.tsx:454
+#: src/pages/CustomersPage.tsx:116
+#: src/pages/DeliveryCenterPage.tsx:121
+#: src/pages/DeliveryCenterPage.tsx:159
+#: src/pages/DeliveryCenterPage.tsx:164
 msgid "Status"
 msgstr "状态"
 
@@ -13846,7 +13955,7 @@ msgid "status changed"
 msgstr "状态已更改"
 
 #: src/components/analytics/NewContactsTable.tsx:114
-#: src/pages/ContactsPage.tsx:585
+#: src/pages/ContactsPage.tsx:586
 msgid "Status unknown"
 msgstr "状态未知"
 
@@ -13894,7 +14003,7 @@ msgstr "样式属性"
 
 #: src/components/templates/TemplatePreviewDrawer.tsx:373
 #: src/components/templates/TemplateTranslationsTab.tsx:212
-#: src/pages/BroadcastsPage.tsx:839
+#: src/pages/BroadcastsPage.tsx:840
 msgid "Subject"
 msgstr "议题"
 
@@ -13915,7 +14024,7 @@ msgstr "主题预览( E){0})"
 msgid "Submitting batch request to the server..."
 msgstr "向服务器提交批量请求..."
 
-#: src/pages/DeliveryCenterPage.tsx:50
+#: src/pages/DeliveryCenterPage.tsx:51
 msgid "Submitting to provider"
 msgstr "正在提交服务商"
 
@@ -13956,7 +14065,7 @@ msgstr "已订阅"
 msgid "Subscribed on"
 msgstr "订阅于"
 
-#: src/pages/ContactsPage.tsx:603
+#: src/pages/ContactsPage.tsx:604
 msgid "Subscribed on:"
 msgstr "订阅于 :"
 
@@ -13981,10 +14090,19 @@ msgstr "订阅 ID："
 msgid "Subscription list"
 msgstr "订阅列表"
 
+#: src/pages/AudienceMembersPage.tsx:191
+#: src/pages/AudienceMembersPage.tsx:193
+msgid "Subscription status"
+msgstr "订阅状态"
+
 #: src/components/automations/config/AddToListConfigForm.tsx:49
 #: src/components/contacts/ContactDetailsDrawer.tsx:1104
 msgid "Subscription Status"
 msgstr "订阅状态"
+
+#: src/pages/AudienceMembersPage.tsx:183
+msgid "Subscription status and customer facts are read in real time for this list."
+msgstr "此名单的订阅状态和客户信息均为实时数据。"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:263
 msgid "Subscription status updated successfully"
@@ -14031,7 +14149,7 @@ msgstr "总结这一时期"
 msgid "Summary of {0}"
 msgstr "报告摘要 {0}"
 
-#: src/components/settings/BlogSettings.tsx:442
+#: src/components/settings/BlogSettings.tsx:443
 msgid "Summary-only feed"
 msgstr "仅提供摘要"
 
@@ -14051,7 +14169,7 @@ msgstr "支持的语言"
 msgid "Supports reply_to, cc, bcc, and attachments"
 msgstr "支助 reply_to、cc、cc和附件"
 
-#: src/pages/DeliveryCenterPage.tsx:53
+#: src/pages/DeliveryCenterPage.tsx:54
 msgid "Suppressed"
 msgstr "已抑制"
 
@@ -14107,7 +14225,7 @@ msgstr "标记已删除"
 #: src/components/customers/CustomerProfilePanel.tsx:128
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:137
 #: src/components/web_analytics/filters/FilterTable.tsx:252
-#: src/pages/CustomersPage.tsx:121
+#: src/pages/CustomersPage.tsx:122
 msgid "Tags"
 msgstr "标记"
 
@@ -14135,11 +14253,11 @@ msgstr "目标列表 :"
 msgid "Target lists"
 msgstr "目标名单"
 
-#: src/pages/BroadcastsPage.tsx:534
+#: src/pages/BroadcastsPage.tsx:535
 msgid "Task Status"
 msgstr "任务状态"
 
-#: src/pages/BroadcastsPage.tsx:515
+#: src/pages/BroadcastsPage.tsx:516
 msgid "Task type:"
 msgstr "任务类型 :"
 
@@ -14173,9 +14291,9 @@ msgstr "模板"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:834
 #: src/components/messages/MessageHistoryTable.tsx:130
 #: src/components/messages/MessageHistoryTable.tsx:172
-#: src/pages/BroadcastsPage.tsx:834
-#: src/pages/BroadcastsPage.tsx:836
-#: src/pages/TemplatesPage.tsx:212
+#: src/pages/BroadcastsPage.tsx:835
+#: src/pages/BroadcastsPage.tsx:837
+#: src/pages/TemplatesPage.tsx:213
 msgid "Template"
 msgstr "模板"
 
@@ -14227,7 +14345,7 @@ msgstr "模板数据 (JSON)"
 msgid "Template Data & Liquid Templating"
 msgstr "模板数据( T) Liquid 调情"
 
-#: src/pages/TemplatesPage.tsx:168
+#: src/pages/TemplatesPage.tsx:169
 msgid "Template deleted successfully"
 msgstr "成功删除模板"
 
@@ -14287,7 +14405,7 @@ msgstr "模板 :"
 
 #: src/components/settings/PermissionsMatrix.tsx:121
 #: src/components/settings/UITranslationsSettings.tsx:112
-#: src/pages/TemplatesPage.tsx:417
+#: src/pages/TemplatesPage.tsx:418
 #: src/services/api/errors.ts:216
 msgid "Templates"
 msgstr "模板"
@@ -14325,7 +14443,7 @@ msgstr "术语"
 #: src/components/settings/Integrations.tsx:376
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:104
 #: src/components/web_analytics/tabs/FiltersTab.tsx:125
-#: src/pages/TransactionalNotificationsPage.tsx:175
+#: src/pages/TransactionalNotificationsPage.tsx:176
 msgid "Test"
 msgstr "测试"
 
@@ -14333,7 +14451,7 @@ msgstr "测试"
 msgid "Test all rules"
 msgstr "测试所有规则"
 
-#: src/pages/BroadcastsPage.tsx:280
+#: src/pages/BroadcastsPage.tsx:281
 msgid "Test Completed"
 msgstr "测试完成"
 
@@ -14498,11 +14616,11 @@ msgstr "自动化将停止处理新的联系人。"
 msgid "The best-performing combination could not be loaded."
 msgstr "无法加载表现最佳的组合。"
 
-#: src/pages/BroadcastsPage.tsx:650
+#: src/pages/BroadcastsPage.tsx:651
 msgid "The broadcast will continue sending from where it was paused."
 msgstr "群发将继续从暂停的地方发送。"
 
-#: src/pages/BroadcastsPage.tsx:628
+#: src/pages/BroadcastsPage.tsx:629
 msgid "The broadcast will stop sending and can be resumed later."
 msgstr "群发将停止发送,以后可以恢复."
 
@@ -14640,7 +14758,7 @@ msgstr "该网站拒绝在另一页内显示,这是共同的安全设置. 在新
 msgid "The status to assign when adding to the list"
 msgstr "添加到列表时要指定的状态"
 
-#: src/components/settings/FrequencyPoliciesSettings.tsx:44
+#: src/components/settings/FrequencyPoliciesSettings.tsx:45
 msgid "The three levels are independent"
 msgstr "三个层级彼此独立"
 
@@ -14737,11 +14855,11 @@ msgstr "此账户已经链接到不同的单一签名身份 。"
 msgid "This action cannot be undone."
 msgstr "此操作无法撤销。"
 
-#: src/pages/BroadcastsPage.tsx:1751
+#: src/pages/BroadcastsPage.tsx:1752
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "这一行动不能取消。 要确认,请输入群发ID:"
 
-#: src/pages/ListsPage.tsx:325
+#: src/pages/ListsPage.tsx:326
 msgid "This action cannot be undone. To confirm, please enter the list ID:"
 msgstr "这一行动不能取消。 要确认,请输入列表ID:"
 
@@ -14763,7 +14881,7 @@ msgstr "此注释是在群发开始时自动创建的. 删除它不会影响群�
 msgid "This appears in browser tabs when viewing the email in a web browser and in some email clients. It's typically the same as or related to your email subject line."
 msgstr "在浏览器和一些邮件客户端浏览邮件时,这出现在浏览器标签中。 它通常与您的邮件主题行相同或相关."
 
-#: src/pages/BroadcastsPage.tsx:257
+#: src/pages/BroadcastsPage.tsx:258
 msgid "This broadcast failed due to an error. Check the logs for details."
 msgstr "此群发因错误而失败 。 请检查日志中的细节 。"
 
@@ -14771,11 +14889,11 @@ msgstr "此群发因错误而失败 。 请检查日志中的细节 。"
 msgid "This broadcast has no UTM campaign, so its website traffic can't be identified"
 msgstr "这个群发没有UTM运动,所以其网站流量无法识别."
 
-#: src/pages/BroadcastsPage.tsx:142
+#: src/pages/BroadcastsPage.tsx:143
 msgid "This broadcast is a draft and has not been scheduled or sent yet."
 msgstr "这次群发是草稿,尚未安排或发送。"
 
-#: src/pages/BroadcastsPage.tsx:150
+#: src/pages/BroadcastsPage.tsx:151
 msgid "This broadcast is scheduled and will start sending at the specified time."
 msgstr "此群发被安排在指定时间开始发送."
 
@@ -14783,15 +14901,15 @@ msgstr "此群发被安排在指定时间开始发送."
 msgid "This broadcast sets a fixed UTM content, so its variations can't be told apart in web analytics"
 msgstr "这个群发设置了固定的UTM内容,所以其变异无法在网络分析中分辨出来."
 
-#: src/pages/BroadcastsPage.tsx:249
+#: src/pages/BroadcastsPage.tsx:250
 msgid "This broadcast was cancelled before completion."
 msgstr "这次群发在完成前被取消."
 
-#: src/pages/TransactionalNotificationsPage.tsx:146
+#: src/pages/TransactionalNotificationsPage.tsx:147
 msgid "This cannot be undone."
 msgstr "这一点是无法消除的。"
 
-#: src/components/automations/JourneyPreflightPanel.tsx:170
+#: src/components/automations/JourneyPreflightPanel.tsx:171
 msgid "This check is valid for five minutes unless the journey changes."
 msgstr "若自动化旅程未发生变化，本次检查结果五分钟内有效。"
 
@@ -14927,7 +15045,7 @@ msgstr "此段使用相对日期过滤器,并将在每天早上5点自动重制(
 msgid "This template is already used in another variation"
 msgstr "此模板已经在另一个变体中使用"
 
-#: src/pages/TemplatesPage.tsx:355
+#: src/pages/TemplatesPage.tsx:356
 msgid "This template is managed by an integration and cannot be deleted"
 msgstr "此模板由集成管理, 无法删除"
 
@@ -15081,8 +15199,8 @@ msgstr "时间戳"
 #: src/components/settings/GeneralSettings.tsx:215
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:169
 #: src/components/web_analytics/toolbar.tsx:67
-#: src/pages/ContactsPage.tsx:432
-#: src/pages/ContactsPage.tsx:712
+#: src/pages/ContactsPage.tsx:433
+#: src/pages/ContactsPage.tsx:713
 msgid "Timezone"
 msgstr "时区"
 
@@ -15098,8 +15216,8 @@ msgstr "需要时区"
 msgid "Timezone used for dates"
 msgstr "日期所用的时区"
 
-#: src/pages/ContactsPage.tsx:605
-#: src/pages/ContactsPage.tsx:654
+#: src/pages/ContactsPage.tsx:606
+#: src/pages/ContactsPage.tsx:655
 msgid "Timezone:"
 msgstr "时区 :"
 
@@ -15308,11 +15426,11 @@ msgstr "联系人总数"
 msgid "Total Value"
 msgstr "共计"
 
-#: src/pages/DeliveryCenterPage.tsx:134
+#: src/pages/DeliveryCenterPage.tsx:135
 msgid "Track every send decision, provider attempt and uncertain outcome in one place."
 msgstr "在一个页面追踪每次发送决策、服务商提交记录和不确定结果。"
 
-#: src/components/navigation/DataAnalyticsPageShell.tsx:26
+#: src/components/navigation/DataAnalyticsPageShell.tsx:24
 msgid "Track message performance, engagement and delivery trends across marketing channels."
 msgstr "跟踪各营销渠道的消息表现、互动和投递趋势。"
 
@@ -15355,7 +15473,7 @@ msgstr "没有过滤规则"
 #: src/components/templates/MessageTemplateDrawer.tsx:397
 #: src/components/templates/OmnichannelTemplateDrawer.tsx:214
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
-#: src/pages/TemplatesPage.tsx:129
+#: src/pages/TemplatesPage.tsx:130
 #: src/services/api/errors.ts:218
 msgid "Transactional"
 msgstr "事务通知"
@@ -15372,12 +15490,12 @@ msgstr "事务通知 ID"
 msgid "Transactional notification definitions and every path that sends email, SMS or push through the workspace's provider credentials."
 msgstr "事务通知定义，以及所有使用工作区服务商凭据发送邮件、短信或推送的路径。"
 
-#: src/pages/TransactionalNotificationsPage.tsx:350
+#: src/pages/TransactionalNotificationsPage.tsx:351
 msgid "Transactional notification deleted successfully"
 msgstr "事务通知已删除"
 
 #: src/components/settings/UITranslationsSettings.tsx:111
-#: src/pages/TransactionalNotificationsPage.tsx:389
+#: src/pages/TransactionalNotificationsPage.tsx:390
 msgid "Transactional Notifications"
 msgstr "事务通知"
 
@@ -15421,7 +15539,7 @@ msgstr "触发事件"
 msgid "Trigger on specific field changes"
 msgstr "触发特定字段变化"
 
-#: src/pages/BroadcastsPage.tsx:1676
+#: src/pages/BroadcastsPage.tsx:1677
 msgid "Try adjusting your search or status filter"
 msgstr "尝试调整搜索或状态过滤器"
 
@@ -15437,7 +15555,7 @@ msgstr "请稍后重试；若问题持续，请将下方请求 ID 提供给技�
 msgid "Try again. If it continues, give support the request ID below."
 msgstr "请重试；若问题持续，请将下方请求 ID 提供给技术支持。"
 
-#: src/pages/TemplatesPage.tsx:497
+#: src/pages/TemplatesPage.tsx:498
 msgid "Try selecting a different category or"
 msgstr "尝试选择不同的类别或"
 
@@ -15468,6 +15586,7 @@ msgid "type"
 msgstr "类型"
 
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:365
+#: src/pages/AudiencesPage.tsx:107
 msgid "Type"
 msgstr "类型"
 
@@ -15499,7 +15618,11 @@ msgstr "无法加载界面翻译"
 msgid "UI translations saved"
 msgstr "界面翻译已保存"
 
-#: src/pages/CustomersPage.tsx:176
+#: src/pages/AudienceMembersPage.tsx:265
+msgid "Unable to load audience customers"
+msgstr "无法加载客群客户"
+
+#: src/pages/CustomersPage.tsx:175
 msgid "Unable to load customers"
 msgstr "无法加载客户"
 
@@ -15519,7 +15642,7 @@ msgstr "无法更新客户档案"
 msgid "Uncategorized"
 msgstr "未分类"
 
-#: src/pages/DeliveryCenterPage.tsx:136
+#: src/pages/DeliveryCenterPage.tsx:137
 msgid "Uncertain and permanently failed deliveries need attention"
 msgstr "请关注结果不确定和永久失败的投递"
 
@@ -15533,7 +15656,7 @@ msgstr "下划线"
 msgid "Understand the quality of referrals"
 msgstr "了解转介的质量"
 
-#: src/components/navigation/DataAnalyticsPageShell.tsx:30
+#: src/components/navigation/DataAnalyticsPageShell.tsx:25
 msgid "Understand website traffic, acquisition quality and visitor behaviour over time."
 msgstr "了解网站流量、获客质量和访客行为随时间的变化。"
 
@@ -15552,7 +15675,7 @@ msgstr "撤消( Ctrl+Z)"
 msgid "Unfinished rows will be marked as failed; successful rows are not rolled back."
 msgstr "未完成行将标记为失败；成功行不会回滚。"
 
-#: src/pages/CustomersPage.tsx:142
+#: src/pages/CustomersPage.tsx:141
 msgid "Unified customer profiles and identity aliases for this workspace."
 msgstr "当前工作空间内统一的客户画像与身份标识别名。"
 
@@ -15580,14 +15703,14 @@ msgstr "剩余单位"
 #: src/components/contacts/SegmentsFilter.tsx:89
 #: src/components/timeline/ContactTimeline.tsx:969
 #: src/components/web_analytics/LiveSessionMap.tsx:49
-#: src/pages/BroadcastsPage.tsx:1224
-#: src/pages/BroadcastsPage.tsx:1235
+#: src/pages/BroadcastsPage.tsx:1225
+#: src/pages/BroadcastsPage.tsx:1236
 msgid "Unknown"
 msgstr "未知"
 
 #: src/components/analytics/NewContactsTable.tsx:125
-#: src/pages/ContactsPage.tsx:596
-#: src/pages/ContactsPage.tsx:644
+#: src/pages/ContactsPage.tsx:597
+#: src/pages/ContactsPage.tsx:645
 msgid "Unknown date"
 msgstr "未知日期"
 
@@ -15597,7 +15720,7 @@ msgstr "未知错误"
 
 #: src/components/automations/nodes/AddToListNode.tsx:57
 #: src/components/automations/nodes/RemoveFromListNode.tsx:54
-#: src/pages/BroadcastsPage.tsx:1088
+#: src/pages/BroadcastsPage.tsx:1089
 msgid "Unknown list"
 msgstr "未知列表"
 
@@ -15612,7 +15735,7 @@ msgstr "未知列表"
 msgid "Unknown page"
 msgstr "未知页面"
 
-#: src/pages/BroadcastsPage.tsx:1076
+#: src/pages/BroadcastsPage.tsx:1077
 msgid "Unknown segment"
 msgstr "未知线段"
 
@@ -15661,7 +15784,7 @@ msgstr "不明数据"
 msgid "Unsub."
 msgstr "不明嫌犯 不明嫌犯 不明嫌犯 不明嫌犯"
 
-#: src/pages/TemplatesPage.tsx:132
+#: src/pages/TemplatesPage.tsx:133
 msgid "Unsubscribe"
 msgstr "取消订阅"
 
@@ -15674,7 +15797,7 @@ msgstr "UNSUBSCRIBE"
 #: src/components/contacts/BulkUpdateDrawer.tsx:595
 #: src/components/segment/form_leaf.tsx:387
 #: src/components/segment/input.tsx:791
-#: src/pages/ContactsPage.tsx:336
+#: src/pages/ContactsPage.tsx:337
 msgid "Unsubscribe from list"
 msgstr "从列表中取消订阅"
 
@@ -15684,12 +15807,14 @@ msgstr "从列表中取消订阅"
 #: src/components/messages/MessageHistoryTab.tsx:195
 #: src/components/messages/MessageHistoryTab.tsx:200
 #: src/components/messages/MessageHistoryTable.tsx:314
-#: src/pages/ContactsPage.tsx:394
+#: src/pages/AudienceMembersPage.tsx:85
+#: src/pages/AudienceMembersPage.tsx:202
+#: src/pages/ContactsPage.tsx:395
 msgid "Unsubscribed"
 msgstr "未订阅"
 
 #: src/components/analytics/NewContactsTable.tsx:98
-#: src/pages/ContactsPage.tsx:569
+#: src/pages/ContactsPage.tsx:570
 msgid "Unsubscribed from list"
 msgstr "未从列表订阅"
 
@@ -15697,7 +15822,7 @@ msgstr "未从列表订阅"
 msgid "Unsubscribes"
 msgstr "未订阅"
 
-#: src/pages/BroadcastsPage.tsx:805
+#: src/pages/BroadcastsPage.tsx:806
 msgid "Untitled"
 msgstr "无标题"
 
@@ -15946,7 +16071,7 @@ msgstr "UTM"
 msgid "UTM campaign"
 msgstr "UTM运动"
 
-#: src/pages/BroadcastsPage.tsx:1173
+#: src/pages/BroadcastsPage.tsx:1174
 msgid "UTM Campaign"
 msgstr "UTM 活动"
 
@@ -15958,7 +16083,7 @@ msgstr "UTM运动"
 msgid "UTM content"
 msgstr "UTM 内容"
 
-#: src/pages/BroadcastsPage.tsx:1185
+#: src/pages/BroadcastsPage.tsx:1186
 msgid "UTM Content"
 msgstr "UTM 内容"
 
@@ -15966,7 +16091,7 @@ msgstr "UTM 内容"
 msgid "UTM medium"
 msgstr "UTM 介质"
 
-#: src/pages/BroadcastsPage.tsx:1167
+#: src/pages/BroadcastsPage.tsx:1168
 msgid "UTM Medium"
 msgstr "UTM 媒介"
 
@@ -15974,11 +16099,11 @@ msgstr "UTM 媒介"
 msgid "UTM source"
 msgstr "UTM 来源"
 
-#: src/pages/BroadcastsPage.tsx:1161
+#: src/pages/BroadcastsPage.tsx:1162
 msgid "UTM Source"
 msgstr "UTM 来源"
 
-#: src/pages/BroadcastsPage.tsx:1179
+#: src/pages/BroadcastsPage.tsx:1180
 msgid "UTM Term"
 msgstr "UTM 学期"
 
@@ -16022,15 +16147,15 @@ msgid "Variant name"
 msgstr "备选名称"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:730
-#: src/pages/BroadcastsPage.tsx:775
+#: src/pages/BroadcastsPage.tsx:776
 msgid "Variations"
 msgstr "变化"
 
-#: src/pages/DeliveryCenterPage.tsx:181
+#: src/pages/DeliveryCenterPage.tsx:182
 msgid "Verification evidence"
 msgstr "核实依据"
 
-#: src/pages/DeliveryCenterPage.tsx:174
+#: src/pages/DeliveryCenterPage.tsx:175
 msgid "Verified outcome"
 msgstr "已核实结果"
 
@@ -16047,19 +16172,23 @@ msgid "Verifying invitation..."
 msgstr "正在校验邀请..."
 
 #: src/components/blog/RecentThemesTable.tsx:113
+#: src/pages/AudiencesPage.tsx:122
 msgid "Version"
 msgstr "版本"
 
-#. placeholder {0}: audience.active_version
 #: src/pages/AudiencesPage.tsx:74
-msgid "Version {0}"
-msgstr "版本 {0}"
+#~ msgid "Version {0}"
+#~ msgstr "版本 {0}"
+
+#: src/pages/AudiencesPage.tsx:125
+msgid "Version {version}"
+msgstr "版本 {version}"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:474
 msgid "VERSION NOTES (OPTIONAL)"
 msgstr "核查说明(任择)"
 
-#: src/pages/ContactsPage.tsx:652
+#: src/pages/ContactsPage.tsx:653
 msgid "Version:"
 msgstr "版本 :"
 
@@ -16134,7 +16263,7 @@ msgstr "查看网页"
 msgid "View website"
 msgstr "查看网站"
 
-#: src/pages/ListsPage.tsx:259
+#: src/pages/ListsPage.tsx:260
 msgid "Visibility"
 msgstr "可见度"
 
@@ -16181,7 +16310,7 @@ msgstr "请等待至 {0} 后重试。"
 msgid "Waiting for server restart..."
 msgstr "正在等待服务器重新启动..."
 
-#: src/components/automations/JourneyPreflightPanel.tsx:133
+#: src/components/automations/JourneyPreflightPanel.tsx:134
 #: src/components/automations/UpsertAutomationDrawer.tsx:136
 msgid "Warning"
 msgstr "3⁄4 ̧漯B"
@@ -16209,7 +16338,7 @@ msgstr "网页"
 #: src/components/settings/WebAnalyticsSettings.tsx:242
 #: src/components/settings/WebAnalyticsSettings.tsx:291
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:349
-#: src/pages/BroadcastsPage.tsx:1158
+#: src/pages/BroadcastsPage.tsx:1159
 #: src/services/api/errors.ts:224
 msgid "Web Analytics"
 msgstr "网站分析"
@@ -16320,7 +16449,6 @@ msgstr "从此群发转换网站"
 msgid "Website conversions from this variation"
 msgstr "从这一变异中转换网站"
 
-#: src/components/navigation/DataAnalyticsPageShell.tsx:29
 #: src/components/navigation/WorkspaceSectionTabs.tsx:129
 msgid "Website Overview"
 msgstr "网站概览"
@@ -16361,7 +16489,7 @@ msgid "Weight"
 msgstr "重量"
 
 #: src/components/templates/MessageTemplateDrawer.tsx:398
-#: src/pages/TemplatesPage.tsx:130
+#: src/pages/TemplatesPage.tsx:131
 msgid "Welcome"
 msgstr "欢迎光临"
 
@@ -16373,7 +16501,7 @@ msgstr "客户档案创建或业务注册事件发生后发送欢迎触达。"
 msgid "Welcome to Email Builder!"
 msgstr "欢迎来到邮件构建器!"
 
-#: src/components/settings/BlogSettings.tsx:458
+#: src/components/settings/BlogSettings.tsx:459
 msgid "Welcome to my blog where I share insights about..."
 msgstr "欢迎来到我的博客 我分享关于..."
 
@@ -16405,7 +16533,7 @@ msgstr "启用时, 邮件中的链接会被跟踪打开和点击"
 msgid "When enabled, subscribers must confirm their subscription via email before being added to the list"
 msgstr "启用时,订阅者必须先通过邮件确认订阅后才能添加到列表中"
 
-#: src/components/settings/BlogSettings.tsx:443
+#: src/components/settings/BlogSettings.tsx:444
 msgid "When enabled, the feed includes only excerpts instead of full article content"
 msgstr "当启用时, 种子只包含节选, 而不是完整的文章内容"
 
@@ -16445,7 +16573,7 @@ msgstr "哪些采购渠道和运动带来了这一时期的大部分会议,哪�
 msgid "Which landing pages bring the most sessions, and which ones have the worst bounce rate or engagement?"
 msgstr "哪些登陆网页带来最多的会话? 哪些登陆网页的弹跳率或约定率最差?"
 
-#: src/pages/DeliveryCenterPage.tsx:123
+#: src/pages/DeliveryCenterPage.tsx:124
 msgid "Why"
 msgstr "原因说明"
 
@@ -16471,7 +16599,7 @@ msgstr "将被删除"
 msgid "Will resume from row {0}"
 msgstr "将复行 {0}"
 
-#: src/pages/DeliveryCenterPage.tsx:55
+#: src/pages/DeliveryCenterPage.tsx:56
 msgid "Will retry"
 msgstr "将重试"
 
@@ -16479,15 +16607,15 @@ msgstr "将重试"
 msgid "Window calculation"
 msgstr "窗口计算方式"
 
-#: src/pages/BroadcastsPage.tsx:1232
+#: src/pages/BroadcastsPage.tsx:1233
 msgid "Winner"
 msgstr "赢家"
 
-#: src/pages/BroadcastsPage.tsx:288
+#: src/pages/BroadcastsPage.tsx:289
 msgid "Winner Selected"
 msgstr "选中胜者"
 
-#: src/pages/BroadcastsPage.tsx:408
+#: src/pages/BroadcastsPage.tsx:409
 msgid "Winner selected successfully! The broadcast will be sent to remaining recipients."
 msgstr "成功选中胜者 ! 群发将发给其余接收者。"
 
@@ -16569,7 +16697,7 @@ msgstr "工作区名称必须至少有3个字符长"
 
 #: src/layouts/WorkspaceLayout.tsx:189
 #: src/pages/AnalyticsPage.tsx:69
-#: src/pages/FileManagerPage.tsx:57
+#: src/pages/FileManagerPage.tsx:58
 msgid "Workspace not found"
 msgstr "找不到工作区"
 
@@ -16624,7 +16752,7 @@ msgstr "写入权限包括永久删除和批量覆盖：`/api/contacts.import` �
 msgid "Write MJML markup with Liquid template tags. This content is injected directly into the email and processed by the Liquid engine before MJML compilation. Use for-loops, conditionals, and variables to generate dynamic structural content."
 msgstr "写入 MJML 标记 Liquid 模板标签。 此内容直接注入邮件并由 Liquid 前一个引擎 MJML 汇编。 用-loops,条件,和变量生成动态结构内容."
 
-#: src/pages/DeliveryCenterPage.tsx:168
+#: src/pages/DeliveryCenterPage.tsx:169
 msgid "Write permission is required to reconcile or resolve this delivery"
 msgstr "核对或处理此投递需要消息历史写入权限"
 
@@ -16687,7 +16815,7 @@ msgstr "是"
 #~ msgstr "是,启动"
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:83
-#: src/pages/BroadcastsPage.tsx:677
+#: src/pages/BroadcastsPage.tsx:678
 msgid "Yes, cancel"
 msgstr "对,取消"
 
@@ -16699,21 +16827,21 @@ msgstr "是的,清理干净"
 msgid "Yes, delete"
 msgstr "是,删除"
 
-#: src/pages/TemplatesPage.tsx:377
-#: src/pages/TransactionalNotificationsPage.tsx:148
+#: src/pages/TemplatesPage.tsx:378
+#: src/pages/TransactionalNotificationsPage.tsx:149
 msgid "Yes, Delete"
 msgstr "是,删除"
 
 #: src/components/automations/AutomationCard.tsx:235
-#: src/pages/BroadcastsPage.tsx:630
+#: src/pages/BroadcastsPage.tsx:631
 msgid "Yes, pause"
 msgstr "是的,暂停"
 
-#: src/pages/BroadcastsPage.tsx:652
+#: src/pages/BroadcastsPage.tsx:653
 msgid "Yes, resume"
 msgstr "是的,简历"
 
-#: src/pages/BroadcastsPage.tsx:1016
+#: src/pages/BroadcastsPage.tsx:1017
 msgid "Yes, Select Winner"
 msgstr "是, 选择胜者"
 
@@ -16738,7 +16866,7 @@ msgid "You do not have write access to {resource}."
 msgstr "您没有写入权限 {resource}."
 
 #: src/components/broadcasts/SendOrScheduleModal.tsx:202
-#: src/pages/BroadcastsPage.tsx:1608
+#: src/pages/BroadcastsPage.tsx:1609
 msgid "You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts."
 msgstr "你没有配置一个营销邮件服务商。 请在您的工作区设置中设置邮件服务商以发送群发 。"
 
@@ -16755,40 +16883,40 @@ msgstr "您没有权限管理自定义字段"
 msgid "You don't have write permission for automations"
 msgstr "你没有写自动化的许可"
 
-#: src/pages/BroadcastsPage.tsx:595
-#: src/pages/BroadcastsPage.tsx:622
-#: src/pages/BroadcastsPage.tsx:644
-#: src/pages/BroadcastsPage.tsx:669
-#: src/pages/BroadcastsPage.tsx:692
-#: src/pages/BroadcastsPage.tsx:708
-#: src/pages/BroadcastsPage.tsx:1008
-#: src/pages/BroadcastsPage.tsx:1555
-#: src/pages/BroadcastsPage.tsx:1693
+#: src/pages/BroadcastsPage.tsx:596
+#: src/pages/BroadcastsPage.tsx:623
+#: src/pages/BroadcastsPage.tsx:645
+#: src/pages/BroadcastsPage.tsx:670
+#: src/pages/BroadcastsPage.tsx:693
+#: src/pages/BroadcastsPage.tsx:709
+#: src/pages/BroadcastsPage.tsx:1009
+#: src/pages/BroadcastsPage.tsx:1556
+#: src/pages/BroadcastsPage.tsx:1694
 msgid "You don't have write permission for broadcasts"
 msgstr "你没有群发的写权限"
 
 #: src/components/contacts/BulkActionsBar.tsx:52
-#: src/pages/ContactsPage.tsx:1055
-#: src/pages/ContactsPage.tsx:1074
+#: src/pages/ContactsPage.tsx:1056
+#: src/pages/ContactsPage.tsx:1075
 msgid "You don't have write permission for contacts"
 msgstr "联系人没有写权限"
 
 #: src/components/contacts/BulkActionsBar.tsx:54
-#: src/pages/ListsPage.tsx:174
-#: src/pages/ListsPage.tsx:212
-#: src/pages/ListsPage.tsx:228
+#: src/pages/ListsPage.tsx:175
+#: src/pages/ListsPage.tsx:213
+#: src/pages/ListsPage.tsx:229
 msgid "You don't have write permission for lists"
 msgstr "你没有写列表的权限"
 
-#: src/pages/TemplatesPage.tsx:318
-#: src/pages/TemplatesPage.tsx:337
-#: src/pages/TemplatesPage.tsx:357
-#: src/pages/TemplatesPage.tsx:422
+#: src/pages/TemplatesPage.tsx:319
+#: src/pages/TemplatesPage.tsx:338
+#: src/pages/TemplatesPage.tsx:358
+#: src/pages/TemplatesPage.tsx:423
 msgid "You don't have write permission for templates"
 msgstr "您没有写模板的权限"
 
-#: src/pages/TransactionalNotificationsPage.tsx:400
-#: src/pages/TransactionalNotificationsPage.tsx:452
+#: src/pages/TransactionalNotificationsPage.tsx:401
+#: src/pages/TransactionalNotificationsPage.tsx:453
 msgid "You don't have write permission for transactional notifications"
 msgstr "您没有事务通知的写入权限"
 
@@ -16814,8 +16942,8 @@ msgstr "你有未保存的变化。 你确定要关门吗? 你的改变会失去
 msgid "You must configure a Custom Endpoint URL in General Settings above before enabling the blog."
 msgstr "在启用博客前, 您必须在上面的普通设置中配置自定义端点 URL 。"
 
-#: src/pages/BroadcastsPage.tsx:964
-#: src/pages/TemplatesPage.tsx:388
+#: src/pages/BroadcastsPage.tsx:965
+#: src/pages/TemplatesPage.tsx:389
 msgid "You need read template and write contact permissions to send test emails"
 msgstr "您需要读取模板并写入发送测试邮件的联系权限"
 
@@ -16832,7 +16960,7 @@ msgstr "你被邀请加入"
 msgid "Your AWS credentials cannot create SES tenants. Grant ses:CreateTenant and ses:CreateTenantResourceAssociation, then save again."
 msgstr "您的 AWS 凭据无法创建 SES 租户。请授予 ses:CreateTenant 和 ses:CreateTenantResourceAssociation 权限，然后再次保存。"
 
-#: src/components/settings/BlogSettings.tsx:494
+#: src/components/settings/BlogSettings.tsx:495
 msgid "Your blog settings have not been saved. Leaving this page discards them."
 msgstr "您的博客设置尚未保存 。 离开这页会丢弃他们。"
 

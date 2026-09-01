@@ -48,7 +48,7 @@ func (audienceRepositoryStub) BuildAudience(context.Context, string, string, int
 func (audienceRepositoryStub) GetAudienceBuild(context.Context, string, string) (*domain.AudienceBuild, error) {
 	return nil, nil
 }
-func (audienceRepositoryStub) ListAudienceMembers(context.Context, string, string, string, int) ([]domain.CustomerSummary, string, error) {
+func (audienceRepositoryStub) ListAudienceMembers(context.Context, string, domain.AudienceMemberQuery) ([]domain.AudienceMember, string, error) {
 	return nil, "", nil
 }
 func (audienceRepositoryStub) ArchiveAudience(context.Context, string, string) error { return nil }

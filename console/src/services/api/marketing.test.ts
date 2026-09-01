@@ -40,6 +40,27 @@ describe('marketing APIs', () => {
     expect(api.post).toHaveBeenCalledTimes(1)
   })
 
+  it('serializes list member filters without dropping current-fact fields', async () => {
+    vi.mocked(api.get).mockResolvedValue({ items: [], next: '' })
+
+    await audienceApi.memberDetails({
+      workspace_id: 'workspace-1',
+      list_id: 'newsletter',
+      status: 'unsubscribed',
+      event_name: 'shop.purchase',
+      joined_after: '2026-08-01T00:00:00Z',
+      joined_before: '2026-09-01T00:00:00Z',
+      attribute_key: 'tier',
+      attribute_value: 'gold & vip',
+      after: '22222222-2222-4222-8222-222222222222',
+      limit: 25
+    })
+
+    expect(api.get).toHaveBeenCalledWith(
+      '/api/audiences.members?workspace_id=workspace-1&list_id=newsletter&status=unsubscribed&event_name=shop.purchase&joined_after=2026-08-01T00%3A00%3A00Z&joined_before=2026-09-01T00%3A00%3A00Z&attribute_key=tier&attribute_value=gold+%26+vip&after=22222222-2222-4222-8222-222222222222&limit=25'
+    )
+  })
+
   it('starts a live automation from an audience without choosing a client-side version', async () => {
     vi.mocked(api.post).mockResolvedValue({ run: { build_id: 'build-7' } } as never)
     await automationApi.startAudience('workspace-1', 'automation-1', 'audience-1')

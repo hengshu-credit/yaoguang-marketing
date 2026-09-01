@@ -151,14 +151,34 @@
 
 /api/audiences.members:
   get:
-    summary: List masked Customer summaries from an immutable audience build
+    summary: List customers from a list, a live audience, or an immutable audience build
+    description: Exactly one of list_id, audience_id, or build_id is required. Subscription status, customer attributes, and performed events are evaluated from current customer facts. Joined-list time filters apply only to list_id.
     operationId: listAudienceMembers
     security: [{ BearerAuth: [] }]
     parameters:
       - { name: workspace_id, in: query, required: true, schema: { type: string } }
-      - { name: build_id, in: query, required: true, schema: { type: string, format: uuid } }
+      - { name: list_id, in: query, schema: { type: string, maxLength: 32 }, description: List source. Mutually exclusive with audience_id and build_id. }
+      - { name: audience_id, in: query, schema: { type: string, format: uuid }, description: Live audience source evaluated from its active definition. Mutually exclusive with list_id and build_id. }
+      - { name: build_id, in: query, schema: { type: string, format: uuid }, description: Immutable audience-build source. Mutually exclusive with list_id and audience_id. }
+      - { name: status, in: query, schema: { type: string, enum: [active, pending, unsubscribed, bounced, complained] }, description: "Current subscription status. For audience sources, a customer matches when any current list membership has this status." }
+      - { name: event_name, in: query, schema: { type: string, maxLength: 100 }, description: Require that the customer has performed this event; no event-time window is applied. }
+      - { name: joined_after, in: query, schema: { type: string, format: date-time }, description: Inclusive list-membership creation time. Valid only with list_id. }
+      - { name: joined_before, in: query, schema: { type: string, format: date-time }, description: Exclusive list-membership creation time. Valid only with list_id. }
+      - { name: attribute_key, in: query, schema: { type: string, maxLength: 255 }, description: Customer profile attribute key. Must be supplied with attribute_value. }
+      - { name: attribute_value, in: query, schema: { type: string, maxLength: 255 }, description: Case-insensitive substring matched against the selected customer profile attribute. Must be supplied with attribute_key. }
       - { name: after, in: query, schema: { type: string, format: uuid } }
       - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
     responses:
-      '200': { description: Keyset-paginated audience members }
-      '400': { description: Invalid build cursor }
+      '200':
+        description: Keyset-paginated customer members with all current list subscriptions
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  items: { $ref: '../components/schemas/audience.yaml#/AudienceMember' }
+                next: { type: string, format: uuid }
+      '400': { description: "Invalid source, cursor, or filter combination" }

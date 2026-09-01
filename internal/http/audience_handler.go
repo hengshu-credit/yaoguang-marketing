@@ -2,8 +2,10 @@ package http
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/http/middleware"
@@ -176,7 +178,35 @@ func (h *AudienceHandler) members(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	items, next, err := h.service.Members(r.Context(), r.URL.Query().Get("workspace_id"), r.URL.Query().Get("build_id"), r.URL.Query().Get("after"), limit)
+	parseTime := func(name string) (*time.Time, error) {
+		value := r.URL.Query().Get(name)
+		if value == "" {
+			return nil, nil
+		}
+		parsed, parseErr := time.Parse(time.RFC3339, value)
+		if parseErr != nil {
+			return nil, fmt.Errorf("%s must be RFC3339", name)
+		}
+		return &parsed, nil
+	}
+	joinedAfter, err := parseTime("joined_after")
+	if err != nil {
+		h.error(w, r, err)
+		return
+	}
+	joinedBefore, err := parseTime("joined_before")
+	if err != nil {
+		h.error(w, r, err)
+		return
+	}
+	query := domain.AudienceMemberQuery{
+		ListID: r.URL.Query().Get("list_id"), AudienceID: r.URL.Query().Get("audience_id"),
+		BuildID: r.URL.Query().Get("build_id"), Status: r.URL.Query().Get("status"),
+		EventName: r.URL.Query().Get("event_name"), JoinedAfter: joinedAfter, JoinedBefore: joinedBefore,
+		AttributeKey: r.URL.Query().Get("attribute_key"), AttributeValue: r.URL.Query().Get("attribute_value"),
+		After: r.URL.Query().Get("after"), Limit: limit,
+	}
+	items, next, err := h.service.Members(r.Context(), r.URL.Query().Get("workspace_id"), query)
 	if err != nil {
 		h.error(w, r, err)
 		return

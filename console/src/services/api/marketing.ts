@@ -1,5 +1,6 @@
 import { api } from './client'
 import type { TreeNode } from './segment'
+import type { CustomerListMembership, CustomerSummary } from './customer'
 
 export type AudienceLeafType = 'list' | 'segment' | 'audience'
 export type AudienceOperator = 'union' | 'intersection' | 'exclusion'
@@ -28,6 +29,27 @@ export interface AudienceBuild {
   status: 'pending' | 'building' | 'completed' | 'failed' | 'cancelled'
   member_count: number
   error_detail?: string
+}
+
+export interface AudienceMember {
+  customer: CustomerSummary
+  subscriptions: CustomerListMembership[]
+  joined_at?: string
+}
+
+export interface AudienceMemberRequest {
+  workspace_id: string
+  list_id?: string
+  audience_id?: string
+  build_id?: string
+  status?: string
+  event_name?: string
+  joined_after?: string
+  joined_before?: string
+  attribute_key?: string
+  attribute_value?: string
+  after?: string
+  limit?: number
 }
 
 export interface ImportJob {
@@ -87,6 +109,21 @@ export const audienceApi = {
   members: (workspaceId: string, buildId: string, after = '', limit = 50) => {
     const params = new URLSearchParams({ workspace_id: workspaceId, build_id: buildId, after, limit: String(limit) })
     return api.get<{ items: Array<Record<string, unknown>>; next: string }>(`/api/audiences.members?${params}`)
+  },
+  memberDetails: (request: AudienceMemberRequest) => {
+    const params = new URLSearchParams({ workspace_id: request.workspace_id })
+    if (request.list_id) params.set('list_id', request.list_id)
+    if (request.audience_id) params.set('audience_id', request.audience_id)
+    if (request.build_id) params.set('build_id', request.build_id)
+    if (request.status) params.set('status', request.status)
+    if (request.event_name) params.set('event_name', request.event_name)
+    if (request.joined_after) params.set('joined_after', request.joined_after)
+    if (request.joined_before) params.set('joined_before', request.joined_before)
+    if (request.attribute_key) params.set('attribute_key', request.attribute_key)
+    if (request.attribute_value) params.set('attribute_value', request.attribute_value)
+    if (request.after) params.set('after', request.after)
+    if (request.limit) params.set('limit', String(request.limit))
+    return api.get<{ items: AudienceMember[]; next: string }>(`/api/audiences.members?${params}`)
   }
 }
 

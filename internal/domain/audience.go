@@ -9,6 +9,10 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
+
+	"github.com/asaskevich/govalidator"
+	"github.com/google/uuid"
 )
 
 type AudienceKind string
@@ -142,6 +146,105 @@ type AudienceBuild struct {
 	UpdatedAt       time.Time `json:"updated_at"`
 }
 
+const (
+	DefaultAudienceMemberLimit = 50
+	MaxAudienceMemberLimit     = 200
+)
+
+var audienceMemberStatuses = map[string]struct{}{
+	"active": {}, "pending": {}, "unsubscribed": {}, "bounced": {}, "complained": {},
+}
+
+// AudienceMemberQuery lists customers from exactly one LIST, dynamic Audience,
+// or immutable Audience build while applying current customer facts.
+type AudienceMemberQuery struct {
+	ListID         string
+	AudienceID     string
+	BuildID        string
+	Status         string
+	EventName      string
+	JoinedAfter    *time.Time
+	JoinedBefore   *time.Time
+	AttributeKey   string
+	AttributeValue string
+	After          string
+	Limit          int
+}
+
+func (query *AudienceMemberQuery) Validate() error {
+	if query == nil {
+		return errors.New("audience member query is required")
+	}
+	query.ListID = strings.TrimSpace(query.ListID)
+	query.AudienceID = strings.TrimSpace(query.AudienceID)
+	query.BuildID = strings.TrimSpace(query.BuildID)
+	sources := 0
+	for _, value := range []string{query.ListID, query.AudienceID, query.BuildID} {
+		if value != "" {
+			sources++
+		}
+	}
+	if sources != 1 {
+		return errors.New("exactly one member source is required")
+	}
+	if query.ListID != "" && (utf8.RuneCountInString(query.ListID) > 32 || !govalidator.IsAlphanumeric(query.ListID)) {
+		return errors.New("list ID must be alphanumeric and contain 1 to 32 characters")
+	}
+	for label, value := range map[string]string{"audience ID": query.AudienceID, "build ID": query.BuildID} {
+		if value == "" {
+			continue
+		}
+		parsed, err := uuid.Parse(value)
+		if err != nil || parsed == uuid.Nil {
+			return fmt.Errorf("%s must be a non-nil UUID", label)
+		}
+	}
+	query.Status = strings.TrimSpace(query.Status)
+	if query.Status != "" {
+		if _, ok := audienceMemberStatuses[query.Status]; !ok {
+			return errors.New("subscription status is invalid")
+		}
+	}
+	if (query.JoinedAfter != nil || query.JoinedBefore != nil) && query.ListID == "" {
+		return errors.New("join time filters require a list source")
+	}
+	if query.JoinedAfter != nil && query.JoinedBefore != nil && !query.JoinedAfter.Before(*query.JoinedBefore) {
+		return errors.New("joined_after must be before joined_before")
+	}
+	query.EventName = strings.TrimSpace(query.EventName)
+	if utf8.RuneCountInString(query.EventName) > 100 {
+		return errors.New("event name cannot exceed 100 characters")
+	}
+	query.AttributeKey = strings.TrimSpace(query.AttributeKey)
+	query.AttributeValue = strings.TrimSpace(query.AttributeValue)
+	if (query.AttributeKey == "") != (query.AttributeValue == "") {
+		return errors.New("attribute key and value must be provided together")
+	}
+	if utf8.RuneCountInString(query.AttributeKey) > 255 || utf8.RuneCountInString(query.AttributeValue) > 255 {
+		return errors.New("attribute key and value cannot exceed 255 characters")
+	}
+	query.After = strings.TrimSpace(query.After)
+	if query.After != "" {
+		parsed, err := uuid.Parse(query.After)
+		if err != nil || parsed == uuid.Nil {
+			return errors.New("member cursor must be a non-nil customer UUID")
+		}
+	}
+	if query.Limit == 0 {
+		query.Limit = DefaultAudienceMemberLimit
+	}
+	if query.Limit < 1 || query.Limit > MaxAudienceMemberLimit {
+		return fmt.Errorf("audience member limit must be between 1 and %d", MaxAudienceMemberLimit)
+	}
+	return nil
+}
+
+type AudienceMember struct {
+	Customer      CustomerSummary          `json:"customer"`
+	Subscriptions []CustomerListMembership `json:"subscriptions"`
+	JoinedAt      *time.Time               `json:"joined_at,omitempty"`
+}
+
 type AudienceRepository interface {
 	CreateAudience(context.Context, string, Audience, AudienceVersion) error
 	GetAudience(context.Context, string, string) (*Audience, error)
@@ -151,6 +254,6 @@ type AudienceRepository interface {
 	PreviewAudience(context.Context, string, AudienceExpression, int) ([]CustomerSummary, int64, error)
 	BuildAudience(context.Context, string, string, int) (string, int64, error)
 	GetAudienceBuild(context.Context, string, string) (*AudienceBuild, error)
-	ListAudienceMembers(context.Context, string, string, string, int) ([]CustomerSummary, string, error)
+	ListAudienceMembers(context.Context, string, AudienceMemberQuery) ([]AudienceMember, string, error)
 	ArchiveAudience(context.Context, string, string) error
 }

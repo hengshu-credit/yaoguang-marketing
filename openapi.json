@@ -918,7 +918,8 @@
     },
     "/api/audiences.members": {
       "get": {
-        "summary": "List masked Customer summaries from an immutable audience build",
+        "summary": "List customers from a list, a live audience, or an immutable audience build",
+        "description": "Exactly one of list_id, audience_id, or build_id is required. Subscription status, customer attributes, and performed events are evaluated from current customer facts. Joined-list time filters apply only to list_id.",
         "operationId": "listAudienceMembers",
         "security": [
           {
@@ -935,13 +936,91 @@
             }
           },
           {
-            "name": "build_id",
+            "name": "list_id",
             "in": "query",
-            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "description": "List source. Mutually exclusive with audience_id and build_id."
+          },
+          {
+            "name": "audience_id",
+            "in": "query",
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "description": "Live audience source evaluated from its active definition. Mutually exclusive with list_id and build_id."
+          },
+          {
+            "name": "build_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Immutable audience-build source. Mutually exclusive with list_id and audience_id."
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "pending",
+                "unsubscribed",
+                "bounced",
+                "complained"
+              ]
+            },
+            "description": "Current subscription status. For audience sources, a customer matches when any current list membership has this status."
+          },
+          {
+            "name": "event_name",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "description": "Require that the customer has performed this event; no event-time window is applied."
+          },
+          {
+            "name": "joined_after",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Inclusive list-membership creation time. Valid only with list_id."
+          },
+          {
+            "name": "joined_before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Exclusive list-membership creation time. Valid only with list_id."
+          },
+          {
+            "name": "attribute_key",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "description": "Customer profile attribute key. Must be supplied with attribute_value."
+          },
+          {
+            "name": "attribute_value",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "description": "Case-insensitive substring matched against the selected customer profile attribute. Must be supplied with attribute_key."
           },
           {
             "name": "after",
@@ -964,10 +1043,32 @@
         ],
         "responses": {
           "200": {
-            "description": "Keyset-paginated audience members"
+            "description": "Keyset-paginated customer members with all current list subscriptions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AudienceMember"
+                      }
+                    },
+                    "next": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid build cursor"
+            "description": "Invalid source, cursor, or filter combination"
           }
         }
       }
@@ -12392,6 +12493,221 @@
           }
         }
       },
+      "CustomerProfile": {
+        "type": "object",
+        "required": [
+          "customer_id",
+          "attributes",
+          "version",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "customer_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "attributes": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CustomerIdentityType": {
+        "type": "string",
+        "enum": [
+          "email",
+          "phone",
+          "anonymous_id",
+          "device_id",
+          "whatsapp",
+          "telegram",
+          "custom"
+        ]
+      },
+      "CustomerIdentity": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "display_hint",
+          "verified",
+          "primary",
+          "enabled",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "$ref": "#/components/schemas/CustomerIdentityType"
+          },
+          "display_hint": {
+            "type": "string",
+            "description": "Masked identity hint. Plaintext identity values are never returned.",
+            "example": "u***@example.com"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "primary": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CustomerSummary": {
+        "type": "object",
+        "required": [
+          "customer_id",
+          "customer_no",
+          "version",
+          "identities",
+          "tags",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "customer_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customer_no": {
+            "type": "string",
+            "pattern": "^(U[0-9a-z]{3}[0-9]{14}08[0-9a-z]{6}|U[0-9]{4}[0-9]{14}08[0-9a-f]{32})$"
+          },
+          "external_user_id": {
+            "type": "string"
+          },
+          "merged_into_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "profile": {
+            "$ref": "#/components/schemas/CustomerProfile"
+          },
+          "identities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerIdentity"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CustomerListMembership": {
+        "type": "object",
+        "required": [
+          "list_id",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "list_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "pending",
+              "unsubscribed",
+              "bounced",
+              "complained"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AudienceMember": {
+        "type": "object",
+        "required": [
+          "customer",
+          "subscriptions"
+        ],
+        "properties": {
+          "customer": {
+            "$ref": "#/components/schemas/CustomerSummary"
+          },
+          "subscriptions": {
+            "type": "array",
+            "description": "All of the customer's current list memberships and subscription statuses.",
+            "items": {
+              "$ref": "#/components/schemas/CustomerListMembership"
+            }
+          },
+          "joined_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Time the customer joined the selected list. Present only for a list source."
+          }
+        }
+      },
       "ImportCounters": {
         "type": "object",
         "required": [
@@ -13379,18 +13695,6 @@
           }
         }
       },
-      "CustomerIdentityType": {
-        "type": "string",
-        "enum": [
-          "email",
-          "phone",
-          "anonymous_id",
-          "device_id",
-          "whatsapp",
-          "telegram",
-          "custom"
-        ]
-      },
       "CustomerIdentityLocator": {
         "type": "object",
         "additionalProperties": false,
@@ -13407,128 +13711,6 @@
             "minLength": 1,
             "maxLength": 1024,
             "description": "Plaintext lookup value. Email is lower-cased; phone and WhatsApp values are normalized to E.164."
-          }
-        }
-      },
-      "CustomerProfile": {
-        "type": "object",
-        "required": [
-          "customer_id",
-          "attributes",
-          "version",
-          "created_at",
-          "updated_at"
-        ],
-        "properties": {
-          "customer_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "status": {
-            "type": "string"
-          },
-          "language": {
-            "type": "string"
-          },
-          "timezone": {
-            "type": "string"
-          },
-          "attributes": {
-            "type": "object",
-            "additionalProperties": true
-          },
-          "version": {
-            "type": "integer",
-            "format": "int64",
-            "minimum": 1
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "CustomerIdentity": {
-        "type": "object",
-        "required": [
-          "id",
-          "type",
-          "display_hint",
-          "verified",
-          "primary",
-          "enabled",
-          "created_at",
-          "updated_at"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "type": {
-            "$ref": "#/components/schemas/CustomerIdentityType"
-          },
-          "display_hint": {
-            "type": "string",
-            "description": "Masked identity hint. Plaintext identity values are never returned.",
-            "example": "u***@example.com"
-          },
-          "verified": {
-            "type": "boolean"
-          },
-          "primary": {
-            "type": "boolean"
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": true
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "CustomerListMembership": {
-        "type": "object",
-        "required": [
-          "list_id",
-          "status",
-          "created_at",
-          "updated_at"
-        ],
-        "properties": {
-          "list_id": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "active",
-              "pending",
-              "unsubscribed",
-              "bounced",
-              "complained"
-            ]
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time"
           }
         }
       },
@@ -13612,63 +13794,6 @@
                 "type": "string"
               }
             }
-          }
-        }
-      },
-      "CustomerSummary": {
-        "type": "object",
-        "required": [
-          "customer_id",
-          "customer_no",
-          "version",
-          "identities",
-          "tags",
-          "created_at",
-          "updated_at"
-        ],
-        "properties": {
-          "customer_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "customer_no": {
-            "type": "string",
-            "pattern": "^(U[0-9a-z]{3}[0-9]{14}08[0-9a-z]{6}|U[0-9]{4}[0-9]{14}08[0-9a-f]{32})$"
-          },
-          "external_user_id": {
-            "type": "string"
-          },
-          "merged_into_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "version": {
-            "type": "integer",
-            "format": "int64",
-            "minimum": 1
-          },
-          "profile": {
-            "$ref": "#/components/schemas/CustomerProfile"
-          },
-          "identities": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CustomerIdentity"
-            }
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time"
           }
         }
       },

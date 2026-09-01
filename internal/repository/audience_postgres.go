@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/lib/pq"
 )
 
 type AudiencePostgresRepository struct {
@@ -585,40 +586,189 @@ func (r *AudiencePostgresRepository) GetAudienceBuild(ctx context.Context, works
 	return item, nil
 }
 
-func (r *AudiencePostgresRepository) ListAudienceMembers(ctx context.Context, workspaceID, buildID, after string, limit int) ([]domain.CustomerSummary, string, error) {
-	if limit <= 0 || limit > 200 {
-		limit = 50
+func (r *AudiencePostgresRepository) ListAudienceMembers(ctx context.Context, workspaceID string, request domain.AudienceMemberQuery) ([]domain.AudienceMember, string, error) {
+	if err := request.Validate(); err != nil {
+		return nil, "", err
 	}
 	db, err := r.getDB(ctx, workspaceID)
 	if err != nil {
 		return nil, "", err
 	}
-	rows, err := db.QueryContext(ctx, `SELECT customer.id, customer.customer_no, customer.external_user_id,
-		customer.merged_into_id, customer.version, customer.created_at, customer.updated_at
-		FROM audience_memberships membership JOIN customers customer ON customer.id = membership.customer_id
-		WHERE membership.build_id = NULLIF($1, '')::uuid AND ($2 = '' OR customer.id > NULLIF($2, '')::uuid)
-		ORDER BY customer.id LIMIT $3`, buildID, after, limit+1)
+
+	args := make([]interface{}, 0, 10)
+	placeholder := func(value interface{}) string {
+		args = append(args, value)
+		return fmt.Sprintf("$%d", len(args))
+	}
+	joinedColumn := "NULL::timestamptz"
+	sourceJoin := ""
+	switch {
+	case request.ListID != "":
+		listID := placeholder(request.ListID)
+		sourceJoin = "JOIN customer_list_memberships source_membership ON source_membership.customer_id = customer.id AND source_membership.list_id = " + listID
+		joinedColumn = "source_membership.created_at"
+	case request.AudienceID != "":
+		audience, getErr := r.GetAudience(ctx, workspaceID, request.AudienceID)
+		if getErr != nil {
+			return nil, "", getErr
+		}
+		version, versionErr := r.GetAudienceVersion(ctx, workspaceID, audience.ID, audience.ActiveVersion)
+		if versionErr != nil {
+			return nil, "", versionErr
+		}
+		compiled, compiledArgs, compileErr := r.compileAudienceExpression(version.Definition, len(args))
+		if compileErr != nil {
+			return nil, "", compileErr
+		}
+		args = append(args, compiledArgs...)
+		sourceJoin = "JOIN (" + compiled + ") source_audience ON source_audience.customer_id = customer.id"
+	case request.BuildID != "":
+		buildID := placeholder(request.BuildID)
+		sourceJoin = "JOIN audience_memberships source_membership ON source_membership.customer_id = customer.id AND source_membership.build_id = NULLIF(" + buildID + ", '')::uuid"
+	}
+
+	clauses := []string{"customer.merged_into_id IS NULL"}
+	if request.Status != "" {
+		status := placeholder(request.Status)
+		if request.ListID != "" {
+			clauses = append(clauses, "source_membership.status = "+status)
+		} else {
+			clauses = append(clauses, "EXISTS (SELECT 1 FROM customer_list_memberships current_membership WHERE current_membership.customer_id = customer.id AND current_membership.status = "+status+")")
+		}
+	}
+	if request.JoinedAfter != nil {
+		clauses = append(clauses, "source_membership.created_at >= "+placeholder(*request.JoinedAfter))
+	}
+	if request.JoinedBefore != nil {
+		clauses = append(clauses, "source_membership.created_at < "+placeholder(*request.JoinedBefore))
+	}
+	if request.EventName != "" {
+		clauses = append(clauses, "EXISTS (SELECT 1 FROM custom_events event WHERE event.customer_id = customer.id AND event.deleted_at IS NULL AND event.event_name = "+placeholder(request.EventName)+")")
+	}
+	if request.AttributeKey != "" {
+		key := placeholder(request.AttributeKey)
+		value := placeholder("%" + escapeLikePattern(request.AttributeValue) + "%")
+		clauses = append(clauses, "COALESCE(profile.attributes ->> "+key+", '') ILIKE "+value+" ESCAPE '\\'")
+	}
+	if request.After != "" {
+		clauses = append(clauses, "customer.id > NULLIF("+placeholder(request.After)+", '')::uuid")
+	}
+	limit := placeholder(request.Limit + 1)
+	query := `SELECT customer.id, customer.customer_no, customer.external_user_id,
+		customer.merged_into_id, customer.version,
+		profile.status, profile.language, profile.timezone, profile.attributes, profile.version,
+		profile.created_at, profile.updated_at, customer.created_at, customer.updated_at, ` + joinedColumn + ` AS joined_at
+		FROM customers customer LEFT JOIN customer_profiles profile ON profile.customer_id = customer.id
+		` + sourceJoin + ` WHERE ` + strings.Join(clauses, " AND ") + `
+		ORDER BY customer.id LIMIT ` + limit
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, "", err
 	}
-	defer rows.Close()
-	items := make([]domain.CustomerSummary, 0, limit+1)
+	items := make([]domain.AudienceMember, 0, request.Limit+1)
 	for rows.Next() {
-		var item domain.CustomerSummary
-		if err := rows.Scan(&item.ID, &item.CustomerNo, &item.ExternalUserID, &item.MergedIntoID, &item.Version, &item.CreatedAt, &item.UpdatedAt); err != nil {
+		var item domain.AudienceMember
+		var externalID, mergedInto, status, language, timezone sql.NullString
+		var attributes []byte
+		var profileVersion sql.NullInt64
+		var profileCreatedAt, profileUpdatedAt, joinedAt sql.NullTime
+		if err := rows.Scan(
+			&item.Customer.ID, &item.Customer.CustomerNo, &externalID, &mergedInto, &item.Customer.Version,
+			&status, &language, &timezone, &attributes, &profileVersion, &profileCreatedAt, &profileUpdatedAt,
+			&item.Customer.CreatedAt, &item.Customer.UpdatedAt, &joinedAt,
+		); err != nil {
+			_ = rows.Close()
 			return nil, "", err
+		}
+		if externalID.Valid {
+			item.Customer.ExternalUserID = &externalID.String
+		}
+		if mergedInto.Valid {
+			item.Customer.MergedIntoID = &mergedInto.String
+		}
+		if profileVersion.Valid {
+			profile := &domain.CustomerProfile{CustomerID: item.Customer.ID, Version: profileVersion.Int64,
+				CreatedAt: profileCreatedAt.Time, UpdatedAt: profileUpdatedAt.Time, Attributes: map[string]interface{}{}}
+			if status.Valid {
+				profile.Status = &status.String
+			}
+			if language.Valid {
+				profile.Language = &language.String
+			}
+			if timezone.Valid {
+				profile.Timezone = &timezone.String
+			}
+			if len(attributes) > 0 {
+				if err := json.Unmarshal(attributes, &profile.Attributes); err != nil {
+					_ = rows.Close()
+					return nil, "", fmt.Errorf("decode audience member attributes: %w", err)
+				}
+			}
+			item.Customer.Profile = profile
+		}
+		item.Customer.Identities = []domain.CustomerIdentity{}
+		item.Customer.Tags = []string{}
+		item.Subscriptions = []domain.CustomerListMembership{}
+		if joinedAt.Valid {
+			item.JoinedAt = &joinedAt.Time
 		}
 		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return nil, "", err
+	}
+	if err := rows.Close(); err != nil {
 		return nil, "", err
 	}
 	next := ""
-	if len(items) > limit {
-		next = items[limit-1].ID
-		items = items[:limit]
+	if len(items) > request.Limit {
+		next = items[request.Limit-1].Customer.ID
+		items = items[:request.Limit]
+	}
+	summaries := make([]domain.CustomerSummary, len(items))
+	for index := range items {
+		summaries[index] = items[index].Customer
+	}
+	if err := loadCustomerSummaryChildren(ctx, db, summaries); err != nil {
+		return nil, "", err
+	}
+	for index := range items {
+		items[index].Customer = summaries[index]
+	}
+	if err := loadAudienceMemberSubscriptions(ctx, db, items); err != nil {
+		return nil, "", err
 	}
 	return items, next, nil
+}
+
+func loadAudienceMemberSubscriptions(ctx context.Context, db customerQueryer, items []domain.AudienceMember) error {
+	if len(items) == 0 {
+		return nil
+	}
+	ids := make([]string, len(items))
+	byID := make(map[string]*domain.AudienceMember, len(items))
+	for index := range items {
+		ids[index] = items[index].Customer.ID
+		byID[items[index].Customer.ID] = &items[index]
+	}
+	rows, err := db.QueryContext(ctx, `SELECT customer_id, list_id, status, created_at, updated_at FROM customer_list_memberships
+		WHERE customer_id = ANY($1) ORDER BY customer_id, list_id`, pq.Array(ids))
+	if err != nil {
+		return fmt.Errorf("query audience member subscriptions: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var customerID string
+		var membership domain.CustomerListMembership
+		if err := rows.Scan(&customerID, &membership.ListID, &membership.Status, &membership.CreatedAt, &membership.UpdatedAt); err != nil {
+			return fmt.Errorf("scan audience member subscription: %w", err)
+		}
+		if item := byID[customerID]; item != nil {
+			item.Subscriptions = append(item.Subscriptions, membership)
+		}
+	}
+	return rows.Err()
 }
 
 func (r *AudiencePostgresRepository) ArchiveAudience(ctx context.Context, workspaceID, audienceID string) error {
