@@ -16213,7 +16213,7 @@ msgstr "不明数据"
 #: src/components/analytics/EmailMetricsChart.tsx:483
 #: src/components/broadcasts/BroadcastStats.tsx:341
 msgid "Unsub."
-msgstr "不明嫌犯 不明嫌犯 不明嫌犯 不明嫌犯"
+msgstr "退订"
 
 #: src/components/templates/TemplateCategoryManager.tsx:57
 #: src/components/templates/TemplateCategorySelect.tsx:24
