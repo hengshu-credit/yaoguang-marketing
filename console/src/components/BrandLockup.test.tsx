@@ -6,7 +6,7 @@ describe('BrandLockup', () => {
   it('renders the approved full product identity', () => {
     render(<BrandLockup />)
 
-    expect(screen.getByRole('img', { name: '恒数科技' })).toHaveAttribute(
+    expect(screen.getByRole('img', { name: '衡枢真信' })).toHaveAttribute(
       'src',
       '/console/images/hengshucredit_animated.svg'
     )
@@ -17,7 +17,7 @@ describe('BrandLockup', () => {
   it('keeps an accessible logo but hides text in compact mode', () => {
     render(<BrandLockup compact />)
 
-    expect(screen.getByRole('img', { name: '恒数科技' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: '衡枢真信' })).toBeInTheDocument()
     expect(screen.queryByText('瑶光营销平台')).not.toBeInTheDocument()
     expect(screen.queryByText('观心知意，循光达客')).not.toBeInTheDocument()
   })

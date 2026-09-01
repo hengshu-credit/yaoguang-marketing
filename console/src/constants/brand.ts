@@ -1,5 +1,5 @@
 export const BRAND = {
-  companyName: '恒数科技',
+  companyName: '衡枢真信',
   productName: '瑶光营销平台',
   appName: 'Yaoguang Marketing',
   productSlug: 'yaoguang-marketing',

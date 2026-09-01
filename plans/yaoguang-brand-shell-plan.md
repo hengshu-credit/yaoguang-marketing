@@ -37,7 +37,7 @@
 
 **Step 1: Write failing component and integration tests**
 
-Assert that the real layouts render an image with accessible name `恒数科技`, the visible product name `瑶光营销平台`, and the tagline `观心知意，循光达客`; assert collapsed navigation retains an accessible logo without forcing the text into view.
+Assert that the real layouts render an image with accessible name `衡枢真信`, the visible product name `瑶光营销平台`, and the tagline `观心知意，循光达客`; assert collapsed navigation retains an accessible logo without forcing the text into view.
 
 **Step 2: Verify red**
 

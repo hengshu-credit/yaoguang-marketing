@@ -58,7 +58,7 @@ describe('SetupWizard — SSO step', () => {
     mockStatus(false)
     renderWizard()
 
-    expect(await screen.findByRole('img', { name: '恒数科技' })).toBeInTheDocument()
+    expect(await screen.findByRole('img', { name: '衡枢真信' })).toBeInTheDocument()
     expect(screen.getByText('瑶光营销平台')).toBeInTheDocument()
     expect(screen.getByText('观心知意，循光达客')).toBeInTheDocument()
   })

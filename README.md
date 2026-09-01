@@ -1,7 +1,7 @@
 # 瑶光营销平台（Yaoguang Marketing）
 
 <p align="center">
-  <img src="console/public/images/hengshucredit_animated.svg" alt="恒数科技" width="160" />
+  <img src="console/public/images/hengshucredit_animated.svg" alt="衡枢真信" width="160" />
 </p>
 
 <p align="center"><strong>观心知意，循光达客</strong></p>
@@ -124,7 +124,7 @@ docs/                   设计与实现文档
 plans/                  分阶段实施计划
 ```
 
-## 与恒数科技开源产品的关系
+## 与衡枢真信开源产品的关系
 
 - [hscredit](https://github.com/hengshu-credit/hscredit)：风险策略分析与建模。
 - [tianshu-decision-engine](https://github.com/hengshu-credit/tianshu-decision-engine)：将分析结论部署为在线决策服务。

@@ -17,6 +17,6 @@ describe('YaoguangBrand', () => {
     render(<YaoguangBrand compact />)
 
     expect(screen.getByLabelText('瑶光营销平台，观心知意，循光达客')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: '恒数科技' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: '衡枢真信' })).toBeInTheDocument()
   })
 })

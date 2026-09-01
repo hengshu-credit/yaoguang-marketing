@@ -146,7 +146,7 @@ describe('WorkspaceLayout product navigation', () => {
   it('shows the approved Yaoguang brand lockup', () => {
     render(<WorkspaceLayout />)
 
-    expect(screen.getByRole('img', { name: '恒数科技' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: '衡枢真信' })).toBeInTheDocument()
     expect(screen.getByText('瑶光营销平台')).toBeInTheDocument()
     expect(screen.getByText('观心知意，循光达客')).toBeInTheDocument()
   })
