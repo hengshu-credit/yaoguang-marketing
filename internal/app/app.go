@@ -2288,6 +2288,18 @@ func formatPlanLimit(value int) string {
 	return fmt.Sprintf("%d", value)
 }
 
+func readInstallationStatus(db *sql.DB) (bool, error) {
+	var installedValue string
+	err := db.QueryRow("SELECT value FROM settings WHERE key = 'is_installed'").Scan(&installedValue)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("read is_installed setting: %w", err)
+	}
+	return installedValue == "true", nil
+}
+
 // Initialize sets up all components of the application
 func (a *App) Initialize() error {
 	a.logger.WithField("version", a.config.Version).Info("Starting Yaoguang Marketing application")
@@ -2311,9 +2323,11 @@ func (a *App) Initialize() error {
 	}
 
 	// Check if setup wizard is required (after migrations have run)
-	var installedValue string
-	err := a.db.QueryRow("SELECT value FROM settings WHERE key = 'is_installed'").Scan(&installedValue)
-	a.isInstalled = err == nil && installedValue == "true"
+	var err error
+	a.isInstalled, err = readInstallationStatus(a.db)
+	if err != nil {
+		return fmt.Errorf("failed to determine installation status: %w", err)
+	}
 
 	if !a.isInstalled {
 		a.logger.Info("Setup wizard required - installation not complete")

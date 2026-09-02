@@ -76,6 +76,49 @@ func setupTestDBMock() (*sql.DB, sqlmock.Sqlmock, error) {
 	return db, mock, nil
 }
 
+func TestReadInstallationStatus(t *testing.T) {
+	const query = "SELECT value FROM settings WHERE key = 'is_installed'"
+
+	t.Run("returns installed from the persisted setting", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow("true"))
+
+		installed, err := readInstallationStatus(db)
+
+		require.NoError(t, err)
+		assert.True(t, installed)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("treats a missing setting as a fresh installation", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		mock.ExpectQuery(query).WillReturnError(sql.ErrNoRows)
+
+		installed, err := readInstallationStatus(db)
+
+		require.NoError(t, err)
+		assert.False(t, installed)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("does not turn a database failure into an uninstalled status", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		mock.ExpectQuery(query).WillReturnError(errors.New("database temporarily unavailable"))
+
+		installed, err := readInstallationStatus(db)
+
+		assert.False(t, installed)
+		require.ErrorContains(t, err, "database temporarily unavailable")
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
 func TestNewApp(t *testing.T) {
 	// Create a minimal config for testing
 	cfg := &config.Config{

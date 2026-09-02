@@ -1,8 +1,20 @@
 import { Outlet, useNavigate, useMatch } from '@tanstack/react-router'
-import { Spin } from 'antd'
+import { Button, Spin } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { useAuth } from '../contexts/AuthContext'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { setupApi } from '../services/api/setup'
+
+type InstallationStatus = 'checking' | 'installed' | 'uninstalled' | 'error'
+
+async function fetchInstallationStatus(): Promise<'installed' | 'uninstalled'> {
+  const status = await setupApi.getStatus()
+  if (status.is_installed) {
+    window.IS_INSTALLED = true
+    return 'installed'
+  }
+  return 'uninstalled'
+}
 
 export function RootLayout() {
   const { t } = useLingui()
@@ -18,26 +30,65 @@ export function RootLayout() {
   const isWorkspaceCreateRoute = useMatch({ from: '/console/workspace/create', shouldThrow: false })
   const isSetupRoute = useMatch({ from: '/console/setup', shouldThrow: false })
 
-  // Check if system is installed (explicitly check for true to handle undefined case)
-  const isInstalled = window.IS_INSTALLED === true
+  const [installationStatus, setInstallationStatus] = useState<InstallationStatus>(() =>
+    window.IS_INSTALLED === true ? 'installed' : 'checking'
+  )
+
+  const retryInstallation = () => {
+    setInstallationStatus('checking')
+    void fetchInstallationStatus().then(setInstallationStatus, () => setInstallationStatus('error'))
+  }
+
+  useEffect(() => {
+    if (window.IS_INSTALLED === true) return
+
+    let active = true
+    void fetchInstallationStatus().then(
+      (status) => {
+        if (active) setInstallationStatus(status)
+      },
+      () => {
+        if (active) setInstallationStatus('error')
+      }
+    )
+    return () => {
+      active = false
+    }
+  }, [])
 
   const isPublicRoute = isSigninRoute || isAcceptInvitationRoute || isLogoutRoute || isSetupRoute
 
-  // If system is not installed, redirect to setup wizard
-  const shouldRedirectToSetup = !isInstalled && !isSetupRoute
+  // A missing or stale bootstrap flag is not proof that setup is required. Only
+  // the live database-backed status endpoint may send a visitor to the wizard.
+  const shouldRedirectToSetup = installationStatus === 'uninstalled' && !isSetupRoute
+  const shouldRedirectInstalledSetup = installationStatus === 'installed' && isSetupRoute
 
   // If not authenticated and not on public routes, redirect to signin
   const shouldRedirectToSignin =
-    !isLogoutRoute && !isSigninRoute && !isAuthenticated && !isPublicRoute && !shouldRedirectToSetup
+    installationStatus === 'installed' &&
+    !isLogoutRoute &&
+    !isSigninRoute &&
+    !isAuthenticated &&
+    !isPublicRoute
 
   // If authenticated and has no workspaces, redirect to workspace creation
   const shouldRedirectToCreateWorkspace =
-    isAuthenticated && workspaces.length === 0 && !isWorkspaceCreateRoute && !isLogoutRoute
+    installationStatus === 'installed' &&
+    isAuthenticated &&
+    workspaces.length === 0 &&
+    !isWorkspaceCreateRoute &&
+    !isLogoutRoute &&
+    !isSetupRoute
 
   // console.log('isAuthenticated', isAuthenticated)
   // handle redirection...
   useEffect(() => {
-    if (loading) return
+    if (loading || installationStatus === 'checking' || installationStatus === 'error') return
+
+    if (shouldRedirectInstalledSetup) {
+      navigate({ to: '/console/signin', replace: true })
+      return
+    }
 
     if (shouldRedirectToSetup) {
       navigate({ to: '/console/setup' })
@@ -75,10 +126,35 @@ export function RootLayout() {
       navigate({ to: '/console/workspace/create' })
       return
     }
-  }, [loading, shouldRedirectToSetup, shouldRedirectToSignin, shouldRedirectToCreateWorkspace, navigate])
+  }, [
+    loading,
+    installationStatus,
+    shouldRedirectInstalledSetup,
+    shouldRedirectToSetup,
+    shouldRedirectToSignin,
+    shouldRedirectToCreateWorkspace,
+    navigate
+  ])
+
+  if (installationStatus === 'error') {
+    return (
+      <div
+        style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}
+      >
+        <div style={{ textAlign: 'center' }}>
+          <p>{t`Failed to fetch setup status`}</p>
+          <Button type="primary" onClick={retryInstallation}>
+            {t`Retry`}
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   if (
     loading ||
+    installationStatus === 'checking' ||
+    shouldRedirectInstalledSetup ||
     shouldRedirectToSetup ||
     shouldRedirectToSignin ||
     shouldRedirectToCreateWorkspace

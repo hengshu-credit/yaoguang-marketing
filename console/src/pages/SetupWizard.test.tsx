@@ -13,10 +13,12 @@ vi.mock('../services/api/setup', () => ({
   setupApi: { getStatus: vi.fn(), initialize: vi.fn(), testSmtp: vi.fn() }
 }))
 
+const { mockNavigate } = vi.hoisted(() => ({ mockNavigate: vi.fn() }))
+
 // Only useNavigate is needed; keep the rest of the router real.
 vi.mock('@tanstack/react-router', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@tanstack/react-router')>()
-  return { ...actual, useNavigate: () => vi.fn() }
+  return { ...actual, useNavigate: () => mockNavigate }
 })
 
 function mockStatus(oidcConfigured: boolean) {
@@ -68,6 +70,33 @@ describe('SetupWizard — SSO step', () => {
     renderWizard()
 
     expect(await screen.findByLabelText('From Name')).toHaveValue('瑶光营销平台')
+  })
+
+  it('redirects an installed system to signin without rendering the form', async () => {
+    vi.mocked(setupApi.getStatus).mockResolvedValue({
+      is_installed: true,
+      smtp_configured: true,
+      api_endpoint_configured: true,
+      root_email_configured: true,
+      smtp_bridge_configured: true,
+      oidc_configured: true
+    })
+
+    renderWizard()
+
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith({ to: '/console/signin', replace: true })
+    )
+    expect(screen.queryByRole('button', { name: 'Complete Setup' })).not.toBeInTheDocument()
+  })
+
+  it('offers a retry instead of the setup form when status verification fails', async () => {
+    vi.mocked(setupApi.getStatus).mockRejectedValue(new Error('temporary failure'))
+
+    renderWizard()
+
+    expect(await screen.findByRole('button', { name: 'Retry' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Complete Setup' })).not.toBeInTheDocument()
   })
 
   it('offers the SSO step when OIDC is not env-configured', async () => {

@@ -16,6 +16,8 @@ export default function SetupWizard() {
   const [loading, setLoading] = useState(false)
   const [testing, setTesting] = useState(false)
   const [statusLoading, setStatusLoading] = useState(true)
+  const [statusError, setStatusError] = useState(false)
+  const [redirectingToSignin, setRedirectingToSignin] = useState(false)
   const [setupComplete, setSetupComplete] = useState(false)
   const [apiEndpoint, setApiEndpoint] = useState('')
   const [configStatus, setConfigStatus] = useState<{
@@ -33,34 +35,38 @@ export default function SetupWizard() {
   })
   const { message } = App.useApp()
 
+  const fetchStatus = async () => {
+    setStatusLoading(true)
+    setStatusError(false)
+    try {
+      const status = await setupApi.getStatus()
+      if (status.is_installed) {
+        window.IS_INSTALLED = true
+        setRedirectingToSignin(true)
+        navigate({ to: '/console/signin', replace: true })
+        return
+      }
+      setConfigStatus({
+        smtp_configured: status.smtp_configured,
+        api_endpoint_configured: status.api_endpoint_configured,
+        root_email_configured: status.root_email_configured,
+        smtp_bridge_configured: status.smtp_bridge_configured,
+        oidc_configured: status.oidc_configured
+      })
+    } catch {
+      setStatusError(true)
+      message.error(t`Failed to fetch setup status`)
+    } finally {
+      setStatusLoading(false)
+    }
+  }
+
   useEffect(() => {
     // Get API endpoint from window object
     const endpoint = (window as unknown as Record<string, unknown>).API_ENDPOINT
     setApiEndpoint(typeof endpoint === 'string' ? endpoint : '')
 
-    // Fetch setup status
-    const fetchStatus = async () => {
-      try {
-        const status = await setupApi.getStatus()
-        // console.log('status', status)
-        if (status.is_installed) {
-          navigate({ to: '/console/signin' })
-          return
-        }
-        setConfigStatus({
-          smtp_configured: status.smtp_configured,
-          api_endpoint_configured: status.api_endpoint_configured,
-          root_email_configured: status.root_email_configured,
-          smtp_bridge_configured: status.smtp_bridge_configured,
-          oidc_configured: status.oidc_configured
-        })
-      } catch {
-        message.error(t`Failed to fetch setup status`)
-      } finally {
-        setStatusLoading(false)
-      }
-    }
-    fetchStatus()
+    void fetchStatus()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -243,13 +249,28 @@ export default function SetupWizard() {
     window.location.href = '/console/signin'
   }
 
-  if (statusLoading) {
+  if (statusLoading || redirectingToSignin) {
     return (
       <App>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
             <p className="mt-4 text-gray-600">{t`Loading setup...`}</p>
+          </div>
+        </div>
+      </App>
+    )
+  }
+
+  if (statusError) {
+    return (
+      <App>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <p className="mb-4 text-gray-600">{t`Failed to fetch setup status`}</p>
+            <Button type="primary" onClick={() => void fetchStatus()}>
+              {t`Retry`}
+            </Button>
           </div>
         </div>
       </App>

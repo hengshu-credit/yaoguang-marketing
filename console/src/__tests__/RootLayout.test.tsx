@@ -1,12 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { RootLayout } from '../layouts/RootLayout'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate, useMatch } from '@tanstack/react-router'
+import { setupApi } from '../services/api/setup'
 
 // Mock the auth context
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: vi.fn()
+}))
+
+vi.mock('../services/api/setup', () => ({
+  setupApi: { getStatus: vi.fn() }
 }))
 
 // Mock the react router
@@ -79,6 +84,113 @@ describe('RootLayout', () => {
       search: undefined,
       replace: true
     })
+  })
+
+  it('uses the live setup status when the bootstrap flag is stale', async () => {
+    ;(window as unknown as { IS_INSTALLED?: boolean }).IS_INSTALLED = false
+    vi.mocked(setupApi.getStatus).mockResolvedValue({
+      is_installed: true,
+      smtp_configured: true,
+      api_endpoint_configured: true,
+      root_email_configured: true,
+      smtp_bridge_configured: true,
+      oidc_configured: true
+    })
+    // @ts-expect-error - we're mocking the return value
+    useAuth.mockReturnValue({
+      isAuthenticated: false,
+      loading: false,
+      workspaces: []
+    })
+    // @ts-expect-error - we're mocking the return value
+    useMatch.mockImplementation(() => false)
+
+    render(<RootLayout />)
+
+    await waitFor(() => expect(setupApi.getStatus).toHaveBeenCalledTimes(1))
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith({
+        to: '/console/signin',
+        search: undefined,
+        replace: true
+      })
+    )
+    expect(mockNavigate).not.toHaveBeenCalledWith({ to: '/console/setup' })
+  })
+
+  it('uses the live setup status when the bootstrap flag is missing', async () => {
+    Reflect.deleteProperty(window, 'IS_INSTALLED')
+    vi.mocked(setupApi.getStatus).mockResolvedValue({
+      is_installed: true,
+      smtp_configured: true,
+      api_endpoint_configured: true,
+      root_email_configured: true,
+      smtp_bridge_configured: true,
+      oidc_configured: true
+    })
+    // @ts-expect-error - we're mocking the return value
+    useAuth.mockReturnValue({
+      isAuthenticated: false,
+      loading: false,
+      workspaces: []
+    })
+    // @ts-expect-error - we're mocking the return value
+    useMatch.mockImplementation(() => false)
+
+    render(<RootLayout />)
+
+    await waitFor(() => expect(setupApi.getStatus).toHaveBeenCalledTimes(1))
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith({
+        to: '/console/signin',
+        search: undefined,
+        replace: true
+      })
+    )
+    expect(mockNavigate).not.toHaveBeenCalledWith({ to: '/console/setup' })
+  })
+
+  it('redirects to setup only after the live status confirms a fresh installation', async () => {
+    ;(window as unknown as { IS_INSTALLED?: boolean }).IS_INSTALLED = false
+    vi.mocked(setupApi.getStatus).mockResolvedValue({
+      is_installed: false,
+      smtp_configured: false,
+      api_endpoint_configured: false,
+      root_email_configured: false,
+      smtp_bridge_configured: false,
+      oidc_configured: false
+    })
+    // @ts-expect-error - we're mocking the return value
+    useAuth.mockReturnValue({
+      isAuthenticated: false,
+      loading: false,
+      workspaces: []
+    })
+    // @ts-expect-error - we're mocking the return value
+    useMatch.mockImplementation(() => false)
+
+    render(<RootLayout />)
+
+    await waitFor(() => expect(setupApi.getStatus).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith({ to: '/console/setup' }))
+  })
+
+  it('does not expose setup when the live status cannot be verified', async () => {
+    ;(window as unknown as { IS_INSTALLED?: boolean }).IS_INSTALLED = false
+    vi.mocked(setupApi.getStatus).mockRejectedValue(new Error('temporary failure'))
+    // @ts-expect-error - we're mocking the return value
+    useAuth.mockReturnValue({
+      isAuthenticated: false,
+      loading: false,
+      workspaces: []
+    })
+    // @ts-expect-error - we're mocking the return value
+    useMatch.mockImplementation(() => false)
+
+    render(<RootLayout />)
+
+    expect(await screen.findByRole('button', { name: 'Retry' })).toBeInTheDocument()
+    expect(mockNavigate).not.toHaveBeenCalledWith({ to: '/console/setup' })
   })
 
   it('preserves email parameter when redirecting to signin', () => {
