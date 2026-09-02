@@ -23,7 +23,7 @@ func TestRealtimeObjectStore(t *testing.T) {
 	}
 	bucket := os.Getenv("TEST_S3_BUCKET")
 	if bucket == "" {
-		bucket = "notifuse-assets"
+		bucket = "marketing-assets"
 	}
 	store, err := objectstore.NewS3Store(objectstore.S3Config{
 		Endpoint: endpoint, Bucket: bucket, Region: os.Getenv("TEST_S3_REGION"),

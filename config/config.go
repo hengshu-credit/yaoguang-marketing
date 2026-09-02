@@ -539,7 +539,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	v.SetDefault("S3_PROVIDER", "")
 	v.SetDefault("S3_ENDPOINT", "")
 	v.SetDefault("S3_PUBLIC_ENDPOINT", "")
-	v.SetDefault("S3_BUCKET", "notifuse-assets")
+	v.SetDefault("S3_BUCKET", "marketing-assets")
 	v.SetDefault("S3_REGION", "us-east-1")
 	v.SetDefault("S3_ACCESS_KEY", "")
 	v.SetDefault("S3_SECRET_KEY", "")
