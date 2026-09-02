@@ -538,6 +538,11 @@ func scanBroadcast(scanner interface {
 		return nil, err
 	}
 
+	// The broadcasts table predates ChannelType. The current broadcast sender is
+	// email-only, so hydrate legacy rows with the same effective channel used at
+	// creation and campaign preparation.
+	broadcast.ChannelType = broadcast.EffectiveChannelType()
+
 	// Convert sql.NullString to *string
 	if winningTemplate.Valid {
 		broadcast.WinningTemplate = &winningTemplate.String

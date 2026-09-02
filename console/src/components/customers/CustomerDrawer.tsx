@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, App, Button, Drawer, Empty, Space, Spin, Tabs, Tag, Typography } from 'antd'
+import { Alert, App, Button, Drawer, Space, Spin, Tabs, Tag, Typography } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { customerApi, customerQueryKeys, type CustomerUpdatePatch } from '../../services/api/customer'
 import { listsApi } from '../../services/api/list'
@@ -11,6 +11,7 @@ import { CustomerProfilePanel } from './CustomerProfilePanel'
 import { JourneyTraceDrawer } from '../automations/JourneyTraceDrawer'
 import { ActionableError } from '../errors/ActionableError'
 import { CustomerListMembershipModal } from './CustomerListMembershipModal'
+import { CustomerAudienceMemberships } from './CustomerAudienceMemberships'
 
 interface CustomerDrawerProps {
   workspaceId: string
@@ -83,6 +84,11 @@ export function CustomerDrawer({ workspaceId, customerId, open, onClose, canWrit
               ) : null}
 
               <div className="grid grid-cols-1 gap-4">
+                <CustomerAudienceMemberships
+                  workspaceId={workspaceId}
+                  customerId={customer.customer_id}
+                  active={open}
+                />
                 <section className="rounded-lg border border-gray-200 p-4" aria-labelledby="customer-lists-title">
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <Typography.Title id="customer-lists-title" level={5} className="m-0">{t`List memberships`}</Typography.Title>
@@ -95,11 +101,6 @@ export function CustomerDrawer({ workspaceId, customerId, open, onClose, canWrit
                   {(customer.list_memberships?.length ?? 0) > 0 ? <Space wrap>{customer.list_memberships!.map((membership) => <Tag key={membership.list_id} color={membership.status === 'active' ? 'blue' : 'default'}>{listNames.get(membership.list_id) || membership.list_id} · {membership.status}</Tag>)}</Space> : <Typography.Text type="secondary">{t`No list memberships`}</Typography.Text>}
                 </section>
               </div>
-
-              <section className="mt-4 rounded-lg border border-gray-200 p-4" aria-labelledby="customer-audiences-title">
-                <Typography.Title id="customer-audiences-title" level={5} className="mt-0">{t`Dynamic audience memberships`}</Typography.Title>
-                {(customer.audience_memberships?.length ?? 0) > 0 ? <Space wrap>{customer.audience_memberships!.map((membership) => <Tag key={membership.audience_id} color="purple">{membership.name} · v{membership.audience_version}</Tag>)}</Space> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t`No active audience memberships`} />}
-              </section>
 
               <Tabs
                 className="mt-5"

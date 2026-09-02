@@ -2,7 +2,7 @@ import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { App, ConfigProvider } from 'antd'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { I18nProvider } from '@lingui/react'
 import { i18n } from '@lingui/core'
 import TemplateSelectorInput from './TemplateSelectorInput'
@@ -29,20 +29,30 @@ vi.mock('./TemplatePreviewDrawer', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }))
 
-const makeTemplate = (id: string, name: string, channel: Template['channel'] = 'email'): Template =>
-  ({ id, name, category: 'marketing', channel }) as unknown as Template
+const makeTemplate = (
+  id: string,
+  name: string,
+  channel: Template['channel'] = 'email',
+  category = 'marketing',
+  categoryPurpose?: Template['category_purpose']
+): Template =>
+  ({ id, name, category, category_purpose: categoryPurpose, channel }) as unknown as Template
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: false } }
+  defaultOptions: { queries: { refetchOnWindowFocus: false, retry: false } }
 })
 
 const Wrapper = ({
   value,
   channel = 'email',
+  category,
+  purpose,
   onChange = vi.fn()
 }: {
   value: string | null
   channel?: Template['channel']
+  category?: string
+  purpose?: Template['category_purpose']
   onChange?: (value: string | null) => void
 }) => (
   <QueryClientProvider client={queryClient}>
@@ -54,6 +64,8 @@ const Wrapper = ({
             onChange={onChange}
             workspaceId="ws1"
             channel={channel}
+            category={category}
+            purpose={purpose}
           />
         </App>
       </ConfigProvider>
@@ -64,6 +76,8 @@ const Wrapper = ({
 describe('TemplateSelectorInput', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    queryClient.clear()
+    focusManager.setFocused(undefined)
     ;(templatesApi.list as ReturnType<typeof vi.fn>).mockResolvedValue({
       templates: []
     })
@@ -84,6 +98,94 @@ describe('TemplateSelectorInput', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: /Create new SMS template/i }))
     expect(open).toHaveBeenCalledWith('/console/workspace/ws1/templates?create_channel=sms', '_blank', 'noopener,noreferrer')
+  })
+
+  it('shows templates from custom categories with the requested purpose', async () => {
+    ;(templatesApi.list as ReturnType<typeof vi.fn>).mockImplementation(
+      ({ category }: { category?: string }) =>
+        Promise.resolve({
+          templates: category
+            ? []
+            : [
+                makeTemplate('welcome-hardware', 'Welcome Hardware', 'email', 'hardware', 'marketing'),
+                makeTemplate('password-reset', 'Password Reset', 'email', 'account', 'transactional')
+              ]
+        })
+    )
+
+    render(<Wrapper value={null} purpose="marketing" />)
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+    fireEvent.click(screen.getByPlaceholderText('Select a template'))
+
+    expect(await screen.findByText('Welcome Hardware')).toBeInTheDocument()
+    expect(screen.queryByText('Password Reset')).not.toBeInTheDocument()
+  })
+
+  it('keeps exact category filters for category-specific template pickers', async () => {
+    ;(templatesApi.list as ReturnType<typeof vi.fn>).mockImplementation(
+      ({ category }: { category?: string }) =>
+        Promise.resolve({
+          templates:
+            category === 'opt_in'
+              ? [makeTemplate('confirm-subscription', 'Confirm Subscription', 'email', 'opt_in')]
+              : []
+        })
+    )
+
+    render(<Wrapper value={null} category="opt_in" />)
+    fireEvent.click(screen.getByPlaceholderText('Select a template'))
+
+    expect(await screen.findByText('Confirm Subscription')).toBeInTheDocument()
+  })
+
+  it('refreshes an open template picker after returning from template creation', async () => {
+    ;(templatesApi.list as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ templates: [] })
+      .mockResolvedValueOnce({ templates: [] })
+      .mockResolvedValue({
+        templates: [
+          makeTemplate('welcome-hardware', 'Welcome Hardware', 'email', 'hardware', 'marketing')
+        ]
+      })
+
+    render(<Wrapper value={null} purpose="marketing" />)
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+    fireEvent.click(screen.getByPlaceholderText('Select a template'))
+    expect(await screen.findByText(/No templates found/)).toBeInTheDocument()
+    await waitFor(() => expect(templatesApi.list).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+
+    focusManager.setFocused(false)
+    focusManager.setFocused(true)
+
+    await waitFor(() => expect(templatesApi.list).toHaveBeenCalledTimes(3))
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+    expect(await screen.findByText('Welcome Hardware')).toBeInTheDocument()
+  })
+
+  it('refreshes the template list when the picker is reopened', async () => {
+    ;(templatesApi.list as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ templates: [] })
+      .mockResolvedValueOnce({ templates: [] })
+      .mockResolvedValue({
+        templates: [
+          makeTemplate('welcome-hardware', 'Welcome Hardware', 'email', 'hardware', 'marketing')
+        ]
+      })
+
+    render(<Wrapper value={null} purpose="marketing" />)
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+    const selector = screen.getByPlaceholderText('Select a template')
+    fireEvent.click(selector)
+    expect(await screen.findByText(/No templates found/)).toBeInTheDocument()
+    await waitFor(() => expect(templatesApi.list).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    fireEvent.click(selector)
+
+    await waitFor(() => expect(templatesApi.list).toHaveBeenCalledTimes(3))
+    expect(await screen.findByText('Welcome Hardware')).toBeInTheDocument()
   })
 
   it('clears a controlled template that belongs to another channel', async () => {

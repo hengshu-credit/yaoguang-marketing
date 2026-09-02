@@ -12,13 +12,16 @@ interface PreflightSummaryProps {
 
 export function PreflightSummary({ result, workspaceId, onRefresh, refreshing }: PreflightSummaryProps) {
   const counts = result.counts
+  const issues = result.issues.filter((issue) => issue.code !== 'consent_missing')
+  const blockingCount = issues.filter((issue) => issue.severity === 'blocking').length
+  const warningCount = issues.length - blockingCount
   return (
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
       <Alert
-        type={result.blocking_count > 0 ? 'error' : result.warning_count > 0 ? 'warning' : 'success'}
+        type={blockingCount > 0 ? 'error' : warningCount > 0 ? 'warning' : 'success'}
         showIcon
-        title={result.blocking_count > 0 ? `发现 ${result.blocking_count} 项必须修复的问题` : '发送前检查已完成'}
-        description={result.blocking_count > 0 ? '修复后请重新检查。当前活动不能发送或定时。' : '实际频控仍会在每位客户发送前原子执行。'}
+        title={blockingCount > 0 ? `发现 ${blockingCount} 项必须修复的问题` : '发送前检查已完成'}
+        description={blockingCount > 0 ? '修复后请重新检查。当前活动不能发送或定时。' : '实际频控仍会在每位客户发送前原子执行。'}
         action={onRefresh ? <Button size="small" loading={refreshing} onClick={onRefresh}>重新检查</Button> : undefined}
       />
       <Card size="small" title="预计影响范围">
@@ -26,15 +29,14 @@ export function PreflightSummary({ result, workspaceId, onRefresh, refreshing }:
           { key: 'target', label: '目标客户', children: counts.target_total },
           { key: 'reachable', label: '预计可触达', children: counts.reachable },
           { key: 'identity', label: '缺少身份', children: counts.missing_identity },
-          { key: 'consent', label: '缺少同意', children: counts.missing_consent },
           { key: 'suppressed', label: '已抑制', children: counts.suppressed },
           { key: 'frequency', label: '预计频控', children: counts.frequency_deny },
           { key: 'variables', label: '变量失败', children: counts.variable_failures }
         ]} />
       </Card>
-      {result.issues.length > 0 && (
+      {issues.length > 0 && (
         <Row gutter={[12, 12]}>
-          {result.issues.map((issue) => (
+          {issues.map((issue) => (
             <Col span={24} key={issue.code}>
               <Card size="small">
                 <Space orientation="vertical" size={2} style={{ width: '100%' }}>

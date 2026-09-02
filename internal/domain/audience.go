@@ -127,6 +127,16 @@ type Audience struct {
 	UpdatedAt     time.Time           `json:"updated_at"`
 }
 
+// AudienceCustomerMatch is one live evaluation of the current Audience
+// definition against the Customer's current facts.
+type AudienceCustomerMatch struct {
+	AudienceID      string       `json:"audience_id"`
+	Name            string       `json:"name"`
+	Kind            AudienceKind `json:"kind"`
+	AudienceVersion int          `json:"audience_version"`
+	Matches         bool         `json:"matches"`
+}
+
 type AudienceVersion struct {
 	AudienceID     string             `json:"audience_id"`
 	Version        int                `json:"version"`

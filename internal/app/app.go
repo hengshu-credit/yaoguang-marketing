@@ -1006,7 +1006,13 @@ func (a *App) InitServices() error {
 	if progressRepository, ok := a.deliveryRepo.(domain.DeliveryManagementRepository); ok {
 		a.broadcastService.SetDeliveryProgressRepository(progressRepository)
 	}
-	preflightSource, err := service.NewBroadcastMarketingPreflightSource(a.broadcastRepo, a.workspaceRepo, a.templateService)
+	audiencePreflightCounter, ok := a.audienceRepo.(interface {
+		CountCurrentAudienceRecipients(context.Context, string, string, string) (domain.MarketingPreflightCounts, error)
+	})
+	if !ok {
+		return errors.New("audience repository does not support current recipient counts")
+	}
+	preflightSource, err := service.NewBroadcastMarketingPreflightSource(a.broadcastRepo, a.workspaceRepo, a.templateService, audiencePreflightCounter)
 	if err != nil {
 		return fmt.Errorf("failed to initialize marketing preflight source: %w", err)
 	}

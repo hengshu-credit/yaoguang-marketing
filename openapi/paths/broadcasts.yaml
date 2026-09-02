@@ -266,7 +266,7 @@
 /api/broadcasts.preflight:
   post:
     summary: Preflight a broadcast before sending
-    description: Computes aggregate reachability, consent, suppression, template, provider, audience, and frequency checks on the server. No approval workflow is added.
+    description: Computes aggregate reachability, suppression, template, provider, audience, and frequency checks on the server. No approval workflow is added.
     operationId: preflightBroadcast
     security:
       - BearerAuth: []

@@ -21,6 +21,7 @@ describe('PreflightSummary', () => {
     expect(screen.getByText('目标客户')).toBeInTheDocument()
     expect(screen.getByText('预计可触达')).toBeInTheDocument()
     expect(screen.getByText('尚未配置营销渠道')).toBeInTheDocument()
-    expect(screen.getByText('部分客户缺少营销同意')).toBeInTheDocument()
+    expect(screen.queryByText('缺少同意')).not.toBeInTheDocument()
+    expect(screen.queryByText('部分客户缺少营销同意')).not.toBeInTheDocument()
   })
 })

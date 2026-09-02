@@ -73,7 +73,7 @@ export function BroadcastLinkStats({
   }
 
   return (
-    <div className="py-2">
+    <div className="py-2 min-w-0 max-w-full overflow-hidden">
       <Table
         dataSource={linkStats.map((row) => ({ ...row, key: row.url }))}
         columns={[
@@ -108,12 +108,12 @@ export function BroadcastLinkStats({
             dataIndex: 'url',
             key: 'url',
             render: (url: string) => (
-              <div className="flex items-center gap-1">
+              <div className="flex min-w-0 items-center gap-1">
                 {/* Plain text on purpose: recorded URLs can be forged by any email
                     recipient (tracking tokens are mintable), so rendering them as
                     clickable links would hand admins a phishing vector. */}
                 <Tooltip title={url}>
-                  <span className="truncate inline-block align-bottom" style={{ maxWidth: 480 }}>
+                  <span className="min-w-0 flex-1 truncate inline-block align-bottom">
                     {url}
                   </span>
                 </Tooltip>
@@ -121,6 +121,7 @@ export function BroadcastLinkStats({
                   <Button
                     type="text"
                     size="small"
+                    className="shrink-0"
                     icon={<FontAwesomeIcon icon={faCopy} style={{ opacity: 0.7 }} />}
                     onClick={() => copyUrl(url)}
                   />
@@ -190,9 +191,9 @@ export function BroadcastLinkStats({
           }
         ]}
         size="small"
+        tableLayout="fixed"
         loading={isLoading}
         pagination={{ pageSize: 10, hideOnSinglePage: true, showSizeChanger: false }}
-        scroll={{ x: 'max-content' }}
         locale={{ emptyText: t`No link clicks recorded for this variation yet` }}
       />
       {linkStats.length >= 200 && (

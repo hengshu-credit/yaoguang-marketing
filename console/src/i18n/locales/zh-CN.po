@@ -141,7 +141,7 @@ msgstr "{0} 不适用于此事件"
 #. placeholder {0}: stats.count_bounced
 #: src/components/analytics/EmailMetricsChart.tsx:414
 msgid "{0} emails bounced back"
-msgstr "{0} 邮件弹回"
+msgstr "{0} 邮件退信"
 
 #. placeholder {0}: stats.total_bounced
 #: src/components/broadcasts/BroadcastStats.tsx:264
@@ -478,7 +478,7 @@ msgstr "+ 从名称、CC、BCC、回复、附件中添加"
 msgid "+ Add property filter"
 msgstr "+ 添加属性过滤器"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:819
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:818
 msgid "+ Add variation"
 msgstr "+ 添加变异"
 
@@ -743,11 +743,11 @@ msgstr "活动订阅者"
 msgid "Activity"
 msgstr "活动"
 
-#: src/components/customers/CustomerDrawer.tsx:109
+#: src/components/customers/CustomerDrawer.tsx:110
 msgid "Activity overview"
 msgstr "活动概览"
 
-#: src/components/customers/CustomerDrawer.tsx:110
+#: src/components/customers/CustomerDrawer.tsx:111
 msgid "Activity timeline"
 msgstr "活动时间线"
 
@@ -1026,7 +1026,7 @@ msgstr "地址行 2"
 msgid "Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Yaoguang Marketing for every recipient of every tracked send, which is why it is off by default."
 msgstr "为跟踪邮件中的链接附加签名身份，收件人点击后无需在网站中执行代码即可被识别，并将访问记录关联到客户档案、时间线、目标和自动化流程。与由您自己的服务器调用的 identify() 不同，该身份由瑶光营销平台为每次跟踪发送的每位收件人签发，因此默认关闭。"
 
-#: src/components/customers/CustomerDrawer.tsx:91
+#: src/components/customers/CustomerDrawer.tsx:97
 #: src/components/customers/CustomerListMembershipModal.tsx:92
 #: src/pages/CustomersPage.tsx:200
 msgid "Adjust list memberships"
@@ -1142,7 +1142,7 @@ msgstr "全体 {0} 邮件已经处理。"
 msgid "All channels"
 msgstr "全部渠道"
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:177
+#: src/components/broadcasts/BroadcastLinkStats.tsx:178
 msgid "All click events, including repeat clicks. May be inflated by bots and prefetching."
 msgstr "所有点击事件,包括重复点击. 可能会被波斯和预言所充斥"
 
@@ -1550,7 +1550,7 @@ msgstr "您确定要删除此自定义字段标签吗 ?"
 msgid "Are you sure you want to remove this field?"
 msgstr "您确定要删除此字段吗 ?"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:789
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:788
 msgid "Are you sure you want to remove this variation?"
 msgstr "您确定要删除此变异吗 ?"
 
@@ -2459,6 +2459,18 @@ msgstr "按钮板"
 msgid "Button Size"
 msgstr "按钮大小"
 
+#: src/components/customers/CustomerAudienceMemberships.tsx:98
+msgid "Calculating dynamic audience memberships ({completedCount}/{totalCount})"
+msgstr "正在计算动态客群归属（{completedCount}/{totalCount}）"
+
+#: src/components/customers/CustomerAudienceMemberships.tsx:115
+msgid "Calculation complete: {matchCount} matching dynamic audiences"
+msgstr "计算完成：命中 {matchCount} 个动态客群"
+
+#: src/components/customers/CustomerAudienceMemberships.tsx:114
+msgid "Calculation complete: 1 matching dynamic audience"
+msgstr "计算完成：命中 1 个动态客群"
+
 #: src/components/frequency/FrequencyPolicyForm.tsx:124
 msgid "Calendar cycle timezone"
 msgstr "自然周期时区"
@@ -2951,7 +2963,7 @@ msgstr "点击或拖拽 CSV 文件到此处"
 msgid "Click or drag a CSV file to this area to upload"
 msgstr "点击或将 CSV 文件拖到此区域以上传"
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:164
+#: src/components/broadcasts/BroadcastLinkStats.tsx:165
 msgid "Click rate"
 msgstr "点击率"
 
@@ -3880,8 +3892,8 @@ msgid "Create my own"
 msgstr "创建我自己"
 
 #. placeholder {0}: channel.toUpperCase()
-#: src/components/templates/TemplateSelectorInput.tsx:175
-#: src/components/templates/TemplateSelectorInput.tsx:225
+#: src/components/templates/TemplateSelectorInput.tsx:184
+#: src/components/templates/TemplateSelectorInput.tsx:234
 msgid "Create new {0} template"
 msgstr "创建新的 {0} 模板"
 
@@ -4338,7 +4350,7 @@ msgstr "自定义字符串字段"
 msgid "Customer"
 msgstr "客户"
 
-#: src/components/customers/CustomerDrawer.tsx:62
+#: src/components/customers/CustomerDrawer.tsx:63
 msgid "Customer 360"
 msgstr "客户 360 视图"
 
@@ -4372,7 +4384,7 @@ msgstr "客户编号"
 msgid "Customer profile"
 msgstr "客户档案"
 
-#: src/components/customers/CustomerDrawer.tsx:52
+#: src/components/customers/CustomerDrawer.tsx:53
 msgid "Customer profile updated"
 msgstr "客户档案已更新"
 
@@ -4865,7 +4877,7 @@ msgstr "已交付"
 msgid "Delivered"
 msgstr "已交付"
 
-#: src/components/customers/CustomerDrawer.tsx:112
+#: src/components/customers/CustomerDrawer.tsx:113
 msgid "Deliveries"
 msgstr "投递"
 
@@ -5217,7 +5229,7 @@ msgstr "动态"
 msgid "Dynamic audience"
 msgstr "动态客群"
 
-#: src/components/customers/CustomerDrawer.tsx:100
+#: src/components/customers/CustomerAudienceMemberships.tsx:91
 msgid "Dynamic audience memberships"
 msgstr "动态客群归属"
 
@@ -8464,7 +8476,7 @@ msgstr "未允许进入自动化旅程"
 msgid "Journey trace"
 msgstr "自动化旅程追踪"
 
-#: src/components/customers/CustomerDrawer.tsx:111
+#: src/components/customers/CustomerDrawer.tsx:112
 msgid "Journeys"
 msgstr "自动化旅程"
 
@@ -8838,7 +8850,7 @@ msgstr "列表 ID"
 msgid "List ID: {0}"
 msgstr "列表 ID：{0}"
 
-#: src/components/customers/CustomerDrawer.tsx:88
+#: src/components/customers/CustomerDrawer.tsx:94
 msgid "List memberships"
 msgstr "名单归属"
 
@@ -9041,7 +9053,7 @@ msgstr "正在加载 Webhook 状态..."
 
 #: src/components/blog_editor/NotifuseEditor.tsx:480
 #: src/components/messages/MessageHistoryTab.tsx:610
-#: src/components/templates/TemplateSelectorInput.tsx:130
+#: src/components/templates/TemplateSelectorInput.tsx:139
 #: src/components/timeline/ContactTimeline.tsx:1039
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:499
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:455
@@ -9782,7 +9794,7 @@ msgstr "下一个运行"
 #: src/components/blog/PostsTable.tsx:319
 #: src/components/broadcasts/HeadersEditor.tsx:84
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:255
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:792
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:791
 #: src/components/contacts/ContactUpsertDrawer.tsx:540
 #: src/components/contacts/SegmentsFilter.tsx:150
 #: src/components/contacts/SegmentsFilter.tsx:165
@@ -9825,7 +9837,7 @@ msgstr "没有 {0} 要预览的内容"
 msgid "No Access"
 msgstr "无访问"
 
-#: src/components/customers/CustomerDrawer.tsx:101
+#: src/components/customers/CustomerAudienceMemberships.tsx:120
 msgid "No active audience memberships"
 msgstr "当前没有生效的客群归属"
 
@@ -9876,7 +9888,7 @@ msgstr "暂无营销活动数据"
 msgid "No categories yet"
 msgstr "尚未进行分类"
 
-#: src/components/templates/TemplateSelectorInput.tsx:210
+#: src/components/templates/TemplateSelectorInput.tsx:219
 msgid "No category"
 msgstr "无类别"
 
@@ -10056,7 +10068,7 @@ msgstr "无问题"
 msgid "No items selected"
 msgstr "未选中项目"
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:196
+#: src/components/broadcasts/BroadcastLinkStats.tsx:197
 msgid "No link clicks recorded for this variation yet"
 msgstr "尚未为此变换记录链接点击"
 
@@ -10068,7 +10080,7 @@ msgstr "无列表"
 msgid "No list binding"
 msgstr "不绑定名单"
 
-#: src/components/customers/CustomerDrawer.tsx:95
+#: src/components/customers/CustomerDrawer.tsx:101
 msgid "No list memberships"
 msgstr "未加入任何名单"
 
@@ -10196,13 +10208,13 @@ msgstr "无状态"
 msgid "No tags"
 msgstr "无标签"
 
-#: src/components/templates/TemplateSelectorInput.tsx:220
+#: src/components/templates/TemplateSelectorInput.tsx:229
 #: src/pages/TemplatesPage.tsx:479
 msgid "No templates found"
 msgstr "未找到模板"
 
 #. placeholder {0}: category.replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:219
+#: src/components/templates/TemplateSelectorInput.tsx:228
 msgid "No templates found for {0} category"
 msgstr "没有找到模板 {0} 类别"
 
@@ -10540,7 +10552,7 @@ msgstr "只有工作区所有者可以管理界面翻译。"
 msgid "Only workspace owners can modify integrations"
 msgstr "只有工作区所有者才能修改集成"
 
-#: src/components/customers/CustomerDrawer.tsx:109
+#: src/components/customers/CustomerDrawer.tsx:110
 msgid "Open a tab to inspect this customer's timeline, journeys or deliveries."
 msgstr "打开相应标签页以查看该客户的时间线、旅程或投递记录。"
 
@@ -12272,7 +12284,7 @@ msgstr "删除此作者吗 ?"
 msgid "Remove this profile attribute?"
 msgstr "确定移除此客户属性吗？"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:788
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:787
 msgid "Remove variation"
 msgstr "删除变量"
 
@@ -12980,7 +12992,7 @@ msgstr "搜索维度"
 msgid "Search Engine Indexing"
 msgstr "搜索引擎索引"
 
-#: src/components/templates/TemplateSelectorInput.tsx:168
+#: src/components/templates/TemplateSelectorInput.tsx:177
 msgid "Search templates..."
 msgstr "搜索模板..."
 
@@ -13132,7 +13144,7 @@ msgstr "细分群体"
 #: src/components/file_manager/fileManager.tsx:976
 #: src/components/settings/BlogSettings.tsx:360
 #: src/components/settings/BlogSettings.tsx:376
-#: src/components/templates/TemplateSelectorInput.tsx:200
+#: src/components/templates/TemplateSelectorInput.tsx:209
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 #: src/pages/BroadcastsPage.tsx:1025
 msgid "Select"
@@ -13205,7 +13217,7 @@ msgid "Select a sender"
 msgstr "选择发件人"
 
 #: src/components/automations/config/ChannelConfigForm.tsx:43
-#: src/components/templates/TemplateSelectorInput.tsx:35
+#: src/components/templates/TemplateSelectorInput.tsx:37
 msgid "Select a template"
 msgstr "选择模板"
 
@@ -13413,11 +13425,11 @@ msgid "Select supported languages"
 msgstr "选择支持的语言"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:776
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:839
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:838
 msgid "Select template"
 msgstr "选择模板"
 
-#: src/components/templates/TemplateSelectorInput.tsx:158
+#: src/components/templates/TemplateSelectorInput.tsx:167
 msgid "Select Template"
 msgstr "选择模板"
 
@@ -13907,11 +13919,11 @@ msgstr "显示进化"
 msgid "Show More ({0} remaining)"
 msgstr "显示更多( R){0} (续)"
 
-#: src/components/customers/CustomerDrawer.tsx:82
+#: src/components/customers/CustomerDrawer.tsx:83
 msgid "Showing the surviving customer profile."
 msgstr "当前显示合并后保留的客户档案。"
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:200
+#: src/components/broadcasts/BroadcastLinkStats.tsx:201
 msgid "Showing the top 200 links by unique clicks."
 msgstr "按唯一点击人数显示前 200 个链接。"
 
@@ -14146,6 +14158,10 @@ msgstr "社会份额标题"
 #: src/components/email_builder/ui/BorderInput.tsx:56
 msgid "Solid"
 msgstr "固态"
+
+#: src/components/customers/CustomerAudienceMemberships.tsx:124
+msgid "Some dynamic audiences could not be evaluated."
+msgstr "部分动态客群无法完成计算。"
 
 #: src/services/api/errors.ts:162
 msgid "Some information needs attention"
@@ -14690,7 +14706,7 @@ msgid "template"
 msgstr "模板"
 
 #: src/components/automations/config/ChannelConfigForm.tsx:33
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:834
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:833
 #: src/components/messages/MessageHistoryTable.tsx:130
 #: src/components/messages/MessageHistoryTable.tsx:172
 #: src/pages/BroadcastsPage.tsx:835
@@ -15052,8 +15068,12 @@ msgid "The CSV file should have headers in the first row."
 msgstr "CSV文件应该在第一行有标题."
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:604
-msgid "The current active list members are frozen into an immutable snapshot. Identity, consent, suppression and frequency policies are still checked at send time."
-msgstr "当前名单中的活跃成员会被固化为不可变快照。发送时仍会检查身份、同意、抑制和频控策略。"
+#~ msgid "The current active list members are frozen into an immutable snapshot. Identity, consent, suppression and frequency policies are still checked at send time."
+#~ msgstr "当前名单中的活跃成员会被固化为不可变快照。发送时仍会检查身份、同意、抑制和频控策略。"
+
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:604
+msgid "The current active list members are frozen into an immutable snapshot. Identity, suppression and frequency policies are still checked at send time."
+msgstr "当前名单中的活跃成员会被固化为不可变快照。发送时仍会检查身份、抑制和频控策略。"
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:161
 msgid "The current date range, filters and session threshold"
@@ -15332,7 +15352,7 @@ msgstr "此联系人未订阅任何列表"
 msgid "This customer has not entered a journey"
 msgstr "该客户尚未进入任何自动化旅程"
 
-#: src/components/customers/CustomerDrawer.tsx:82
+#: src/components/customers/CustomerDrawer.tsx:83
 msgid "This customer was merged"
 msgstr "该客户已被合并"
 
@@ -15835,7 +15855,7 @@ msgstr "共 {total} 篇文章"
 msgid "Total attachments size exceeds 10MB limit"
 msgstr "附件总数超过 10MB 限额"
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:179
+#: src/components/broadcasts/BroadcastLinkStats.tsx:180
 msgid "Total clicks"
 msgstr "点击总数"
 
@@ -16061,7 +16081,7 @@ msgstr "无法加载名单"
 msgid "Unable to reach the server"
 msgstr "无法连接服务器"
 
-#: src/components/customers/CustomerDrawer.tsx:54
+#: src/components/customers/CustomerDrawer.tsx:55
 msgid "Unable to update customer profile"
 msgstr "无法更新客户档案"
 
@@ -16114,11 +16134,11 @@ msgstr "当前工作空间内统一的客户画像与身份标识别名。"
 msgid "Unified Customer profiles, external user IDs, masked identity aliases, tags and list memberships."
 msgstr "统一管理客户档案、外部用户 ID、脱敏身份别名、标签和名单成员关系。"
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:132
+#: src/components/broadcasts/BroadcastLinkStats.tsx:133
 msgid "Unique clicks"
 msgstr "唯一点击"
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:163
+#: src/components/broadcasts/BroadcastLinkStats.tsx:164
 msgid "Unique clicks ÷ recipients of this variation."
 msgstr "唯一点击人数 ÷ 此版本的收件人数。"
 
@@ -17250,7 +17270,7 @@ msgstr "每年"
 #: src/components/blog/PostsTable.tsx:318
 #: src/components/broadcasts/HeadersEditor.tsx:83
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:254
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:791
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:790
 #: src/components/contacts/ContactUpsertDrawer.tsx:539
 #: src/components/contacts/SegmentsFilter.tsx:149
 #: src/components/contacts/SegmentsFilter.tsx:164

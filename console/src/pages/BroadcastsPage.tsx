@@ -1034,7 +1034,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                 ]}
                 size="small"
                 pagination={false}
-                scroll={{ x: 'max-content' }}
+                scroll={{ x: 1100 }}
                 rowClassName={(record) => (record.isWinner ? 'bg-green-50' : '')}
                 expandable={{
                   // Only sent broadcasts have click data; a single-variation broadcast

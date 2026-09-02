@@ -453,6 +453,56 @@ func (r *AudiencePostgresRepository) MatchesAudienceCustomer(ctx context.Context
 	return matches, nil
 }
 
+// CountCurrentAudienceRecipients evaluates the active audience definition
+// against current customer facts. It is intentionally read-only: campaign
+// execution remains responsible for creating and pinning an immutable build.
+func (r *AudiencePostgresRepository) CountCurrentAudienceRecipients(ctx context.Context, workspaceID, audienceID, channel string) (domain.MarketingPreflightCounts, error) {
+	audience, err := r.GetAudience(ctx, workspaceID, audienceID)
+	if err != nil {
+		return domain.MarketingPreflightCounts{}, err
+	}
+	version, err := r.GetAudienceVersion(ctx, workspaceID, audience.ID, audience.ActiveVersion)
+	if err != nil {
+		return domain.MarketingPreflightCounts{}, err
+	}
+	compiled, args, err := r.compileAudienceExpression(version.Definition, 0)
+	if err != nil {
+		return domain.MarketingPreflightCounts{}, err
+	}
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return domain.MarketingPreflightCounts{}, err
+	}
+	identityType := strings.TrimSpace(channel)
+	if identityType == "" {
+		identityType = "email"
+	}
+	args = append(args, identityType)
+	identityPlaceholder := "$" + fmt.Sprint(len(args))
+	query := `WITH source_audience AS (
+		SELECT DISTINCT audience_result.customer_id FROM (` + compiled + `) audience_result
+		JOIN customers customer ON customer.id = audience_result.customer_id
+		WHERE customer.merged_into_id IS NULL
+	), classified AS (
+		SELECT source.customer_id,
+			EXISTS (SELECT 1 FROM contact_lists legacy_list WHERE legacy_list.customer_id = source.customer_id
+				AND legacy_list.status IN ('unsubscribed', 'bounced', 'complained')) AS suppressed,
+			EXISTS (SELECT 1 FROM customer_identities identity
+				WHERE identity.customer_id = source.customer_id AND identity.identity_type = ` + identityPlaceholder + `
+				AND identity.enabled = TRUE) AS has_identity
+		FROM source_audience source
+	) SELECT COUNT(*),
+		COUNT(*) FILTER (WHERE has_identity AND NOT suppressed),
+		COUNT(*) FILTER (WHERE NOT has_identity), 0::bigint,
+		COUNT(*) FILTER (WHERE suppressed) FROM classified`
+	counts := domain.MarketingPreflightCounts{}
+	if err := db.QueryRowContext(ctx, query, args...).Scan(&counts.TargetTotal, &counts.Reachable,
+		&counts.MissingIdentity, &counts.MissingConsent, &counts.Suppressed); err != nil {
+		return domain.MarketingPreflightCounts{}, fmt.Errorf("count current audience recipients: %w", err)
+	}
+	return counts, nil
+}
+
 func (r *AudiencePostgresRepository) StartAudienceBuild(ctx context.Context, workspaceID, audienceID string, version int) (*domain.AudienceBuild, error) {
 	if _, err := r.GetAudienceVersion(ctx, workspaceID, audienceID, version); err != nil {
 		return nil, err

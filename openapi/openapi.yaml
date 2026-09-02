@@ -44,6 +44,8 @@ paths:
     $ref: './paths/audiences.yaml#/~1api~1audiences.delete'
   /api/audiences.preview:
     $ref: './paths/audiences.yaml#/~1api~1audiences.preview'
+  /api/audiences.matchCustomer:
+    $ref: './paths/audiences.yaml#/~1api~1audiences.matchCustomer'
   /api/audiences.build:
     $ref: './paths/audiences.yaml#/~1api~1audiences.build'
   /api/audiences.buildStatus:

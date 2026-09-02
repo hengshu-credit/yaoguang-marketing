@@ -141,6 +141,42 @@ func TestMatchesAudienceCustomerUsesNamedVersionAndCurrentFacts(t *testing.T) {
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestCountCurrentAudienceRecipientsUsesActiveDefinition(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+
+	audienceID := "11111111-1111-4111-8111-111111111111"
+	createdAt := time.Date(2026, 9, 2, 1, 2, 3, 0, time.UTC)
+	definition := `{"condition":{"kind":"leaf","leaf":{"source":"contacts","contact":{"filters":[{"field_name":"email","field_type":"string","operator":"contains","string_values":["hengshucredit"]}]}}}}`
+	mock.ExpectQuery(`SELECT id, name, description, kind, active_version`).
+		WithArgs(audienceID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "kind", "active_version", "active_build_id", "created_at", "updated_at"}).
+			AddRow(audienceID, "Current customers", nil, "dynamic", 2, nil, createdAt, createdAt))
+	mock.ExpectQuery(`SELECT audience_id, version, definition, definition_hash, created_at`).
+		WithArgs(audienceID, 2).
+		WillReturnRows(sqlmock.NewRows([]string{"audience_id", "version", "definition", "definition_hash", "created_at"}).
+			AddRow(audienceID, 2, []byte(definition), "hash", createdAt))
+	mock.ExpectQuery(`(?s)WITH source_audience AS \(.*SELECT DISTINCT audience_result\.customer_id.*email ILIKE \$1.*customer\.merged_into_id IS NULL.*customer_identities identity.*identity\.identity_type = \$2.*COUNT\(\*\) FILTER \(WHERE has_identity AND NOT suppressed\).*COUNT\(\*\) FILTER \(WHERE NOT has_identity\),\s*0::bigint`).
+		WithArgs("%hengshucredit%", "email").
+		WillReturnRows(sqlmock.NewRows([]string{"target_total", "reachable", "missing_identity", "missing_consent", "suppressed"}).
+			AddRow(int64(1), int64(1), int64(0), int64(0), int64(0)))
+
+	repository := NewAudienceRepositoryWithDB(db)
+	repository.SetConditionCompiler(func(_ *domain.TreeNode, offset int) (string, []interface{}, error) {
+		assert.Zero(t, offset)
+		return "SELECT contacts.customer_id FROM contacts WHERE email ILIKE $1", []interface{}{"%hengshucredit%"}, nil
+	})
+
+	counts, err := repository.CountCurrentAudienceRecipients(context.Background(), "workspace-1", audienceID, "email")
+	require.NoError(t, err)
+	assert.Equal(t, domain.MarketingPreflightCounts{
+		TargetTotal: 1,
+		Reachable:   1,
+	}, counts)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestListAudienceMembersFiltersListCustomersWithCurrentFacts(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)

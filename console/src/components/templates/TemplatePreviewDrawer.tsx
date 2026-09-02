@@ -90,7 +90,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     const missingMessageContent =
       (record.channel === 'sms' && !record.sms) ||
       (record.channel === 'push' && !record.push) ||
-      (record.channel !== 'sms' && record.channel !== 'push' && !record.content)
+      (isMessageChannel && record.channel !== 'sms' && record.channel !== 'push' && !record.content)
     const missingEmailContent =
       record.channel === 'email' &&
       ((!isCodeMode && !effectiveEmail?.visual_editor_tree) ||

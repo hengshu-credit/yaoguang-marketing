@@ -399,6 +399,7 @@ func TestCreateBroadcastRequest_Validate(t *testing.T) {
 				assert.NotNil(t, broadcast)
 				assert.Equal(t, tt.request.WorkspaceID, broadcast.WorkspaceID)
 				assert.Equal(t, tt.request.Name, broadcast.Name)
+				assert.Equal(t, domain.ChannelEmail, broadcast.ChannelType)
 				assert.Equal(t, domain.BroadcastStatusDraft, broadcast.Status)
 				assert.WithinDuration(t, now, broadcast.CreatedAt, 5*time.Second)
 				assert.WithinDuration(t, now, broadcast.UpdatedAt, 5*time.Second)

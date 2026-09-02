@@ -173,6 +173,21 @@ describe('TriggerConfigForm guidance', () => {
 })
 
 describe('TriggerConfigForm existing controls', () => {
+  it('lets users search for and select a trigger event', async () => {
+    const user = userEvent.setup()
+    const onChange = renderForm({ frequency: 'once' })
+
+    const eventInput = screen.getByRole('combobox')
+    await user.click(eventInput)
+    await user.type(eventInput, 'Custom Event')
+
+    expect(eventInput).toHaveValue('Custom Event')
+    await user.click(await screen.findByText('Custom Event'))
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ event_kind: 'custom_event' })
+    )
+  })
+
   it('still renders the trigger event and frequency controls', () => {
     renderForm({ event_kind: 'contact.created', frequency: 'once' })
 

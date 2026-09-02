@@ -307,6 +307,16 @@ type Broadcast struct {
 	DataFeed *DataFeedSettings `json:"data_feed,omitempty"`
 }
 
+// EffectiveChannelType returns the channel used by the current broadcast
+// pipeline. Broadcasts created before channel persistence was introduced have
+// an empty ChannelType even though the legacy pipeline has always been email.
+func (b *Broadcast) EffectiveChannelType() string {
+	if b == nil || strings.TrimSpace(b.ChannelType) == "" {
+		return ChannelEmail
+	}
+	return strings.TrimSpace(b.ChannelType)
+}
+
 // UTMParameters contains UTM tracking parameters for the broadcast
 type UTMParameters struct {
 	Source   string `json:"source,omitempty"`
@@ -462,6 +472,7 @@ func (r *CreateBroadcastRequest) Validate() (*Broadcast, error) {
 	broadcast := &Broadcast{
 		WorkspaceID:   r.WorkspaceID,
 		Name:          r.Name,
+		ChannelType:   ChannelEmail,
 		Status:        BroadcastStatusDraft,
 		Audience:      r.Audience,
 		Schedule:      ScheduleSettings{}, // Empty schedule - must use broadcasts.schedule endpoint

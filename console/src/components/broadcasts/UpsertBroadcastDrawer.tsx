@@ -601,7 +601,7 @@ export function UpsertBroadcastDrawer({
                       title={t`Candidates do not change after the campaign starts`}
                       description={audienceSource === 'audience'
                         ? t`Execution uses the audience's latest rule version, freezes matching candidates, and checks each customer again immediately before sending.`
-                        : t`The current active list members are frozen into an immutable snapshot. Identity, consent, suppression and frequency policies are still checked at send time.`}
+                        : t`The current active list members are frozen into an immutable snapshot. Identity, suppression and frequency policies are still checked at send time.`}
                     />
 
                     <Form.Item
@@ -774,7 +774,6 @@ export function UpsertBroadcastDrawer({
                                               <TemplateSelectorInput
                                                 workspaceId={workspace.id}
                                                 placeholder={t`Select template`}
-                                                category="marketing"
                                               />
                                             </Form.Item>
                                           </Col>
@@ -837,7 +836,6 @@ export function UpsertBroadcastDrawer({
                               <TemplateSelectorInput
                                 workspaceId={workspace.id}
                                 placeholder={t`Select template`}
-                                category="marketing"
                               />
                             </Form.Item>
                           </div>

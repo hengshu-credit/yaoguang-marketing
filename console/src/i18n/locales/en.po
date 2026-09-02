@@ -462,7 +462,7 @@ msgstr "+ add from name, CC, BCC, reply-to, attachments"
 msgid "+ Add property filter"
 msgstr "+ Add property filter"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:819
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:818
 msgid "+ Add variation"
 msgstr "+ Add variation"
 
@@ -723,11 +723,11 @@ msgstr "Active subscriber"
 msgid "Activity"
 msgstr "Activity"
 
-#: src/components/customers/CustomerDrawer.tsx:109
+#: src/components/customers/CustomerDrawer.tsx:110
 msgid "Activity overview"
 msgstr "Activity overview"
 
-#: src/components/customers/CustomerDrawer.tsx:110
+#: src/components/customers/CustomerDrawer.tsx:111
 msgid "Activity timeline"
 msgstr "Activity timeline"
 
@@ -1006,7 +1006,7 @@ msgstr "Address Line 2"
 msgid "Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Yaoguang Marketing for every recipient of every tracked send, which is why it is off by default."
 msgstr "Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Yaoguang Marketing for every recipient of every tracked send, which is why it is off by default."
 
-#: src/components/customers/CustomerDrawer.tsx:91
+#: src/components/customers/CustomerDrawer.tsx:97
 #: src/components/customers/CustomerListMembershipModal.tsx:92
 #: src/pages/CustomersPage.tsx:200
 msgid "Adjust list memberships"
@@ -1122,7 +1122,7 @@ msgstr "All {0} emails have been processed."
 msgid "All channels"
 msgstr "All channels"
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:177
+#: src/components/broadcasts/BroadcastLinkStats.tsx:178
 msgid "All click events, including repeat clicks. May be inflated by bots and prefetching."
 msgstr "All click events, including repeat clicks. May be inflated by bots and prefetching."
 
@@ -1527,7 +1527,7 @@ msgstr "Are you sure you want to remove this custom field label?"
 msgid "Are you sure you want to remove this field?"
 msgstr "Are you sure you want to remove this field?"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:789
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:788
 msgid "Are you sure you want to remove this variation?"
 msgstr "Are you sure you want to remove this variation?"
 
@@ -2429,6 +2429,18 @@ msgstr "Button Padding"
 msgid "Button Size"
 msgstr "Button Size"
 
+#: src/components/customers/CustomerAudienceMemberships.tsx:98
+msgid "Calculating dynamic audience memberships ({completedCount}/{totalCount})"
+msgstr "Calculating dynamic audience memberships ({completedCount}/{totalCount})"
+
+#: src/components/customers/CustomerAudienceMemberships.tsx:115
+msgid "Calculation complete: {matchCount} matching dynamic audiences"
+msgstr "Calculation complete: {matchCount} matching dynamic audiences"
+
+#: src/components/customers/CustomerAudienceMemberships.tsx:114
+msgid "Calculation complete: 1 matching dynamic audience"
+msgstr "Calculation complete: 1 matching dynamic audience"
+
 #: src/components/frequency/FrequencyPolicyForm.tsx:124
 msgid "Calendar cycle timezone"
 msgstr "Calendar cycle timezone"
@@ -2921,7 +2933,7 @@ msgstr "Click or drag a CSV file here"
 msgid "Click or drag a CSV file to this area to upload"
 msgstr "Click or drag a CSV file to this area to upload"
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:164
+#: src/components/broadcasts/BroadcastLinkStats.tsx:165
 msgid "Click rate"
 msgstr "Click rate"
 
@@ -3850,8 +3862,8 @@ msgid "Create my own"
 msgstr "Create my own"
 
 #. placeholder {0}: channel.toUpperCase()
-#: src/components/templates/TemplateSelectorInput.tsx:175
-#: src/components/templates/TemplateSelectorInput.tsx:225
+#: src/components/templates/TemplateSelectorInput.tsx:184
+#: src/components/templates/TemplateSelectorInput.tsx:234
 msgid "Create new {0} template"
 msgstr "Create new {0} template"
 
@@ -4308,7 +4320,7 @@ msgstr "Custom String Fields"
 msgid "Customer"
 msgstr "Customer"
 
-#: src/components/customers/CustomerDrawer.tsx:62
+#: src/components/customers/CustomerDrawer.tsx:63
 msgid "Customer 360"
 msgstr "Customer 360"
 
@@ -4342,7 +4354,7 @@ msgstr "Customer number"
 msgid "Customer profile"
 msgstr "Customer profile"
 
-#: src/components/customers/CustomerDrawer.tsx:52
+#: src/components/customers/CustomerDrawer.tsx:53
 msgid "Customer profile updated"
 msgstr "Customer profile updated"
 
@@ -4835,7 +4847,7 @@ msgstr "delivered"
 msgid "Delivered"
 msgstr "Delivered"
 
-#: src/components/customers/CustomerDrawer.tsx:112
+#: src/components/customers/CustomerDrawer.tsx:113
 msgid "Deliveries"
 msgstr "Deliveries"
 
@@ -5187,7 +5199,7 @@ msgstr "Dynamic"
 msgid "Dynamic audience"
 msgstr "Dynamic audience"
 
-#: src/components/customers/CustomerDrawer.tsx:100
+#: src/components/customers/CustomerAudienceMemberships.tsx:91
 msgid "Dynamic audience memberships"
 msgstr "Dynamic audience memberships"
 
@@ -8410,7 +8422,7 @@ msgstr "Journey entry was not allowed"
 msgid "Journey trace"
 msgstr "Journey trace"
 
-#: src/components/customers/CustomerDrawer.tsx:111
+#: src/components/customers/CustomerDrawer.tsx:112
 msgid "Journeys"
 msgstr "Journeys"
 
@@ -8784,7 +8796,7 @@ msgstr "List ID"
 msgid "List ID: {0}"
 msgstr "List ID: {0}"
 
-#: src/components/customers/CustomerDrawer.tsx:88
+#: src/components/customers/CustomerDrawer.tsx:94
 msgid "List memberships"
 msgstr "List memberships"
 
@@ -8987,7 +8999,7 @@ msgstr "Loading webhook status..."
 
 #: src/components/blog_editor/NotifuseEditor.tsx:480
 #: src/components/messages/MessageHistoryTab.tsx:610
-#: src/components/templates/TemplateSelectorInput.tsx:130
+#: src/components/templates/TemplateSelectorInput.tsx:139
 #: src/components/timeline/ContactTimeline.tsx:1039
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:499
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:455
@@ -9720,7 +9732,7 @@ msgstr "Next Run"
 #: src/components/blog/PostsTable.tsx:319
 #: src/components/broadcasts/HeadersEditor.tsx:84
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:255
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:792
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:791
 #: src/components/contacts/ContactUpsertDrawer.tsx:540
 #: src/components/contacts/SegmentsFilter.tsx:150
 #: src/components/contacts/SegmentsFilter.tsx:165
@@ -9763,7 +9775,7 @@ msgstr "No {0} content to preview"
 msgid "No Access"
 msgstr "No Access"
 
-#: src/components/customers/CustomerDrawer.tsx:101
+#: src/components/customers/CustomerAudienceMemberships.tsx:120
 msgid "No active audience memberships"
 msgstr "No active audience memberships"
 
@@ -9814,7 +9826,7 @@ msgstr "No campaign data"
 msgid "No categories yet"
 msgstr "No categories yet"
 
-#: src/components/templates/TemplateSelectorInput.tsx:210
+#: src/components/templates/TemplateSelectorInput.tsx:219
 msgid "No category"
 msgstr "No category"
 
@@ -9994,7 +10006,7 @@ msgstr "No Issues"
 msgid "No items selected"
 msgstr "No items selected"
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:196
+#: src/components/broadcasts/BroadcastLinkStats.tsx:197
 msgid "No link clicks recorded for this variation yet"
 msgstr "No link clicks recorded for this variation yet"
 
@@ -10006,7 +10018,7 @@ msgstr "No list"
 msgid "No list binding"
 msgstr "No list binding"
 
-#: src/components/customers/CustomerDrawer.tsx:95
+#: src/components/customers/CustomerDrawer.tsx:101
 msgid "No list memberships"
 msgstr "No list memberships"
 
@@ -10134,13 +10146,13 @@ msgstr "No status"
 msgid "No tags"
 msgstr "No tags"
 
-#: src/components/templates/TemplateSelectorInput.tsx:220
+#: src/components/templates/TemplateSelectorInput.tsx:229
 #: src/pages/TemplatesPage.tsx:479
 msgid "No templates found"
 msgstr "No templates found"
 
 #. placeholder {0}: category.replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:219
+#: src/components/templates/TemplateSelectorInput.tsx:228
 msgid "No templates found for {0} category"
 msgstr "No templates found for {0} category"
 
@@ -10478,7 +10490,7 @@ msgstr "Only workspace owners can manage UI translations."
 msgid "Only workspace owners can modify integrations"
 msgstr "Only workspace owners can modify integrations"
 
-#: src/components/customers/CustomerDrawer.tsx:109
+#: src/components/customers/CustomerDrawer.tsx:110
 msgid "Open a tab to inspect this customer's timeline, journeys or deliveries."
 msgstr "Open a tab to inspect this customer's timeline, journeys or deliveries."
 
@@ -12198,7 +12210,7 @@ msgstr "Remove this author?"
 msgid "Remove this profile attribute?"
 msgstr "Remove this profile attribute?"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:788
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:787
 msgid "Remove variation"
 msgstr "Remove variation"
 
@@ -12906,7 +12918,7 @@ msgstr "Search dimensions"
 msgid "Search Engine Indexing"
 msgstr "Search Engine Indexing"
 
-#: src/components/templates/TemplateSelectorInput.tsx:168
+#: src/components/templates/TemplateSelectorInput.tsx:177
 msgid "Search templates..."
 msgstr "Search templates..."
 
@@ -13058,7 +13070,7 @@ msgstr "Segments"
 #: src/components/file_manager/fileManager.tsx:976
 #: src/components/settings/BlogSettings.tsx:360
 #: src/components/settings/BlogSettings.tsx:376
-#: src/components/templates/TemplateSelectorInput.tsx:200
+#: src/components/templates/TemplateSelectorInput.tsx:209
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 #: src/pages/BroadcastsPage.tsx:1025
 msgid "Select"
@@ -13131,7 +13143,7 @@ msgid "Select a sender"
 msgstr "Select a sender"
 
 #: src/components/automations/config/ChannelConfigForm.tsx:43
-#: src/components/templates/TemplateSelectorInput.tsx:35
+#: src/components/templates/TemplateSelectorInput.tsx:37
 msgid "Select a template"
 msgstr "Select a template"
 
@@ -13335,11 +13347,11 @@ msgid "Select supported languages"
 msgstr "Select supported languages"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:776
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:839
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:838
 msgid "Select template"
 msgstr "Select template"
 
-#: src/components/templates/TemplateSelectorInput.tsx:158
+#: src/components/templates/TemplateSelectorInput.tsx:167
 msgid "Select Template"
 msgstr "Select Template"
 
@@ -13829,11 +13841,11 @@ msgstr "Show evolution"
 msgid "Show More ({0} remaining)"
 msgstr "Show More ({0} remaining)"
 
-#: src/components/customers/CustomerDrawer.tsx:82
+#: src/components/customers/CustomerDrawer.tsx:83
 msgid "Showing the surviving customer profile."
 msgstr "Showing the surviving customer profile."
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:200
+#: src/components/broadcasts/BroadcastLinkStats.tsx:201
 msgid "Showing the top 200 links by unique clicks."
 msgstr "Showing the top 200 links by unique clicks."
 
@@ -14065,6 +14077,10 @@ msgstr "Social Share Title"
 #: src/components/email_builder/ui/BorderInput.tsx:56
 msgid "Solid"
 msgstr "Solid"
+
+#: src/components/customers/CustomerAudienceMemberships.tsx:124
+msgid "Some dynamic audiences could not be evaluated."
+msgstr "Some dynamic audiences could not be evaluated."
 
 #: src/services/api/errors.ts:162
 msgid "Some information needs attention"
@@ -14609,7 +14625,7 @@ msgid "template"
 msgstr "template"
 
 #: src/components/automations/config/ChannelConfigForm.tsx:33
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:834
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:833
 #: src/components/messages/MessageHistoryTable.tsx:130
 #: src/components/messages/MessageHistoryTable.tsx:172
 #: src/pages/BroadcastsPage.tsx:835
@@ -14967,8 +14983,12 @@ msgid "The CSV file should have headers in the first row."
 msgstr "The CSV file should have headers in the first row."
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:604
-msgid "The current active list members are frozen into an immutable snapshot. Identity, consent, suppression and frequency policies are still checked at send time."
-msgstr "The current active list members are frozen into an immutable snapshot. Identity, consent, suppression and frequency policies are still checked at send time."
+#~ msgid "The current active list members are frozen into an immutable snapshot. Identity, consent, suppression and frequency policies are still checked at send time."
+#~ msgstr "The current active list members are frozen into an immutable snapshot. Identity, consent, suppression and frequency policies are still checked at send time."
+
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:604
+msgid "The current active list members are frozen into an immutable snapshot. Identity, suppression and frequency policies are still checked at send time."
+msgstr "The current active list members are frozen into an immutable snapshot. Identity, suppression and frequency policies are still checked at send time."
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:161
 msgid "The current date range, filters and session threshold"
@@ -15247,7 +15267,7 @@ msgstr "This contact is not subscribed to any lists"
 msgid "This customer has not entered a journey"
 msgstr "This customer has not entered a journey"
 
-#: src/components/customers/CustomerDrawer.tsx:82
+#: src/components/customers/CustomerDrawer.tsx:83
 msgid "This customer was merged"
 msgstr "This customer was merged"
 
@@ -15750,7 +15770,7 @@ msgstr "Total {total} posts"
 msgid "Total attachments size exceeds 10MB limit"
 msgstr "Total attachments size exceeds 10MB limit"
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:179
+#: src/components/broadcasts/BroadcastLinkStats.tsx:180
 msgid "Total clicks"
 msgstr "Total clicks"
 
@@ -15972,7 +15992,7 @@ msgstr "Unable to load lists"
 msgid "Unable to reach the server"
 msgstr "Unable to reach the server"
 
-#: src/components/customers/CustomerDrawer.tsx:54
+#: src/components/customers/CustomerDrawer.tsx:55
 msgid "Unable to update customer profile"
 msgstr "Unable to update customer profile"
 
@@ -16025,11 +16045,11 @@ msgstr "Unified customer profiles and identity aliases for this workspace."
 msgid "Unified Customer profiles, external user IDs, masked identity aliases, tags and list memberships."
 msgstr "Unified Customer profiles, external user IDs, masked identity aliases, tags and list memberships."
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:132
+#: src/components/broadcasts/BroadcastLinkStats.tsx:133
 msgid "Unique clicks"
 msgstr "Unique clicks"
 
-#: src/components/broadcasts/BroadcastLinkStats.tsx:163
+#: src/components/broadcasts/BroadcastLinkStats.tsx:164
 msgid "Unique clicks ÷ recipients of this variation."
 msgstr "Unique clicks ÷ recipients of this variation."
 
@@ -17158,7 +17178,7 @@ msgstr "Yearly"
 #: src/components/blog/PostsTable.tsx:318
 #: src/components/broadcasts/HeadersEditor.tsx:83
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:254
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:791
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:790
 #: src/components/contacts/ContactUpsertDrawer.tsx:539
 #: src/components/contacts/SegmentsFilter.tsx:149
 #: src/components/contacts/SegmentsFilter.tsx:164

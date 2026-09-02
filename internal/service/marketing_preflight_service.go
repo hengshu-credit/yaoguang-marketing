@@ -50,6 +50,9 @@ func (s *MarketingPreflightService) PreflightBroadcast(ctx context.Context, requ
 	if err != nil {
 		return nil, err
 	}
+	// Consent history remains available on the customer record, but it is not
+	// an eligibility requirement for marketing delivery.
+	snapshot.Counts.MissingConsent = 0
 	now := s.now().UTC()
 	result := &domain.MarketingPreflightResult{
 		WorkspaceID: request.WorkspaceID, BroadcastID: request.BroadcastID, Counts: snapshot.Counts,
@@ -77,9 +80,6 @@ func (s *MarketingPreflightService) PreflightBroadcast(ctx context.Context, requ
 	}
 	if snapshot.Counts.MissingIdentity > 0 {
 		add("identity_missing", domain.MarketingPreflightWarning, "部分客户缺少有效身份标识", fmt.Sprintf("%d 位客户没有启用的渠道身份，将不会发送。", snapshot.Counts.MissingIdentity), "/customers")
-	}
-	if snapshot.Counts.MissingConsent > 0 {
-		add("consent_missing", domain.MarketingPreflightWarning, "部分客户缺少营销同意", fmt.Sprintf("%d 位客户没有有效营销同意，请确认合规策略。", snapshot.Counts.MissingConsent), "/customers")
 	}
 	if snapshot.Counts.Suppressed > 0 {
 		add("recipient_suppressed", domain.MarketingPreflightWarning, "部分客户已被触达抑制", fmt.Sprintf("%d 位客户已退订、退信或投诉，将不会发送。", snapshot.Counts.Suppressed), "/delivery")
@@ -142,13 +142,18 @@ type BroadcastMarketingPreflightSource struct {
 	broadcasts domain.BroadcastRepository
 	workspaces domain.WorkspaceRepository
 	templates  domain.TemplateService
+	audiences  currentAudienceRecipientCounter
 }
 
-func NewBroadcastMarketingPreflightSource(broadcasts domain.BroadcastRepository, workspaces domain.WorkspaceRepository, templates domain.TemplateService) (*BroadcastMarketingPreflightSource, error) {
-	if broadcasts == nil || workspaces == nil || templates == nil {
-		return nil, errors.New("broadcast, workspace and template dependencies are required")
+type currentAudienceRecipientCounter interface {
+	CountCurrentAudienceRecipients(context.Context, string, string, string) (domain.MarketingPreflightCounts, error)
+}
+
+func NewBroadcastMarketingPreflightSource(broadcasts domain.BroadcastRepository, workspaces domain.WorkspaceRepository, templates domain.TemplateService, audiences currentAudienceRecipientCounter) (*BroadcastMarketingPreflightSource, error) {
+	if broadcasts == nil || workspaces == nil || templates == nil || audiences == nil {
+		return nil, errors.New("broadcast, workspace, template and audience dependencies are required")
 	}
-	return &BroadcastMarketingPreflightSource{broadcasts: broadcasts, workspaces: workspaces, templates: templates}, nil
+	return &BroadcastMarketingPreflightSource{broadcasts: broadcasts, workspaces: workspaces, templates: templates, audiences: audiences}, nil
 }
 
 func (s *BroadcastMarketingPreflightSource) LoadMarketingPreflightSnapshot(ctx context.Context, workspaceID, broadcastID string) (*domain.MarketingPreflightSnapshot, error) {
@@ -194,7 +199,17 @@ func (s *BroadcastMarketingPreflightSource) LoadMarketingPreflightSnapshot(ctx c
 	if err != nil {
 		return nil, err
 	}
-	if err := loadMarketingRecipientCounts(ctx, db, broadcast.Audience, broadcast.ChannelType, &snapshot.Counts); err != nil {
+	audience := broadcast.Audience
+	if strings.TrimSpace(audience.AudienceID) == "" {
+		audience.AudienceID, _ = stringMetadata(broadcast.Metadata, "audience_id")
+	}
+	floatingAudience := strings.TrimSpace(audience.AudienceID) != "" && audience.AudienceVersion <= 0 && strings.TrimSpace(audience.AudienceBuildID) == ""
+	if floatingAudience {
+		snapshot.Counts, err = s.audiences.CountCurrentAudienceRecipients(ctx, workspaceID, audience.AudienceID, broadcast.ChannelType)
+	} else {
+		err = loadMarketingRecipientCounts(ctx, db, audience, broadcast.ChannelType, &snapshot.Counts)
+	}
+	if err != nil {
 		return nil, err
 	}
 	if err := db.QueryRowContext(ctx, `SELECT EXISTS (
@@ -204,11 +219,8 @@ func (s *BroadcastMarketingPreflightSource) LoadMarketingPreflightSnapshot(ctx c
 	)`, broadcastID, broadcast.ChannelType).Scan(&snapshot.HasFrequencyPolicy); err != nil && !isUndefinedTable(err) {
 		return nil, err
 	}
-	audienceID := strings.TrimSpace(broadcast.Audience.AudienceID)
-	if audienceID == "" {
-		audienceID, _ = stringMetadata(broadcast.Metadata, "audience_id")
-	}
-	if audienceID != "" {
+	audienceID := strings.TrimSpace(audience.AudienceID)
+	if audienceID != "" && !floatingAudience {
 		var stale bool
 		err = db.QueryRowContext(ctx, `SELECT active_build_id IS NULL OR active_version <> COALESCE((
 			SELECT audience_version FROM audience_builds WHERE id = active_build_id AND status = 'completed'
@@ -240,15 +252,11 @@ func loadMarketingRecipientCounts(ctx context.Context, db *sql.DB, audience doma
 					AND legacy_list.status IN ('unsubscribed', 'bounced', 'complained')) AS suppressed,
 				EXISTS (SELECT 1 FROM customer_identities identity
 					WHERE identity.customer_id = membership.customer_id AND identity.identity_type = $4
-					AND identity.enabled = TRUE) AS has_identity,
-				EXISTS (SELECT 1 FROM customer_consents consent
-					WHERE consent.customer_id = membership.customer_id AND consent.channel = $4
-					AND consent.status IN ('granted', 'subscribed', 'opted_in', 'active')
-					AND consent.revoked_at IS NULL AND consent.valid_from <= CURRENT_TIMESTAMP) AS has_consent
+					AND identity.enabled = TRUE) AS has_identity
 			FROM audience_memberships membership JOIN source_build ON source_build.id = membership.build_id
 		) SELECT COUNT(*),
-			COUNT(*) FILTER (WHERE has_identity AND has_consent AND NOT suppressed),
-			COUNT(*) FILTER (WHERE NOT has_identity), COUNT(*) FILTER (WHERE NOT has_consent),
+			COUNT(*) FILTER (WHERE has_identity AND NOT suppressed),
+			COUNT(*) FILTER (WHERE NOT has_identity), 0::bigint,
 			COUNT(*) FILTER (WHERE suppressed) FROM classified`, audience.AudienceID, audience.AudienceVersion,
 			audience.AudienceBuildID, identityType).Scan(&counts.TargetTotal, &counts.Reachable,
 			&counts.MissingIdentity, &counts.MissingConsent, &counts.Suppressed)
@@ -266,17 +274,13 @@ func loadMarketingRecipientCounts(ctx context.Context, db *sql.DB, audience doma
 			membership.status IN ('unsubscribed', 'bounced', 'complained') AS suppressed,
 			EXISTS (SELECT 1 FROM customer_identities identity
 				WHERE identity.customer_id = membership.customer_id AND identity.identity_type = $2
-				AND identity.enabled = TRUE) AS has_identity,
-			EXISTS (SELECT 1 FROM customer_consents consent
-				WHERE consent.customer_id = membership.customer_id AND consent.channel = $2
-				AND consent.status IN ('granted', 'subscribed', 'opted_in', 'active')
-				AND consent.revoked_at IS NULL AND consent.valid_from <= CURRENT_TIMESTAMP) AS has_consent
+				AND identity.enabled = TRUE) AS has_identity
 		FROM customer_list_memberships membership WHERE membership.list_id = $1
 	)
 	SELECT COUNT(*),
-		COUNT(*) FILTER (WHERE has_identity AND has_consent AND NOT suppressed),
+		COUNT(*) FILTER (WHERE has_identity AND NOT suppressed),
 		COUNT(*) FILTER (WHERE NOT has_identity),
-		COUNT(*) FILTER (WHERE NOT has_consent),
+		0::bigint,
 		COUNT(*) FILTER (WHERE suppressed)
 	FROM classified`, listID, identityType).Scan(&counts.TargetTotal, &counts.Reachable, &counts.MissingIdentity, &counts.MissingConsent, &counts.Suppressed)
 }

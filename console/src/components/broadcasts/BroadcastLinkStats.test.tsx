@@ -136,6 +136,18 @@ describe('BroadcastLinkStats', () => {
     expect(container.querySelector('a')).toBeNull()
   })
 
+  it('does not create a second horizontal scroll owner inside the expanded row', async () => {
+    mockedGetBroadcastLinkStats.mockResolvedValue({
+      link_stats: [{ url: 'https://example.com/a/very/long/path', total_clicks: 1, unique_clicks: 1 }]
+    })
+
+    const { container } = renderComponent()
+
+    await screen.findByText('https://example.com/a/very/long/path')
+    const tableContent = container.querySelector('.ant-table-content') as HTMLElement | null
+    expect(tableContent?.style.overflowX).not.toBe('auto')
+  })
+
   it('offers a copy-to-clipboard action for each URL', async () => {
     mockedGetBroadcastLinkStats.mockResolvedValue({
       link_stats: [{ url: 'https://example.com/pricing', total_clicks: 10, unique_clicks: 6 }]

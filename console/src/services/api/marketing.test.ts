@@ -40,6 +40,35 @@ describe('marketing APIs', () => {
     expect(api.post).toHaveBeenCalledTimes(1)
   })
 
+  it('evaluates a customer against the current dynamic audience definition', async () => {
+    vi.mocked(api.post).mockResolvedValue({ matches: true } as never)
+
+    await audienceApi.matchCustomer('workspace-1', 'audience-1', 'customer-1')
+
+    expect(api.post).toHaveBeenCalledWith('/api/audiences.matchCustomer', {
+      workspace_id: 'workspace-1', audience_id: 'audience-1', customer_id: 'customer-1'
+    })
+  })
+
+  it('loads every audience page for live Customer 360 evaluation', async () => {
+    vi.mocked(api.get)
+      .mockResolvedValueOnce({
+        items: Array.from({ length: 200 }, (_, index) => ({ id: `audience-${index}` })),
+        total: 201
+      } as never)
+      .mockResolvedValueOnce({ items: [{ id: 'audience-200' }], total: 201 } as never)
+
+    const audiences = await audienceApi.listAll('workspace-1')
+
+    expect(audiences).toHaveLength(201)
+    expect(api.get).toHaveBeenNthCalledWith(
+      1, '/api/audiences.list?workspace_id=workspace-1&limit=200&offset=0'
+    )
+    expect(api.get).toHaveBeenNthCalledWith(
+      2, '/api/audiences.list?workspace_id=workspace-1&limit=200&offset=200'
+    )
+  })
+
   it('serializes list member filters without dropping current-fact fields', async () => {
     vi.mocked(api.get).mockResolvedValue({ items: [], next: '' })
 

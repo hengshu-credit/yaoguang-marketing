@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/golang/mock/gomock"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -540,6 +540,7 @@ func TestBroadcastRepository_GetBroadcast_Success(t *testing.T) {
 	assert.Equal(t, broadcastID, broadcast.ID)
 	assert.Equal(t, workspaceID, broadcast.WorkspaceID)
 	assert.Equal(t, "Test Broadcast", broadcast.Name)
+	assert.Equal(t, domain.ChannelEmail, broadcast.ChannelType)
 	assert.Equal(t, domain.BroadcastStatusDraft, broadcast.Status)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

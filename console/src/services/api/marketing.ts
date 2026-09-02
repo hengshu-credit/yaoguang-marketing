@@ -38,6 +38,14 @@ export interface AudienceMember {
   joined_at?: string
 }
 
+export interface AudienceCustomerMatch {
+  audience_id: string
+  name: string
+  kind: Audience['kind']
+  audience_version: number
+  matches: boolean
+}
+
 export interface AudienceMemberRequest {
   workspace_id: string
   list_id?: string
@@ -71,10 +79,21 @@ export interface ImportJobError {
   error_detail?: string
 }
 
+const listAudiences = (workspaceId: string, limit = 100, offset = 0) => {
+  const params = new URLSearchParams({ workspace_id: workspaceId, limit: String(limit), offset: String(offset) })
+  return api.get<{ items: Audience[]; total: number }>(`/api/audiences.list?${params}`)
+}
+
 export const audienceApi = {
-  list: (workspaceId: string, limit = 100, offset = 0) => {
-    const params = new URLSearchParams({ workspace_id: workspaceId, limit: String(limit), offset: String(offset) })
-    return api.get<{ items: Audience[]; total: number }>(`/api/audiences.list?${params}`)
+  list: listAudiences,
+  listAll: async (workspaceId: string): Promise<Audience[]> => {
+    const limit = 200
+    const items: Audience[] = []
+    while (true) {
+      const page = await listAudiences(workspaceId, limit, items.length)
+      items.push(...page.items)
+      if (items.length >= page.total || page.items.length === 0) return items
+    }
   },
   get: (workspaceId: string, audienceId: string) => {
     const params = new URLSearchParams({ workspace_id: workspaceId, audience_id: audienceId })
@@ -96,6 +115,12 @@ export const audienceApi = {
     api.post<{ customers: Array<Record<string, unknown>>; total: number }>('/api/audiences.preview', {
       workspace_id: workspaceId,
       definition
+    }),
+  matchCustomer: (workspaceId: string, audienceId: string, customerId: string) =>
+    api.post<AudienceCustomerMatch>('/api/audiences.matchCustomer', {
+      workspace_id: workspaceId,
+      audience_id: audienceId,
+      customer_id: customerId
     }),
   build: (workspaceId: string, audienceId: string, version: number) =>
     api.post<{ build_id: string; member_count: number }>('/api/audiences.build', {

@@ -283,7 +283,7 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
             value={cascaderValue}
             onChange={handleEventKindChange}
             options={EVENT_KIND_CASCADER_OPTIONS}
-            expandTrigger="hover"
+            showSearch
             style={{ width: '100%' }}
           />
         </ConfigProvider>

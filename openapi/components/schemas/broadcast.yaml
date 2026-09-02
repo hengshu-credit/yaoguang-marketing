@@ -463,7 +463,11 @@ MarketingPreflightCounts:
     target_total: { type: integer, format: int64 }
     reachable: { type: integer, format: int64 }
     missing_identity: { type: integer, format: int64 }
-    missing_consent: { type: integer, format: int64 }
+    missing_consent:
+      type: integer
+      format: int64
+      deprecated: true
+      description: Deprecated compatibility field; always 0 because consent no longer affects marketing eligibility.
     suppressed: { type: integer, format: int64 }
     frequency_deny: { type: integer, format: int64 }
     variable_failures: { type: integer, format: int64 }

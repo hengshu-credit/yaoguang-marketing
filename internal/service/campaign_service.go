@@ -156,7 +156,7 @@ func (s *CampaignService) PrepareBroadcast(ctx context.Context, workspaceID stri
 	}
 	variants := broadcastCampaignVariants(broadcast)
 	version, err := repository.EnsureBroadcastCampaign(ctx, workspaceID, broadcast.ID, broadcast.Name,
-		audienceID, broadcast.Audience.AudienceVersion, listID, broadcast.ChannelType, variants)
+		audienceID, broadcast.Audience.AudienceVersion, listID, broadcast.EffectiveChannelType(), variants)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +208,7 @@ func (s *CampaignService) PrepareBroadcastExecution(ctx context.Context, workspa
 	}
 
 	version, err := repository.EnsureBroadcastCampaign(ctx, workspaceID, broadcast.ID, broadcast.Name,
-		audienceID, resolvedVersion, listID, broadcast.ChannelType, broadcastCampaignVariants(broadcast))
+		audienceID, resolvedVersion, listID, broadcast.EffectiveChannelType(), broadcastCampaignVariants(broadcast))
 	if err != nil {
 		return nil, err
 	}

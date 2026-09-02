@@ -52,3 +52,26 @@ func TestCampaignServicePrepareBroadcastExecutionResolvesLatestAudienceAndExactB
 	require.Len(t, scheduler.tasks, 1)
 	assert.Equal(t, run.ID, scheduler.tasks[0].State.SnapshotCampaign.RunID)
 }
+
+func TestCampaignServicePrepareBroadcastExecutionDefaultsLegacyBroadcastChannelToEmail(t *testing.T) {
+	repository := &campaignRepositoryStub{}
+	snapshots, err := NewCampaignSnapshotService(repository, 100)
+	require.NoError(t, err)
+	service, err := NewCampaignService(repository, snapshots)
+	require.NoError(t, err)
+	scheduler := &recordingCampaignTaskScheduler{}
+	service.SetTaskScheduler(scheduler)
+
+	run, err := service.PrepareBroadcastExecution(context.Background(), "workspace-1", &domain.Broadcast{
+		ID: "broadcast-1", Name: "Legacy email broadcast",
+		Audience: domain.AudienceSettings{List: "list-1"},
+		TestSettings: domain.BroadcastTestSettings{Variations: []domain.BroadcastVariation{
+			{TemplateID: "welcome-template"},
+		}},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, run)
+	assert.Equal(t, domain.ChannelEmail, repository.version.Channel)
+	require.Len(t, repository.version.Variants, 1)
+	assert.Equal(t, "welcome-template", repository.version.Variants[0].ID)
+}

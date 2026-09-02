@@ -31,6 +31,7 @@ func (h *AudienceHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/audiences.update", auth.RequireAuth()(http.HandlerFunc(h.update)))
 	mux.Handle("/api/audiences.delete", auth.RequireAuth()(http.HandlerFunc(h.delete)))
 	mux.Handle("/api/audiences.preview", auth.RequireAuth()(http.HandlerFunc(h.preview)))
+	mux.Handle("/api/audiences.matchCustomer", auth.RequireAuth()(http.HandlerFunc(h.matchCustomer)))
 	mux.Handle("/api/audiences.build", auth.RequireAuth()(http.HandlerFunc(h.build)))
 	mux.Handle("/api/audiences.buildStatus", auth.RequireAuth()(http.HandlerFunc(h.buildStatus)))
 	mux.Handle("/api/audiences.members", auth.RequireAuth()(http.HandlerFunc(h.members)))
@@ -140,6 +141,25 @@ func (h *AudienceHandler) preview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]interface{}{"customers": items, "total": total})
+}
+
+func (h *AudienceHandler) matchCustomer(w http.ResponseWriter, r *http.Request) {
+	request := struct {
+		WorkspaceID string `json:"workspace_id"`
+		AudienceID  string `json:"audience_id"`
+		CustomerID  string `json:"customer_id"`
+	}{}
+	if !h.decode(w, r, &request) {
+		return
+	}
+	result, err := h.service.MatchesCurrentCustomer(
+		r.Context(), request.WorkspaceID, request.AudienceID, request.CustomerID,
+	)
+	if err != nil {
+		h.error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *AudienceHandler) build(w http.ResponseWriter, r *http.Request) {

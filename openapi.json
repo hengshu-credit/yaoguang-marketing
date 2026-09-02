@@ -4641,7 +4641,7 @@
     "/api/broadcasts.preflight": {
       "post": {
         "summary": "Preflight a broadcast before sending",
-        "description": "Computes aggregate reachability, consent, suppression, template, provider, audience, and frequency checks on the server. No approval workflow is added.",
+        "description": "Computes aggregate reachability, suppression, template, provider, audience, and frequency checks on the server. No approval workflow is added.",
         "operationId": "preflightBroadcast",
         "security": [
           {
@@ -9971,7 +9971,9 @@
           },
           "missing_consent": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "deprecated": true,
+            "description": "Deprecated compatibility field; always 0 because consent no longer affects marketing eligibility."
           },
           "suppressed": {
             "type": "integer",

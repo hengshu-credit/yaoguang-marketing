@@ -46,6 +46,16 @@ Audience:
     active_version: { type: integer, minimum: 1 }
     active_build_id: { type: string, format: uuid }
 
+AudienceCustomerMatch:
+  type: object
+  required: [audience_id, name, kind, audience_version, matches]
+  properties:
+    audience_id: { type: string, format: uuid }
+    name: { type: string }
+    kind: { type: string, enum: [static, dynamic, composite] }
+    audience_version: { type: integer, minimum: 1 }
+    matches: { type: boolean }
+
 AudienceBuild:
   type: object
   required: [id, audience_id, audience_version, status, member_count]

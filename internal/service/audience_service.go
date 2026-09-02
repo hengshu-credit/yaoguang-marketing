@@ -228,6 +228,39 @@ func (s *AudienceService) MatchesCustomer(ctx context.Context, workspaceID, audi
 	return s.runtime.MatchesAudienceCustomer(authorized, workspaceID, audienceID, version, customerID)
 }
 
+// MatchesCurrentCustomer evaluates the latest active Audience definition. It
+// is intended for live inspection surfaces such as Customer 360, not for a
+// running marketing task that must remain pinned to an immutable version.
+func (s *AudienceService) MatchesCurrentCustomer(ctx context.Context, workspaceID, audienceID, customerID string) (*domain.AudienceCustomerMatch, error) {
+	if strings.TrimSpace(workspaceID) == "" || strings.TrimSpace(audienceID) == "" || strings.TrimSpace(customerID) == "" {
+		return nil, errors.New("workspace, audience, and customer are required")
+	}
+	authorized, err := s.authorizeContactRead(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	if s.runtime == nil {
+		return nil, errors.New("audience runtime repository is required")
+	}
+	audience, err := s.repository.GetAudience(authorized, workspaceID, audienceID)
+	if err != nil {
+		return nil, err
+	}
+	if audience.ActiveVersion <= 0 {
+		return nil, errors.New("audience has no active version")
+	}
+	matches, err := s.runtime.MatchesAudienceCustomer(
+		authorized, workspaceID, audience.ID, audience.ActiveVersion, customerID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &domain.AudienceCustomerMatch{
+		AudienceID: audience.ID, Name: audience.Name, Kind: audience.Kind,
+		AudienceVersion: audience.ActiveVersion, Matches: matches,
+	}, nil
+}
+
 // MatchesCustomerInternal is used by already-authorized background marketing
 // tasks immediately before a touch.
 func (s *AudienceService) MatchesCustomerInternal(ctx context.Context, workspaceID, audienceID string, version int, customerID string) (bool, error) {

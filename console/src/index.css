@@ -196,7 +196,6 @@ th.ant-table-cell.translations-fixed-col {
 
 .workspace-main-layout .ant-table-wrapper {
   max-width: 100%;
-  overflow-x: auto;
 }
 
 @media (max-width: 767px) {

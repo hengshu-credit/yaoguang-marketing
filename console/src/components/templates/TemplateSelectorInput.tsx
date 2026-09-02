@@ -13,6 +13,7 @@ interface TemplateSelectorInputProps {
   onChange?: (value: string | null) => void
   workspaceId: string
   category?: string
+  purpose?: Template['category_purpose']
   placeholder?: string
   channel?: TemplateChannel
   clearable?: boolean
@@ -25,6 +26,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
   onChange,
   workspaceId,
   category,
+  purpose,
   channel = 'email',
   placeholder,
   clearable = true,
@@ -45,18 +47,19 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
   const {
     data: templatesResponse,
     isLoading,
+    refetch,
   } = useQuery({
-    queryKey: ['templates', workspaceId, category, channel],
+    queryKey: ['templates', workspaceId, category, purpose, channel],
     queryFn: async () => {
-      // Assume the API accepts a category parameter for filtering
       const response = await templatesApi.list({
         workspace_id: workspaceId,
-        category: category,
+        category,
         channel
       })
       return response
     },
-    enabled: !!workspaceId
+    enabled: !!workspaceId,
+    refetchOnWindowFocus: true
   })
 
   // Keep the displayed template in sync with the controlled `value` prop.
@@ -95,9 +98,14 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
   }, [value, workspaceId, channel, selectedTemplate, onChange])
 
   // Get templates array from response
-  const templates = (templatesResponse?.templates || []).filter(
-    (template) => template.channel === channel
-  )
+  const templates = (templatesResponse?.templates || []).filter((template) => {
+    if (template.channel !== channel) return false
+    if (!purpose) return true
+    return (
+      template.category_purpose === purpose ||
+      (!template.category_purpose && template.category === purpose)
+    )
+  })
 
   // Filter templates based on search query
   const filteredTemplates = templates.filter((template) =>
@@ -112,6 +120,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
 
   const showDrawer = () => {
     if (!disabled) {
+      void refetch()
       setOpen(true)
     }
   }

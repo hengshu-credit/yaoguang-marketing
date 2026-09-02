@@ -143,3 +143,32 @@ func TestAudienceServiceMatchesCustomerKeepsFalseSeparateFromErrors(t *testing.T
 	_, err = service.MatchesCustomer(context.Background(), "workspace-1", "audience-1", 5, "customer-1")
 	assert.ErrorContains(t, err, "database unavailable")
 }
+
+func TestAudienceServiceMatchesCurrentCustomerUsesTheActiveAudienceVersion(t *testing.T) {
+	repository := &audienceRuntimeRepositoryStub{
+		audienceRepositoryStub: audienceRepositoryStub{
+			audiences: map[string]domain.Audience{
+				"audience-1": {
+					ID:            "audience-1",
+					Name:          "Test audience",
+					Kind:          domain.AudienceKindDynamic,
+					ActiveVersion: 7,
+				},
+			},
+		},
+		matchResult: true,
+	}
+	service, err := NewAudienceService(repository)
+	require.NoError(t, err)
+
+	result, err := service.MatchesCurrentCustomer(
+		context.Background(), "workspace-1", "audience-1", "customer-1",
+	)
+	require.NoError(t, err)
+	assert.True(t, result.Matches)
+	assert.Equal(t, "audience-1", result.AudienceID)
+	assert.Equal(t, "Test audience", result.Name)
+	assert.Equal(t, domain.AudienceKindDynamic, result.Kind)
+	assert.Equal(t, 7, result.AudienceVersion)
+	assert.Equal(t, 7, repository.matchVersion)
+}
