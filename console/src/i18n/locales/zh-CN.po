@@ -11786,7 +11786,7 @@ msgstr "不发送已排队的邮件 。 飞行中发送将完成。"
 
 #: src/components/settings/Integrations.tsx:2518
 msgid "Rate Limit for Marketing"
-msgstr "销售费率限制"
+msgstr "营销并发限制"
 
 #: src/components/settings/Integrations.tsx:2202
 msgid "Rate limit for marketing emails (emails per minute)"
