@@ -800,7 +800,7 @@ function EmailTemplateDrawer({
           size={'100%'}
           open={isOpen}
           onClose={() => handleClose()}
-          className="drawer-no-transition drawer-body-no-padding"
+          className="material-email-template-drawer drawer-no-transition drawer-body-no-padding"
           extra={
             <div className="text-right">
               <Space>

@@ -390,8 +390,9 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
     ]
 
     return (
-      <div className="h-full">
+      <div className="material-email-preview-layout h-full">
         <Splitter
+          className="material-email-editor-split"
           style={{ height: '100%' }}
           onResize={(sizes) => {
             if (sizes && sizes[0]) {
@@ -399,7 +400,7 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
             }
           }}
         >
-          <Splitter.Panel size={leftPanelSize} min={300} max="70%">
+          <Splitter.Panel className="material-email-editor-details" size={leftPanelSize} min={300} max="70%">
             {/* Left Panel - Tabs */}
             <div className="bg-gray-50 border-r border-gray-200 flex flex-col h-full">
               <Tabs
@@ -417,7 +418,7 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
               />
             </div>
           </Splitter.Panel>
-          <Splitter.Panel>
+          <Splitter.Panel className="material-email-editor-preview">
             {/* Shared material preview; keep the tour anchor on the device controls. */}
             <div className="h-full overflow-auto p-3">
               <div ref={mobileDesktopSwitcherRef} className="mb-3 flex justify-end">

@@ -696,7 +696,7 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
   ]
 
   return (
-    <div style={{ height, display: 'flex', flexDirection: 'column' }}>
+    <div className="material-email-code-editor" style={{ height, display: 'flex', flexDirection: 'column' }}>
       {/* Unified Toolbar */}
       <Tabs
         activeKey={activeTab}
@@ -719,7 +719,7 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
           { key: 'html', label: t`Generated HTML` }
         ]}
         tabBarExtraContent={
-          <Space size="small">
+          <Space size="small" wrap>
             <Segmented
               size="small"
               value={viewport}
@@ -729,7 +729,7 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
                 { value: 'mobile', icon: <MobileOutlined /> }
               ]}
             />
-            <div style={{ width: 300 }} />
+            <div className="material-email-code-toolbar-spacer" style={{ width: 300 }} />
             <Dropdown menu={{ items: importExportMenuItems }} placement="bottomRight" trigger={['click']}>
               <Button size="small" type="primary" ghost>
                 <span>{t`Import / Export`}</span>
@@ -754,8 +754,8 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
       />
 
       {/* Main content: left panel (tab content) + right panel (always preview) */}
-      <Splitter style={{ flex: 1 }}>
-        <Splitter.Panel size="50%" min={300} max="70%">
+      <Splitter className="material-email-editor-split" style={{ flex: 1 }}>
+        <Splitter.Panel className="material-email-editor-details" defaultSize="50%" min={300} max="70%">
           <div style={{ height: '100%', overflow: 'auto', position: 'relative' }}>
             {activeTab === 'code' && (
               <>
@@ -878,7 +878,7 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
             )}
           </div>
         </Splitter.Panel>
-        <Splitter.Panel>
+        <Splitter.Panel className="material-email-editor-preview">
           <div className="h-full overflow-auto p-3">
             <EmailPreview
               html={previewHtml || `<p style="color:#999;text-align:center;padding:40px;">${t`Preview will appear here after compilation`}</p>`}

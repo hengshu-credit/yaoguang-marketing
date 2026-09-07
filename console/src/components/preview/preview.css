@@ -137,6 +137,23 @@
 .material-inbox__sender strong { font-size: 14px; }
 .material-inbox__sender time { color: #929aab; white-space: nowrap; font-size: 10px; }
 .material-inbox__excerpt { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: #7b8494; line-height: 1.5; margin-top: 3px; overflow-wrap: anywhere; }
+@media (max-width: 767px) {
+  /* A horizontal splitter can reduce the mail preview to zero width on phones. */
+  .material-email-preview-layout, .material-email-code-editor { min-height: 0; overflow: auto; }
+  .material-email-editor-split.ant-splitter { flex: none !important; flex-direction: column; height: auto !important; }
+  .material-email-editor-split > .ant-splitter-bar { display: none; }
+  .material-email-editor-split > .ant-splitter-panel { flex: none !important; width: 100%; min-width: 0; }
+  .material-email-editor-split > .material-email-editor-preview { order: -1; overflow: visible; }
+  .material-email-editor-split > .material-email-editor-details { height: 360px; }
+  .material-email-code-editor > .ant-tabs { flex: none; }
+  .material-email-code-editor > .ant-tabs > .ant-tabs-nav { flex-wrap: wrap; gap: 8px; }
+  .material-email-code-editor .ant-tabs-extra-content { max-width: 100%; padding-bottom: 8px; }
+  .material-email-code-toolbar-spacer { display: none; }
+  .material-email-template-drawer .ant-drawer-header { flex-wrap: wrap; gap: 8px; }
+  .material-email-template-drawer .ant-drawer-header-title { flex: 1 1 100%; min-width: 0; }
+  .material-email-template-drawer .ant-drawer-extra { margin-inline-start: auto; }
+  .material-email-template-drawer .tabs-in-header { position: static; transform: none; margin: 0; max-width: 100%; }
+}
 @container (max-width: 340px) {
   .material-device__status { padding-inline: 15px; }
   .material-device__camera { width: 72px; }
