@@ -37,7 +37,7 @@ AudienceConditionTree:
 
 Audience:
   type: object
-  required: [id, name, kind, active_version]
+  required: [id, name, kind, active_version, created_at, updated_at]
   properties:
     id: { type: string, format: uuid }
     name: { type: string }
@@ -45,6 +45,8 @@ Audience:
     kind: { type: string, enum: [static, dynamic, composite] }
     active_version: { type: integer, minimum: 1 }
     active_build_id: { type: string, format: uuid }
+    created_at: { type: string, format: date-time }
+    updated_at: { type: string, format: date-time }
 
 AudienceCustomerMatch:
   type: object

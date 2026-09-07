@@ -136,10 +136,20 @@ export const customerQueryKeys = {
     request: Pick<CustomerListRequest, 'search' | 'cursor' | 'limit' | 'include_merged'>
   ) => ['customers', workspaceId, 'list', request] as const,
   detail: (workspaceId: string, customerId: string) =>
-    ['customers', workspaceId, 'detail', customerId] as const
+    ['customers', workspaceId, 'detail', customerId] as const,
+  byEmail: (workspaceId: string, email: string) =>
+    ['customers', workspaceId, 'email', email] as const
 }
 
 export const customerApi = {
+  getByEmail: async (workspaceId: string, email: string): Promise<Customer> => {
+    const response = await api.post<{ customer: Customer }>('/api/customers.get', {
+      workspace_id: workspaceId,
+      locator: { identity: { type: 'email', value: email } }
+    })
+    return response.customer
+  },
+
   list: async (request: CustomerListRequest): Promise<CustomerListResponse> => {
     const params = new URLSearchParams({ workspace_id: request.workspace_id })
     const search = request.search?.trim()

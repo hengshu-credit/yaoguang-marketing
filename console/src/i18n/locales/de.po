@@ -14,6 +14,86 @@ msgstr ""
 "Plural-Forms: \n"
 "X-Generator: @lingui/cli\n"
 
+#: src/components/automations/AutomationFlowViewer.tsx:1
+msgid "Duration"
+msgstr "Duration"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Data"
+msgstr "Data"
+
+#: src/components/automations/AutomationFlowViewer.tsx:1
+msgid "Node configuration"
+msgstr "Node configuration"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Read-only"
+msgstr "Read-only"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "No configuration"
+msgstr "No configuration"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Unit"
+msgstr "Unit"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Updated Fields"
+msgstr "Updated Fields"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Paths"
+msgstr "Paths"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Variants"
+msgstr "Variants"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Next node"
+msgstr "Next node"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Continue node"
+msgstr "Continue node"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Exit node"
+msgstr "Exit node"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Entry guard"
+msgstr "Entry guard"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Node ID"
+msgstr "Node ID"
+
+#: src/components/timeline/ContactTimeline.tsx:1
+msgid "added"
+msgstr "added"
+
+#: src/pages/ContactsPage.tsx:98
+msgid "Import customers"
+msgstr "Import customers"
+
+#: src/components/contacts/ContactDetailsDrawer.tsx:1099
+msgid "Automation deliveries"
+msgstr "Automation deliveries"
+
+#: src/components/contacts/ContactCustomerDetails.tsx:59
+msgid "Customer read permission is required"
+msgstr "Customer read permission is required"
+
+#: src/components/contacts/ContactCustomerDetails.tsx:61
+msgid "No customer is linked to this contact"
+msgstr "No customer is linked to this contact"
+
+#: src/components/contacts/ContactCustomerDetails.tsx:105
+msgid "Message history read permission is required to view deliveries"
+msgstr "Message history read permission is required to view deliveries"
+
 #: src/components/ai-assistant/useAIAssistant.tsx:355
 msgid " - Done"
 msgstr " - Fertig"
@@ -666,7 +746,7 @@ msgstr "Aktion"
 #: src/components/blog/PostsTable.tsx:296
 #: src/components/blog/RecentThemesTable.tsx:179
 #: src/components/customers/CustomerImportPanel.tsx:158
-#: src/pages/AudiencesPage.tsx:131
+#: src/pages/AudiencesPage.tsx:147
 #: src/pages/BroadcastsPage.tsx:940
 msgid "Actions"
 msgstr "Aktionen"
@@ -1017,11 +1097,11 @@ msgstr "Adds a signed identity to the links of tracked emails, so a recipient wh
 msgid "Adjust list memberships"
 msgstr ""
 
-#: src/pages/SetupWizard.tsx:319
+#: src/pages/SetupWizard.tsx:340
 msgid "Admin email is required"
 msgstr "Admin-E-Mail ist erforderlich"
 
-#: src/pages/SetupWizard.tsx:488
+#: src/pages/SetupWizard.tsx:509
 msgid "Advanced Settings"
 msgstr "Erweiterte Einstellungen"
 
@@ -1103,6 +1183,7 @@ msgid "Alimama FangYuan"
 msgstr ""
 
 #: src/App.tsx:133
+#: src/components/brand/YaoguangBrand.tsx:101
 msgid "Alkaid Marketing Platform"
 msgstr "Alkaid-Marketingplattform"
 
@@ -1177,7 +1258,7 @@ msgstr "Alle transaktionalen E-Mails (Benachrichtigungen, Passwortzurücksetzung
 msgid "All workspace overrides will fall back to the bundled defaults."
 msgstr "Alle Überschreibungen des Arbeitsbereichs werden auf die integrierten Standardwerte zurückgesetzt."
 
-#: src/pages/SetupWizard.tsx:523
+#: src/pages/SetupWizard.tsx:544
 msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 msgstr "E-Mail-Empfang zum Auslösen transaktionaler Benachrichtigungen erlauben. Erfordert TLS-Zertifikate."
 
@@ -1191,7 +1272,7 @@ msgid "Allowed domains"
 msgstr "Erlaubte Domains"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:657
-#: src/pages/SetupWizard.tsx:701
+#: src/pages/SetupWizard.tsx:722
 msgid "Allowed email domains"
 msgstr "Erlaubte E-Mail-Domains"
 
@@ -1348,11 +1429,11 @@ msgstr "API-Befehl"
 #: src/components/settings/Integrations.tsx:2104
 #: src/components/settings/Integrations.tsx:2486
 #: src/components/settings/SystemSettingsDrawer.tsx:277
-#: src/pages/SetupWizard.tsx:329
+#: src/pages/SetupWizard.tsx:350
 msgid "API Endpoint"
 msgstr "API-Endpunkt"
 
-#: src/pages/SetupWizard.tsx:332
+#: src/pages/SetupWizard.tsx:353
 msgid "API endpoint is required"
 msgstr "API-Endpunkt ist erforderlich"
 
@@ -1478,7 +1559,7 @@ msgid "Are you sure you want to delete the invitation for {0}?"
 msgstr "Sind Sie sicher, dass Sie die Einladung für {0} löschen möchten?"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:324
+#: src/pages/ListsPage.tsx:331
 msgid "Are you sure you want to delete the list \"{0}\"?"
 msgstr "Sind Sie sicher, dass Sie die Liste \\\"{0}\\\" löschen möchten?"
 
@@ -1585,7 +1666,7 @@ msgstr "mindestens"
 msgid "At least one condition is required"
 msgstr "Mindestens eine Bedingung ist erforderlich"
 
-#: src/pages/SetupWizard.tsx:706
+#: src/pages/SetupWizard.tsx:727
 msgid "At least one domain is required when auto-create is enabled"
 msgstr "Mindestens eine Domain ist erforderlich, wenn die automatische Erstellung aktiviert ist"
 
@@ -1653,7 +1734,7 @@ msgstr ""
 msgid "Audience notification journey"
 msgstr ""
 
-#: src/pages/AudiencesPage.tsx:168
+#: src/pages/AudiencesPage.tsx:195
 msgid "Audience segmentation"
 msgstr ""
 
@@ -1661,7 +1742,7 @@ msgstr ""
 msgid "Audience source"
 msgstr ""
 
-#: src/layouts/WorkspaceLayout.tsx:269
+#: src/layouts/WorkspaceLayout.tsx:403
 msgid "Audiences"
 msgstr ""
 
@@ -1716,7 +1797,7 @@ msgstr "auto"
 msgid "Auto"
 msgstr "Auto"
 
-#: src/pages/SetupWizard.tsx:693
+#: src/pages/SetupWizard.tsx:714
 msgid "Auto-create accounts on first sign-in"
 msgstr "Konten bei der ersten Anmeldung automatisch erstellen"
 
@@ -1772,7 +1853,7 @@ msgstr "Automatisierungsabläufe — ihre Auslöser, Knoten und die Ausführungs
 msgid "Automation Journey"
 msgstr ""
 
-#: src/layouts/WorkspaceLayout.tsx:287
+#: src/layouts/WorkspaceLayout.tsx:421
 msgid "Automation Journeys"
 msgstr ""
 
@@ -1915,7 +1996,7 @@ msgstr "Basis-URL (Optional)"
 msgid "Base64 encoded TLS certificate"
 msgstr "Base64-kodiertes TLS-Zertifikat"
 
-#: src/pages/SetupWizard.tsx:586
+#: src/pages/SetupWizard.tsx:607
 msgid "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
 msgstr "Base64-kodiertes TLS-Zertifikat. Ausführen: cat fullchain.pem | base64 -w 0"
 
@@ -1923,7 +2004,7 @@ msgstr "Base64-kodiertes TLS-Zertifikat. Ausführen: cat fullchain.pem | base64 
 msgid "Base64 encoded TLS private key"
 msgstr "Base64-kodierter privater TLS-Schlüssel"
 
-#: src/pages/SetupWizard.tsx:604
+#: src/pages/SetupWizard.tsx:625
 msgid "Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0"
 msgstr "Base64-kodierter privater TLS-Schlüssel. Ausführen: cat privkey.pem | base64 -w 0"
 
@@ -2433,7 +2514,7 @@ msgid "Button Attributes"
 msgstr "Schaltflächen-Attribute"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:619
-#: src/pages/SetupWizard.tsx:683
+#: src/pages/SetupWizard.tsx:704
 msgid "Button Label"
 msgstr "Schaltflächenbeschriftung"
 
@@ -2571,12 +2652,12 @@ msgstr "Kampagnen"
 #: src/components/web_analytics/filters/FilterTable.tsx:292
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:105
 #: src/components/web_analytics/toolbar.tsx:94
-#: src/pages/AudiencesPage.tsx:223
+#: src/pages/AudiencesPage.tsx:260
 #: src/pages/BroadcastsPage.tsx:632
 #: src/pages/BroadcastsPage.tsx:654
 #: src/pages/BroadcastsPage.tsx:1018
 #: src/pages/BroadcastsPage.tsx:1734
-#: src/pages/ListsPage.tsx:308
+#: src/pages/ListsPage.tsx:315
 #: src/pages/TemplatesPage.tsx:392
 #: src/pages/TransactionalNotificationsPage.tsx:150
 msgid "Cancel"
@@ -2833,7 +2914,7 @@ msgid "Check"
 msgstr "Häkchen"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:698
-#: src/pages/SetupWizard.tsx:506
+#: src/pages/SetupWizard.tsx:527
 msgid "Check for Updates"
 msgstr "Nach Updates suchen"
 
@@ -3000,11 +3081,11 @@ msgid "Clicks"
 msgstr "Klicks"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:572
-#: src/pages/SetupWizard.tsx:663
+#: src/pages/SetupWizard.tsx:684
 msgid "Client ID"
 msgstr "Client-ID"
 
-#: src/pages/SetupWizard.tsx:666
+#: src/pages/SetupWizard.tsx:687
 msgid "Client ID is required"
 msgstr "Client-ID ist erforderlich"
 
@@ -3019,11 +3100,11 @@ msgstr "Client Preview"
 
 #: src/components/settings/Integrations.tsx:2044
 #: src/components/settings/SystemSettingsDrawer.tsx:582
-#: src/pages/SetupWizard.tsx:673
+#: src/pages/SetupWizard.tsx:694
 msgid "Client Secret"
 msgstr "Client Secret"
 
-#: src/pages/SetupWizard.tsx:676
+#: src/pages/SetupWizard.tsx:697
 msgid "Client Secret is required"
 msgstr "Client Secret ist erforderlich"
 
@@ -3088,8 +3169,9 @@ msgid "Code Editor"
 msgstr "Code-Editor"
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
-#: src/layouts/WorkspaceLayout.tsx:343
-#: src/layouts/WorkspaceLayout.tsx:418
+#: src/layouts/WorkspaceLayout.tsx:477
+#: src/layouts/WorkspaceLayout.tsx:556
+#: src/layouts/WorkspaceLayout.tsx:560
 msgid "Collapse"
 msgstr "Einklappen"
 
@@ -3118,7 +3200,7 @@ msgstr "Spalten-Attribute"
 msgid "Column width (e.g., '50%', '300px', 'auto')"
 msgstr "Spaltenbreite (z.B. '50%', '300px', 'auto')"
 
-#: src/pages/SetupWizard.tsx:709
+#: src/pages/SetupWizard.tsx:730
 msgid "Comma-separated list of email domains permitted to auto-create accounts"
 msgstr "Kommagetrennte Liste von E-Mail-Domains, die Konten automatisch erstellen dürfen"
 
@@ -3132,7 +3214,7 @@ msgstr "Kommagetrennt. Nur diese Domains dürfen Konten automatisch erstellen."
 
 #: src/components/settings/Integrations.tsx:1893
 #: src/components/settings/SystemSettingsDrawer.tsx:341
-#: src/pages/SetupWizard.tsx:406
+#: src/pages/SetupWizard.tsx:427
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 msgstr "Gängige Ports: 587 (TLS), 465 (SSL), 25 (unverschlüsselt)"
 
@@ -3215,7 +3297,7 @@ msgstr "Abgeschlossen"
 msgid "Complete a condition to preview the audience size"
 msgstr ""
 
-#: src/pages/SetupWizard.tsx:738
+#: src/pages/SetupWizard.tsx:759
 msgid "Complete Setup"
 msgstr "Einrichtung abschließen"
 
@@ -3547,7 +3629,7 @@ msgid "Content"
 msgstr "Inhalt"
 
 #: src/components/navigation/WorkspaceSectionTabs.tsx:94
-#: src/layouts/WorkspaceLayout.tsx:303
+#: src/layouts/WorkspaceLayout.tsx:437
 msgid "Content Center"
 msgstr ""
 
@@ -3852,8 +3934,8 @@ msgid "Create Broadcast"
 msgstr "Kampagne erstellen"
 
 #: src/components/audiences/AudienceDrawer.tsx:172
-#: src/pages/AudiencesPage.tsx:181
-#: src/pages/AudiencesPage.tsx:188
+#: src/pages/AudiencesPage.tsx:208
+#: src/pages/AudiencesPage.tsx:215
 msgid "Create dynamic audience"
 msgstr ""
 
@@ -3861,7 +3943,7 @@ msgstr ""
 msgid "Create First Theme"
 msgstr "Erstes Theme erstellen"
 
-#: src/pages/AudiencesPage.tsx:176
+#: src/pages/AudiencesPage.tsx:203
 msgid "Create list"
 msgstr ""
 
@@ -3931,7 +4013,7 @@ msgstr ""
 msgid "Create or update one Customer profile with an idempotency key"
 msgstr "Erstellen oder aktualisieren Sie ein Kundenprofil mit einem idempotency-Schlüssel"
 
-#: src/pages/ListsPage.tsx:159
+#: src/pages/ListsPage.tsx:160
 msgid "Create reusable customer groups and monitor their live membership counts."
 msgstr ""
 
@@ -3991,7 +4073,7 @@ msgstr "Erstellen Sie Ihre erste Kampagne, um loszulegen"
 msgid "Create Your First Category"
 msgstr "Erste Kategorie erstellen"
 
-#: src/pages/ListsPage.tsx:295
+#: src/pages/ListsPage.tsx:302
 msgid "Create your first list to get started"
 msgstr "Erstellen Sie Ihre erste Liste, um loszulegen"
 
@@ -4023,8 +4105,10 @@ msgstr "Erstellt"
 #: src/components/messages/MessageHistoryTable.tsx:135
 #: src/components/messages/MessageHistoryTable.tsx:336
 #: src/components/segment/labels.ts:84
+#: src/pages/AudiencesPage.tsx:144
 #: src/pages/ContactsPage.tsx:436
 #: src/pages/ContactsPage.tsx:739
+#: src/pages/ListsPage.tsx:261
 msgid "Created At"
 msgstr "Erstellt am"
 
@@ -4374,12 +4458,17 @@ msgstr ""
 msgid "Customer profile updated"
 msgstr ""
 
+#. placeholder {0}: row.name
+#: src/pages/AudiencesPage.tsx:234
+msgid "Customer status counts for {0}"
+msgstr ""
+
 #: src/services/api/permissions.ts:286
 msgid "Customer write can replace tags and list memberships and can explicitly merge an anonymous Customer into a known Customer. Merge is intentionally limited to that direction; known-to-known automatic merging is not allowed. Raw identity values are encrypted and responses expose only masked hints."
 msgstr "Customer Write kann Tags und Listenmitgliedschaften ersetzen und einen anonymen Kunden explizit zu einem bekannten Kunden zusammenführen. Merge ist absichtlich auf diese Richtung beschränkt; bekanntes automatisches Zusammenführen ist nicht erlaubt. Rohe Identitätswerte werden verschlüsselt und Antworten zeigen nur maskierte Hinweise."
 
 #: src/components/settings/PermissionsMatrix.tsx:119
-#: src/layouts/WorkspaceLayout.tsx:260
+#: src/layouts/WorkspaceLayout.tsx:394
 #: src/pages/CustomersPage.tsx:156
 #: src/services/api/errors.ts:214
 msgid "Customers"
@@ -4422,7 +4511,7 @@ msgid "Dashed"
 msgstr "Gestrichelt"
 
 #: src/components/navigation/WorkspaceSectionTabs.tsx:194
-#: src/layouts/WorkspaceLayout.tsx:244
+#: src/layouts/WorkspaceLayout.tsx:378
 msgid "Data Analytics"
 msgstr ""
 
@@ -4524,7 +4613,7 @@ msgid "Defaults to meta title"
 msgstr "Standard ist Meta-Titel"
 
 #: src/components/settings/Integrations.tsx:2095
-#: src/pages/SetupWizard.tsx:466
+#: src/pages/SetupWizard.tsx:487
 msgid "Defaults to SMTP host"
 msgstr "Standardmäßig der SMTP-Host"
 
@@ -4532,7 +4621,7 @@ msgstr "Standardmäßig der SMTP-Host"
 msgid "Deferred"
 msgstr ""
 
-#: src/pages/AudiencesPage.tsx:170
+#: src/pages/AudiencesPage.tsx:197
 msgid "Define reusable audiences from customer attributes, status, lists, activity, and goals."
 msgstr ""
 
@@ -4576,11 +4665,12 @@ msgstr "Verzögerung"
 #: src/components/web_analytics/filters/FilterTable.tsx:136
 #: src/components/web_analytics/filters/FilterTable.tsx:291
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
-#: src/pages/AudiencesPage.tsx:148
-#: src/pages/AudiencesPage.tsx:232
+#: src/pages/AudiencesPage.tsx:164
+#: src/pages/AudiencesPage.tsx:184
+#: src/pages/AudiencesPage.tsx:269
 #: src/pages/BroadcastsPage.tsx:1744
 #: src/pages/ContactsPage.tsx:947
-#: src/pages/ListsPage.tsx:318
+#: src/pages/ListsPage.tsx:325
 msgid "Delete"
 msgstr "Löschen"
 
@@ -4589,7 +4679,8 @@ msgid "DELETE"
 msgstr "DELETE"
 
 #. placeholder {0}: row.name
-#: src/pages/AudiencesPage.tsx:144
+#: src/pages/AudiencesPage.tsx:160
+#: src/pages/AudiencesPage.tsx:180
 msgid "Delete {0}"
 msgstr ""
 
@@ -4671,6 +4762,10 @@ msgstr "Anmerkung löschen?"
 msgid "Delete anyway"
 msgstr "Trotzdem löschen"
 
+#: src/pages/AudiencesPage.tsx:256
+msgid "Delete audience"
+msgstr ""
+
 #: src/components/automations/AutomationCard.tsx:148
 #: src/components/automations/AutomationCard.tsx:163
 msgid "Delete Automation"
@@ -4742,9 +4837,9 @@ msgstr ""
 msgid "Delete invitation"
 msgstr "Einladung löschen"
 
-#: src/pages/AudiencesPage.tsx:219
-#: src/pages/ListsPage.tsx:214
-#: src/pages/ListsPage.tsx:303
+#: src/pages/AudiencesPage.tsx:256
+#: src/pages/ListsPage.tsx:215
+#: src/pages/ListsPage.tsx:310
 msgid "Delete List"
 msgstr "Liste löschen"
 
@@ -4880,7 +4975,7 @@ msgstr ""
 msgid "Delivery blocked by frequency control"
 msgstr ""
 
-#: src/layouts/WorkspaceLayout.tsx:319
+#: src/layouts/WorkspaceLayout.tsx:453
 #: src/pages/DeliveryCenterPage.tsx:134
 msgid "Delivery Center"
 msgstr ""
@@ -4923,8 +5018,8 @@ msgstr "Beschreiben Sie dieses Bild..."
 #: src/components/lists/ListDrawer.tsx:206
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:308
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
-#: src/pages/AudiencesPage.tsx:120
-#: src/pages/ListsPage.tsx:259
+#: src/pages/AudiencesPage.tsx:140
+#: src/pages/ListsPage.tsx:260
 #: src/pages/TransactionalNotificationsPage.tsx:267
 msgid "Description"
 msgstr "Beschreibung"
@@ -5104,7 +5199,7 @@ msgstr "Möchten Sie diese Datei dauerhaft aus Ihrem Speicher löschen?"
 msgid "Do you want to send \"{0}\" immediately or schedule it for later?"
 msgstr "Möchten Sie \\\"{0}\\\" sofort senden oder für später planen?"
 
-#: src/layouts/WorkspaceLayout.tsx:510
+#: src/layouts/WorkspaceLayout.tsx:673
 msgid "Documentation"
 msgstr "Dokumentation"
 
@@ -5119,11 +5214,11 @@ msgstr ""
 #: src/components/segment/labels.ts:97
 #: src/components/settings/Integrations.tsx:2152
 #: src/components/settings/Integrations.tsx:2495
-#: src/pages/SetupWizard.tsx:545
+#: src/pages/SetupWizard.tsx:566
 msgid "Domain"
 msgstr "Domain"
 
-#: src/pages/SetupWizard.tsx:553
+#: src/pages/SetupWizard.tsx:574
 msgid "Domain for the SMTP bridge server (e.g., smtp.yourcompany.com)"
 msgstr "Domain für den SMTP-Relay-Server (z.B. smtp.yourcompany.com)"
 
@@ -5157,7 +5252,7 @@ msgid "Double Opt-in"
 msgstr "Double Opt-in"
 
 #: src/components/lists/ListDrawer.tsx:250
-#: src/pages/ListsPage.tsx:273
+#: src/pages/ListsPage.tsx:280
 msgid "Double Opt-in Template"
 msgstr "Double-Opt-in-Vorlage"
 
@@ -5205,7 +5300,7 @@ msgstr "Ziehen, um diesen Block im Baum zu verschieben"
 msgid "Drop files here to upload"
 msgstr "Dateien hier ablegen zum Hochladen"
 
-#: src/pages/AudiencesPage.tsx:115
+#: src/pages/AudiencesPage.tsx:135
 msgid "Dynamic"
 msgstr ""
 
@@ -5325,7 +5420,7 @@ msgstr "z.B. Willkommen — Tag 1"
 msgid "Each contact enters the automation only once"
 msgstr "Jeder Kontakt tritt nur einmal in die Automatisierung ein"
 
-#: src/pages/ListsPage.tsx:80
+#: src/pages/ListsPage.tsx:81
 msgid "edit"
 msgstr "bearbeiten"
 
@@ -5345,8 +5440,8 @@ msgstr "bearbeiten"
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:91
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:154
 #: src/components/web_analytics/filters/FilterTable.tsx:140
-#: src/pages/AudiencesPage.tsx:154
-#: src/pages/AudiencesPage.tsx:158
+#: src/pages/AudiencesPage.tsx:171
+#: src/pages/AudiencesPage.tsx:175
 #: src/pages/ContactsPage.tsx:941
 #: src/pages/TransactionalNotificationsPage.tsx:158
 msgid "Edit"
@@ -5460,13 +5555,13 @@ msgstr "HTML-Inhalt bearbeiten"
 msgid "Edit Liquid Content"
 msgstr "Liquid-Inhalt bearbeiten"
 
-#: src/pages/AudiencesPage.tsx:139
+#: src/pages/AudiencesPage.tsx:155
 msgid "Edit list"
 msgstr ""
 
 #: src/components/lists/ListDrawer.tsx:154
 #: src/components/lists/ListDrawer.tsx:157
-#: src/pages/ListsPage.tsx:230
+#: src/pages/ListsPage.tsx:231
 msgid "Edit List"
 msgstr "Liste bearbeiten"
 
@@ -5564,7 +5659,7 @@ msgstr "Editor-Modus"
 #: src/components/settings/Integrations.tsx:2092
 #: src/components/settings/Integrations.tsx:2436
 #: src/components/settings/SystemSettingsDrawer.tsx:432
-#: src/pages/SetupWizard.tsx:463
+#: src/pages/SetupWizard.tsx:484
 msgid "EHLO Hostname"
 msgstr "EHLO-Hostname"
 
@@ -5772,7 +5867,7 @@ msgstr "Leere Spalte. Text-, Schaltflächen- oder Bildinhalt hinzufügen."
 msgid "Enable A/B Testing"
 msgstr "A/B-Tests aktivieren"
 
-#: src/pages/SetupWizard.tsx:496
+#: src/pages/SetupWizard.tsx:517
 msgid "Enable Anonymous Telemetry"
 msgstr "Anonyme Telemetrie aktivieren"
 
@@ -5793,11 +5888,11 @@ msgstr "Geostandort-Tracking aktivieren"
 msgid "Enable or disable a subscription"
 msgstr "Ein Abonnement aktivieren oder deaktivieren"
 
-#: src/pages/SetupWizard.tsx:627
+#: src/pages/SetupWizard.tsx:648
 msgid "Enable Single Sign-On (OpenID Connect)"
 msgstr "Single Sign-On (OpenID Connect) aktivieren"
 
-#: src/pages/SetupWizard.tsx:522
+#: src/pages/SetupWizard.tsx:543
 msgid "Enable SMTP Bridge Server"
 msgstr "SMTP-Relay-Server aktivieren"
 
@@ -5810,7 +5905,7 @@ msgid "Enable this rule?"
 msgstr "Diese Regel aktivieren?"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:355
-#: src/pages/SetupWizard.tsx:421
+#: src/pages/SetupWizard.tsx:442
 msgid "Enable TLS encryption for SMTP connection"
 msgstr "TLS-Verschlüsselung für SMTP-Verbindung aktivieren"
 
@@ -5996,6 +6091,10 @@ msgstr "Höhe eingeben"
 msgid "Enter icon URL or select image"
 msgstr "Symbol-URL eingeben oder Bild auswählen"
 
+#: src/pages/AudiencesPage.tsx:278
+msgid "Enter ID to confirm"
+msgstr ""
+
 #: src/components/email_builder/blocks/MjImageBlock.tsx:47
 msgid "Enter image URL"
 msgstr "Bild-URL eingeben"
@@ -6016,8 +6115,7 @@ msgstr "Link-URL eingeben oder {{ url }}"
 msgid "Enter list description"
 msgstr "Listenbeschreibung eingeben"
 
-#: src/pages/AudiencesPage.tsx:241
-#: src/pages/ListsPage.tsx:330
+#: src/pages/ListsPage.tsx:337
 msgid "Enter list ID to confirm"
 msgstr "Listen-ID zur Bestätigung eingeben"
 
@@ -6061,10 +6159,14 @@ msgstr "Enter the automation:trigger identifier"
 msgid "Enter the campaign ID"
 msgstr "Enter the campaign ID"
 
-#. placeholder {0}: listToDelete.name
-#: src/pages/AudiencesPage.tsx:238
-msgid "Enter the list ID to confirm deletion of \"{0}\"."
+#. placeholder {0}: itemToDelete.name
+#: src/pages/AudiencesPage.tsx:275
+msgid "Enter the ID to confirm deletion of \"{0}\"."
 msgstr ""
+
+#: src/pages/AudiencesPage.tsx:238
+#~ msgid "Enter the list ID to confirm deletion of \"{0}\"."
+#~ msgstr ""
 
 #: src/components/automations/config/TriggerConfigForm.tsx:339
 msgid "Enter the name of the custom event (e.g., 'purchase', 'signup')"
@@ -6354,7 +6456,8 @@ msgstr "Ausstiege"
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
 #: src/components/web_analytics/DimensionTableWidget.tsx:127
-#: src/layouts/WorkspaceLayout.tsx:446
+#: src/layouts/WorkspaceLayout.tsx:556
+#: src/layouts/WorkspaceLayout.tsx:609
 msgid "Expand"
 msgstr "Erweitern"
 
@@ -6487,7 +6590,7 @@ msgstr "Leeren des Felds fehlgeschlagen"
 msgid "Failed to compile template preview."
 msgstr "Kompilieren der Vorlagenvorschau fehlgeschlagen."
 
-#: src/pages/SetupWizard.tsx:196
+#: src/pages/SetupWizard.tsx:202
 msgid "Failed to complete setup"
 msgstr "Abschließen der Einrichtung fehlgeschlagen"
 
@@ -6551,6 +6654,10 @@ msgstr "Erstellen der Vorlage fehlgeschlagen: {0}"
 msgid "Failed to create workspace"
 msgstr "Erstellen des Arbeitsbereichs fehlgeschlagen"
 
+#: src/pages/AudiencesPage.tsx:102
+msgid "Failed to delete audience"
+msgstr ""
+
 #: src/pages/AutomationsPage.tsx:128
 #~ msgid "Failed to delete automation"
 #~ msgstr "Löschen der Automatisierung fehlgeschlagen"
@@ -6580,8 +6687,7 @@ msgstr "Löschen der Integration fehlgeschlagen"
 msgid "Failed to delete invitation"
 msgstr "Löschen der Einladung fehlgeschlagen"
 
-#: src/pages/AudiencesPage.tsx:91
-#: src/pages/ListsPage.tsx:123
+#: src/pages/ListsPage.tsx:124
 msgid "Failed to delete list"
 msgstr "Löschen der Liste fehlgeschlagen"
 
@@ -6659,7 +6765,9 @@ msgstr "Abrufen der neuen Kontaktdaten fehlgeschlagen"
 msgid "Failed to fetch objects: "
 msgstr "Abrufen der Objekte fehlgeschlagen: "
 
+#: src/layouts/RootLayout.tsx:168
 #: src/pages/SetupWizard.tsx:58
+#: src/pages/SetupWizard.tsx:270
 msgid "Failed to fetch setup status"
 msgstr "Abrufen des Einrichtungsstatus fehlgeschlagen"
 
@@ -6899,7 +7007,7 @@ msgstr "Testen des E-Mail-Anbieters fehlgeschlagen"
 msgid "Failed to test recipient feed: {0}"
 msgstr "Testen des Empfänger-Feeds fehlgeschlagen: {0}"
 
-#: src/pages/SetupWizard.tsx:87
+#: src/pages/SetupWizard.tsx:93
 msgid "Failed to test SMTP connection"
 msgstr "Testen der SMTP-Verbindung fehlgeschlagen"
 
@@ -6981,7 +7089,7 @@ msgstr "Aktualisieren der Web-Analyse-Einstellungen fehlgeschlagen"
 msgid "Failed to update workspace settings"
 msgstr "Aktualisieren der Arbeitsbereich-Einstellungen fehlgeschlagen"
 
-#: src/layouts/WorkspaceLayout.tsx:223
+#: src/layouts/WorkspaceLayout.tsx:357
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "Aktualisieren der Arbeitsbereich-Einstellungen fehlgeschlagen: {errorMessage}"
 
@@ -7360,16 +7468,16 @@ msgid "From"
 msgstr "Von"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:399
-#: src/pages/SetupWizard.tsx:444
+#: src/pages/SetupWizard.tsx:465
 msgid "From Email"
 msgstr "Von E-Mail"
 
-#: src/pages/SetupWizard.tsx:447
+#: src/pages/SetupWizard.tsx:468
 msgid "From email is required"
 msgstr "Von-E-Mail ist erforderlich"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:415
-#: src/pages/SetupWizard.tsx:455
+#: src/pages/SetupWizard.tsx:476
 msgid "From Name"
 msgstr "Von Name"
 
@@ -7481,7 +7589,7 @@ msgid "Global feed URL is required when enabled"
 msgstr "Die globale Feed-URL ist erforderlich, wenn aktiviert"
 
 #: src/pages/AcceptInvitationPage.tsx:125
-#: src/pages/SetupWizard.tsx:289
+#: src/pages/SetupWizard.tsx:310
 msgid "Go to Sign In"
 msgstr "Zur Anmeldung"
 
@@ -7657,7 +7765,7 @@ msgstr "Höhe"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:718
 #: src/components/templates/CreateTemplateDrawer.tsx:156
-#: src/layouts/WorkspaceLayout.tsx:536
+#: src/layouts/WorkspaceLayout.tsx:699
 msgid "Help"
 msgstr "Hilfe"
 
@@ -7665,7 +7773,7 @@ msgstr "Hilfe"
 msgid "Help & Support"
 msgstr "Hilfe & Support"
 
-#: src/pages/SetupWizard.tsx:497
+#: src/pages/SetupWizard.tsx:518
 msgid "Help us improve Yaoguang Marketing by sending anonymous usage statistics. No personal data or message content is collected."
 msgstr "Help us improve Yaoguang Marketing by sending anonymous usage statistics. No personal data or message content is collected."
 
@@ -7828,7 +7936,7 @@ msgstr "Symbol/Favicon-URL"
 #: src/components/automations/AutomationCard.tsx:293
 #: src/components/messages/MessageHistoryTable.tsx:211
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:355
-#: src/pages/ListsPage.tsx:257
+#: src/pages/ListsPage.tsx:258
 #: src/pages/TransactionalNotificationsPage.tsx:265
 msgid "ID"
 msgstr "ID"
@@ -7842,7 +7950,7 @@ msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "ID kann nur Kleinbuchstaben, Zahlen und Unterstriche enthalten"
 
 #: src/pages/BroadcastsPage.tsx:1775
-#: src/pages/ListsPage.tsx:336
+#: src/pages/ListsPage.tsx:343
 msgid "ID doesn't match"
 msgstr "ID stimmt nicht überein"
 
@@ -8240,8 +8348,8 @@ msgstr "Integrationen"
 msgid "Invalid email"
 msgstr "Ungültige E-Mail-Adresse"
 
-#: src/pages/SetupWizard.tsx:320
-#: src/pages/SetupWizard.tsx:448
+#: src/pages/SetupWizard.tsx:341
+#: src/pages/SetupWizard.tsx:469
 msgid "Invalid email format"
 msgstr "Ungültiges E-Mail-Format"
 
@@ -8300,7 +8408,7 @@ msgstr "Ungültige Baumstruktur: kein Objekt"
 msgid "Invalid tree structure: root must be mjml type"
 msgstr "Ungültige Baumstruktur: Root muss vom Typ mjml sein"
 
-#: src/pages/SetupWizard.tsx:333
+#: src/pages/SetupWizard.tsx:354
 msgid "Invalid URL format"
 msgstr "Ungültiges URL-Format"
 
@@ -8385,11 +8493,11 @@ msgid "isolation requested but not provisioned"
 msgstr "Isolierung angefordert, aber nicht bereitgestellt"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:553
-#: src/pages/SetupWizard.tsx:651
+#: src/pages/SetupWizard.tsx:672
 msgid "Issuer URL"
 msgstr "Issuer-URL"
 
-#: src/pages/SetupWizard.tsx:654
+#: src/pages/SetupWizard.tsx:675
 msgid "Issuer URL is required"
 msgstr "Issuer-URL ist erforderlich"
 
@@ -8663,7 +8771,7 @@ msgstr ""
 msgid "less than or equal"
 msgstr ""
 
-#: src/pages/SetupWizard.tsx:628
+#: src/pages/SetupWizard.tsx:649
 msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
 msgstr "Ermöglicht Benutzern die Anmeldung über einen externen Identitätsanbieter (Google Workspace, Keycloak, Okta, …) zusätzlich zu Magic Codes."
 
@@ -8763,14 +8871,14 @@ msgstr ""
 #: src/components/messages/MessageHistoryTable.tsx:229
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:231
 #: src/components/web_analytics/tabs/DashboardTab.tsx:220
-#: src/pages/AudiencesPage.tsx:115
+#: src/pages/AudiencesPage.tsx:135
 #: src/pages/BroadcastsPage.tsx:1086
 #: src/pages/ContactsPage.tsx:380
 msgid "List"
 msgstr "Liste"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:117
+#: src/pages/ListsPage.tsx:118
 msgid "List \"{0}\" deleted successfully"
 msgstr "Liste \\\"{0}\\\" erfolgreich gelöscht"
 
@@ -8925,7 +9033,7 @@ msgstr "Liste:"
 #: src/components/settings/UITranslationsSettings.tsx:113
 #: src/pages/ContactsPage.tsx:425
 #: src/pages/ContactsPage.tsx:545
-#: src/pages/ListsPage.tsx:157
+#: src/pages/ListsPage.tsx:158
 #: src/services/api/errors.ts:215
 msgid "Lists"
 msgstr "Listen"
@@ -8934,7 +9042,7 @@ msgstr "Listen"
 msgid "Lists could not be loaded. You can still import without list binding."
 msgstr ""
 
-#: src/pages/ListsPage.tsx:144
+#: src/pages/ListsPage.tsx:145
 msgid "Lists refreshed"
 msgstr "Listen aktualisiert"
 
@@ -9005,7 +9113,7 @@ msgstr ""
 msgid "Loading message history..."
 msgstr "Nachrichtenverlauf wird geladen..."
 
-#: src/pages/SetupWizard.tsx:252
+#: src/pages/SetupWizard.tsx:258
 msgid "Loading setup..."
 msgstr "Einrichtung wird geladen..."
 
@@ -9035,10 +9143,10 @@ msgstr "Webhook-Status wird geladen..."
 #: src/components/timeline/ContactTimeline.tsx:1039
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:499
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:455
-#: src/layouts/RootLayout.tsx:90
+#: src/layouts/RootLayout.tsx:185
 #: src/pages/ContactsPage.tsx:532
 #: src/pages/ContactsPage.tsx:1182
-#: src/pages/ListsPage.tsx:150
+#: src/pages/ListsPage.tsx:151
 #: src/pages/LogsPage.tsx:19
 #: src/pages/TemplatesPage.tsx:215
 #: src/pages/TransactionalNotificationsPage.tsx:384
@@ -9058,7 +9166,7 @@ msgstr "Logo-Vorschau"
 msgid "Logo URL"
 msgstr "Logo-URL"
 
-#: src/layouts/WorkspaceLayout.tsx:549
+#: src/layouts/WorkspaceLayout.tsx:712
 msgid "Logout"
 msgstr "Abmelden"
 
@@ -9203,7 +9311,7 @@ msgstr "Marketing"
 msgid "Marketing Campaign"
 msgstr ""
 
-#: src/layouts/WorkspaceLayout.tsx:278
+#: src/layouts/WorkspaceLayout.tsx:412
 msgid "Marketing Campaigns"
 msgstr ""
 
@@ -9233,8 +9341,8 @@ msgid "Marketing Provider"
 msgstr "Marketing-Anbieter"
 
 #: src/components/audiences/AudienceDrawer.tsx:189
-msgid "Marketing runs select the latest audience when execution starts, freeze the candidates, and check every customer again immediately before each message."
-msgstr ""
+#~ msgid "Marketing runs select the latest audience when execution starts, freeze the candidates, and check every customer again immediately before each message."
+#~ msgstr ""
 
 #: src/components/contacts/SegmentsFilter.tsx:73
 msgid "Matched"
@@ -9598,7 +9706,7 @@ msgstr ""
 
 #: src/components/settings/SystemSettingsDrawer.tsx:557
 #: src/components/settings/SystemSettingsDrawer.tsx:599
-#: src/pages/SetupWizard.tsx:655
+#: src/pages/SetupWizard.tsx:676
 msgid "Must be a valid https URL"
 msgstr "Muss eine gültige https-URL sein"
 
@@ -9655,7 +9763,7 @@ msgstr "N/V"
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:119
 #: src/components/web_analytics/filters/FilterTable.tsx:192
 #: src/components/web_analytics/filters/TestFilterModal.tsx:230
-#: src/pages/AudiencesPage.tsx:98
+#: src/pages/AudiencesPage.tsx:118
 msgid "Name"
 msgstr "Name"
 
@@ -9741,7 +9849,7 @@ msgstr "Neues Theme"
 msgid "New Window"
 msgstr "Neues Fenster"
 
-#: src/layouts/WorkspaceLayout.tsx:485
+#: src/layouts/WorkspaceLayout.tsx:648
 #: src/pages/CreateWorkspacePage.tsx:104
 msgid "New workspace"
 msgstr "Neuer Arbeitsbereich"
@@ -9832,7 +9940,7 @@ msgstr "Es wurde keine Antwort zurückgegeben. Bitte versuchen Sie es erneut."
 msgid "No attribution rules yet. Create the first one to start shaping your traffic data."
 msgstr "Noch keine Attributionsregeln. Erstellen Sie die erste, um Ihre Traffic-Daten zu formen."
 
-#: src/pages/AudiencesPage.tsx:196
+#: src/pages/AudiencesPage.tsx:223
 msgid "No audiences yet"
 msgstr ""
 
@@ -10062,7 +10170,7 @@ msgstr ""
 msgid "No list memberships"
 msgstr "Keine Listenzugehörigkeiten"
 
-#: src/pages/ListsPage.tsx:293
+#: src/pages/ListsPage.tsx:300
 msgid "No lists found"
 msgstr "Keine Listen gefunden"
 
@@ -10474,7 +10582,7 @@ msgstr "der folgenden Bedingungen zutreffen:"
 msgid "Off (plaintext)"
 msgstr "Aus (Klartext)"
 
-#: src/pages/SetupWizard.tsx:657
+#: src/pages/SetupWizard.tsx:678
 msgid "OIDC issuer base URL — discovery happens at <issuer>/.well-known/openid-configuration"
 msgstr "OIDC-Issuer-Basis-URL — die Discovery erfolgt unter <issuer>/.well-known/openid-configuration"
 
@@ -10925,7 +11033,7 @@ msgstr "Die Feed-URL pro Empfänger ist erforderlich, wenn aktiviert"
 msgid "Period — {detail}"
 msgstr "Zeitraum — {detail}"
 
-#: src/pages/SetupWizard.tsx:507
+#: src/pages/SetupWizard.tsx:528
 msgid "Periodically check for new Yaoguang Marketing versions and security updates. A popup will list new versions available."
 msgstr "Periodically check for new Yaoguang Marketing versions and security updates. A popup will list new versions available."
 
@@ -11302,11 +11410,11 @@ msgid "Policy name"
 msgstr "Policy name"
 
 #: src/components/transactional/ApiCommandModal.tsx:533
-#: src/pages/SetupWizard.tsx:559
+#: src/pages/SetupWizard.tsx:580
 msgid "Port"
 msgstr "Port"
 
-#: src/pages/SetupWizard.tsx:568
+#: src/pages/SetupWizard.tsx:589
 msgid "Port for the SMTP bridge server (default: 587)"
 msgstr "Port für den SMTP-Relay-Server (Standard: 587)"
 
@@ -11393,8 +11501,8 @@ msgstr "Drücken Sie Enter oder klicken Sie auf OK zum Bestätigen, Escape zum A
 msgid "Press Enter to confirm, Escape to cancel"
 msgstr "Drücken Sie Enter zum Bestätigen, Escape zum Abbrechen"
 
-#: src/pages/ListsPage.tsx:64
-#: src/pages/ListsPage.tsx:73
+#: src/pages/ListsPage.tsx:65
+#: src/pages/ListsPage.tsx:74
 msgid "preview"
 msgstr "Vorschau"
 
@@ -11562,7 +11670,7 @@ msgstr "Priorität ist erforderlich"
 msgid "Priority:"
 msgstr "Priorität:"
 
-#: src/pages/ListsPage.tsx:267
+#: src/pages/ListsPage.tsx:274
 msgid "Private"
 msgstr "Privat"
 
@@ -11681,7 +11789,7 @@ msgid "Provider name"
 msgstr ""
 
 #: src/components/lists/ListDrawer.tsx:214
-#: src/pages/ListsPage.tsx:263
+#: src/pages/ListsPage.tsx:270
 msgid "Public"
 msgstr "Öffentlich"
 
@@ -11689,7 +11797,7 @@ msgstr "Öffentlich"
 msgid "Public lists are visible in the Notification Center for users to subscribe to"
 msgstr "Öffentliche Listen sind in der Benachrichtigungszentrale sichtbar, damit Benutzer sie abonnieren können"
 
-#: src/pages/SetupWizard.tsx:335
+#: src/pages/SetupWizard.tsx:356
 msgid "Public URL where this Yaoguang Marketing instance is accessible"
 msgstr "Public URL where this Yaoguang Marketing instance is accessible"
 
@@ -12110,7 +12218,7 @@ msgstr "Verweisquellen"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:429
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:429
 #: src/pages/ContactsPage.tsx:911
-#: src/pages/ListsPage.tsx:164
+#: src/pages/ListsPage.tsx:165
 msgid "Refresh"
 msgstr "Aktualisieren"
 
@@ -12344,7 +12452,7 @@ msgstr "Antwort-an"
 msgid "Report — {dimensions}"
 msgstr "Bericht — {dimensions}"
 
-#: src/layouts/WorkspaceLayout.tsx:523
+#: src/layouts/WorkspaceLayout.tsx:686
 msgid "Report An Issue"
 msgstr "Ein Problem melden"
 
@@ -12442,6 +12550,10 @@ msgstr "Filter zurücksetzen"
 #: src/components/templates/TemplateTranslationsTab.tsx:241
 msgid "Reset translation"
 msgstr "Übersetzung zurücksetzen"
+
+#: src/layouts/WorkspaceLayout.tsx:568
+msgid "Resize sidebar"
+msgstr "Seitenleiste skalieren"
 
 #: src/pages/DeliveryCenterPage.tsx:168
 msgid "Resolve status"
@@ -12573,8 +12685,10 @@ msgstr "Upload fortsetzen"
 msgid "Retain invalid rows"
 msgstr ""
 
+#: src/layouts/RootLayout.tsx:170
 #: src/pages/AudienceMembersPage.tsx:268
 #: src/pages/CustomersPage.tsx:212
+#: src/pages/SetupWizard.tsx:272
 msgid "Retry"
 msgstr "Erneut versuchen"
 
@@ -12622,7 +12736,7 @@ msgid "Rolling window"
 msgstr "Rolling window"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:254
-#: src/pages/SetupWizard.tsx:316
+#: src/pages/SetupWizard.tsx:337
 msgid "Root Email"
 msgstr "Root-E-Mail"
 
@@ -13035,7 +13149,7 @@ msgstr "Sicherheit"
 msgid "See broadcast send tasks; a listing that names no type is narrowed to the types you may read"
 msgstr "Sendeaufgaben von Kampagnen einsehen; eine Auflistung, die keinen Typ benennt, wird auf die Typen eingegrenzt, die Sie lesen dürfen"
 
-#: src/pages/SetupWizard.tsx:352
+#: src/pages/SetupWizard.tsx:373
 msgid "See docs for:"
 msgstr "Siehe Dokumentation für:"
 
@@ -13464,7 +13578,7 @@ msgstr "Segment auswählen, für das dieser Auslöser gilt"
 msgid "Select Winner"
 msgstr "Gewinner auswählen"
 
-#: src/layouts/WorkspaceLayout.tsx:457
+#: src/layouts/WorkspaceLayout.tsx:620
 #: src/pages/DashboardPage.tsx:31
 msgid "Select workspace"
 msgstr "Arbeitsbereich auswählen"
@@ -13652,7 +13766,7 @@ msgstr "SEO-Titel für Suchmaschinen (empfohlen: 50-60 Zeichen)"
 msgid "Separate sides"
 msgstr "Seiten trennen"
 
-#: src/pages/SetupWizard.tsx:165
+#: src/pages/SetupWizard.tsx:171
 msgid "Server is restarting with new configuration..."
 msgstr "Server wird mit neuer Konfiguration neu gestartet..."
 
@@ -13661,7 +13775,7 @@ msgid "Server is restarting..."
 msgstr "Server wird neu gestartet..."
 
 #: src/components/settings/SystemSettingsDrawer.tsx:202
-#: src/pages/SetupWizard.tsx:189
+#: src/pages/SetupWizard.tsx:195
 msgid "Server restart timeout. Please refresh the page manually."
 msgstr "Server-Neustart-Timeout. Bitte aktualisieren Sie die Seite manuell."
 
@@ -13669,7 +13783,7 @@ msgstr "Server-Neustart-Timeout. Bitte aktualisieren Sie die Seite manuell."
 msgid "Server restarted successfully!"
 msgstr "Server erfolgreich neu gestartet!"
 
-#: src/pages/SetupWizard.tsx:179
+#: src/pages/SetupWizard.tsx:185
 msgid "Server restarted successfully! You can now sign in."
 msgstr "Server erfolgreich neu gestartet! Sie können sich jetzt anmelden."
 
@@ -13842,21 +13956,21 @@ msgstr "Legt den responsiven Breakpoint für die gesamte E-Mail fest"
 msgid "Sets the screen width below which the email will switch to mobile layout. Most email clients use 480px as the standard mobile breakpoint."
 msgstr "Legt die Bildschirmbreite fest, unter der die E-Mail zum mobilen Layout wechselt. Die meisten E-Mail-Clients verwenden 480px als Standard-Mobil-Breakpoint."
 
-#: src/pages/SetupWizard.tsx:738
+#: src/pages/SetupWizard.tsx:759
 msgid "Setting up..."
 msgstr "Wird eingerichtet..."
 
 #: src/components/settings/SettingsSidebar.tsx:155
 #: src/components/settings/UITranslationsSettings.tsx:101
-#: src/layouts/WorkspaceLayout.tsx:328
+#: src/layouts/WorkspaceLayout.tsx:462
 msgid "Settings"
 msgstr "Einstellungen"
 
-#: src/pages/SetupWizard.tsx:296
+#: src/pages/SetupWizard.tsx:317
 msgid "Setup"
 msgstr "Einrichtung"
 
-#: src/pages/SetupWizard.tsx:272
+#: src/pages/SetupWizard.tsx:293
 msgid "Setup Complete!"
 msgstr "Einrichtung abgeschlossen!"
 
@@ -13909,7 +14023,7 @@ msgid "Sign In"
 msgstr "Anmelden"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:625
-#: src/pages/SetupWizard.tsx:687
+#: src/pages/SetupWizard.tsx:708
 #: src/pages/SignInPage.tsx:250
 msgid "Sign in with SSO"
 msgstr "Mit SSO anmelden"
@@ -13999,7 +14113,7 @@ msgstr "SMS"
 msgid "SMTP Bridge"
 msgstr "SMTP-Relay"
 
-#: src/pages/SetupWizard.tsx:550
+#: src/pages/SetupWizard.tsx:571
 msgid "SMTP bridge domain is required"
 msgstr "SMTP-Relay-Domain ist erforderlich"
 
@@ -14007,7 +14121,7 @@ msgstr "SMTP-Relay-Domain ist erforderlich"
 msgid "SMTP bridge is not configured."
 msgstr "SMTP-Relay ist nicht konfiguriert."
 
-#: src/pages/SetupWizard.tsx:565
+#: src/pages/SetupWizard.tsx:586
 msgid "SMTP bridge port is required"
 msgstr "SMTP-Relay-Port ist erforderlich"
 
@@ -14015,11 +14129,11 @@ msgstr "SMTP-Relay-Port ist erforderlich"
 msgid "SMTP bridge server for forwarding transactional emails"
 msgstr "SMTP-Relay-Server zur Weiterleitung transaktionaler E-Mails"
 
-#: src/pages/SetupWizard.tsx:347
+#: src/pages/SetupWizard.tsx:368
 msgid "SMTP Configuration"
 msgstr "SMTP-Konfiguration"
 
-#: src/pages/SetupWizard.tsx:84
+#: src/pages/SetupWizard.tsx:90
 msgid "SMTP connection successful!"
 msgstr "SMTP-Verbindung erfolgreich!"
 
@@ -14038,17 +14152,17 @@ msgstr "SMTP-Domain"
 #: src/components/settings/Integrations.tsx:1884
 #: src/components/settings/Integrations.tsx:2415
 #: src/components/settings/SystemSettingsDrawer.tsx:316
-#: src/pages/SetupWizard.tsx:394
+#: src/pages/SetupWizard.tsx:415
 msgid "SMTP Host"
 msgstr "SMTP-Host"
 
-#: src/pages/SetupWizard.tsx:396
+#: src/pages/SetupWizard.tsx:417
 msgid "SMTP host is required"
 msgstr "SMTP-Host ist erforderlich"
 
 #: src/components/settings/Integrations.tsx:2082
 #: src/components/settings/SystemSettingsDrawer.tsx:384
-#: src/pages/SetupWizard.tsx:435
+#: src/pages/SetupWizard.tsx:456
 msgid "SMTP Password"
 msgstr "SMTP-Passwort"
 
@@ -14058,11 +14172,11 @@ msgstr "SMTP-Port"
 
 #: src/components/settings/Integrations.tsx:1891
 #: src/components/settings/SystemSettingsDrawer.tsx:329
-#: src/pages/SetupWizard.tsx:403
+#: src/pages/SetupWizard.tsx:424
 msgid "SMTP Port"
 msgstr "SMTP-Port"
 
-#: src/pages/SetupWizard.tsx:405
+#: src/pages/SetupWizard.tsx:426
 msgid "SMTP port is required"
 msgstr "SMTP-Port ist erforderlich"
 
@@ -14084,7 +14198,7 @@ msgstr "SMTP-Benutzer"
 
 #: src/components/settings/Integrations.tsx:2077
 #: src/components/settings/SystemSettingsDrawer.tsx:371
-#: src/pages/SetupWizard.tsx:430
+#: src/pages/SetupWizard.tsx:451
 msgid "SMTP Username"
 msgstr "SMTP-Benutzername"
 
@@ -14853,7 +14967,7 @@ msgid "Test Completed"
 msgstr "Test abgeschlossen"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:310
-#: src/pages/SetupWizard.tsx:475
+#: src/pages/SetupWizard.tsx:496
 msgid "Test Connection"
 msgstr "Verbindung testen"
 
@@ -14981,7 +15095,7 @@ msgstr "Text-Innenabstand"
 msgid "Text Settings"
 msgstr "Texteinstellungen"
 
-#: src/pages/SetupWizard.tsx:685
+#: src/pages/SetupWizard.tsx:706
 msgid "Text shown on the sign-in button"
 msgstr "Text, der auf der Anmeldeschaltfläche angezeigt wird"
 
@@ -14994,8 +15108,8 @@ msgid "The"
 msgstr "Der/Die/Das"
 
 #: src/components/audiences/AudienceDrawer.tsx:81
-msgid "The active audience version has no editable condition tree"
-msgstr ""
+#~ msgid "The active audience version has no editable condition tree"
+#~ msgstr ""
 
 #: src/services/api/permissions.ts:936
 msgid "The AI assistant: chat over the workspace's configured LLM integration, and the server-side tools it may call."
@@ -15004,6 +15118,10 @@ msgstr "Der KI-Assistent: Chat über die konfigurierte LLM-Integration des Arbei
 #: src/components/settings/SystemSettingsDrawer.tsx:155
 msgid "The API endpoint has changed. After restart, the console will be available at:"
 msgstr "Der API-Endpunkt hat sich geändert. Nach dem Neustart ist die Konsole erreichbar unter:"
+
+#: src/components/audiences/AudienceDrawer.tsx:81
+msgid "The audience has no editable condition tree"
+msgstr ""
 
 #: src/components/automations/AutomationCard.tsx:210
 #~ msgid "The automation will start processing contacts that match the trigger."
@@ -15094,7 +15212,7 @@ msgid "The generated email has issues that prevent it from rendering:"
 msgstr "Die generierte E-Mail hat Probleme, die ihre Darstellung verhindern:"
 
 #: src/components/settings/Integrations.tsx:2093
-#: src/pages/SetupWizard.tsx:464
+#: src/pages/SetupWizard.tsx:485
 msgid "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
 msgstr "Der Hostname, mit dem sich Ihr Server beim Verbinden mit dem SMTP-Server identifiziert. Wenn leer, wird standardmäßig der Wert des SMTP-Hosts verwendet."
 
@@ -15118,6 +15236,10 @@ msgstr ""
 #: src/components/settings/BlogSettings.tsx:344
 msgid "The main title for your blog"
 msgstr "Der Haupttitel für Ihren Blog"
+
+#: src/components/audiences/AudienceDrawer.tsx:189
+msgid "The matching customers update automatically as customer data changes. Marketing runs freeze their candidates when execution starts and check every customer again immediately before each message."
+msgstr ""
 
 #: src/services/api/permissions.ts:752
 msgid "The outbound message log: every email the workspace sent, its delivery status, and the engagement counted against it."
@@ -15264,7 +15386,7 @@ msgstr "Diese Aktion kann nicht rückgängig gemacht werden."
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "Diese Aktion kann nicht rückgängig gemacht werden. Zur Bestätigung geben Sie bitte die Kampagnen-ID ein:"
 
-#: src/pages/ListsPage.tsx:326
+#: src/pages/ListsPage.tsx:333
 msgid "This action cannot be undone. To confirm, please enter the list ID:"
 msgstr "Diese Aktion kann nicht rückgängig gemacht werden. Zur Bestätigung geben Sie bitte die Listen-ID ein:"
 
@@ -15330,7 +15452,7 @@ msgstr ""
 msgid "This customer was merged"
 msgstr "Dieser Kunde wurde zusammengeführt"
 
-#: src/pages/SetupWizard.tsx:322
+#: src/pages/SetupWizard.tsx:343
 msgid "This email will be used for the root administrator account"
 msgstr "Diese E-Mail wird für das Root-Administrator-Konto verwendet"
 
@@ -15683,11 +15805,11 @@ msgid "TLS"
 msgstr "TLS"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:506
-#: src/pages/SetupWizard.tsx:578
+#: src/pages/SetupWizard.tsx:599
 msgid "TLS Certificate (Base64)"
 msgstr "TLS-Zertifikat (Base64)"
 
-#: src/pages/SetupWizard.tsx:583
+#: src/pages/SetupWizard.tsx:604
 msgid "TLS certificate is required"
 msgstr "TLS-Zertifikat ist erforderlich"
 
@@ -15699,11 +15821,11 @@ msgstr "TLS aktiviert"
 msgid "TLS Key (Base64)"
 msgstr "TLS-Schlüssel (Base64)"
 
-#: src/pages/SetupWizard.tsx:596
+#: src/pages/SetupWizard.tsx:617
 msgid "TLS Private Key (Base64)"
 msgstr "Privater TLS-Schlüssel (Base64)"
 
-#: src/pages/SetupWizard.tsx:601
+#: src/pages/SetupWizard.tsx:622
 msgid "TLS private key is required"
 msgstr "Privater TLS-Schlüssel ist erforderlich"
 
@@ -16003,7 +16125,7 @@ msgid "type"
 msgstr "Typ"
 
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:365
-#: src/pages/AudiencesPage.tsx:110
+#: src/pages/AudiencesPage.tsx:130
 msgid "Type"
 msgstr "Typ"
 
@@ -16085,6 +16207,10 @@ msgstr "Die Qualität der Verweise verstehen"
 msgid "Understand website traffic, acquisition quality and visitor behaviour over time."
 msgstr ""
 
+#: src/components/brand/YaoguangBrand.tsx:102
+msgid "Understanding Intent. Reaching Customers"
+msgstr "Absichten verstehen. Kunden erreichen."
+
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:670
 #: src/components/email_builder/EmailBuilder.tsx:818
@@ -16139,7 +16265,7 @@ msgstr "Unbekannt"
 msgid "Unknown date"
 msgstr "Unbekanntes Datum"
 
-#: src/layouts/WorkspaceLayout.tsx:222
+#: src/layouts/WorkspaceLayout.tsx:356
 msgid "Unknown error"
 msgstr "Unbekannter Fehler"
 
@@ -16313,6 +16439,8 @@ msgstr ""
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:537
 #: src/components/segment/labels.ts:85
+#: src/pages/AudiencesPage.tsx:145
+#: src/pages/ListsPage.tsx:264
 msgid "Updated At"
 msgstr "Aktualisiert am"
 
@@ -16355,7 +16483,7 @@ msgstr "Dateien hochladen"
 msgid "Upload or select font"
 msgstr "Schriftart hochladen oder auswählen"
 
-#: src/layouts/WorkspaceLayout.tsx:91
+#: src/layouts/WorkspaceLayout.tsx:225
 msgid "Uploaded console font could not be loaded. Using the system font instead."
 msgstr "Die hochgeladene Konsolenschrift konnte nicht geladen werden. Stattdessen wird die Systemschrift verwendet."
 
@@ -16468,7 +16596,7 @@ msgstr "Dieses Theme verwenden"
 
 #: src/components/settings/Integrations.tsx:1902
 #: src/components/settings/SystemSettingsDrawer.tsx:354
-#: src/pages/SetupWizard.tsx:420
+#: src/pages/SetupWizard.tsx:441
 msgid "Use TLS"
 msgstr "TLS verwenden"
 
@@ -16635,7 +16763,6 @@ msgid "Verifying invitation..."
 msgstr "Einladung wird überprüft..."
 
 #: src/components/blog/RecentThemesTable.tsx:113
-#: src/pages/AudiencesPage.tsx:125
 msgid "Version"
 msgstr "Version"
 
@@ -16644,8 +16771,8 @@ msgstr "Version"
 #~ msgstr ""
 
 #: src/pages/AudiencesPage.tsx:128
-msgid "Version {version}"
-msgstr ""
+#~ msgid "Version {version}"
+#~ msgstr ""
 
 #: src/components/blog/ThemeEditorDrawer.tsx:474
 msgid "VERSION NOTES (OPTIONAL)"
@@ -16726,7 +16853,7 @@ msgstr "Webseite anzeigen"
 msgid "View website"
 msgstr "Website anzeigen"
 
-#: src/pages/ListsPage.tsx:260
+#: src/pages/ListsPage.tsx:267
 msgid "Visibility"
 msgstr "Sichtbarkeit"
 
@@ -16773,7 +16900,7 @@ msgstr "Wartezeit"
 msgid "Wait until {0}, then try again."
 msgstr ""
 
-#: src/pages/SetupWizard.tsx:289
+#: src/pages/SetupWizard.tsx:310
 msgid "Waiting for server restart..."
 msgstr "Warte auf Server-Neustart..."
 
@@ -17025,7 +17152,7 @@ msgstr "Wann das Engagement am höchsten ist"
 msgid "When matched, execute these operations:"
 msgstr "Bei einem Treffer diese Operationen ausführen:"
 
-#: src/pages/SetupWizard.tsx:694
+#: src/pages/SetupWizard.tsx:715
 msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 msgstr "Wenn deaktiviert (empfohlen), können sich nur bereits eingeladene Benutzer per SSO anmelden. Wenn aktiviert, erstellt eine verifizierte E-Mail-Adresse in einer erlaubten Domain automatisch ein Konto."
 
@@ -17163,14 +17290,14 @@ msgstr "Arbeitsbereichsname"
 msgid "Workspace name must be at least 3 characters long"
 msgstr "Arbeitsbereichsname muss mindestens 3 Zeichen lang sein"
 
-#: src/layouts/WorkspaceLayout.tsx:201
+#: src/layouts/WorkspaceLayout.tsx:335
 #: src/pages/AnalyticsPage.tsx:69
 #: src/pages/FileManagerPage.tsx:58
 msgid "Workspace not found"
 msgstr "Arbeitsbereich nicht gefunden"
 
 #: src/components/settings/GeneralSettings.tsx:126
-#: src/layouts/WorkspaceLayout.tsx:219
+#: src/layouts/WorkspaceLayout.tsx:353
 msgid "Workspace settings updated successfully"
 msgstr "Arbeitsbereich-Einstellungen erfolgreich aktualisiert"
 
@@ -17370,9 +17497,9 @@ msgid "You don't have write permission for contacts"
 msgstr "Sie haben keine Schreibberechtigung für Kontakte"
 
 #: src/components/contacts/BulkActionsBar.tsx:54
-#: src/pages/ListsPage.tsx:175
-#: src/pages/ListsPage.tsx:213
-#: src/pages/ListsPage.tsx:229
+#: src/pages/ListsPage.tsx:176
+#: src/pages/ListsPage.tsx:214
+#: src/pages/ListsPage.tsx:230
 msgid "You don't have write permission for lists"
 msgstr "Sie haben keine Schreibberechtigung für Listen"
 
@@ -17476,7 +17603,7 @@ msgstr "Ihr Arbeitsbereich-API-Schlüssel"
 msgid "Your workspace settings have not been saved. Leaving this page discards them."
 msgstr "Ihre Arbeitsbereich-Einstellungen wurden nicht gespeichert. Wenn Sie diese Seite verlassen, werden sie verworfen."
 
-#: src/pages/SetupWizard.tsx:274
+#: src/pages/SetupWizard.tsx:295
 msgid "Your Yaoguang Marketing instance has been successfully configured."
 msgstr "Your Yaoguang Marketing instance has been successfully configured."
 
@@ -17507,3 +17634,7 @@ msgstr "Die Endpunkt-URL dieses Webhooks gehört Zapier und kann hier nicht geä
 #: src/components/file_manager/fileManager.tsx:784
 msgid "Zip"
 msgstr "PLZ"
+
+#: src/components/templates/channelPreviews/MessageContent.tsx
+msgid "Image unavailable"
+msgstr "Bild nicht verfügbar"

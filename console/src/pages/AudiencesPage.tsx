@@ -1,10 +1,11 @@
-import { Alert, Button, Empty, Input, Modal, Space, Table, Tag, Typography } from 'antd'
+import { Alert, Button, Empty, Input, Modal, Space, Table, Tag, Tooltip, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { PlusOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
+import dayjs from '../lib/dayjs'
 import { audienceApi } from '../services/api/marketing'
 import { listsApi } from '../services/api/list'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
@@ -12,6 +13,7 @@ import { AudienceDrawer } from '../components/audiences/AudienceDrawer'
 import { ActionableError } from '../components/errors/ActionableError'
 import { WorkspacePageTitle } from '../components/navigation/WorkspacePageTitle'
 import { CreateListDrawer } from '../components/lists/ListDrawer'
+import { ListStats } from '../components/lists/ListStats'
 import type { List } from '../services/api/list'
 
 const { Paragraph, Text } = Typography
@@ -21,7 +23,8 @@ interface AudienceRow {
   sourceType: 'list' | 'dynamic'
   name: string
   description?: string
-  version?: number
+  createdAt?: string
+  updatedAt?: string
   list?: List
 }
 
@@ -33,7 +36,7 @@ export function AudiencesPage() {
   const queryClient = useQueryClient()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editingAudienceId, setEditingAudienceId] = useState<string>()
-  const [listToDelete, setListToDelete] = useState<List | null>(null)
+  const [itemToDelete, setItemToDelete] = useState<AudienceRow | null>(null)
   const [confirmationInput, setConfirmationInput] = useState('')
   const [deleteError, setDeleteError] = useState<string>()
   const [deleting, setDeleting] = useState(false)
@@ -62,6 +65,8 @@ export function AudiencesPage() {
       sourceType: 'list' as const,
       name: list.name,
       description: list.description,
+      createdAt: list.created_at,
+      updatedAt: list.updated_at,
       list
     })),
     ...(audiences.data?.items ?? []).map((audience) => ({
@@ -69,29 +74,44 @@ export function AudiencesPage() {
       sourceType: 'dynamic' as const,
       name: audience.name,
       description: audience.description,
-      version: audience.active_version
+      createdAt: audience.created_at,
+      updatedAt: audience.updated_at
     }))
   ]
   const canWrite = Boolean(permissions?.segments?.write)
   const canWriteLists = Boolean(permissions?.lists?.write)
   const closeDelete = () => {
-    setListToDelete(null)
+    setItemToDelete(null)
     setConfirmationInput('')
     setDeleteError(undefined)
   }
-  const deleteList = async () => {
-    if (!listToDelete || confirmationInput !== listToDelete.id) return
+  const deleteItem = async () => {
+    if (!itemToDelete || confirmationInput !== itemToDelete.id) return
     setDeleting(true)
     setDeleteError(undefined)
     try {
-      await listsApi.delete({ workspace_id: workspaceId, id: listToDelete.id })
-      await queryClient.invalidateQueries({ queryKey: ['lists', workspaceId] })
+      if (itemToDelete.list) {
+        await listsApi.delete({ workspace_id: workspaceId, id: itemToDelete.id })
+        await queryClient.invalidateQueries({ queryKey: ['lists', workspaceId] })
+      } else {
+        await audienceApi.delete(workspaceId, itemToDelete.id)
+        await queryClient.invalidateQueries({ queryKey: ['audiences', workspaceId] })
+      }
       closeDelete()
     } catch (error) {
-      setDeleteError(error instanceof Error ? error.message : t`Failed to delete list`)
+      setDeleteError(error instanceof Error ? error.message : t`Failed to delete audience`)
     } finally {
       setDeleting(false)
     }
+  }
+  const formatDate = (value?: string) => {
+    if (!value) return <Text type="secondary">—</Text>
+    const date = dayjs(value).tz(workspace?.settings?.timezone || 'UTC')
+    return (
+      <Tooltip title={date.format('LLLL')}>
+        <span>{date.format('YYYY-MM-DD HH:mm')}</span>
+      </Tooltip>
+    )
   }
   const columns: ColumnsType<AudienceRow> = [
     {
@@ -121,12 +141,8 @@ export function AudiencesPage() {
       dataIndex: 'description',
       render: (description?: string) => description || <Text type="secondary">—</Text>
     },
-    {
-      title: t`Version`,
-      dataIndex: 'version',
-      width: 120,
-      render: (version?: number) => version ? t`Version ${version}` : <Text type="secondary">—</Text>
-    },
+    { title: t`Created At`, dataIndex: 'createdAt', width: 170, render: formatDate },
+    { title: t`Updated At`, dataIndex: 'updatedAt', width: 170, render: formatDate },
     {
       title: t`Actions`,
       key: 'actions',
@@ -143,20 +159,31 @@ export function AudiencesPage() {
             danger
             aria-label={t`Delete ${row.name}`}
             disabled={!canWriteLists}
-            onClick={() => setListToDelete(row.list ?? null)}
+            onClick={() => setItemToDelete(row)}
           >
             {t`Delete`}
           </Button>
         </Space>
       ) : (
-        <Button
-          type="link"
-          aria-label={`${t`Edit`} ${row.name}`}
-          disabled={!canWrite}
-          onClick={() => setEditingAudienceId(row.id)}
-        >
-          {t`Edit`}
-        </Button>
+        <Space>
+          <Button
+            type="link"
+            aria-label={`${t`Edit`} ${row.name}`}
+            disabled={!canWrite}
+            onClick={() => setEditingAudienceId(row.id)}
+          >
+            {t`Edit`}
+          </Button>
+          <Button
+            type="link"
+            danger
+            aria-label={t`Delete ${row.name}`}
+            disabled={!canWrite}
+            onClick={() => setItemToDelete(row)}
+          >
+            {t`Delete`}
+          </Button>
+        </Space>
       )
     }
   ]
@@ -200,7 +227,17 @@ export function AudiencesPage() {
           columns={columns}
           dataSource={items}
           pagination={false}
-          scroll={{ x: 720 }}
+          scroll={{ x: 960 }}
+          expandable={{
+            expandedRowKeys: items.filter((row) => row.list).map((row) => `list:${row.id}`),
+            expandedRowRender: (row) => row.list ? (
+              <div aria-label={t`Customer status counts for ${row.name}`} className="py-2 px-4">
+                <ListStats workspaceId={workspaceId} listId={row.id} />
+              </div>
+            ) : null,
+            rowExpandable: (row) => Boolean(row.list),
+            showExpandColumn: false
+          }}
         />
       )}
 
@@ -216,8 +253,8 @@ export function AudiencesPage() {
         }}
       />
       <Modal
-        title={t`Delete List`}
-        open={Boolean(listToDelete)}
+        title={itemToDelete?.list ? t`Delete List` : t`Delete audience`}
+        open={Boolean(itemToDelete)}
         onCancel={closeDelete}
         footer={[
           <Button key="cancel" onClick={closeDelete}>{t`Cancel`}</Button>,
@@ -226,19 +263,19 @@ export function AudiencesPage() {
             type="primary"
             danger
             loading={deleting}
-            disabled={confirmationInput !== (listToDelete?.id ?? '')}
-            onClick={() => void deleteList()}
+            disabled={confirmationInput !== (itemToDelete?.id ?? '')}
+            onClick={() => void deleteItem()}
           >
             {t`Delete`}
           </Button>
         ]}
       >
-        {listToDelete && (
+        {itemToDelete && (
           <Space orientation="vertical" style={{ width: '100%' }}>
-            <Text>{t`Enter the list ID to confirm deletion of "${listToDelete.name}".`}</Text>
-            <Text code>{listToDelete.id}</Text>
+            <Text>{t`Enter the ID to confirm deletion of "${itemToDelete.name}".`}</Text>
+            <Text code>{itemToDelete.id}</Text>
             <Input
-              placeholder={t`Enter list ID to confirm`}
+              placeholder={t`Enter ID to confirm`}
               value={confirmationInput}
               onChange={(event) => setConfirmationInput(event.target.value)}
             />

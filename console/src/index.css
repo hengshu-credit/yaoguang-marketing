@@ -169,6 +169,54 @@ th.ant-table-cell.translations-fixed-col {
   height: 100%;
 }
 
+.workspace-sider-resizer {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  bottom: 0;
+  z-index: 20;
+  width: 7px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.workspace-sider-resizer::after {
+  position: absolute;
+  top: 0;
+  right: 2px;
+  bottom: 0;
+  width: 2px;
+  content: '';
+  background: transparent;
+  transition: background-color 160ms ease;
+}
+
+.workspace-sider-resizer:hover::after,
+.workspace-sider-resizer:focus-visible::after,
+.workspace-sider--resizing .workspace-sider-resizer::after {
+  background: #7763f1;
+}
+
+.workspace-sider-resizer:focus-visible {
+  outline: none;
+}
+
+.workspace-sider--resizing {
+  user-select: none;
+}
+
+.workspace-sidebar-resize-shield {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: transparent;
+  cursor: ew-resize;
+  user-select: none;
+}
+
 .workspace-mobile-nav-mask {
   position: fixed;
   inset: 0;

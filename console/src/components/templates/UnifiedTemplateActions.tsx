@@ -9,6 +9,7 @@ import ChannelPicker from './ChannelPicker'
 import { CreateTemplateDrawer } from './CreateTemplateDrawer'
 import MessageTemplateDrawer from './MessageTemplateDrawer'
 import OmnichannelTemplateDrawer from './OmnichannelTemplateDrawer'
+import WebTemplateDrawer from './WebTemplateDrawer'
 
 interface TemplateActionProps {
   workspace: Workspace
@@ -34,7 +35,10 @@ export const TemplateEditorButton: React.FC<TemplateEditorButtonProps> = ({
   if (source.channel === 'sms' || source.channel === 'push') {
     return <MessageTemplateDrawer workspace={workspace} template={template} fromTemplate={fromTemplate} buttonProps={buttonProps} buttonContent={buttonContent} />
   }
-  return <OmnichannelTemplateDrawer workspace={workspace} definitions={definitions} template={template} fromTemplate={fromTemplate} buttonProps={buttonProps} buttonContent={buttonContent} />
+  if (source.channel === 'web') {
+    return <WebTemplateDrawer key={`${source.id}:${source.version}`} workspace={workspace} template={template} fromTemplate={fromTemplate} buttonProps={buttonProps} buttonContent={buttonContent} />
+  }
+  return <OmnichannelTemplateDrawer key={`${source.channel}:${source.id}:${source.version}`} workspace={workspace} definitions={definitions} template={template} fromTemplate={fromTemplate} buttonProps={buttonProps} buttonContent={buttonContent} />
 }
 
 export const CreateTemplateButton: React.FC<TemplateActionProps> = ({ workspace, definitions, buttonProps, autoOpenChannel }) => {
@@ -59,11 +63,13 @@ export const CreateTemplateButton: React.FC<TemplateActionProps> = ({ workspace,
       <ChannelPicker definitions={definitions} value={selected} onSelect={setSelected} />
       {definition && <div className="mt-5 flex justify-end border-t border-gray-200 pt-4">
         {definition.id === 'email' ? (
-          <CreateTemplateDrawer workspace={workspace} buttonContent={t`Continue with Email`} onClose={close} />
+          <CreateTemplateDrawer key={definition.id} workspace={workspace} buttonContent={t`Continue with Email`} onClose={close} />
         ) : definition.id === 'sms' || definition.id === 'push' ? (
-          <MessageTemplateDrawer workspace={workspace} defaultChannel={definition.id} buttonContent={t`Continue with ${definition.label_key}`} onClose={close} />
+          <MessageTemplateDrawer key={definition.id} workspace={workspace} defaultChannel={definition.id} buttonContent={t`Continue with ${definition.label_key}`} onClose={close} />
+        ) : definition.id === 'web' ? (
+          <WebTemplateDrawer key={definition.id} workspace={workspace} buttonContent={t`Continue with ${definition.label_key}`} onClose={close} />
         ) : (
-          <OmnichannelTemplateDrawer workspace={workspace} definitions={definitions} defaultChannel={definition.id} buttonContent={t`Continue with ${definition.label_key}`} />
+          <OmnichannelTemplateDrawer key={definition.id} workspace={workspace} definitions={definitions} defaultChannel={definition.id} buttonContent={t`Continue with ${definition.label_key}`} />
         )}
       </div>}
     </Modal>

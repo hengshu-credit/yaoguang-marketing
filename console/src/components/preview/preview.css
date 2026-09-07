@@ -1,0 +1,150 @@
+.material-preview-stage {
+  container-type: inline-size;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  /* Inline-size containment has no intrinsic width inside a flex parent. */
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 28px 20px 32px;
+  border: 1px solid #e8edf3;
+  border-radius: 16px;
+  background: radial-gradient(#dce3ed 0.65px, transparent 0.65px) 0 0 / 12px 12px, #f4f6f9;
+}
+.material-preview-stage *, .material-preview-stage *::before, .material-preview-stage *::after { box-sizing: border-box; }
+.material-preview-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.material-preview-toolbar__controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-width: 0; max-width: 100%; }
+.material-preview-toolbar__controls label { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: #475569; font-size: 13px; min-width: 0; }
+.material-preview-toolbar__controls select { max-width: 100%; min-width: 0; padding: 7px 28px 7px 11px; border: 1px solid #dce2eb; border-radius: 8px; background: white; color: #1e293b; font: inherit; }
+.material-preview-toolbar__simulation { display: inline-flex; align-items: center; gap: 6px; color: #64748b; font-size: 12px; }
+.material-preview-platforms { display: flex; flex-wrap: wrap; gap: 5px; }
+.material-preview-platforms button { border: 1px solid #e2e8f0; border-radius: 8px; background: white; padding: 6px 11px; color: #64748b; font: inherit; font-size: 12px; cursor: pointer; }
+.material-preview-platforms button[aria-pressed="true"] { background: #eff6ff; border-color: #93b4ef; color: #2455b0; font-weight: 600; }
+.material-preview-platforms button:focus-visible, .material-preview-toolbar select:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.material-device {
+  position: relative;
+  flex: 0 1 360px;
+  width: 360px;
+  min-width: 0;
+  max-width: 100%;
+  height: 654px;
+  padding: 8px;
+  border: 1px solid #76808f;
+  border-radius: 48px;
+  background: linear-gradient(115deg, #737b88, #1b2029 12%, #343b47 48%, #151b25 85%, #828a97);
+  box-shadow: 0 24px 38px -24px #0f172a80, 0 4px 10px #0f172a20, inset 0 0 0 2px #b9bec64d;
+  color: #172033;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+.material-device__buttons { position: absolute; left: -3px; top: 108px; width: 3px; height: 32px; border-radius: 2px 0 0 2px; background: #515a69; box-shadow: 0 43px #515a69; }
+.material-device:not(.material-device--desktop)::after { content: ''; position: absolute; right: -3px; top: 138px; width: 3px; height: 58px; border-radius: 0 2px 2px 0; background: #515a69; }
+.material-device__screen { height: 100%; display: flex; flex-direction: column; overflow: hidden; border-radius: 39px; background: #fff; box-shadow: 0 0 0 2px #090d14; }
+.material-device__status { flex: 0 0 54px; position: relative; display: flex; justify-content: space-between; align-items: center; padding: 0 23px; font-size: 13px; font-weight: 600; }
+.material-device__status-icons { display: flex; align-items: center; gap: 4px; }
+.material-device__camera { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 94px; height: 27px; border-radius: 30px; background: #050609; }
+.material-device__camera::after { content: ''; position: absolute; width: 8px; height: 8px; right: 11px; top: 9px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #263958, #10151f 65%); }
+.material-device__app-bar { flex-shrink: 0; display: flex; align-items: center; gap: 12px; justify-content: space-between; padding: 10px 16px 15px; border-bottom: 1px solid #e8ecf1; }
+.material-device__app-bar > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; }
+.material-device__app-bar > svg { flex-shrink: 0; color: #5b708c; }
+.material-device__viewport { min-height: 0; flex: 1; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #9ba6b780 transparent; overflow-wrap: anywhere; }
+.material-device__viewport:focus-visible { outline: 2px solid #7195cd; outline-offset: -3px; }
+.material-device__home { display: flex; flex: 0 0 24px; justify-content: center; align-items: center; }
+.material-device__home > span { height: 4px; width: 104px; border-radius: 4px; background: currentColor; opacity: .8; }
+.material-device--android { border-radius: 34px; padding: 7px; background: linear-gradient(120deg, #8a939d, #232831 18%, #161d27 80%, #566173); }
+.material-device--android .material-device__screen { border-radius: 27px; }
+.material-device--android .material-device__camera { width: 11px; height: 11px; top: 14px; }
+.material-device--android .material-device__camera::after { width: 5px; height: 5px; top: 3px; right: 3px; }
+.material-device--android .material-device__status { flex-basis: 44px; padding-inline: 18px; }
+.material-device--android .material-device__home > span { width: 74px; }
+.material-device--notification .material-device__screen {
+  background: radial-gradient(ellipse at 20% -20%, #d294ed 0%, transparent 53%), radial-gradient(ellipse at 120% 110%, #839fdf 0%, transparent 60%), linear-gradient(165deg, #5041b1 0%, #111e44 48%, #17305e 100%);
+  color: #fff;
+}
+.material-device--android.material-device--notification .material-device__screen { background: radial-gradient(ellipse at 80% 80%, #c7d9bc, transparent 60%), linear-gradient(150deg, #d0e2ef, #8cabc1); color: #243d4e; }
+.material-device__lock-clock { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 28px 0 40px; }
+.material-device__lock-clock > span { font-size: 68px; font-weight: 300; letter-spacing: -3px; line-height: 1; }
+.material-device--android .material-device__lock-clock { align-items: flex-start; padding: 32px 25px 38px; }
+.material-device--android .material-device__lock-clock > span { font-weight: 400; font-size: 62px; }
+.material-device--desktop { flex-basis: 100%; width: 100%; height: 562px; padding: 0; border-radius: 12px; border-color: #d3dae5; background: #fff; box-shadow: 0 18px 35px -22px #253c624d; }
+.material-device--desktop .material-device__screen { border-radius: 11px; box-shadow: none; }
+.material-device__window-bar { height: 42px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 14px; border-bottom: 1px solid #dee4ed; background: #f8fafc; color: #64748b; font-size: 12px; }
+.material-device__window-title { flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.material-device__window-dots { display: flex; gap: 5px; }
+.material-device__window-dots i { width: 8px; height: 8px; border-radius: 50%; background: #fb827b; }
+.material-device__window-dots i:nth-child(2) { background: #efc366; }
+.material-device__window-dots i:nth-child(3) { background: #76c99a; }
+.material-device--desktop.material-device--notification .material-device__screen { background: radial-gradient(ellipse at 100% 100%, #7dabe1, transparent 65%), linear-gradient(150deg, #e7eef9, #b7cee9); }
+.material-device--desktop.material-device--notification .material-device__viewport { display: flex; align-items: flex-end; justify-content: flex-end; padding: 24px; }
+.material-device__address { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-bottom: 1px solid #e8ecf1; background: #f9fafb; color: #64748b; }
+.material-device__address > span { display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; border-radius: 7px; padding: 5px; background: #eef1f5; font-size: 11px; }
+.material-device__address svg { flex-shrink: 0; }
+.material-preview-html { display: block; width: 100%; height: 100%; min-height: 100%; border: 0; background: #fff; }
+.material-preview-html-viewport { position: relative; width: 100%; height: 100%; overflow: hidden; }
+.material-preview-html-layout { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.material-preview-html-layout > .material-preview-html-viewport { flex: 1; min-height: 0; height: auto; }
+.material-email-header { flex: 0 0 auto; max-height: 45%; overflow: auto; padding: 16px; border-bottom: 1px solid #e8edf3; background: #fff; overflow-wrap: anywhere; }
+.material-email-header h2 { margin: 0 0 13px; font-size: 17px; font-weight: 650; line-height: 1.45; color: #1e293b; }
+.material-email-header__sender { display: flex; align-items: center; gap: 10px; }
+.material-email-header__avatar { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: #eef4fc; color: #4776b8; }
+.material-email-header__sender > div { min-width: 0; }
+.material-email-header strong { display: block; font-size: 12px; font-weight: 600; }
+.material-email-header small { display: block; margin-top: 2px; font-size: 11px; color: #7b879a; }
+.material-email-header p { margin: 12px 0 0; font-size: 12px; line-height: 1.6; color: #64748b; white-space: pre-wrap; }
+.material-device--desktop .material-email-header { padding: 20px 24px; }
+.material-device--desktop .material-email-header h2 { font-size: 20px; }
+.material-device--compact { height: 292px; }
+.material-preview-stage--compact { max-width: 402px; padding-block: 18px; }
+.material-chat { min-height: 100%; padding: 22px 16px; background: #f2f4f7; }
+.material-chat__time { color: #8a96a7; font-size: 10px; text-align: center; margin-bottom: 20px; }
+.material-chat__bubble { max-width: 91%; border: 1px solid #e7ebf0; border-radius: 16px 16px 16px 4px; overflow: hidden; background: #fff; color: #1e293b; box-shadow: 0 2px 4px #1c335008; }
+.material-chat__bubble--sms { padding: 13px 15px; font-size: 14px; line-height: 1.65; white-space: pre-wrap; }
+.material-device--ios .material-chat__bubble--sms { background: #e7e9ee; border-color: transparent; }
+.material-device--android .material-chat__bubble--sms { border-radius: 18px; background: #e0ebf8; border-color: transparent; }
+.material-device--desktop .material-chat { padding: 28px; }
+.material-device--desktop .material-chat__bubble { max-width: min(440px, 90%); }
+.material-message { font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
+.material-message__text { padding: 13px 15px; }
+.material-message__text > * + * { margin-top: 6px; }
+.material-message p { margin-bottom: 0; white-space: pre-wrap; }
+.material-message strong { display: block; font-size: 14px; }
+.material-message small { display: block; color: #718096; }
+.material-message__media { display: block; width: 100%; max-height: 210px; object-fit: cover; }
+.material-message__media-error { display: flex; justify-content: center; align-items: center; gap: 8px; padding: 24px 12px; background: #eef2f6; color: #718096; font-size: 12px; }
+.material-message__actions { border-top: 1px solid #e7ebf0; }
+.material-message__actions a, .material-message__actions button { display: block; width: 100%; padding: 10px 12px; text-align: center; color: #2671c5; background: transparent; border: 0; font: inherit; overflow-wrap: anywhere; }
+.material-message__actions > * + * { border-top: 1px solid #e7ebf0; }
+.material-message__cards { display: flex; gap: 10px; padding: 10px; overflow-x: auto; scroll-snap-type: x mandatory; }
+.material-message__card { flex: 0 0 88%; overflow: hidden; border: 1px solid #e7ebf0; border-radius: 12px; scroll-snap-align: start; }
+.material-notification { margin: 0 12px 20px; padding: 14px; border: 1px solid #ffffff80; border-radius: 20px; background: #f6f7ffdf; color: #172033; box-shadow: 0 8px 24px #090f2920; backdrop-filter: blur(18px); }
+.material-in-app { display: flex; justify-content: center; align-items: center; min-height: 100%; padding: 24px 0; background: #edf1f6; }
+.material-in-app > .material-notification { flex: 1; max-width: 440px; margin-bottom: 0; background: #fff; border-color: #e2e8f0; }
+.material-notification__heading { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; color: #5b6476; font-size: 10px; }
+.material-notification__icon { display: flex; justify-content: center; align-items: center; flex-shrink: 0; width: 22px; height: 22px; border-radius: 6px; background: #4977da; color: white; }
+.material-notification__brand { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.material-notification .material-message__text { padding: 0; }
+.material-notification .material-message__media { margin-top: 10px; border-radius: 10px; }
+.material-device--android .material-notification { border-radius: 18px; background: #ffffffee; border-color: transparent; }
+.material-device--desktop .material-notification { width: 350px; max-width: 100%; max-height: 100%; overflow: auto; margin: 0; border-radius: 12px; background: #fffffff2; }
+.material-inbox { padding: 4px 17px 15px; }
+.material-inbox h3 { margin: 0 0 15px; font-size: 24px; font-weight: 700; }
+.material-inbox__row { display: flex; gap: 9px; border-top: 1px solid #e8ecf1; padding-top: 12px; }
+.material-inbox__dot { flex: 0 0 7px; height: 7px; margin-top: 6px; border-radius: 50%; background: #3983ef; }
+.material-inbox__content { flex: 1; min-width: 0; font-size: 12px; }
+.material-inbox__sender { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.material-inbox__sender strong, .material-inbox__subject { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.material-inbox__sender strong { font-size: 14px; }
+.material-inbox__sender time { color: #929aab; white-space: nowrap; font-size: 10px; }
+.material-inbox__excerpt { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: #7b8494; line-height: 1.5; margin-top: 3px; overflow-wrap: anywhere; }
+@container (max-width: 340px) {
+  .material-device__status { padding-inline: 15px; }
+  .material-device__camera { width: 72px; }
+  .material-device__status-icons { gap: 2px; }
+  .material-device__status-icons > svg:first-child { display: none; }
+  .material-device__buttons, .material-device::after { display: none; }
+  .material-device--desktop.material-device--notification .material-device__viewport { padding: 12px; }
+}
+@media (max-width: 480px) {
+  .material-preview-stage { padding: 20px 10px 24px; border-radius: 12px; }
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import type { Edge, Node, NodeTypes } from '@xyflow/react'
@@ -17,6 +17,10 @@ interface CapturedFlow {
   nodes: Node[]
   edges: Edge[]
   nodeTypes: NodeTypes
+  onNodeClick?: (event: React.MouseEvent, node: Node) => void
+  nodesDraggable?: boolean
+  nodesConnectable?: boolean
+  deleteKeyCode?: string | null
 }
 
 type StatNodeComponent = React.FC<{ data: StatNodeData }>
@@ -25,8 +29,8 @@ let captured: CapturedFlow | null = null
 
 vi.mock('@xyflow/react', () => ({
   ReactFlow: (props: CapturedFlow) => {
-    captured = { nodes: props.nodes, edges: props.edges, nodeTypes: props.nodeTypes }
-    return null
+    captured = props
+    return <div>{props.nodes.map(node => <button key={node.id} onClick={event => props.onNodeClick?.(event, node)}>Inspect {node.id}</button>)}</div>
   },
   ReactFlowProvider: ({ children }: { children: React.ReactNode }) => children,
   Background: () => null,
@@ -111,6 +115,48 @@ beforeEach(() => {
 })
 
 describe('AutomationFlowViewer', () => {
+  it('opens the saved node configuration without enabling editing or deletion', () => {
+    const automation = makeAutomation([makeNode('wait-1', 'delay', { duration: 3, unit: 'days', description: 'Read the welcome email' })])
+    const flow = renderViewer(automation)
+    fireEvent.click(screen.getByRole('button', { name: 'Inspect wait-1' }))
+    expect(screen.getByRole('dialog', { name: 'Node configuration' })).toBeInTheDocument()
+    expect(screen.getByText('Read the welcome email')).toBeInTheDocument()
+    expect(screen.getByText('3')).toBeInTheDocument()
+    expect(screen.getByText('Days')).toBeInTheDocument()
+    expect(flow.nodesDraggable).toBe(false)
+    expect(flow.nodesConnectable).toBe(false)
+    expect(flow.deleteKeyCode).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
+  })
+
+  it('uses the persisted trigger definition and switches same-type nodes without stale config', () => {
+    const automation = makeAutomation([
+      makeNode('t', 'trigger', { event_kind: 'contact.created', updated_fields: ['score'] }),
+      makeNode('a', 'delay', { duration: 2, unit: 'hours' }),
+      makeNode('b', 'delay', { duration: 7, unit: 'days' })
+    ])
+    automation.trigger = { event_kind: 'list.removed', list_id: 'vip', frequency: 'once', entry_guard: { enabled: true, max_concurrent: 1 } }
+    renderViewer(automation)
+    fireEvent.click(screen.getByRole('button', { name: 'Inspect t' }))
+    expect(screen.getByText('list.removed')).toBeInTheDocument()
+    expect(screen.queryByText('contact.created')).not.toBeInTheDocument()
+    expect(screen.getByText('score')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Inspect a' }))
+    expect(screen.getByText('Hours')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Inspect b' }))
+    expect(screen.getByText('Days')).toBeInTheDocument()
+    expect(screen.queryByText('Hours')).not.toBeInTheDocument()
+  })
+
+  it('retains nested branch and channel-specific fields in the read-only view', () => {
+    renderViewer(makeAutomation([makeNode('branch-1', 'branch', {
+      paths: [{ name: 'VIP path', conditions: { tier: { operator: 'eq', value: 'gold' } }, next_node_id: 'sms-1' }],
+      future_setting: { enabled: false, quota: 0 }
+    })]))
+    fireEvent.click(screen.getByRole('button', { name: 'Inspect branch-1' }))
+    for (const text of ['VIP path', 'tier', 'gold', 'sms-1', 'false', '0']) expect(screen.getByText(text)).toBeInTheDocument()
+  })
+
   it('emits the three branch edges of a list_status_branch node and leaves no orphan', () => {
     const { nodes, edges } = renderViewer(listStatusAutomation())
 

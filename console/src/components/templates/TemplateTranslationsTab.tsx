@@ -26,6 +26,8 @@ interface TemplateTranslationsTabProps {
   translationsState: Record<string, TranslationEditorState>
   onTranslationsStateChange: (state: Record<string, TranslationEditorState>) => void
   defaultSubject: string
+  senderName?: string
+  senderEmail?: string
   defaultSubjectPreview: string
   defaultVisualEditorTree: EmailBlock
   defaultMjmlSource: string
@@ -41,6 +43,8 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
   translationsState,
   onTranslationsStateChange,
   defaultSubject,
+  senderName,
+  senderEmail,
   defaultSubjectPreview,
   defaultVisualEditorTree,
   defaultMjmlSource,
@@ -115,6 +119,8 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
           workspace_id: workspace.id,
           message_id: 'preview',
           visual_editor_tree: tree,
+          subject: editorDrawerLang ? translationsState[editorDrawerLang]?.subject : undefined,
+          subject_preview: editorDrawerLang ? translationsState[editorDrawerLang]?.subjectPreview : undefined,
           test_data: builderTestData || {},
           channel: 'email',
           tracking_settings: {
@@ -131,7 +137,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
             errors: [response.error as unknown as Record<string, unknown>]
           }
         }
-        return { html: response.html || '', mjml: response.mjml || '', errors: [] }
+        return { html: response.html || '', mjml: response.mjml || '', errors: [], subject: response.subject, subject_preview: response.subject_preview }
       } catch (error) {
         const err = error as Error
         return {
@@ -141,7 +147,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
         }
       }
     },
-    [workspace.id, workspace.settings?.email_tracking_enabled, workspace.settings?.custom_endpoint_url]
+    [workspace.id, workspace.settings?.email_tracking_enabled, workspace.settings?.custom_endpoint_url, editorDrawerLang, translationsState]
   )
 
   const handleCompileCode = useCallback(
@@ -151,6 +157,8 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
           workspace_id: workspace.id,
           message_id: 'preview',
           mjml_source: mjml,
+          subject: editorDrawerLang ? translationsState[editorDrawerLang]?.subject : undefined,
+          subject_preview: editorDrawerLang ? translationsState[editorDrawerLang]?.subjectPreview : undefined,
           test_data: codeTestData || {},
           channel: 'email',
           tracking_settings: {
@@ -163,7 +171,9 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
         return {
           html: response.html || '',
           mjml: response.mjml || '',
-          error: response.error
+          error: response.error,
+          subject: response.subject,
+          subject_preview: response.subject_preview
         }
       } catch (error) {
         const err = error as Error
@@ -177,7 +187,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
         }
       }
     },
-    [workspace.id, workspace.settings?.email_tracking_enabled, workspace.settings?.custom_endpoint_url]
+    [workspace.id, workspace.settings?.email_tracking_enabled, workspace.settings?.custom_endpoint_url, editorDrawerLang, translationsState]
   )
 
   const activeLangState = editorDrawerLang ? translationsState[editorDrawerLang] : null
@@ -207,7 +217,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
             >
               {enabled && langState ? (
                 <Row gutter={24}>
-                  <Col span={12}>
+                  <Col xs={24} lg={12}>
                     <div className="mb-4">
                       <label className="block text-sm font-medium mb-1">{t`Subject`}</label>
                       <Input
@@ -266,10 +276,10 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
                       </Dropdown>
                     </Space.Compact>
                   </Col>
-                  <Col span={12}>
-                    <div className="flex justify-center" style={{ transform: 'scale(0.8)', transformOrigin: 'top center', height: 208 }}>
+                  <Col xs={24} lg={12}>
+                    <div className="flex justify-center">
                       <IphoneEmailPreview
-                        sender={t`Sender Name`}
+                        sender={senderName || t`Sender Name`}
                         subject={langState.subject || t`Email Subject`}
                         previewText={langState.subjectPreview || t`Preview text will appear here...`}
                         timestamp={t`Now`}
@@ -301,6 +311,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
         >
           {editorMode === 'code' ? (
             <MjmlCodeEditor
+              emailPreview={{ senderName, senderEmail, subject: activeLangState.subject, previewText: activeLangState.subjectPreview }}
               mjmlSource={activeLangState.mjmlSource || ''}
               onMjmlSourceChange={(source) =>
                 updateLangState(editorDrawerLang, { mjmlSource: source })
@@ -313,6 +324,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
             />
           ) : (
             <EmailBuilder
+              emailPreview={{ senderName, senderEmail, subject: activeLangState.subject, previewText: activeLangState.subjectPreview }}
               tree={activeLangState.visualEditorTree || defaultVisualEditorTree}
               onTreeChange={(tree) =>
                 updateLangState(editorDrawerLang, { visualEditorTree: tree })

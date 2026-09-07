@@ -37,6 +37,16 @@ function renderPanel(onUpdate = vi.fn(async () => undefined), canWrite = true) {
 }
 
 describe('CustomerProfilePanel', () => {
+  it('keeps an unsaved attribute available after a failed save', async () => {
+    const onUpdate = vi.fn().mockRejectedValue(new Error('temporary failure'))
+    renderPanel(onUpdate)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit tier' }))
+    fireEvent.change(screen.getByDisplayValue('gold'), { target: { value: 'platinum' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save tier' }))
+    await waitFor(() => expect(onUpdate).toHaveBeenCalled())
+    expect(screen.getByDisplayValue('platinum')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save tier' })).toBeEnabled()
+  })
   it('renders profile attribute names and values side by side', () => {
     renderPanel()
 

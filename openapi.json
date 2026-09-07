@@ -824,6 +824,64 @@
         }
       }
     },
+    "/api/audiences.matchCustomer": {
+      "post": {
+        "summary": "Evaluate a customer against the current active audience definition",
+        "description": "Performs a live read-only evaluation from current customer facts. It does not create or activate an audience build.",
+        "operationId": "matchAudienceCustomer",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "audience_id",
+                  "customer_id"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "audience_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "customer_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Live audience match result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudienceCustomerMatch"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid audience or customer"
+          },
+          "403": {
+            "description": "Audience or customer facts are not readable by the caller"
+          }
+        }
+      }
+    },
     "/api/audiences.build": {
       "post": {
         "summary": "Materialize an audience version",
@@ -12827,7 +12885,9 @@
           "id",
           "name",
           "kind",
-          "active_version"
+          "active_version",
+          "created_at",
+          "updated_at"
         ],
         "properties": {
           "id": {
@@ -12855,6 +12915,48 @@
           "active_build_id": {
             "type": "string",
             "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AudienceCustomerMatch": {
+        "type": "object",
+        "required": [
+          "audience_id",
+          "name",
+          "kind",
+          "audience_version",
+          "matches"
+        ],
+        "properties": {
+          "audience_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "static",
+              "dynamic",
+              "composite"
+            ]
+          },
+          "audience_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "matches": {
+            "type": "boolean"
           }
         }
       },

@@ -1,14 +1,17 @@
-import type { ChannelTemplateContent } from '../../../services/api/template'
+import { Bell } from 'lucide-react'
+import { DeviceFrame } from '../../preview'
+import MessageContent from './MessageContent'
+import type { ChatPreviewProps } from './PhoneChatPreview'
 
-const NotificationPreview: React.FC<{ brand: string; content: ChannelTemplateContent; direction: 'ltr' | 'rtl' }> = ({ brand, content, direction }) => (
-  <div className="mx-auto min-h-72 w-full max-w-[390px] rounded-[32px] border-[10px] border-neutral-900 bg-gradient-to-b from-sky-200 to-slate-100 p-4 shadow-xl">
-    <div className="mt-10 rounded-2xl bg-white/95 p-4 shadow">
-      <small className="text-slate-500">{brand}</small>
-      {content.title && <strong className="mt-1 block break-words">{content.title}</strong>}
-      {content.body && <p dir={direction} className="mt-1 whitespace-pre-wrap break-words">{content.body}</p>}
+const NotificationPreview: React.FC<ChatPreviewProps & { inApp?: boolean }> = ({ brand, content, direction, device = 'ios', inApp = false }) => (
+  <DeviceFrame device={device} title={brand} appearance={inApp ? 'app' : 'notification'}>
+    <div className={inApp ? 'material-in-app' : undefined}>
+    <div className="material-notification">
+      <div className="material-notification__heading"><span className="material-notification__icon"><Bell size={14} aria-hidden="true" /></span><span className="material-notification__brand">{brand}</span><span>09:41</span></div>
+      <MessageContent content={content} direction={direction} />
     </div>
-  </div>
+    </div>
+  </DeviceFrame>
 )
 
 export default NotificationPreview
-

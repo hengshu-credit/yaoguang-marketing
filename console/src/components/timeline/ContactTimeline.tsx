@@ -36,6 +36,12 @@ import { WebPageDrawer } from './WebPageDrawer'
 
 const { Text } = Typography
 
+function timelineValue(value: unknown): string {
+  if (value === null || value === undefined) return '—'
+  if (typeof value === 'object' || value === '') return JSON.stringify(value)
+  return String(value)
+}
+
 interface ContactTimelineProps {
   entries: ContactTimelineEntry[]
   loading?: boolean
@@ -123,6 +129,8 @@ export function ContactTimeline({
     const entityType = entry.entity_type
     switch (entityType) {
       case 'contact':
+      case 'contact_profile':
+      case 'contact_tag':
         return faUser
       case 'contact_list':
         return faFolderOpen
@@ -275,6 +283,9 @@ export function ContactTimeline({
 
   // Render contact list subscription message based on status
   const renderContactListMessage = (entry: ContactTimelineEntry) => {
+    // Historical soft deletions use operation=update but already carry the
+    // semantic list.removed kind. Do not render these as undefined status changes.
+    const operation = entry.kind === 'list.removed' ? 'delete' : entry.operation
     const statusChange = entry.changes?.status
     const listId = entry.entity_id || t`Unknown List`
 
@@ -286,7 +297,7 @@ export function ContactTimeline({
 
     // Use entity_data if available to get list name
     const entityData = entry.entity_data as ContactListEntityData | undefined
-    const listName = entityData?.name
+    const listName = webChange<string>(entry, 'list_name') || entityData?.name
     const listDisplay = listName ? (
       <Tooltip title={t`ID: ${listId}`}>
         <span>
@@ -303,9 +314,9 @@ export function ContactTimeline({
       update: t`status changed`,
       delete: t`removed`
     }
-    const actionLabel = subscriptionActionMap[entry.operation] || entry.operation
+    const actionLabel = subscriptionActionMap[operation] || operation
 
-    if (entry.operation === 'insert') {
+    if (operation === 'insert') {
       return (
         <div>
           {renderEventHeader(entry, t`Subscription`, actionLabel)}
@@ -318,7 +329,7 @@ export function ContactTimeline({
           </div>
         </div>
       )
-    } else if (entry.operation === 'update') {
+    } else if (operation === 'update') {
       return (
         <div>
           {renderEventHeader(entry, t`Subscription`, actionLabel)}
@@ -344,7 +355,7 @@ export function ContactTimeline({
           </div>
         </div>
       )
-    } else if (entry.operation === 'delete') {
+    } else if (operation === 'delete') {
       return (
         <div>
           {renderEventHeader(entry, t`Subscription`, actionLabel)}
@@ -445,6 +456,30 @@ export function ContactTimeline({
   // Render entity-specific details based on entity type
   const renderEntityDetails = (entry: ContactTimelineEntry) => {
     switch (entry.entity_type) {
+      case 'contact_profile':
+      case 'contact_endpoint': {
+        const rows = Object.entries(entry.changes || {}).flatMap(([key, value]) => {
+          if (key === 'version') return []
+          if (key === 'attributes' && value && typeof value === 'object' && !('old' in value) && !('new' in value)) {
+            return Object.entries(value).map(([attribute, change]) => [`attributes.${attribute}`, change] as const)
+          }
+          return [[key, value] as const]
+        })
+        return <div>
+          {renderEventHeader(entry, t`Customer attributes`, entry.operation === 'insert' ? t`created` : t`updated`)}
+          {rows.map(([key, change]) => <div key={key} className="text-sm break-words">
+            <Text type="secondary">{key}: </Text>
+            {change && typeof change === 'object' && ('old' in change || 'new' in change)
+              ? <><Text type="secondary">{timelineValue('old' in change ? change.old : null)}</Text> → <Text>{timelineValue('new' in change ? change.new : null)}</Text></>
+              : timelineValue(change)}
+          </div>)}
+        </div>
+      }
+      case 'contact_tag':
+        return <div>
+          {renderEventHeader(entry, t`Tags`, entry.kind === 'contact.untagged' ? t`removed` : t`added`)}
+          <Tag>{entry.entity_id || webChange<string>(entry, 'tag')}</Tag>
+        </div>
       case 'contact': {
         // Map operations to action labels
         const contactActionMap: Record<string, string> = {
@@ -479,9 +514,9 @@ export function ContactTimeline({
                           <Text type="secondary" className="font-mono text-xs">
                             {key}:
                           </Text>{' '}
-                          <Text type="secondary">{String(oldVal)}</Text>
+                          <Text type="secondary">{timelineValue(oldVal)}</Text>
                           <Text type="secondary"> → </Text>
-                          <Text>{String(newVal)}</Text>
+                          <Text>{timelineValue(newVal)}</Text>
                         </div>
                       )
                     } else {

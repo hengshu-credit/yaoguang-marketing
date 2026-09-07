@@ -61,7 +61,7 @@ const OmnichannelFields: React.FC<OmnichannelFieldsProps> = ({ definition, famil
   }
 
   return <>
-    {family !== 'text' && <Form.Item label={t`Title`} name={path('title')} rules={family === 'notification' ? [{ required: true }] : undefined}>
+    {family !== 'text' && <Form.Item label={t`Title`} name={path('title')} rules={required && family === 'notification' ? [{ required: true }] : undefined}>
       <Input maxLength={titleLimit} />
     </Form.Item>}
     <Form.Item label={t`Message`} name={path('body')} rules={required ? [{ required: true }] : undefined}>

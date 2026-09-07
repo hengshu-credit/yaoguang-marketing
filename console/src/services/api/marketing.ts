@@ -21,6 +21,8 @@ export interface Audience {
   active_version: number
   active_build_id?: string
   definition?: AudienceExpression
+  created_at?: string
+  updated_at?: string
 }
 
 export interface AudienceBuild {

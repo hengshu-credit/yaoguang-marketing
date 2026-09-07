@@ -9,6 +9,7 @@ interface CustomerProfilePanelProps {
   canWrite: boolean
   saving: boolean
   onUpdate: (patch: CustomerUpdatePatch) => Promise<void>
+  embedded?: boolean
 }
 
 function EditableRow({
@@ -37,14 +38,19 @@ function EditableRow({
       <div className={horizontal ? 'grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-start gap-3 py-2' : 'py-2'}>
         <Typography.Text type="secondary" className={horizontal ? 'min-w-0 pt-2 text-left text-xs' : 'block text-xs'}>{label}</Typography.Text>
         <Space.Compact className={horizontal ? 'col-span-2 w-full' : 'mt-1 w-full'}>
-          <Input value={draft} onChange={(event) => setDraft(event.target.value)} autoFocus />
+          <Input value={draft} onChange={(event) => setDraft(event.target.value)} disabled={saving || !canWrite} autoFocus />
           <Button
             aria-label={t`Save ${label}`}
             icon={<CheckOutlined />}
             loading={saving}
+            disabled={!canWrite}
             onClick={async () => {
-              await onSave(draft.trim())
-              setEditing(false)
+              try {
+                await onSave(draft.trim())
+                setEditing(false)
+              } catch {
+                // The mutation reports the error; keep the draft available for retry.
+              }
             }}
           />
           <Button aria-label={t`Cancel`} icon={<CloseOutlined />} onClick={() => setEditing(false)} />
@@ -97,7 +103,7 @@ function parseAttributeValue(raw: string): unknown {
   }
 }
 
-export function CustomerProfilePanel({ customer, canWrite, saving, onUpdate }: CustomerProfilePanelProps) {
+export function CustomerProfilePanel({ customer, canWrite, saving, onUpdate, embedded = false }: CustomerProfilePanelProps) {
   const { t } = useLingui()
   const [editingTags, setEditingTags] = useState(false)
   const [tags, setTags] = useState<string[]>(customer.tags ?? [])
@@ -110,8 +116,8 @@ export function CustomerProfilePanel({ customer, canWrite, saving, onUpdate }: C
   const primaryIdentity = identityGroups.find((identity) => identity.primary) ?? identityGroups[0]
 
   return (
-    <aside data-testid="customer-profile-panel" className="h-full bg-slate-50 p-5 md:w-[380px] md:min-w-[380px] md:overflow-y-auto">
-      <div className="mb-5">
+    <aside data-testid="customer-profile-panel" className={embedded ? 'p-3' : 'h-full bg-slate-50 p-5 md:w-[380px] md:min-w-[380px] md:overflow-y-auto'}>
+      {embedded ? <Typography.Title level={5}>{t`Customer attributes`}</Typography.Title> : <div className="mb-5">
         <Space align="start" size="middle">
           <Avatar size={52} icon={<UserOutlined />} className="bg-blue-600" />
           <div className="min-w-0">
@@ -124,24 +130,31 @@ export function CustomerProfilePanel({ customer, canWrite, saving, onUpdate }: C
           <Tag color={customer.profile?.status === 'active' ? 'green' : 'default'}>{customer.profile?.status || t`No status`}</Tag>
           <Typography.Text type="secondary">v{customer.version}</Typography.Text>
         </Space>
-      </div>
+      </div>}
 
-      <EditableRow label={t`External user ID`} value={customer.external_user_id} canWrite={canWrite} saving={saving} onSave={(value) => onUpdate({ external_user_id: value })} />
-      <EditableRow label={t`Status`} value={customer.profile?.status} canWrite={canWrite} saving={saving} onSave={(value) => onUpdate({ profile: { status: value } })} />
-      <EditableRow label={t`Language`} value={customer.profile?.language} canWrite={canWrite} saving={saving} onSave={(value) => onUpdate({ profile: { language: value } })} />
-      <EditableRow label={t`Timezone`} value={customer.profile?.timezone} canWrite={canWrite} saving={saving} onSave={(value) => onUpdate({ profile: { timezone: value } })} />
+      {!embedded && <EditableRow label={t`External user ID`} value={customer.external_user_id} canWrite={canWrite} saving={saving} onSave={(value) => onUpdate({ external_user_id: value })} />}
+      <EditableRow label={t`Status`} value={customer.profile?.status} canWrite={canWrite} saving={saving} horizontal={embedded} onSave={(value) => onUpdate({ profile: { status: value } })} />
+      {!embedded && <EditableRow label={t`Language`} value={customer.profile?.language} canWrite={canWrite} saving={saving} onSave={(value) => onUpdate({ profile: { language: value } })} />}
+      {!embedded && <EditableRow label={t`Timezone`} value={customer.profile?.timezone} canWrite={canWrite} saving={saving} onSave={(value) => onUpdate({ profile: { timezone: value } })} />}
 
       <Divider className="my-4" />
       <div className="mb-4">
         <div className="mb-2 flex items-center justify-between">
           <Typography.Text strong>{t`Tags`}</Typography.Text>
-          {canWrite && !editingTags ? <Button type="text" size="small" icon={<EditOutlined />} aria-label={t`Edit tags`} onClick={() => setEditingTags(true)} /> : null}
+          {canWrite && !editingTags ? <Button type="text" size="small" icon={<EditOutlined />} aria-label={t`Edit tags`} onClick={() => { setTags(customer.tags ?? []); setEditingTags(true) }} /> : null}
         </div>
         {editingTags ? (
           <Space orientation="vertical" className="w-full">
             <Select mode="tags" value={tags} onChange={setTags} tokenSeparators={[',']} className="w-full" open={false} />
             <Space>
-              <Button size="small" type="primary" loading={saving} onClick={async () => { await onUpdate({ tags }); setEditingTags(false) }}>{t`Save`}</Button>
+              <Button size="small" type="primary" disabled={!canWrite} loading={saving} onClick={async () => {
+                try {
+                  await onUpdate({ tags })
+                  setEditingTags(false)
+                } catch {
+                  // Keep unsaved tags when the mutation reports a failure.
+                }
+              }}>{t`Save`}</Button>
               <Button size="small" onClick={() => { setTags(customer.tags ?? []); setEditingTags(false) }}>{t`Cancel`}</Button>
             </Space>
           </Space>
@@ -172,13 +185,23 @@ export function CustomerProfilePanel({ customer, canWrite, saving, onUpdate }: C
             <Input placeholder={t`Attribute name`} value={attributeKey} onChange={(event) => setAttributeKey(event.target.value)} />
             <Input.TextArea placeholder={t`Value (text or JSON)`} value={attributeValue} onChange={(event) => setAttributeValue(event.target.value)} autoSize />
             <Space>
-              <Button size="small" type="primary" disabled={!attributeKey.trim()} loading={saving} onClick={async () => { await onUpdate({ profile: { attributes: { merge: { [attributeKey.trim()]: parseAttributeValue(attributeValue) } } } }); setAttributeKey(''); setAttributeValue(''); setAddingAttribute(false) }}>{t`Add`}</Button>
+              <Button size="small" type="primary" disabled={!canWrite || !attributeKey.trim()} loading={saving} onClick={async () => {
+                try {
+                  await onUpdate({ profile: { attributes: { merge: { [attributeKey.trim()]: parseAttributeValue(attributeValue) } } } })
+                  setAttributeKey('')
+                  setAttributeValue('')
+                  setAddingAttribute(false)
+                } catch {
+                  // Keep the attribute name and value for correction or retry.
+                }
+              }}>{t`Add`}</Button>
               <Button size="small" onClick={() => setAddingAttribute(false)}>{t`Cancel`}</Button>
             </Space>
           </Space>
         ) : null}
       </div>
 
+      {!embedded && <>
       <Divider className="my-4" />
       <Typography.Text strong>{t`Identity aliases`}</Typography.Text>
       <div className="mt-2">
@@ -200,6 +223,7 @@ export function CustomerProfilePanel({ customer, canWrite, saving, onUpdate }: C
           <Typography.Text type="secondary">{t`Updated`}: {customer.updated_at}</Typography.Text>
         </Space>
       }]} />
+      </>}
     </aside>
   )
 }

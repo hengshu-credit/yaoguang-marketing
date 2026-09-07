@@ -9,7 +9,6 @@ import { CreateWorkspacePage } from './pages/CreateWorkspacePage'
 import { DashboardPage } from './pages/DashboardPage'
 import { WorkspaceSettingsPage } from './pages/WorkspaceSettingsPage'
 import { ContactsPage } from './pages/ContactsPage'
-import { CustomersPage } from './pages/CustomersPage'
 import { AudiencesPage } from './pages/AudiencesPage'
 import { AudienceMembersPage } from './pages/AudienceMembersPage'
 import { FileManagerPage } from './pages/FileManagerPage'
@@ -268,7 +267,15 @@ const workspaceAudienceMembersRoute = createRoute({
 export const workspaceCustomersRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: '/customers',
-  component: CustomersPage
+  validateSearch: workspaceContactsRoute.options.validateSearch,
+  beforeLoad: ({ params, search }) => {
+    throw redirect({
+      to: '/console/workspace/$workspaceId/contacts',
+      params,
+      search,
+      replace: true
+    })
+  }
 })
 
 // eslint-disable-next-line react-refresh/only-export-components -- Internal redirect component

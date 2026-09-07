@@ -96,7 +96,7 @@ func (r *ContactTimelineRepository) list(ctx context.Context, workspaceID string
 				)
 				WHEN ct.entity_type = 'contact_list' THEN json_build_object(
 					'id', l.id,
-					'name', l.name,
+					'name', COALESCE(ct.changes->'list_name'->>'new', l.name),
 					'status', cl.status
 				)
 				WHEN ct.entity_type = 'message_history' THEN json_build_object(
@@ -140,7 +140,7 @@ func (r *ContactTimelineRepository) list(ctx context.Context, workspaceID string
 		LEFT JOIN contact_lists cl ON ct.entity_type = 'contact_list' AND ct.entity_id = cl.list_id AND (
 			(ct.customer_id IS NOT NULL AND ct.customer_id = cl.customer_id) OR
 			(ct.customer_id IS NULL AND ct.email = cl.email))
-		LEFT JOIN lists l ON cl.list_id = l.id
+		LEFT JOIN lists l ON ct.entity_type = 'contact_list' AND ct.entity_id = l.id
 		LEFT JOIN message_history mh ON ct.entity_type = 'message_history' AND ct.entity_id = mh.id
 		LEFT JOIN templates t_mh ON ct.entity_type = 'message_history' AND mh.template_id = t_mh.id AND mh.template_version = t_mh.version
 		LEFT JOIN inbound_webhook_events we ON ct.entity_type = 'inbound_webhook_event' AND (ct.entity_id = we.message_id OR ct.entity_id = we.id::text)

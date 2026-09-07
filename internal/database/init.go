@@ -1091,6 +1091,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		schema.JourneyAutomationEnrollContactFunction(),
 	}
 
+	triggerQueries = append(triggerQueries, schema.CustomerActivityTimelineDefinitions()...)
 	for _, query := range triggerQueries {
 		if _, err := db.Exec(query); err != nil {
 			return fmt.Errorf("failed to create workspace triggers: %w", err)

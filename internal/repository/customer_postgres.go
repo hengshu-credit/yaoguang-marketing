@@ -1049,11 +1049,12 @@ func replaceCustomerTags(ctx context.Context, tx *sql.Tx, customerID string, tag
 	if tags == nil {
 		return nil
 	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM customer_tags WHERE customer_id = $1`, customerID); err != nil {
+	targetTags := append([]string{}, (*tags)...)
+	if _, err := tx.ExecContext(ctx, `DELETE FROM customer_tags WHERE customer_id = $1 AND NOT (tag = ANY($2::text[]))`, customerID, pq.Array(targetTags)); err != nil {
 		return fmt.Errorf("replace customer tags: %w", err)
 	}
 	for _, tag := range *tags {
-		if _, err := tx.ExecContext(ctx, `INSERT INTO customer_tags (customer_id, tag, created_at) VALUES ($1, $2, $3)`, customerID, tag, now); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO customer_tags (customer_id, tag, created_at) VALUES ($1, $2, $3) ON CONFLICT (customer_id, tag) DO NOTHING`, customerID, tag, now); err != nil {
 			return fmt.Errorf("insert customer tag: %w", err)
 		}
 	}
@@ -1094,7 +1095,11 @@ func syncCustomerListProjection(ctx context.Context, tx *sql.Tx, customerID stri
 	if memberships == nil {
 		return nil
 	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM contact_lists WHERE customer_id = $1`, customerID); err != nil {
+	listIDs := make([]string, 0, len(*memberships))
+	for _, membership := range *memberships {
+		listIDs = append(listIDs, membership.ListID)
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM contact_lists WHERE customer_id = $1 AND NOT (list_id = ANY($2::text[]))`, customerID, pq.Array(listIDs)); err != nil {
 		return fmt.Errorf("replace customer contact-list projection: %w", err)
 	}
 	if len(*memberships) == 0 {
@@ -1110,7 +1115,11 @@ func syncCustomerListProjection(ctx context.Context, tx *sql.Tx, customerID stri
 	for _, membership := range *memberships {
 		if _, err := tx.ExecContext(ctx, `INSERT INTO contact_lists (
 			email, list_id, status, created_at, updated_at, deleted_at, customer_id
-		) VALUES ($1, $2, $3, $4, $4, NULL, $5)`, email, membership.ListID, membership.Status, now, customerID); err != nil {
+		) VALUES ($1, $2, $3, $4, $4, NULL, $5)
+		ON CONFLICT (email, list_id) DO UPDATE SET status = EXCLUDED.status,
+			deleted_at = NULL, updated_at = EXCLUDED.updated_at, customer_id = EXCLUDED.customer_id
+		WHERE contact_lists.status IS DISTINCT FROM EXCLUDED.status
+			OR contact_lists.deleted_at IS NOT NULL OR contact_lists.customer_id IS DISTINCT FROM EXCLUDED.customer_id`, email, membership.ListID, membership.Status, now, customerID); err != nil {
 			return fmt.Errorf("insert customer contact-list projection: %w", err)
 		}
 	}

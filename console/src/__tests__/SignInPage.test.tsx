@@ -80,8 +80,8 @@ describe('SignInPage', () => {
     renderWithProviders(<SignInPage />)
 
     expect(screen.getByRole('img', { name: '衡枢真信' })).toBeInTheDocument()
-    expect(screen.getByText('瑶光营销平台')).toBeInTheDocument()
-    expect(screen.getByText('观心知意，循光达客')).toBeInTheDocument()
+    expect(screen.getByText('Alkaid Marketing Platform')).toBeInTheDocument()
+    expect(screen.getByText('Understanding Intent. Reaching Customers')).toBeInTheDocument()
   })
 
   it('submits email and shows code input form', async () => {

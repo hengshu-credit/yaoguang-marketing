@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { I18nProvider } from '@lingui/react'
@@ -144,6 +144,11 @@ describe('WorkspaceLayout workspace catalog scope', () => {
 
 describe('WorkspaceLayout console font scope', () => {
   beforeEach(() => {
+    window.sessionStorage.clear()
+    window.sessionStorage.setItem(
+      'yaoguang:workspace-sidebar',
+      JSON.stringify({ width: 250, lastExpandedWidth: 250 })
+    )
     i18n.activate('en')
     signInAsRoot()
   })
@@ -203,8 +208,8 @@ describe('WorkspaceLayout product navigation', () => {
     render(<WorkspaceLayout />)
 
     expect(screen.getByRole('img', { name: '衡枢真信' })).toBeInTheDocument()
-    expect(screen.getByText('瑶光营销平台')).toBeInTheDocument()
-    expect(screen.getByText('观心知意，循光达客')).toBeInTheDocument()
+    expect(screen.getByText('Alkaid Marketing Platform')).toBeInTheDocument()
+    expect(screen.getByText('Understanding Intent. Reaching Customers')).toBeInTheDocument()
   })
 
   it('renders the eight merged flat first-level entries without a duplicate dashboard', async () => {
@@ -241,6 +246,12 @@ describe('WorkspaceLayout product navigation', () => {
   })
 
   const selectedLabel = () => document.querySelector('.ant-menu-item-selected')?.textContent ?? null
+
+  it('uses contacts as the customer management destination', async () => {
+    render(<WorkspaceLayout />)
+    const entry = await screen.findByText('Customers')
+    expect(entry.closest('a')).toHaveAttribute('data-to', '/console/workspace/$workspaceId/contacts')
+  })
 
   it.each([
     ['', 'Data Analytics'],
@@ -289,6 +300,73 @@ describe('WorkspaceLayout product navigation', () => {
 
     await userEvent.click(screen.getByTestId('workspace-mobile-nav-mask'))
     expect(document.querySelector('.workspace-sider')).toHaveClass('ant-layout-sider-collapsed')
+  })
+
+  it('keeps the sidebar, header and content aligned while the right border is dragged', () => {
+    render(<WorkspaceLayout />)
+
+    const resizer = screen.getByRole('separator', { name: 'Resize sidebar' })
+    const sider = document.querySelector('.workspace-sider') as HTMLElement
+    const header = document.querySelector('.workspace-header') as HTMLElement
+    const pageLayout = document.querySelector('.workspace-main-layout') as HTMLElement
+    const menuLink = screen.getByText('Data Analytics').closest('a') as HTMLAnchorElement
+    const clickSpy = vi.fn()
+    menuLink.addEventListener('click', clickSpy)
+    const startWidth = Number.parseInt(sider.style.width, 10)
+
+    fireEvent.mouseDown(resizer, { button: 0, clientX: startWidth })
+    expect(screen.getByTestId('workspace-sidebar-resize-shield')).toBeInTheDocument()
+    fireEvent.mouseMove(window, { clientX: 300 })
+
+    expect(sider.style.width).toBe('300px')
+    expect(header.style.width).toBe('calc(100% - 300px)')
+    expect(pageLayout.style.marginLeft).toBe('300px')
+
+    fireEvent.mouseUp(window, { clientX: 300 })
+    expect(screen.queryByTestId('workspace-sidebar-resize-shield')).not.toBeInTheDocument()
+    fireEvent.click(menuLink)
+    expect(clickSpy).not.toHaveBeenCalled()
+    expect(JSON.parse(window.sessionStorage.getItem('yaoguang:workspace-sidebar') || '{}')).toEqual({
+      width: 300,
+      lastExpandedWidth: 300
+    })
+  })
+
+  it('shows only icons and the logo below the compact-width threshold', async () => {
+    render(<WorkspaceLayout />)
+
+    const resizer = screen.getByRole('separator', { name: 'Resize sidebar' })
+    const sider = document.querySelector('.workspace-sider') as HTMLElement
+    const startWidth = Number.parseInt(sider.style.width, 10)
+    fireEvent.mouseDown(resizer, { button: 0, clientX: startWidth })
+    fireEvent.mouseMove(window, { clientX: 120 })
+
+    await waitFor(() => {
+      expect(document.querySelector('.workspace-sider')).toHaveClass('ant-layout-sider-collapsed')
+      expect(document.querySelector('.workspace-sider-nav .ant-menu')).toHaveClass(
+        'ant-menu-inline-collapsed'
+      )
+      expect(screen.queryByText('Alkaid Marketing Platform')).not.toBeInTheDocument()
+    })
+    expect(screen.getByRole('img', { name: '衡枢真信' })).toBeInTheDocument()
+
+    fireEvent.mouseUp(window, { clientX: 120 })
+  })
+
+  it('supports keyboard resizing on the sidebar separator', async () => {
+    render(<WorkspaceLayout />)
+
+    const resizer = screen.getByRole('separator', { name: 'Resize sidebar' })
+    const sider = document.querySelector('.workspace-sider') as HTMLElement
+    const header = document.querySelector('.workspace-header') as HTMLElement
+
+    fireEvent.keyDown(resizer, { key: 'End' })
+    expect(sider.style.width).toBe('320px')
+    expect(header.style.width).toBe('calc(100% - 320px)')
+
+    fireEvent.keyDown(resizer, { key: 'Home' })
+    await waitFor(() => expect(sider).toHaveClass('ant-layout-sider-collapsed'))
+    expect(sider.style.width).toBe('64px')
   })
 
   it('uses the content fallback route when the member cannot read templates', async () => {

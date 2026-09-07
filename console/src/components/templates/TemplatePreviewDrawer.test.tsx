@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TemplatePreviewDrawer from './TemplatePreviewDrawer'
 import { templatesApi } from '../../services/api/template'
@@ -11,6 +11,43 @@ vi.mock('./EmailClientFrame', () => ({
 }))
 
 describe('TemplatePreviewDrawer', () => {
+  const workspace = {
+    id: 'workspace-1', name: 'Workspace',
+    settings: { timezone: 'UTC', email_tracking_enabled: false, default_language: 'en', languages: ['en'] },
+    created_at: '', updated_at: ''
+  } satisfies Workspace
+
+  it('previews saved Web HTML without sending it to the email compiler', async () => {
+    const compile = vi.spyOn(templatesApi, 'compile')
+    render(<TemplatePreviewDrawer record={{ id: 'web', name: 'Landing page', channel: 'web', version: 1, category: 'marketing', web: { html: '<h1>Web offer</h1>' }, created_at: '', updated_at: '' }} workspace={workspace}>
+      <button>Open Web preview</button>
+    </TemplatePreviewDrawer>)
+    await userEvent.click(screen.getByRole('button', { name: 'Open Web preview' }))
+    expect(await screen.findByTestId('email-preview')).toHaveTextContent('<h1>Web offer</h1>')
+    expect(compile).not.toHaveBeenCalled()
+  })
+
+  it('ignores an in-flight platform response after closing and reopening the preview', async () => {
+    let resolveOld!: (value: Awaited<ReturnType<typeof templatesApi.preview>>) => void
+    const oldPreview = new Promise<Awaited<ReturnType<typeof templatesApi.preview>>>((resolve) => { resolveOld = resolve })
+    const response = (title: string) => ({ channel: 'push' as const, resolved_language: 'en', fallback_used: false, push: { title, body: 'Body', platform: 'android' as const, payload_bytes: 90, warnings: [] } })
+    const preview = vi.spyOn(templatesApi, 'preview').mockResolvedValueOnce(response('Initial Android')).mockImplementationOnce(() => oldPreview).mockResolvedValueOnce(response('Current preview'))
+    render(<TemplatePreviewDrawer record={{ id: 'push', name: 'Push', channel: 'push', version: 1, category: 'marketing', push: { title: 'Draft', body: 'Body' }, created_at: '', updated_at: '' }} workspace={workspace}>
+      <button>Open push preview</button>
+    </TemplatePreviewDrawer>)
+    await userEvent.click(screen.getByRole('button', { name: 'Open push preview' }))
+    expect(await screen.findByText('Initial Android')).toBeVisible()
+    await userEvent.click(screen.getByRole('button', { name: 'iOS' }))
+    await waitFor(() => expect(preview).toHaveBeenCalledTimes(2))
+    // Closing while the request is in flight must invalidate it; reopening renders a new request.
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Open push preview' }))
+    expect(await screen.findByText('Current preview')).toBeVisible()
+    await act(async () => resolveOld(response('Stale response')))
+    expect(screen.queryByText('Stale response')).not.toBeInTheDocument()
+    expect(screen.getByText('Current preview')).toBeVisible()
+  })
+
   it('compiles a visual email template without requiring generic channel content', async () => {
     const visualEditorTree = {
       id: 'root',

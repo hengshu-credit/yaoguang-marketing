@@ -19,7 +19,8 @@ import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { BrandLockup } from '../components/BrandLockup'
 import { Workspace, UserPermissions } from '../services/api/types'
 import { ContactsCsvUploadProvider } from '../components/contacts/ContactsCsvUploadProvider'
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from 'react'
 import { FileManagerProvider } from '../components/file_manager/context'
 import { FileManagerSettings } from '../components/file_manager/interfaces'
 import { workspaceService } from '../services/api/workspace'
@@ -27,6 +28,15 @@ import { clearWorkspaceCatalog, setWorkspaceCatalog } from '../i18n/workspaceCat
 import { createEmptyPermissions, createFullPermissions } from '../services/api/permissions'
 import { isRootUser } from '../services/api/auth'
 import { applyConsoleFont } from '../lib/consoleFont'
+import {
+  SIDEBAR_COMPACT_THRESHOLD,
+  SIDEBAR_MAX_WIDTH,
+  SIDEBAR_MIN_WIDTH,
+  readSidebarState,
+  resizeSidebarState,
+  toggleSidebarState,
+  writeSidebarState
+} from './sidebarSizing'
 import {
   BarChartOutlined,
   FileTextOutlined,
@@ -42,6 +52,14 @@ import {
 } from '@ant-design/icons'
 
 const { Content, Sider, Header } = Layout
+
+function browserSessionStorage(): Storage | null {
+  try {
+    return window.sessionStorage
+  } catch {
+    return null
+  }
+}
 
 // Helper function to generate Gravatar URL from email
 const getGravatarUrl = (email: string | undefined, size: number = 32): string => {
@@ -61,8 +79,68 @@ export function WorkspaceLayout() {
   const narrow = viewportWidth < 768
   const compactHeader = viewportWidth < 1024
   const [collapsed, setCollapsed] = useState(() => window.innerWidth < 768)
+  const [sidebarState, setSidebarState] = useState(() =>
+    readSidebarState(browserSessionStorage())
+  )
+  const sidebarStateRef = useRef(sidebarState)
+  const resizeStartRef = useRef<{ clientX: number; width: number } | null>(null)
+  const suppressResizeClickRef = useRef(false)
+  const clearResizeClickTimerRef = useRef<number | null>(null)
+  const [resizingSidebar, setResizingSidebar] = useState(false)
   const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null)
   const [loadingPermissions, setLoadingPermissions] = useState(true)
+
+  const desktopCompact = sidebarState.width < SIDEBAR_COMPACT_THRESHOLD
+  const sidebarCompact = narrow ? collapsed : desktopCompact
+  const sidebarWidth = narrow
+    ? Math.max(SIDEBAR_COMPACT_THRESHOLD, sidebarState.lastExpandedWidth)
+    : sidebarState.width
+
+  const applySidebarWidth = useCallback((width: number) => {
+    const next = resizeSidebarState(sidebarStateRef.current, width)
+    sidebarStateRef.current = next
+    setSidebarState(next)
+    return next
+  }, [])
+
+  const persistSidebarState = useCallback((state = sidebarStateRef.current) => {
+    writeSidebarState(browserSessionStorage(), state)
+  }, [])
+
+  const handleSidebarResizeStart = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    if (narrow || event.button !== 0) return
+    event.preventDefault()
+    event.stopPropagation()
+    suppressResizeClickRef.current = false
+    if (clearResizeClickTimerRef.current !== null) {
+      window.clearTimeout(clearResizeClickTimerRef.current)
+      clearResizeClickTimerRef.current = null
+    }
+    resizeStartRef.current = { clientX: event.clientX, width: sidebarState.width }
+    setResizingSidebar(true)
+  }
+
+  const handleSidebarResizeKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
+    let nextWidth: number | null = null
+    if (event.key === 'ArrowLeft') nextWidth = sidebarState.width - 8
+    if (event.key === 'ArrowRight') nextWidth = sidebarState.width + 8
+    if (event.key === 'Home') nextWidth = SIDEBAR_MIN_WIDTH
+    if (event.key === 'End') nextWidth = SIDEBAR_MAX_WIDTH
+    if (nextWidth === null) return
+    event.preventDefault()
+    persistSidebarState(applySidebarWidth(nextWidth))
+  }
+
+  const handleSidebarToggle = () => {
+    if (narrow) {
+      setCollapsed(!collapsed)
+      return
+    }
+    const next = toggleSidebarState(sidebarStateRef.current)
+    sidebarStateRef.current = next
+    setSidebarState(next)
+    persistSidebarState(next)
+  }
 
   // Use useMatches to determine the current route path
   const matches = useMatches()
@@ -79,6 +157,62 @@ export function WorkspaceLayout() {
     window.addEventListener('resize', updateViewport)
     return () => window.removeEventListener('resize', updateViewport)
   }, [])
+
+  useEffect(() => {
+    const suppressClickAfterResize = (event: MouseEvent) => {
+      if (!suppressResizeClickRef.current) return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      suppressResizeClickRef.current = false
+    }
+
+    window.addEventListener('click', suppressClickAfterResize, true)
+    return () => {
+      window.removeEventListener('click', suppressClickAfterResize, true)
+      if (clearResizeClickTimerRef.current !== null) {
+        window.clearTimeout(clearResizeClickTimerRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!resizingSidebar) return
+    const start = resizeStartRef.current
+    if (!start) return
+
+    const previousCursor = document.body.style.cursor
+    const previousUserSelect = document.body.style.userSelect
+    document.body.style.cursor = 'ew-resize'
+    document.body.style.userSelect = 'none'
+
+    const widthAt = (clientX: number) => start.width + clientX - start.clientX
+    const handleMouseMove = (event: MouseEvent) => {
+      if (Math.abs(event.clientX - start.clientX) >= 3) {
+        suppressResizeClickRef.current = true
+      }
+      applySidebarWidth(widthAt(event.clientX))
+    }
+    const finishResize = (event: MouseEvent) => {
+      persistSidebarState(applySidebarWidth(widthAt(event.clientX)))
+      setResizingSidebar(false)
+      if (suppressResizeClickRef.current) {
+        clearResizeClickTimerRef.current = window.setTimeout(() => {
+          suppressResizeClickRef.current = false
+          clearResizeClickTimerRef.current = null
+        }, 0)
+      }
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', finishResize)
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', finishResize)
+      document.body.style.cursor = previousCursor
+      document.body.style.userSelect = previousUserSelect
+      resizeStartRef.current = null
+    }
+  }, [applySidebarWidth, persistSidebarState, resizingSidebar])
 
   useEffect(() => {
     if (narrow) setCollapsed(true)
@@ -250,11 +384,7 @@ export function WorkspaceLayout() {
       icon: <TeamOutlined />,
       label: (
         <Link
-          to={
-            hasAccess('customers')
-              ? '/console/workspace/$workspaceId/customers'
-              : '/console/workspace/$workspaceId/contacts'
-          }
+          to="/console/workspace/$workspaceId/contacts"
           params={{ workspaceId }}
         >
           {t`Customers`}
@@ -341,12 +471,13 @@ export function WorkspaceLayout() {
               className="workspace-mobile-nav-mask"
               data-testid="workspace-mobile-nav-mask"
               aria-label={t`Collapse`}
+              style={{ left: sidebarWidth }}
               onClick={() => setCollapsed(true)}
             />
           )}
           <Sider
-            width={250}
-            collapsedWidth={narrow ? 0 : 80}
+            width={sidebarWidth}
+            collapsedWidth={narrow ? 0 : sidebarState.width}
             theme="light"
             style={{
               position: 'fixed',
@@ -355,27 +486,31 @@ export function WorkspaceLayout() {
               top: 0,
               // The nav inside owns the scrolling; the panel must not also
               // scroll, or the logo and the collapse button travel with it.
-              overflow: 'hidden',
+              overflow: 'visible',
               zIndex: 12,
-              backgroundColor: '#F9F9F9'
+              backgroundColor: '#F9F9F9',
+              transition: resizingSidebar ? 'none' : undefined
             }}
             collapsible
-            collapsed={collapsed}
+            collapsed={sidebarCompact}
             trigger={null}
-            className="workspace-sider border-r border-gray-200"
+            className={`workspace-sider border-r border-gray-200${
+              resizingSidebar ? ' workspace-sider--resizing' : ''
+            }`}
           >
             <div
               style={{
                 flex: '0 0 auto',
-                padding: collapsed ? '14px 0' : '12px 16px',
+                padding: sidebarCompact ? '14px 0' : '12px 16px',
                 borderBottom: '1px solid #f0f0f0'
               }}
             >
-              <BrandLockup compact={collapsed} style={{ justifyContent: 'center' }} />
+              <BrandLockup compact={sidebarCompact} style={{ justifyContent: 'center' }} />
             </div>
             <div className="workspace-sider-nav">
               <Menu
                 mode="inline"
+                inlineCollapsed={sidebarCompact}
                 selectedKeys={[selectedKey]}
                 style={{
                   borderRight: 0,
@@ -393,39 +528,63 @@ export function WorkspaceLayout() {
             <div
               style={{
                 flex: '0 0 auto',
-                padding: '16px',
+                padding: sidebarCompact ? '8px 10px' : '16px',
                 borderTop: '1px solid #f0f0f0',
                 backgroundColor: '#F9F9F9'
               }}
             >
-              <div
-                style={{
-                  textAlign: 'center',
-                  fontSize: '9px',
-                  color: '#000',
-                  opacity: 0.7,
-                  marginBottom: '8px'
-                }}
-              >
-                v{window.VERSION || '1.0'}
-              </div>
+              {!sidebarCompact && (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    fontSize: '9px',
+                    color: '#000',
+                    opacity: 0.7,
+                    marginBottom: '8px'
+                  }}
+                >
+                  v{window.VERSION || '1.0'}
+                </div>
+              )}
               <Button
                 type="text"
                 block
-                icon={<FontAwesomeIcon icon={collapsed ? faAngleRight : faAngleLeft} />}
-                onClick={() => setCollapsed(!collapsed)}
+                aria-label={sidebarCompact ? t`Expand` : t`Collapse`}
+                icon={<FontAwesomeIcon icon={sidebarCompact ? faAngleRight : faAngleLeft} />}
+                onClick={handleSidebarToggle}
               >
-                {!collapsed && t`Collapse`}
+                {!sidebarCompact && t`Collapse`}
               </Button>
             </div>
+            {!narrow && (
+              <button
+                type="button"
+                className="workspace-sider-resizer"
+                role="separator"
+                aria-label={t`Resize sidebar`}
+                aria-orientation="vertical"
+                aria-valuemin={SIDEBAR_MIN_WIDTH}
+                aria-valuemax={SIDEBAR_MAX_WIDTH}
+                aria-valuenow={sidebarState.width}
+                onMouseDown={handleSidebarResizeStart}
+                onKeyDown={handleSidebarResizeKeyDown}
+              />
+            )}
           </Sider>
+          {resizingSidebar && (
+            <div
+              className="workspace-sidebar-resize-shield"
+              data-testid="workspace-sidebar-resize-shield"
+              aria-hidden="true"
+            />
+          )}
           <Header
             className="workspace-header"
             style={{
               position: 'fixed',
               top: 0,
               right: 0,
-              width: narrow ? '100%' : `calc(100% - ${collapsed ? '80px' : '250px'})`,
+              width: narrow ? '100%' : `calc(100% - ${sidebarState.width}px)`,
               height: '64px',
               backgroundColor: '#F9F9F9',
               borderBottom: '1px solid #f0f0f0',
@@ -434,7 +593,7 @@ export function WorkspaceLayout() {
               alignItems: 'center',
               justifyContent: 'space-between',
               zIndex: 10,
-              transition: 'width 0.2s'
+              transition: resizingSidebar ? 'none' : 'width 0.2s'
             }}
           >
             <Space size="small" style={{ minWidth: 0 }}>
@@ -569,10 +728,10 @@ export function WorkspaceLayout() {
           <Layout
             className="workspace-main-layout"
             style={{
-              marginLeft: narrow ? '0px' : collapsed ? '80px' : '250px',
+              marginLeft: narrow ? '0px' : `${sidebarState.width}px`,
               marginTop: '64px',
               padding: isSettingsPage ? '0' : narrow ? '16px' : '24px',
-              transition: 'margin-left 0.2s',
+              transition: resizingSidebar ? 'none' : 'margin-left 0.2s',
               backgroundColor: '#F9F9F9',
               minWidth: 0
             }}

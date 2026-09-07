@@ -31,6 +31,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ListStats } from '../components/lists/ListStats'
 import { useLingui } from '@lingui/react/macro'
 import { WorkspacePageTitle } from '../components/navigation/WorkspacePageTitle'
+import dayjs from '../lib/dayjs'
 
 const { Title, Paragraph, Text } = Typography
 
@@ -257,6 +258,12 @@ export function ListsPage() {
                 <Descriptions.Item label={t`ID`}>{list.id}</Descriptions.Item>
 
                 <Descriptions.Item label={t`Description`}>{list.description}</Descriptions.Item>
+                <Descriptions.Item label={t`Created At`}>
+                  {dayjs(list.created_at).tz(workspace.settings.timezone || 'UTC').format('YYYY-MM-DD HH:mm')}
+                </Descriptions.Item>
+                <Descriptions.Item label={t`Updated At`}>
+                  {dayjs(list.updated_at).tz(workspace.settings.timezone || 'UTC').format('YYYY-MM-DD HH:mm')}
+                </Descriptions.Item>
                 <Descriptions.Item label={t`Visibility`}>
                   {list.is_public ? (
                     <Tag variant="filled" color="green">

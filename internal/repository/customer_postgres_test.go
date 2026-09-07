@@ -709,7 +709,7 @@ func TestCustomerRepositoryUpsertAtomicallyUpdatesProfileIdentityTagsListsAndCon
 	mock.ExpectExec(`INSERT INTO customer_identities`).
 		WithArgs(sqlmock.AnyArg(), customerID, "email", EncryptedString("alice@example.com", "secret"), sqlmock.AnyArg(), "a***@example.com", true, true, true, JSONEqual(`{"source":"crm"}`), now).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectExec(`DELETE FROM customer_tags`).WithArgs(customerID).WillReturnResult(sqlmock.NewResult(0, 2))
+	mock.ExpectExec(`DELETE FROM customer_tags`).WithArgs(customerID, sqlmock.AnyArg()).WillReturnResult(sqlmock.NewResult(0, 2))
 	mock.ExpectExec(`INSERT INTO customer_tags`).WithArgs(customerID, "vip", now).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`DELETE FROM customer_list_memberships`).WithArgs(customerID).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`INSERT INTO customer_list_memberships`).
@@ -720,7 +720,7 @@ func TestCustomerRepositoryUpsertAtomicallyUpdatesProfileIdentityTagsListsAndCon
 	mock.ExpectExec(`INSERT INTO contacts \(.*first_name.*custom_json_5`).
 		WithArgs("alice@example.com", "crm-new", "Asia/Shanghai", "zh-CN", customerID, now, now, JSONEqual(`{"a":1,"nested":{"keep":1,"new":3}}`)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectExec(`DELETE FROM contact_lists WHERE customer_id`).WithArgs(customerID).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(`DELETE FROM contact_lists WHERE customer_id`).WithArgs(customerID, sqlmock.AnyArg()).WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectQuery(`SELECT email FROM contacts WHERE customer_id`).WithArgs(customerID).
 		WillReturnRows(sqlmock.NewRows([]string{"email"}).AddRow("alice@example.com"))
 	mock.ExpectExec(`INSERT INTO contact_lists`).WithArgs("alice@example.com", "list1", "active", now, customerID).

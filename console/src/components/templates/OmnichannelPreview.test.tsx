@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { ChannelDefinition } from '../../services/api/channels'
@@ -25,6 +25,44 @@ const preview: GenericChannelPreview = {
 }
 
 describe('OmnichannelPreview', () => {
+  it('renders In-App content inside an app rather than a lock screen notification', () => {
+    const { container } = render(<OmnichannelPreview definition={{ ...definition, id: 'in_app', label_key: 'In-App' }} preview={{ ...preview, profile: 'in_app_web' }} onProfileChange={vi.fn()} />)
+    expect(container.querySelector('.material-in-app')).toBeInTheDocument()
+    expect(container.querySelector('.material-device--notification')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Shop now' })).toBeVisible()
+  })
+  it.each([
+    ['whatsapp_ios', 'ios'], ['whatsapp_android', 'android'], ['whatsapp_web', 'desktop'],
+    ['wecom_mobile', 'ios'], ['wecom_desktop', 'desktop'],
+    ['in_app_android', 'android'], ['in_app_web', 'desktop'], ['ios_lock_screen', 'ios']
+  ])('uses the appropriate single device for %s', (profile, device) => {
+    const { container } = render(<OmnichannelPreview definition={definition} preview={{ ...preview, profile }} onProfileChange={vi.fn()} />)
+    expect(container.querySelectorAll('[data-preview-device]')).toHaveLength(1)
+    expect(container.querySelector('[data-preview-device]')).toHaveAttribute('data-preview-device', device)
+    expect(screen.getByText('Member offer')).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Shop now' })).toBeVisible()
+  })
+
+  it('keeps text and actions available after media fails, and retries a changed URL', () => {
+    const { rerender } = render(<OmnichannelPreview definition={definition} preview={preview} onProfileChange={vi.fn()} />)
+    fireEvent.error(screen.getByRole('img', { name: 'Offer' }))
+    expect(screen.getByText('Image unavailable')).toBeVisible()
+    expect(screen.getByText('Save 20% today')).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Shop now' })).toBeVisible()
+    rerender(<OmnichannelPreview definition={definition} preview={{ ...preview, message: { ...preview.message, media: { type: 'image', url: 'https://cdn.example/new.png', alt_text: 'New offer' } } }} onProfileChange={vi.fn()} />)
+    expect(screen.getByRole('img', { name: 'New offer' })).toBeVisible()
+    expect(screen.queryByText('Image unavailable')).not.toBeInTheDocument()
+  })
+
+  it('renders every carousel card with its own action', () => {
+    render(<OmnichannelPreview definition={definition} preview={{ ...preview, message: { family: 'carousel', cards: [
+      { title: 'First offer', body: 'First benefit', actions: [{ type: 'url', label: 'First link', value: 'https://example.com/1' }] },
+      { title: 'Second offer', body: 'Second benefit', actions: [{ type: 'url', label: 'Second link', value: 'https://example.com/2' }] }
+    ] } }} onProfileChange={vi.fn()} />)
+    expect(screen.getByText('First offer')).toBeVisible()
+    expect(screen.getByText('Second offer')).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Second link' })).toHaveAttribute('href', 'https://example.com/2')
+  })
   it('renders structured content as a simulated client surface', () => {
     render(<OmnichannelPreview definition={definition} preview={preview} onProfileChange={vi.fn()} />)
     expect(screen.getByText(/Simulated preview/i)).toBeVisible()
@@ -65,4 +103,3 @@ describe('OmnichannelPreview', () => {
     expect(screen.getByText(/X-Yaoguang-Signature/i)).toBeVisible()
   })
 })
-

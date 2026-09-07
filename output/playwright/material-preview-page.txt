@@ -1,0 +1,197 @@
+### Page
+- Page URL: http://127.0.0.1:8081/console/workspace/preview-review/templates
+- Page Title: 瑶光营销平台
+### Snapshot
+```yaml
+- generic [ref=f12e5]:
+  - complementary [ref=f12e6]:
+    - generic [ref=f12e7]:
+      - generic "瑶光营销平台, 观心知意，循光达客" [ref=f12e9]:
+        - img "衡枢真信" [ref=f12e10]
+        - generic [ref=f12e11]:
+          - generic [ref=f12e12]: 瑶光营销平台
+          - generic [ref=f12e13]: 观心知意，循光达客
+      - menu [ref=f12e15]:
+        - menuitem [ref=f12e16] [cursor=pointer]:
+          - img "bar-chart" [ref=f12e17]
+          - link "数据分析" [ref=f12e21]:
+            - /url: /console/workspace/preview-review/analytics
+        - menuitem [ref=f12e22] [cursor=pointer]:
+          - img "team" [ref=f12e23]
+          - link "客户管理" [ref=f12e27]:
+            - /url: /console/workspace/preview-review/contacts
+        - menuitem [ref=f12e28] [cursor=pointer]:
+          - img "usergroup-add" [ref=f12e29]
+          - link "客群划分" [ref=f12e33]:
+            - /url: /console/workspace/preview-review/audiences
+        - menuitem [ref=f12e34] [cursor=pointer]:
+          - img "rocket" [ref=f12e35]
+          - link "营销活动" [ref=f12e39]:
+            - /url: /console/workspace/preview-review/broadcasts
+        - menuitem [ref=f12e40] [cursor=pointer]:
+          - img "thunderbolt" [ref=f12e41]
+          - link "营销自动化" [ref=f12e45]:
+            - /url: /console/workspace/preview-review/automations
+        - menuitem [ref=f12e46] [cursor=pointer]:
+          - img "file-text" [ref=f12e47]
+          - link "素材模板" [ref=f12e51]:
+            - /url: /console/workspace/preview-review/templates
+        - menuitem [ref=f12e52] [cursor=pointer]:
+          - img "send" [ref=f12e53]
+          - link "投递中心" [ref=f12e57]:
+            - /url: /console/workspace/preview-review/deliveries
+        - menuitem [ref=f12e58] [cursor=pointer]:
+          - img "setting" [ref=f12e59]
+          - link "设置" [ref=f12e63]:
+            - /url: /console/workspace/preview-review/settings
+      - generic [ref=f12e64]:
+        - generic [ref=f12e65]: v1.0
+        - button "折叠" [ref=f12e66] [cursor=pointer]
+      - separator "调整侧边栏宽度" [ref=f12e71]
+  - banner [ref=f12e72]:
+    - generic [ref=f12e75] [cursor=pointer]:
+      - generic [ref=f12e76]:
+        - generic [ref=f12e77]: 瑶光素材预览验收
+        - combobox [ref=f12e79]
+      - img "down" [ref=f12e81]
+    - generic [ref=f12e84]:
+      - button "帮助" [ref=f12e86] [cursor=pointer]
+      - button "ZH-CN" [ref=f12e92] [cursor=pointer]
+      - button "preview@example.com down" [ref=f12e95] [cursor=pointer]:
+        - generic [ref=f12e96]:
+          - generic [ref=f12e100]: preview@example.com
+          - img "down" [ref=f12e102]
+  - main [ref=f12e106]:
+    - generic [ref=f12e107]:
+      - generic [ref=f12e108]:
+        - heading "模板" [level=1] [ref=f12e109]
+        - generic [ref=f12e110]:
+          - button "setting 管理分类" [ref=f12e112] [cursor=pointer]:
+            - img "setting" [ref=f12e114]
+            - generic [ref=f12e117]: 管理分类
+          - button "创建模板" [ref=f12e120] [cursor=pointer]
+      - navigation "素材模板" [ref=f12e122]:
+        - generic [ref=f12e123]:
+          - tablist [ref=f12e124]:
+            - generic [ref=f12e126]:
+              - tab [selected] [ref=f12e128] [cursor=pointer]:
+                - link "模板管理" [ref=f12e129]:
+                  - /url: /console/workspace/preview-review/templates
+              - tab [ref=f12e131] [cursor=pointer]:
+                - link "文章管理" [ref=f12e132]:
+                  - /url: /console/workspace/preview-review/blog
+              - tab [ref=f12e134] [cursor=pointer]:
+                - link "文件管理" [ref=f12e135]:
+                  - /url: /console/workspace/preview-review/file-manager
+          - generic:
+            - generic:
+              - tabpanel "模板管理"
+      - generic [ref=f12e136]:
+        - generic [ref=f12e137] [cursor=pointer]:
+          - generic "全部" [ref=f12e138]:
+            - text: 全部
+            - combobox [ref=f12e139]
+          - img "down" [ref=f12e141]
+        - generic [ref=f12e144]:
+          - searchbox "按名称搜索" [ref=f12e146]
+          - button [ref=f12e148] [cursor=pointer]:
+            - img "search" [ref=f12e150]
+      - table [ref=f12e159]:
+        - rowgroup [ref=f12e160]:
+          - row [ref=f12e161]:
+            - columnheader "模板" [ref=f12e162]
+            - columnheader "分类" [ref=f12e163]
+            - columnheader "发件人" [ref=f12e164]
+            - columnheader "内容" [ref=f12e165]
+            - columnheader "已创建" [ref=f12e166]
+            - columnheader [ref=f12e167]
+        - rowgroup [ref=f12e168]:
+          - row [ref=f12e169]:
+            - cell "会员专属礼遇 · 推送 PUSH" [ref=f12e170]:
+              - generic [ref=f12e171]:
+                - strong [ref=f12e174]: 会员专属礼遇 · 推送
+                - generic [ref=f12e175]: PUSH
+            - cell "营销" [ref=f12e177]
+            - cell "设备通知" [ref=f12e179]
+            - cell "您的专属礼遇已到账 林女士，秋日会员活动已开启。 即日起至 9 月 30 日，领取您的专属权益，让每一份期待都有回应。" [ref=f12e180]:
+              - generic [ref=f12e181]:
+                - generic [ref=f12e182]: 您的专属礼遇已到账
+                - generic [ref=f12e183]: 林女士，秋日会员活动已开启。 即日起至 9 月 30 日，领取您的专属权益，让每一份期待都有回应。
+            - cell "Sep 6, 2026" [ref=f12e185]
+            - cell [ref=f12e186]:
+              - generic [ref=f12e187]:
+                - button [ref=f12e190] [cursor=pointer]
+                - button [ref=f12e195] [cursor=pointer]
+                - button [ref=f12e199] [cursor=pointer]
+                - button [ref=f12e206] [cursor=pointer]
+          - row [ref=f12e210]:
+            - cell "会员专属礼遇 · 短信 SMS" [ref=f12e211]:
+              - generic [ref=f12e212]:
+                - strong [ref=f12e215]: 会员专属礼遇 · 短信
+                - generic [ref=f12e216]: SMS
+            - cell "营销" [ref=f12e218]
+            - cell "瑶光会员服务" [ref=f12e220]
+            - cell "【瑶光】林女士，您的会员专属优惠已到账！9月30日前前往活动页即可领取，感谢您一直以来的信任与陪伴。退订回复T。" [ref=f12e221]
+            - cell "Sep 6, 2026" [ref=f12e224]
+            - cell [ref=f12e225]:
+              - generic [ref=f12e226]:
+                - button [ref=f12e229] [cursor=pointer]
+                - button [ref=f12e234] [cursor=pointer]
+                - button [ref=f12e238] [cursor=pointer]
+                - button [ref=f12e245] [cursor=pointer]
+          - row [ref=f12e249]:
+            - cell "会员专属礼遇 · 邮件 EMAIL 代码" [ref=f12e250]:
+              - generic [ref=f12e251]:
+                - strong [ref=f12e254]: 会员专属礼遇 · 邮件
+                - generic [ref=f12e255]: EMAIL
+                - generic [ref=f12e257]: 代码
+            - cell "营销" [ref=f12e259]
+            - cell "默认" [ref=f12e261]
+            - cell "秋日会员礼遇 · 专属优惠已到账 打开查看您的专属礼遇" [ref=f12e263]:
+              - generic [ref=f12e264]:
+                - generic [ref=f12e265]: 秋日会员礼遇 · 专属优惠已到账
+                - generic [ref=f12e266]: 打开查看您的专属礼遇
+            - cell "Sep 6, 2026" [ref=f12e268]
+            - cell [ref=f12e269]:
+              - generic [ref=f12e270]:
+                - button [ref=f12e273] [cursor=pointer]
+                - button [ref=f12e278] [cursor=pointer]
+                - button [ref=f12e282] [cursor=pointer]
+                - button [ref=f12e287] [cursor=pointer]
+                - button [ref=f12e294] [cursor=pointer]
+          - row [ref=f12e298]:
+            - cell "会员专属礼遇 · H5 WEB" [ref=f12e299]:
+              - generic [ref=f12e300]:
+                - strong [ref=f12e303]: 会员专属礼遇 · H5
+                - generic [ref=f12e304]: WEB
+            - cell "营销" [ref=f12e306]
+            - cell "默认" [ref=f12e308]
+            - cell [ref=f12e310]
+            - cell "Sep 6, 2026" [ref=f12e312]
+            - cell [ref=f12e313]:
+              - generic [ref=f12e314]:
+                - button [ref=f12e317] [cursor=pointer]
+                - button [ref=f12e322] [cursor=pointer]
+                - button [ref=f12e326] [cursor=pointer]
+                - button [ref=f12e333] [cursor=pointer]
+          - row [ref=f12e337]:
+            - cell "会员专属礼遇 · WhatsApp WHATSAPP" [ref=f12e338]:
+              - generic [ref=f12e339]:
+                - strong [ref=f12e342]: 会员专属礼遇 · WhatsApp
+                - generic [ref=f12e343]: WHATSAPP
+            - cell "营销" [ref=f12e345]
+            - cell "签名 Webhook" [ref=f12e347]
+            - cell "秋日会员礼遇 林女士，您的专属优惠已到账。 前往活动页面即可领取，感谢您的信任与陪伴。" [ref=f12e349]:
+              - generic [ref=f12e350]:
+                - generic [ref=f12e351]: 秋日会员礼遇
+                - generic [ref=f12e352]: 林女士，您的专属优惠已到账。 前往活动页面即可领取，感谢您的信任与陪伴。
+            - cell "Sep 6, 2026" [ref=f12e354]
+            - cell [ref=f12e355]:
+              - generic [ref=f12e356]:
+                - button [ref=f12e359] [cursor=pointer]
+                - button [ref=f12e364] [cursor=pointer]
+                - button [ref=f12e368] [cursor=pointer]
+                - button [ref=f12e375] [cursor=pointer]
+```
+### Events
+- New console entries: .playwright-cli\console-2026-09-06T07-47-03-406Z.log#L3-L89

@@ -7,12 +7,14 @@ import { Highlight, themes } from 'prism-react-renderer'
 import { Editor } from '@monaco-editor/react'
 import { faDesktop, faMobileAlt } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { EmailPreview, type EmailPreviewMetadata } from '../../preview'
 
 interface PreviewProps {
   html: string
   mjml: string
   errors?: Array<Record<string, unknown>>
   testData?: Record<string, unknown>
+  emailPreview?: EmailPreviewMetadata
   onTestDataChange: (testData: Record<string, unknown>) => void
   mobileDesktopSwitcherRef?: React.RefObject<HTMLDivElement>
 }
@@ -27,7 +29,7 @@ export interface PreviewRef {
 }
 
 export const Preview = forwardRef<PreviewRef, PreviewProps>(
-  ({ html, mjml, errors, testData, onTestDataChange, mobileDesktopSwitcherRef }, ref) => {
+  ({ html, mjml, errors, testData, onTestDataChange, mobileDesktopSwitcherRef, emailPreview }, ref) => {
     const { t } = useLingui()
     const { message } = App.useApp()
     const [mobileView, setMobileView] = useState(true)
@@ -416,60 +418,20 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
             </div>
           </Splitter.Panel>
           <Splitter.Panel>
-            {/* Right Panel - Preview */}
-            <div
-              className="flex flex-col relative h-full"
-              style={{
-                background:
-                  'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAACqADAAQAAAABAAAACgAAAAA7eLj1AAAAK0lEQVQYGWP8DwQMaODZs2doIgwMTBgiOAQGUCELNodLSUlhuHQA3Ui01QDcPgnEE5wAOwAAAABJRU5ErkJggg==")'
-              }}
-            >
-              {/* Floating Mobile/Desktop Switcher */}
-              <div className="absolute top-4 right-4 z-10">
-                {/* Mobile/Desktop Switcher */}
-                <div ref={mobileDesktopSwitcherRef}>
-                  <Segmented
-                    value={mobileView ? 'mobile' : 'desktop'}
-                    onChange={(value) => setMobileView(value === 'mobile')}
-                    options={[
-                      {
-                        label: (
-                          <Tooltip title={t`Mobile view (400px)`}>
-                            <FontAwesomeIcon icon={faMobileAlt} />
-                          </Tooltip>
-                        ),
-                        value: 'mobile'
-                      },
-                      {
-                        label: (
-                          <Tooltip title={t`Desktop view (100%)`}>
-                            <FontAwesomeIcon icon={faDesktop} />
-                          </Tooltip>
-                        ),
-                        value: 'desktop'
-                      }
-                    ]}
-                    size="small"
-                  />
-                </div>
-              </div>
-              <div
-                className="flex-1"
-                style={{
-                  width: mobileView ? '400px' : '100%',
-                  margin: mobileView ? '20px auto' : '0'
-                }}
-              >
-                <iframe
-                  srcDoc={html}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    border: 'none'
-                  }}
-                  title={t`Email Preview`}
+            {/* Shared material preview; keep the tour anchor on the device controls. */}
+            <div className="h-full overflow-auto p-3">
+              <div ref={mobileDesktopSwitcherRef} className="mb-3 flex justify-end">
+                <Segmented
+                  value={mobileView ? 'mobile' : 'desktop'}
+                  onChange={(value) => setMobileView(value === 'mobile')}
+                  options={[
+                    { label: <Tooltip title={t`Mobile view (400px)`}><FontAwesomeIcon icon={faMobileAlt} /></Tooltip>, value: 'mobile' },
+                    { label: <Tooltip title={t`Desktop view (100%)`}><FontAwesomeIcon icon={faDesktop} /></Tooltip>, value: 'desktop' }
+                  ]}
+                  size="small"
                 />
               </div>
+              <EmailPreview html={html} title={t`Email Preview`} device={mobileView ? 'ios' : 'desktop'} email={emailPreview} />
             </div>
           </Splitter.Panel>
         </Splitter>

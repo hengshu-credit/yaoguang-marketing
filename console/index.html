@@ -13,51 +13,111 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Alkaid Marketing Platform</title>
   <style>
+    html,
+    body,
+    #root {
+      min-height: 100%;
+    }
+
     body {
       margin: 0;
     }
 
     .preload-splash {
+      --preload-accent: #7763f1;
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
       min-height: 100vh;
-      /* background: linear-gradient(to right, #512DA8, #673AB7); */
-      padding-bottom: 64px;
+      min-height: 100dvh;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .preload-splash-brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: clamp(22px, 3vh, 30px);
+      width: clamp(112px, 10vw, 136px);
     }
 
     .preload-splash-logo {
       display: block;
-      margin: 0 auto;
-      padding: 64px 0;
-      width: 150px;
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: contain;
+      flex: 0 0 auto;
     }
 
     .preload-splash-content {
-      text-align: center;
+      position: relative;
+      flex: 0 0 auto;
+      width: 52px;
+      height: 52px;
     }
 
-    .preload-icon {
-      display: inline-block;
-      color: inherit;
-      font-style: normal;
-      line-height: 0;
-      text-align: center;
-      text-transform: none;
-      vertical-align: -0.125em;
-      text-rendering: optimizeLegibility;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      font-size: 60px;
+    .loader2 {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 5px;
+      height: 5px;
+      background: var(--preload-accent);
+      border-radius: 50%;
+      box-shadow: 0 0 12px rgb(119 99 241 / 28%);
+      transform: translate(-50%, -50%);
     }
 
-    .preload-icon-spin {
-      display: inline-block;
-      -webkit-animation: loadingCircle 1s infinite linear;
-      animation: loadingCircle 1s infinite linear;
+    .loader2::before,
+    .loader2::after {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      content: '';
+      background: rgb(119 99 241 / 8%);
+      -webkit-animation: loader2 1.35s linear infinite;
+      animation: loader2 1.35s linear infinite;
     }
 
-    @keyframes loadingCircle {
-      100% {
+    .loader2::before {
+      top: -22px;
+      left: 2px;
+      border-top: 2px solid var(--preload-accent);
+      border-right: 2px solid var(--preload-accent);
+      border-radius: 0 28px 0 0;
+      -webkit-transform-origin: 0 100%;
+      transform-origin: 0 100%;
+    }
+
+    .loader2::after {
+      top: 2px;
+      right: 2px;
+      border-bottom: 2px solid var(--preload-accent);
+      border-left: 2px solid var(--preload-accent);
+      border-radius: 0 0 0 28px;
+      -webkit-transform-origin: 100% 0;
+      transform-origin: 100% 0;
+    }
+
+    @-webkit-keyframes loader2 {
+      to {
         -webkit-transform: rotate(360deg);
+      }
+    }
+
+    @keyframes loader2 {
+      to {
         transform: rotate(360deg);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .loader2::before,
+      .loader2::after {
+        -webkit-animation: none;
+        animation: none;
       }
     }
   </style>
@@ -70,16 +130,11 @@
 <body>
   <div id="root">
     <div class="preload-splash">
-      <img src="/images/hengshucredit_animated.svg" alt="衡枢真信" class="preload-splash-logo">
-
-      <div class="preload-splash-content">
-        <i aria-label="icon: loading" class="preload-icon preload-icon-loading"><svg viewBox="0 0 1024 1024"
-            class="preload-icon-spin" data-icon="loading" width="1em" height="1em" fill="#000000" aria-hidden="true"
-            focusable="false">
-            <path
-              d="M988 548c-19.9 0-36-16.1-36-36 0-59.4-11.6-117-34.6-171.3a440.45 440.45 0 0 0-94.3-139.9 437.71 437.71 0 0 0-139.9-94.3C629 83.6 571.4 72 512 72c-19.9 0-36-16.1-36-36s16.1-36 36-36c69.1 0 136.2 13.5 199.3 40.3C772.3 66 827 103 874 150c47 47 83.9 101.8 109.7 162.7 26.7 63.1 40.2 130.2 40.2 199.3.1 19.9-16 36-35.9 36z">
-            </path>
-          </svg></i>
+      <div class="preload-splash-brand">
+        <img src="/images/hengshucredit_animated.svg" alt="衡枢真信" class="preload-splash-logo">
+        <div class="preload-splash-content" role="status" aria-label="正在加载" aria-live="polite">
+          <div class="loader2" aria-hidden="true"></div>
+        </div>
       </div>
     </div>
   </div>

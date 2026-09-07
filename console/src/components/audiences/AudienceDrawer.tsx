@@ -78,7 +78,7 @@ export function AudienceDrawer({
       .then((item) => {
         if (!active) return
         if (!item.definition?.condition) {
-          throw new Error(t`The active audience version has no editable condition tree`)
+          throw new Error(t`The audience has no editable condition tree`)
         }
         setName(item.name)
         setDescription(item.description ?? '')
@@ -186,7 +186,7 @@ export function AudienceDrawer({
         showIcon
         className="mb-4"
         title={t`This page stores filter logic, not a live member list`}
-        description={t`Marketing runs select the latest audience when execution starts, freeze the candidates, and check every customer again immediately before each message.`}
+        description={t`The matching customers update automatically as customer data changes. Marketing runs freeze their candidates when execution starts and check every customer again immediately before each message.`}
       />
       <Spin spinning={loadingAudience}>
       <Form layout="vertical">

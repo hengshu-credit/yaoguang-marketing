@@ -7,10 +7,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { i18n } from '../../i18n'
 import { CustomerImportPanel } from './CustomerImportPanel'
 
-const { listLists, listImports, uploadImport } = vi.hoisted(() => ({
+const { listLists, listImports, uploadImport, getImport } = vi.hoisted(() => ({
   listLists: vi.fn(),
   listImports: vi.fn(),
-  uploadImport: vi.fn()
+  uploadImport: vi.fn(),
+  getImport: vi.fn()
 }))
 
 vi.mock('../../services/api/list', () => ({
@@ -21,7 +22,7 @@ vi.mock('../../services/api/marketing', () => ({
   importJobApi: {
     list: listImports,
     upload: uploadImport,
-    get: vi.fn(),
+    get: getImport,
     cancel: vi.fn(),
     downloadErrors: vi.fn()
   }
@@ -49,6 +50,7 @@ describe('CustomerImportPanel', () => {
       list_ids: [],
       counters: { total: 1, pending: 1, processing: 0, succeeded: 0, failed: 0 }
     })
+    getImport.mockImplementation(() => uploadImport())
   })
 
   it('still imports customers without list binding when lists cannot be loaded', async () => {
@@ -78,5 +80,26 @@ describe('CustomerImportPanel', () => {
     const fileInput = container.querySelector<HTMLInputElement>('input[type="file"]')
     expect(fileInput).not.toBeNull()
     expect(fileInput).not.toBeDisabled()
+  })
+
+  it('disables uploads and hides cancellation for read-only users', async () => {
+    listLists.mockResolvedValue({ lists: [] })
+    const job = { id: 'job-2', filename: 'pending.csv', status: 'processing', counters: { total: 1, pending: 0, processing: 1, succeeded: 0, failed: 0 } }
+    listImports.mockResolvedValue({ items: [job] })
+    getImport.mockResolvedValue(job)
+    const { container } = render(<CustomerImportPanel workspaceId="ws1" canWrite={false} />, { wrapper })
+    fireEvent.click(await screen.findByRole('button', { name: 'View' }))
+    await screen.findByText('Process')
+    expect(container.querySelector('input[type="file"]')).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Cancel import' })).not.toBeInTheDocument()
+  })
+
+  it('refreshes contacts and their count after an import completes', async () => {
+    listImports.mockResolvedValue({ items: [{ id: 'done-1', filename: 'done.csv', status: 'completed', counters: { total: 1, succeeded: 1, failed: 0 } }] })
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const invalidate = vi.spyOn(client, 'invalidateQueries')
+    render(<QueryClientProvider client={client}><App><CustomerImportPanel workspaceId="ws1" canWrite canBindLists={false} /></App></QueryClientProvider>)
+    await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['contacts', 'ws1'] }))
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['total-contacts', 'ws1'] })
   })
 })

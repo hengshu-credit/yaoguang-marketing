@@ -1,33 +1,35 @@
 import { useState } from 'react'
 import { useLingui } from '@lingui/react/macro'
+import { EmailPreview, HtmlPreview, PreviewToolbar, type PreviewDevice, type EmailPreviewMetadata } from '../preview'
+import { webPreviewDocument } from './webTemplateContent'
 
 interface EmailClientFrameProps {
   html: string
   title: string
+  web?: boolean
+  email?: EmailPreviewMetadata
 }
 
-const EmailClientFrame: React.FC<EmailClientFrameProps> = ({ html, title }) => {
+const devices: Record<string, PreviewDevice> = { email_mobile: 'ios', email_android: 'android', email_desktop: 'desktop', h5: 'h5' }
+
+const EmailClientFrame: React.FC<EmailClientFrameProps> = ({ html, title, web = false, email }) => {
   const { t } = useLingui()
-  const [profile, setProfile] = useState<'email_mobile' | 'email_desktop'>('email_mobile')
-  return <div className="space-y-4">
-    <label className="flex items-center gap-2">
-      <span>{t`Email client preview`}</span>
-      <select aria-label={t`Email client preview`} value={profile} onChange={(event) => setProfile(event.target.value as 'email_mobile' | 'email_desktop')} className="rounded-md border border-gray-300 bg-white px-3 py-2">
-        <option value="email_mobile">{t`Mobile email`}</option>
-        <option value="email_desktop">{t`Desktop email`}</option>
-      </select>
-    </label>
-    <div className={profile === 'email_mobile' ? 'mx-auto max-w-[430px] rounded-[28px] border-[10px] border-neutral-900 p-2 shadow-xl' : 'w-full rounded-xl border border-gray-200 p-3 shadow'}>
-      <iframe
-        srcDoc={html}
-        title={title}
-        sandbox=""
-        data-client-profile={profile}
-        className="h-[600px] w-full border-0 bg-white"
-      />
-    </div>
+  const [profile, setProfile] = useState(web ? 'h5' : 'email_mobile')
+  return <div className="min-w-0">
+    <PreviewToolbar>
+      <label>
+        <span>{t`Client preview`}</span>
+        <select aria-label={web ? t`Client preview` : t`Email client preview`} value={profile} onChange={(event) => setProfile(event.target.value)}>
+          <option value="email_mobile">{web ? 'iOS' : `iOS · ${t`Mobile email`}`}</option>
+          <option value="email_android">{web ? 'Android' : `Android · ${t`Mobile email`}`}</option>
+          <option value="email_desktop">{web ? 'PC' : `PC · ${t`Desktop email`}`}</option>
+          <option value="h5">H5</option>
+        </select>
+      </label>
+    </PreviewToolbar>
+    {web ? <HtmlPreview html={webPreviewDocument(html)} title={title} device={devices[profile]} profile={profile} browser />
+      : <EmailPreview html={html} title={title} device={devices[profile]} profile={profile} email={email} />}
   </div>
 }
 
 export default EmailClientFrame
-

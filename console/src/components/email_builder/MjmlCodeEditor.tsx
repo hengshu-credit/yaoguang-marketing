@@ -12,6 +12,7 @@ import Editor, { type OnMount, type BeforeMount } from '@monaco-editor/react'
 import type { editor as MonacoEditor } from 'monaco-editor'
 import { useLingui } from '@lingui/react/macro'
 import type { MjmlCompileError } from '../../services/api/template'
+import { EmailPreview, type EmailPreviewMetadata } from '../preview'
 
 interface MjmlCodeEditorProps {
   mjmlSource: string
@@ -23,11 +24,14 @@ interface MjmlCodeEditorProps {
     html: string
     mjml: string
     error?: MjmlCompileError
+    subject?: string
+    subject_preview?: string
   }>
   testData?: Record<string, unknown>
   onTestDataChange: (testData: Record<string, unknown>) => void
   height?: string | number
   templateId?: string
+  emailPreview?: EmailPreviewMetadata
 }
 
 export interface MjmlCodeEditorRef {
@@ -224,13 +228,15 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
   testData,
   onTestDataChange,
   height = 'calc(100vh - 200px)',
-  templateId
+  templateId,
+  emailPreview
 }, ref) => {
   const { t } = useLingui()
   const { message } = App.useApp()
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null)
   const monacoRef = useRef<unknown>(null)
   const compileTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const compileGeneration = useRef(0)
 
   const [previewHtml, setPreviewHtml] = useState<string>('')
   const [compileErrors, setCompileErrors] = useState<MjmlCompileError | undefined>()
@@ -242,6 +248,8 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
   )
   const [htmlOutput, setHtmlOutput] = useState<string>('')
   const [testDataDirty, setTestDataDirty] = useState(false)
+  const [renderedSubject, setRenderedSubject] = useState<string>()
+  const [renderedPreviewText, setRenderedPreviewText] = useState<string>()
 
   // Draft storage key
   const [draftUniqueId] = useState(() => crypto.randomUUID())
@@ -252,7 +260,12 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
   // Compile function
   const doCompile = useCallback(
     async (source: string) => {
-      if (!source.trim()) return
+      const generation = ++compileGeneration.current
+      if (compileTimeoutRef.current) clearTimeout(compileTimeoutRef.current)
+      if (!source.trim()) {
+        setPreviewHtml(''); setHtmlOutput(''); setCompileErrors(undefined); setIsCompiling(false)
+        return
+      }
       setIsCompiling(true)
       try {
         let parsedTestData: Record<string, unknown> | undefined
@@ -262,6 +275,9 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
           // ignore parse errors for test data during compilation
         }
         const result = await onCompile(source, parsedTestData)
+        if (generation !== compileGeneration.current) return
+        setRenderedSubject(result.subject)
+        setRenderedPreviewText(result.subject_preview)
         if (result.error) {
           setCompileErrors(result.error)
           setPreviewHtml('')
@@ -296,12 +312,15 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
           }
         }
       } catch (err) {
+        if (generation !== compileGeneration.current) return
+        setPreviewHtml('')
+        setHtmlOutput('')
         setCompileErrors({
           message: err instanceof Error ? err.message : 'Compilation failed',
           details: []
         })
       } finally {
-        setIsCompiling(false)
+        if (generation === compileGeneration.current) setIsCompiling(false)
       }
     },
     [onCompile, tempTestData]
@@ -310,6 +329,9 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
   // Auto-compile on debounce
   const scheduleCompile = useCallback(
     (source: string) => {
+      compileGeneration.current++
+      setRenderedSubject(undefined)
+      setRenderedPreviewText(undefined)
       if (compileTimeoutRef.current) {
         clearTimeout(compileTimeoutRef.current)
       }
@@ -323,6 +345,7 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
   // Cleanup compile timeout and editor refs on unmount
   useEffect(() => {
     return () => {
+      compileGeneration.current++
       if (compileTimeoutRef.current) {
         clearTimeout(compileTimeoutRef.current)
       }
@@ -331,13 +354,16 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
     }
   }, [])
 
-  // Initial compile
+  const compileInput = JSON.stringify([mjmlSource, emailPreview?.subject, emailPreview?.previewText])
+  const firstCompile = useRef(true)
+  const compileLatest = useRef({ doCompile, scheduleCompile })
+  compileLatest.current = { doCompile, scheduleCompile }
+  // Include settings and externally refreshed source, not only editor keystrokes.
   useEffect(() => {
-    if (mjmlSource) {
-      doCompile(mjmlSource)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentional mount-only compile
-  }, [])
+    if (firstCompile.current) { firstCompile.current = false; void compileLatest.current.doCompile(mjmlSource) }
+    else compileLatest.current.scheduleCompile(mjmlSource)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- compileInput includes the complete source and settings snapshot
+  }, [compileInput])
 
   // Save draft to localStorage (debounced)
   useEffect(() => {
@@ -851,26 +877,12 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
           </div>
         </Splitter.Panel>
         <Splitter.Panel>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              padding: 8,
-              height: '100%'
-            }}
-          >
-            <iframe
-              srcDoc={previewHtml || `<p style="color:#999;text-align:center;padding:40px;">${t`Preview will appear here after compilation`}</p>`}
-              style={{
-                width: viewport === 'mobile' ? '375px' : '100%',
-                height: '100%',
-                border: viewport === 'mobile' ? '1px solid #d9d9d9' : 'none',
-                borderRadius: viewport === 'mobile' ? 8 : 0,
-                background: '#ffffff',
-                transition: 'width 0.3s ease'
-              }}
+          <div className="h-full overflow-auto p-3">
+            <EmailPreview
+              html={previewHtml || `<p style="color:#999;text-align:center;padding:40px;">${t`Preview will appear here after compilation`}</p>`}
+              device={viewport === 'mobile' ? 'ios' : 'desktop'}
               title={t`Email Preview`}
-              sandbox=""
+              email={{ ...emailPreview, subject: renderedSubject ?? emailPreview?.subject, previewText: renderedPreviewText ?? emailPreview?.previewText }}
             />
           </div>
         </Splitter.Panel>

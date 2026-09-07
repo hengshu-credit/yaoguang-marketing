@@ -17,6 +17,45 @@ import type { ContactTimelineEntry } from '../../services/api/contact_timeline'
 
 const webChange = (value: unknown) => ({ new: value })
 
+describe('Customer changes on the contact timeline', () => {
+  const entry = (data: Partial<ContactTimelineEntry>): ContactTimelineEntry => ({
+    id: 'change-1', email: 'alice@example.com', operation: 'update', entity_type: 'contact',
+    kind: 'contact.updated', changes: {}, created_at: '2026-09-05T01:00:00Z', db_created_at: '2026-09-05T01:00:00Z', ...data
+  })
+
+  it('renders historical soft removals as removals and preserves the list snapshot', () => {
+    render(<ContactTimeline entries={[entry({ entity_type: 'contact_list', kind: 'list.removed', entity_id: 'vip', changes: {
+      deleted_at: { old: null, new: '2026-09-05T01:00:00Z' }, list_name: { new: 'VIP list' }
+    } })]} />)
+    expect(screen.getByText('removed')).toBeInTheDocument()
+    expect(screen.getByText('VIP list')).toBeInTheDocument()
+    expect(screen.queryByText('status changed')).not.toBeInTheDocument()
+    expect(screen.queryByText('undefined')).not.toBeInTheDocument()
+  })
+
+  it('shows typed profile changes including removed, nested and false values', () => {
+    render(<ContactTimeline entries={[entry({ entity_type: 'contact_profile', kind: 'contact.profile_updated', changes: {
+      status: { old: 'lead', new: 'active' }, attributes: {
+        score: { old: 0, new: 88 }, nested: { old: { tier: 1 }, new: { tier: 2 } },
+        retired: { old: true, new: null }, enabled: { old: true, new: false }
+      }, version: { old: 1, new: 2 }
+    } })]} />)
+    for (const text of ['Customer attributes', 'attributes.score:', '0', '88', '{"tier":1}', '{"tier":2}', 'false', '—']) expect(screen.getByText(text)).toBeInTheDocument()
+    expect(screen.queryByText('[object Object]')).not.toBeInTheDocument()
+    expect(screen.queryByText('version:')).not.toBeInTheDocument()
+  })
+
+  it('shows customer tag removal and custom JSON field edits', () => {
+    render(<ContactTimeline entries={[
+      entry({ id: 'tag', entity_type: 'contact_tag', kind: 'contact.untagged', operation: 'delete', entity_id: 'VIP' }),
+      entry({ changes: { custom_json_1: { old: { a: 1 }, new: { a: 2 } } } })
+    ]} />)
+    expect(screen.getByText('VIP')).toBeInTheDocument()
+    expect(screen.getByText('removed')).toBeInTheDocument()
+    expect(screen.getByText('{"a":2}')).toBeInTheDocument()
+  })
+})
+
 const sessionEntry: ContactTimelineEntry = {
   id: '11111111-1111-1111-1111-111111111111',
   email: 'reader@example.com',

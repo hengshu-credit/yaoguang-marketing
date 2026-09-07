@@ -1,8 +1,10 @@
-import { Alert, Card, Segmented, Space, Tag, Typography } from 'antd'
+import { Alert, Card, Space, Tag, Typography } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import type { PreviewTemplateResponse } from '../../services/api/template'
+import { DeviceFrame, PreviewToolbar } from '../preview'
+import NotificationPreview from './channelPreviews/NotificationPreview'
 
-const { Text, Title } = Typography
+const { Text } = Typography
 
 interface ChannelMessagePreviewProps {
   preview: PreviewTemplateResponse
@@ -13,105 +15,54 @@ interface ChannelMessagePreviewProps {
 
 export type PushClientProfile = 'android' | 'ios' | 'web' | 'huawei' | 'honor' | 'xiaomi' | 'oppo' | 'vivo'
 
-const deviceStyle: React.CSSProperties = {
-  width: 'min(390px, 100%)',
-  minHeight: 260,
-  margin: '0 auto',
-  padding: 18,
-  borderRadius: 34,
-  border: '10px solid #171717',
-  background: 'linear-gradient(180deg, #e7eef8 0%, #f7f8fa 100%)',
-  boxShadow: '0 12px 32px rgba(0,0,0,.16)'
-}
-
 const ChannelMessagePreview: React.FC<ChannelMessagePreviewProps> = ({
-  preview,
-  platform,
-  onPlatformChange,
-  showDiagnostics = true
+  preview, platform, onPlatformChange, showDiagnostics = true
 }) => {
   const { t } = useLingui()
-
-  if (preview.sms) {
-    return (
-      <Space orientation="vertical" size="large" className="w-full">
-        <div style={deviceStyle}>
-          <Text type="secondary">{preview.sms.sender_id || t`SMS`}</Text>
-          <div className="mt-4 flex justify-end">
-            <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-blue-500 px-4 py-3 text-white whitespace-pre-wrap break-words">
-              {preview.sms.body}
-            </div>
-          </div>
-        </div>
-        {showDiagnostics && <Card size="small">
-          <Space wrap>
-            <Tag color="blue">{preview.sms.encoding.toUpperCase()}</Tag>
-            <Text>{preview.sms.segment_count} segment(s)</Text>
-            <Text type="secondary">
-              {preview.sms.character_count} {t`characters`}
-            </Text>
-            <Text type="secondary">
-              {preview.sms.remaining} {t`units remaining`}
-            </Text>
-          </Space>
-        </Card>}
-      </Space>
-    )
-  }
-
-  if (!preview.push) return null
-
-  return (
-    <Space orientation="vertical" size="large" className="w-full">
-      <Segmented
-        block
-        value={platform}
-        options={[
-          { label: 'Android', value: 'android' },
-          { label: 'iOS', value: 'ios' },
-          { label: t`Web`, value: 'web' },
-          { label: 'Huawei', value: 'huawei' },
-          { label: 'Honor', value: 'honor' },
-          { label: 'Xiaomi', value: 'xiaomi' },
-          { label: 'OPPO', value: 'oppo' },
-          { label: 'vivo', value: 'vivo' }
-        ]}
-        onChange={(value) => onPlatformChange(value as PushClientProfile)}
-      />
-      <div style={deviceStyle}>
-        <Card size="small" styles={{ body: { padding: 14 } }}>
-          <Space align="start" className="w-full">
-            <div className="h-10 w-10 shrink-0 rounded-xl bg-blue-600 text-center text-lg leading-10 text-white">
-              N
-            </div>
-            <div className="min-w-0 flex-1">
-              <Title level={5} className="!mb-1 !text-sm break-words">
-                {preview.push.title}
-              </Title>
-              <Text className="whitespace-pre-wrap break-words">{preview.push.body}</Text>
-              {preview.push.image_url && (
-                <img
-                  src={preview.push.image_url}
-                  alt=""
-                  className="mt-3 max-h-40 w-full rounded-lg object-cover"
-                />
-              )}
-            </div>
-          </Space>
-        </Card>
+  if (!preview.sms && !preview.push) return null
+  const device = platform === 'ios' ? 'ios' : platform === 'web' && !preview.sms ? 'desktop' : 'android'
+  const platforms: { label: string; value: PushClientProfile }[] = [
+    { label: 'iOS', value: 'ios' }, { label: 'Android', value: 'android' },
+    ...(!preview.sms ? [
+      { label: 'PC / Web', value: 'web' as const },
+      { label: 'Huawei', value: 'huawei' as const }, { label: 'Honor', value: 'honor' as const },
+      { label: 'Xiaomi', value: 'xiaomi' as const }, { label: 'OPPO', value: 'oppo' as const }, { label: 'vivo', value: 'vivo' as const }
+    ] : [])
+  ]
+  return <div className="min-w-0 space-y-4">
+    <PreviewToolbar>
+      <div className="material-preview-platforms" role="group" aria-label={t`Client preview`}>
+        {platforms.map((option) => <button key={option.value} type="button" aria-pressed={platform === option.value} onClick={() => onPlatformChange(option.value)}>{option.label}</button>)}
       </div>
-      {showDiagnostics && <Card size="small">
-        <Space wrap>
-          <Tag color="purple">{platform}</Tag>
-          <Text>{preview.push.payload_bytes} bytes</Text>
-          {preview.push.deep_link && <Text type="secondary">{preview.push.deep_link}</Text>}
-        </Space>
-      </Card>}
-      {showDiagnostics && preview.push.warnings.map((warning) => (
-        <Alert key={warning.code} type="warning" showIcon title={warning.message} />
-      ))}
-    </Space>
-  )
+    </PreviewToolbar>
+    {preview.sms && <>
+      <DeviceFrame device={device} title={preview.sms.sender_id || t`SMS`}>
+        <div className="material-chat">
+          <div className="material-chat__time" aria-hidden="true">09:41</div>
+          <div className="material-chat__bubble material-chat__bubble--sms" dir="auto">{preview.sms.body}</div>
+        </div>
+      </DeviceFrame>
+      {showDiagnostics && <Card size="small"><Space wrap>
+        <Tag color="blue">{preview.sms.encoding.toUpperCase()}</Tag>
+        <Text>{preview.sms.segment_count} segment(s)</Text>
+        <Text type="secondary">{preview.sms.character_count} {t`characters`}</Text>
+        <Text type="secondary">{preview.sms.remaining} {t`units remaining`}</Text>
+      </Space></Card>}
+    </>}
+    {preview.push && <>
+      <NotificationPreview
+        device={device}
+        brand={t`Push`}
+        direction={preview.resolved_language?.startsWith('ur') || preview.resolved_language?.startsWith('ar') ? 'rtl' : 'ltr'}
+        content={{ family: 'notification', title: preview.push.title, body: preview.push.body, media: preview.push.image_url ? { type: 'image', url: preview.push.image_url } : undefined }}
+      />
+      {showDiagnostics && <Card size="small"><Space wrap>
+        <Tag color="purple">{platform}</Tag><Text>{preview.push.payload_bytes} bytes</Text>
+        {preview.push.deep_link && <Text type="secondary" className="break-all">{preview.push.deep_link}</Text>}
+      </Space></Card>}
+      {showDiagnostics && preview.push.warnings.map((warning) => <Alert key={warning.code} type="warning" showIcon title={warning.message} />)}
+    </>}
+  </div>
 }
 
 export default ChannelMessagePreview

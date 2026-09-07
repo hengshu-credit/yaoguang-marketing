@@ -75,7 +75,7 @@ describe('MessageTemplateDrawer', () => {
     await user.click(screen.getByRole('button', { name: 'Continue with Push' }))
 
     expect(screen.getByRole('radio', { name: 'Push' })).toBeChecked()
-    expect(screen.getByRole('radio', { name: 'Android' })).toBeChecked()
+    expect(screen.getByRole('button', { name: 'Android' })).toHaveAttribute('aria-pressed', 'true')
     await user.type(screen.getByLabelText('Title'), 'Draft push title')
     await user.type(screen.getByLabelText('Message'), 'Draft push body')
 

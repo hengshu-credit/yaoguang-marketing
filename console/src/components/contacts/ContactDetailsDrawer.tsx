@@ -36,6 +36,8 @@ import { MessageHistoryTable } from '../messages/MessageHistoryTable'
 import { ContactTimeline } from '../timeline'
 import { contactTimelineApi, ContactTimelineEntry } from '../../services/api/contact_timeline'
 import { computeCustomFieldLabel } from '../../hooks/useCustomFieldLabel'
+import { ContactCustomerProvider, ContactCustomerAttributes, ContactCustomerActivity } from './ContactCustomerDetails'
+import { customerQueryKeys } from '../../services/api/customer'
 
 const { Title, Text } = Typography
 
@@ -95,6 +97,7 @@ export function ContactDetailsDrawer({
   // Internal drawer visibility state
   const [internalVisible, setInternalVisible] = React.useState(false)
   const [gravatarUrl, setGravatarUrl] = React.useState<string>('')
+  const [activeActivity, setActiveActivity] = React.useState('timeline')
   const { message: messageApi } = App.useApp()
 
   // Determine if drawer is visible (either controlled externally or internally)
@@ -234,6 +237,9 @@ export function ContactDetailsDrawer({
     refetchContact()
     refetchTimeline()
     refetchMessages()
+    void queryClient.invalidateQueries({ queryKey: customerQueryKeys.byEmail(workspace.id, contactEmail) })
+    void queryClient.invalidateQueries({ queryKey: ['contact-deliveries', workspace.id] })
+    void queryClient.invalidateQueries({ queryKey: ['customer-360', workspace.id] })
   }
 
   // Fetch the single contact to ensure we have the latest data
@@ -625,7 +631,7 @@ export function ContactDetailsDrawer({
         placement="right"
         className="drawer-body-no-padding"
         onClose={handleClose}
-        open={internalVisible}
+        open={isVisible}
         extra={
           <Tooltip title={t`Refresh`}>
             <Button
@@ -637,6 +643,7 @@ export function ContactDetailsDrawer({
           </Tooltip>
         }
       >
+        {isVisible && <ContactCustomerProvider key={`${workspace.id}:${contactEmail}`} workspaceId={workspace.id} email={contactEmail} onUpdated={handleRefreshAll}>
         <div className="flex h-full">
           {/* Left column - Contact Details (400px fixed width) */}
           <div
@@ -938,11 +945,12 @@ export function ContactDetailsDrawer({
                   />
                 )
               })()}
+              <ContactCustomerAttributes />
             </div>
           </div>
 
           {/* Right column - Timeline and Message History (remaining space) */}
-          <div className="flex-1 p-8 overflow-y-auto h-full">
+          <div className="min-w-0 flex-1 p-8 overflow-y-auto h-full">
             {/* List subscriptions with action buttons */}
             <div className="flex justify-between items-center mb-3">
               <Title level={5} style={{ margin: 0 }}>
@@ -1047,7 +1055,8 @@ export function ContactDetailsDrawer({
               </Title>
 
               <Tabs
-                defaultActiveKey="timeline"
+                activeKey={activeActivity}
+                onChange={setActiveActivity}
                 items={[
                   {
                     key: 'timeline',
@@ -1084,12 +1093,23 @@ export function ContactDetailsDrawer({
                         />
                       </div>
                     )
+                  },
+                  {
+                    key: 'automation',
+                    label: t`Automation deliveries`,
+                    children: <ContactCustomerActivity sourceType="automation" active={isVisible && activeActivity === 'automation'} />
+                  },
+                  {
+                    key: 'campaigns',
+                    label: t`Marketing Campaigns`,
+                    children: <ContactCustomerActivity sourceType="broadcast" active={isVisible && activeActivity === 'campaigns'} />
                   }
                 ]}
               />
             </div>
           </div>
         </div>
+        </ContactCustomerProvider>}
 
         {/* Change Status Modal */}
         <Modal

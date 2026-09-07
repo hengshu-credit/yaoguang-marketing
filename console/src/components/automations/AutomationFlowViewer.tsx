@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react'
+import React, { useMemo, useEffect, useState } from 'react'
 import {
   ReactFlow,
   Background,
@@ -9,7 +9,7 @@ import {
   type NodeTypes,
   BackgroundVariant
 } from '@xyflow/react'
-import { Spin } from 'antd'
+import { Drawer, Spin } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import {
   StatNode,
@@ -19,7 +19,8 @@ import {
   type StatNodeData
 } from './nodes/StatNode'
 import { layoutNodes } from './utils/layoutNodes'
-import type { Structural } from './utils/flowConverter'
+import { hydrateTriggerNodeConfig, type Structural } from './utils/flowConverter'
+import { AutomationNodeDetails } from './AutomationNodeDetails'
 import type {
   Automation,
   AutomationNodeStats,
@@ -56,6 +57,7 @@ interface AutomationFlowViewerProps {
   nodeStats: Record<string, AutomationNodeStats> | null
   loading?: boolean
   onHeightCalculated?: (height: number) => void
+  listNames?: Record<string, string>
 }
 
 // Stats viewer uses smaller nodes
@@ -77,7 +79,7 @@ function automationToViewerFlow(
     position: node.position,
     data: {
       nodeType: node.type,
-      label: node.type === 'trigger' ? 'Trigger' : undefined,
+      label: undefined,
       stats: nodeStats?.[node.id],
       config: node.config
     }
@@ -215,9 +217,17 @@ const AutomationFlowViewerInner: React.FC<AutomationFlowViewerProps> = ({
   automation,
   nodeStats,
   loading,
-  onHeightCalculated
+  onHeightCalculated,
+  listNames
 }) => {
   const { t } = useLingui()
+  const [selection, setSelection] = useState<{ automationId: string; nodeId: string }>()
+  const selectedNode = selection?.automationId === automation.id
+    ? automation.nodes?.find((node) => node.id === selection.nodeId) : undefined
+  const selectedConfig = selectedNode ? hydrateTriggerNodeConfig([{
+    id: selectedNode.id, position: selectedNode.position,
+    data: { nodeType: selectedNode.type, label: selectedNode.type, config: selectedNode.config }
+  }], automation.trigger)[0].data.config : undefined
   const { nodes, edges } = useMemo(
     () => automationToViewerFlow(automation, nodeStats),
     [automation, nodeStats]
@@ -250,13 +260,17 @@ const AutomationFlowViewerInner: React.FC<AutomationFlowViewerProps> = ({
   }
 
   return (
+    <>
     <ReactFlow
       nodes={nodes}
       edges={edges}
       nodeTypes={nodeTypes}
       nodesDraggable={false}
       nodesConnectable={false}
-      elementsSelectable={false}
+      elementsSelectable
+      nodesFocusable
+      deleteKeyCode={null}
+      onNodeClick={(_, node) => setSelection({ automationId: automation.id, nodeId: node.id })}
       panOnDrag={true}
       panOnScroll={true}
       zoomOnScroll={true}
@@ -271,6 +285,11 @@ const AutomationFlowViewerInner: React.FC<AutomationFlowViewerProps> = ({
       <Controls position="top-left" showInteractive={false} />
       <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#e5e7eb" />
     </ReactFlow>
+    <Drawer title={t`Node configuration`} open={Boolean(selectedNode)} onClose={() => setSelection(undefined)}
+      size={520} mask={false} push={false} styles={{ wrapper: { maxWidth: '100vw' } }} destroyOnHidden>
+      {selectedNode && <AutomationNodeDetails node={{ ...selectedNode, config: selectedConfig! }} listNames={listNames} />}
+    </Drawer>
+    </>
   )
 }
 

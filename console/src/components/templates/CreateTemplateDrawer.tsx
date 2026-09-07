@@ -440,12 +440,12 @@ function EmailTemplateDrawer({
         ? workspace.settings.marketing_email_provider_id
         : workspace.settings.transactional_email_provider_id
     return workspace.integrations?.find((integration) => integration.id === providerId)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Provider IDs are part of workspace settings
-  }, [workspace.integrations, isMarketingCategory])
+  }, [workspace.integrations, isMarketingCategory, workspace.settings.marketing_email_provider_id, workspace.settings.transactional_email_provider_id])
 
   const emailSender = useMemo(() => {
     if (emailProvider) {
       return emailProvider.email_provider?.senders.find((sender) => sender.id === senderID)
+        || emailProvider.email_provider?.senders.find((sender) => sender.is_default)
     }
     return null
   }, [emailProvider, senderID])
@@ -1055,7 +1055,7 @@ function EmailTemplateDrawer({
 
                   <div className="text-lg my-8 font-bold">{t`Sender`}</div>
                   <Row gutter={24}>
-                    <Col span={12}>
+                    <Col xs={24} lg={12}>
                       <Form.Item
                         name={['email', 'subject']}
                         label={
@@ -1132,7 +1132,7 @@ function EmailTemplateDrawer({
                         </Col>
                       </Row>
                     </Col>
-                    <Col span={12}>
+                    <Col xs={24} lg={12}>
                       <div className="flex justify-center">
                         <IphoneEmailPreview
                           sender={emailSender?.name || t`Sender Name`}
@@ -1157,6 +1157,7 @@ function EmailTemplateDrawer({
                       return (
                         <MjmlCodeEditor
                           ref={codeEditorRef}
+                          emailPreview={{ senderName: emailSender?.name, senderEmail: emailSender?.email, subject: emailSubject, previewText: emailPreview }}
                           mjmlSource={mjmlSource}
                           onMjmlSourceChange={(source) => {
                             dirtyRef.current = true
@@ -1171,6 +1172,8 @@ function EmailTemplateDrawer({
                                 workspace_id: workspace.id,
                                 message_id: 'preview',
                                 mjml_source: mjml,
+                                subject: emailSubject,
+                                subject_preview: emailPreview,
                                 test_data: codeTestData || {},
                                 channel: 'email',
                                 tracking_settings: {
@@ -1185,7 +1188,9 @@ function EmailTemplateDrawer({
                               return {
                                 html: response.html || '',
                                 mjml: response.mjml || '',
-                                error: response.error
+                                error: response.error,
+                                subject: response.subject,
+                                subject_preview: response.subject_preview
                               }
                             } catch (error) {
                               const err = error as Error
@@ -1214,6 +1219,7 @@ function EmailTemplateDrawer({
                     return (
                       <EmailBuilder
                         tree={visualEditorTree}
+                        emailPreview={{ senderName: emailSender?.name, senderEmail: emailSender?.email, subject: emailSubject, previewText: emailPreview }}
                         onTreeChange={(tree) => {
                           // Visual edits go through here; mark dirty so a freshen-on-open
                           // refetch never silently reseeds over in-progress work.
@@ -1229,6 +1235,8 @@ function EmailTemplateDrawer({
                               workspace_id: workspace.id,
                               message_id: 'preview',
                               visual_editor_tree: tree,
+                              subject: emailSubject,
+                              subject_preview: emailPreview,
                               test_data: builderTestData || {},
                               channel: 'email',
                               tracking_settings: {
@@ -1251,7 +1259,9 @@ function EmailTemplateDrawer({
                             return {
                               html: response.html || '',
                               mjml: response.mjml || '',
-                              errors: []
+                              errors: [],
+                              subject: response.subject,
+                              subject_preview: response.subject_preview
                             }
                           } catch (error) {
                             const err = error as Error
@@ -1323,6 +1333,8 @@ function EmailTemplateDrawer({
                       setTranslationsState(s)
                     }}
                     defaultSubject={emailSubject}
+                    senderName={emailSender?.name}
+                    senderEmail={emailSender?.email}
                     defaultSubjectPreview={emailPreview}
                     defaultVisualEditorTree={visualEditorTree}
                     defaultMjmlSource={mjmlSource}

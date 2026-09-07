@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react'
+import React, { useMemo, useState, useEffect, useRef } from 'react'
 import { Button, Space, Segmented, Spin } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faRedoAlt, faUndoAlt } from '@fortawesome/free-solid-svg-icons'
@@ -17,6 +17,7 @@ import type {
   MJMLComponentType
 } from './types'
 import { EmailBlockClass } from './EmailBlockClass'
+import type { EmailPreviewMetadata } from '../preview'
 
 interface EmailBuilderProps {
   tree: EmailBlock
@@ -24,7 +25,8 @@ interface EmailBuilderProps {
   onCompile: (
     tree: EmailBlock,
     testData?: Record<string, unknown>
-  ) => Promise<{ errors?: Array<Record<string, unknown>>; html: string; mjml: string }>
+  ) => Promise<{ errors?: Array<Record<string, unknown>>; html: string; mjml: string; subject?: string; subject_preview?: string }>
+  emailPreview?: EmailPreviewMetadata
   testData?: Record<string, unknown>
   onTestDataChange: (testData: Record<string, unknown>) => void
   toolbarActions?: React.ReactNode
@@ -47,6 +49,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   tree,
   onTreeChange,
   onCompile,
+  emailPreview,
   testData,
   onTestDataChange,
   toolbarActions,
@@ -117,6 +120,8 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     errors?: Array<Record<string, unknown>>
     html: string
     mjml: string
+    subject?: string
+    subject_preview?: string
   } | null>(null)
 
   const selectedBlock = useMemo(() => {
@@ -196,67 +201,40 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     }
   }
 
-  // Function to compile email
-  const compileEmail = async () => {
-    try {
-      const result = await onCompile(tree, testData)
-      setCompilationResults(result)
-    } catch (error) {
-      console.error('Compilation failed:', error)
-      setViewMode('edit')
-    }
-  }
-
-  const handleModeChange = async (value: string | number) => {
+  const handleModeChange = (value: string | number) => {
     const mode = value as 'edit' | 'preview'
     // Only update local state if not being forced by tour
     if (!forcedViewMode) {
       setViewMode(mode)
     }
 
-    // If switching to preview mode, compile the email
-    if (mode === 'preview') {
-      await compileEmail()
-    } else {
-      // Clear compilation results when switching back to edit mode
-      setCompilationResults(null)
-    }
   }
 
-  // Recompile when testData changes (only if in preview mode)
-  useEffect(() => {
-    if (effectiveViewMode === 'preview') {
-      compileEmail()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [testData, effectiveViewMode])
-
-  // Recompile when the tree content itself changes while in preview mode.
-  // The AI assistant mutates the tree (via setEmailTree/updateBlock/etc.) without
-  // switching view modes, so without this the preview keeps showing a stale render
-  // after the assistant edits the email. Keyed on a stable tree representation and
-  // debounced so a multi-step AI edit burst coalesces into a single compile.
-  // Deps are [treeKey] only (viewMode guarded inside) so entering preview does not
-  // double-compile alongside the testData/effectiveViewMode effect above.
+  const compileGeneration = useRef(0)
+  const compileRef = useRef(onCompile)
+  compileRef.current = onCompile
   const treeKey = useMemo(() => JSON.stringify(tree), [tree])
+  const dataKey = JSON.stringify(testData)
+  const emailKey = JSON.stringify([emailPreview?.subject, emailPreview?.previewText])
   useEffect(() => {
+    const generation = ++compileGeneration.current
+    setCompilationResults(null)
     if (effectiveViewMode !== 'preview') return
-    const timeoutId = setTimeout(() => {
-      compileEmail()
+    const timeoutId = setTimeout(async () => {
+      try {
+        const result = await compileRef.current(tree, testData)
+        if (generation === compileGeneration.current) setCompilationResults(result)
+      } catch (error) {
+        if (generation === compileGeneration.current) setCompilationResults({ html: '', mjml: '', errors: [{ message: error instanceof Error ? error.message : String(error) }] })
+      }
     }, 400)
-    return () => clearTimeout(timeoutId)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [treeKey])
-
-  // Handle forced view mode changes from tour
-  useEffect(() => {
-    if (forcedViewMode === 'preview') {
-      compileEmail()
-    } else if (forcedViewMode === 'edit') {
-      setCompilationResults(null)
+    return () => {
+      clearTimeout(timeoutId)
+      compileGeneration.current = generation + 1
     }
+    // Serialized inputs avoid redundant requests from equivalent object props.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forcedViewMode])
+  }, [treeKey, dataKey, emailKey, effectiveViewMode])
 
   // Auto-expand tree when external selection changes
   useEffect(() => {
@@ -854,7 +832,8 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
       {effectiveViewMode === 'preview' && compilationResults && (
         <Preview
           ref={templateDataRef}
-          html={compilationResults.html}
+            html={compilationResults.html}
+            emailPreview={{ ...emailPreview, subject: compilationResults.subject ?? emailPreview?.subject, previewText: compilationResults.subject_preview ?? emailPreview?.previewText }}
           mjml={compilationResults.mjml}
           errors={compilationResults.errors}
           testData={testData}

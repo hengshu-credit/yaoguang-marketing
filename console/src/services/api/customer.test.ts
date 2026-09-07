@@ -10,6 +10,14 @@ beforeEach(() => {
 })
 
 describe('customerApi', () => {
+  it('resolves the exact email identity in the selected workspace', async () => {
+    vi.mocked(api.post).mockResolvedValue({ customer: { customer_id: 'customer-1' } })
+    await expect(customerApi.getByEmail('ws1', 'alice@example.com')).resolves.toEqual({ customer_id: 'customer-1' })
+    expect(api.post).toHaveBeenCalledWith('/api/customers.get', {
+      workspace_id: 'ws1',
+      locator: { identity: { type: 'email', value: 'alice@example.com' } }
+    })
+  })
   it('serializes the complete stable list cursor request', async () => {
     vi.mocked(api.get).mockResolvedValue({ customers: [], next_cursor: 'next' })
 

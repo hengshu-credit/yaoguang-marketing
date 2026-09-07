@@ -17,6 +17,7 @@ const state = vi.hoisted(() => {
   })
   return {
     makeContact,
+    canReadContacts: true,
     // Deliberately loose: the server can send shapes the `Contact` type does not
     // admit (e.g. `contact_lists: null`), and those shapes are what the null-join
     // tests below exercise.
@@ -62,7 +63,7 @@ vi.mock('../contexts/AuthContext', () => ({
     refreshWorkspaces: vi.fn()
   }),
   useWorkspacePermissions: () => ({
-    permissions: createFullPermissions(),
+    permissions: { ...createFullPermissions(), contacts: { read: state.canReadContacts, write: state.canReadContacts } },
     loading: false
   })
 }))
@@ -84,6 +85,9 @@ vi.mock('../components/contacts/ContactDetailsDrawer', () => ({
 }))
 vi.mock('../components/contacts/ExportContactsModal', () => ({
   ExportContactsModal: () => null
+}))
+vi.mock('../components/customers/CustomerImportPanel', () => ({
+  CustomerImportPanel: () => <div>Customer CSV import</div>
 }))
 
 vi.mock('../services/api/contacts', () => ({
@@ -149,15 +153,27 @@ async function deleteViaRowMenu(email: string) {
 describe('ContactsPage row delete and bulk selection', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    state.canReadContacts = true
     state.contacts = [state.makeContact('alice@example.com'), state.makeContact('bob@example.com')]
   })
 
-  it('explains that Contacts is the email compatibility view', async () => {
+  it('lets customer-only readers open imports without querying the restricted contact directory', async () => {
+    state.canReadContacts = false
     render(<ContactsPage />, { wrapper: createWrapper() })
+    expect(await screen.findByText('Customer CSV import')).toBeVisible()
+    expect(screen.getByRole('tab', { name: 'Contacts' })).toHaveAttribute('aria-disabled', 'true')
+    expect(contactsApi.list).not.toHaveBeenCalled()
+  })
 
-    expect(
-      await screen.findByText(/email compatibility view/i)
-    ).toBeInTheDocument()
+  it('opens customer import without losing contact selection when returning to the directory', async () => {
+    render(<ContactsPage />, { wrapper: createWrapper() })
+    const alice = await screen.findByText('alice@example.com')
+    fireEvent.click(within(alice.closest('tr')!).getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('tab', { name: 'Import customers' }))
+    expect(await screen.findByText('Customer CSV import')).toBeVisible()
+    fireEvent.click(screen.getByRole('tab', { name: 'Contacts' }))
+    expect(within(alice.closest('tr')!).getByRole('checkbox')).toBeChecked()
+    expect(screen.queryByText(/email compatibility view/i)).not.toBeInTheDocument()
   })
 
   it('removes the deleted contact from the selection so the count stays accurate', async () => {

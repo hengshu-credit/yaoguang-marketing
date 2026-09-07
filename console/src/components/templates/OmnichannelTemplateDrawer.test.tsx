@@ -1,6 +1,6 @@
 import { App as AntApp } from 'antd'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ChannelDefinition } from '../../services/api/channels'
@@ -24,9 +24,9 @@ const workspace = {
   id: 'ws1', settings: { default_language: 'en', languages: ['en', 'ur'] }, integrations: []
 } as unknown as Workspace
 
-const renderDrawer = () => render(
+const renderDrawer = (overrides: Partial<React.ComponentProps<typeof OmnichannelTemplateDrawer>> = {}) => render(
   <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-    <AntApp><OmnichannelTemplateDrawer workspace={workspace} definitions={definitions} defaultChannel="telegram" livePreviewDelay={false} /></AntApp>
+    <AntApp><OmnichannelTemplateDrawer workspace={workspace} definitions={definitions} defaultChannel="telegram" livePreviewDelay={false} {...overrides} /></AntApp>
   </QueryClientProvider>
 )
 
@@ -38,6 +38,50 @@ describe('OmnichannelTemplateDrawer', () => {
       channel_preview: { profile: 'telegram_mobile', direction: 'ltr', payload_bytes: 24, message: { family: 'text', body: 'Hello Ada' }, warnings: [] }
     })
     vi.mocked(templatesApi.create).mockResolvedValue({ template: {} as never })
+  })
+
+  it('initializes an existing template from its own channel even when Email is first in the catalogue', async () => {
+    const saved = { id: 'whatsapp', name: 'Offer', version: 1, channel: 'whatsapp' as const, category: 'marketing', content: { family: 'rich_card' as const, body: 'Offer', actions: [{ type: 'url' as const, label: 'Open', value: 'https://example.com' }] }, created_at: '', updated_at: '' }
+    renderDrawer({ defaultChannel: undefined, template: saved, definitions: [
+      { id: 'email', label_key: 'Email', content_families: ['rich_card'], preview_profiles: [{ id: 'email_mobile', label_key: 'Email mobile', surface: 'mobile' }], delivery_modes: ['native'], limits: {} },
+      ...definitions,
+      { id: 'whatsapp', label_key: 'WhatsApp', content_families: ['rich_card'], preview_profiles: [{ id: 'whatsapp_ios', label_key: 'WhatsApp iOS', surface: 'mobile' }], delivery_modes: ['signed_webhook'], limits: {} }
+    ] })
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Template' }))
+    expect(screen.getByLabelText('Client preview')).toHaveValue('whatsapp_ios')
+    expect(screen.queryByText('This preview profile is not supported.')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Open' })).toHaveAttribute('href', 'https://example.com')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(templatesApi.update).toHaveBeenCalledWith(expect.objectContaining({ content: saved.content })))
+  })
+
+  it('previews content without requiring save-only metadata and ignores an old failure after a new edit', async () => {
+    let rejectOld!: (error: Error) => void
+    vi.mocked(templatesApi.preview).mockImplementationOnce(() => new Promise((_, reject) => { rejectOld = reject }))
+    renderDrawer()
+    await userEvent.click(screen.getByRole('button', { name: 'Create template' }))
+    fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'Original draft' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Preview' }))
+    await waitFor(() => expect(templatesApi.preview).toHaveBeenCalledTimes(1))
+    fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'Current draft' } })
+    await act(async () => rejectOld(new Error('Stale failure')))
+    expect(screen.queryByText('Stale failure')).not.toBeInTheDocument()
+    expect(screen.getByText('Current draft', { selector: 'p' })).toBeVisible()
+    expect(screen.queryByText("'id' is required")).not.toBeInTheDocument()
+  })
+
+  it('does not let an old success replace current draft content during the debounce period', async () => {
+    let finishOld!: (value: Awaited<ReturnType<typeof templatesApi.preview>>) => void
+    vi.mocked(templatesApi.preview).mockImplementationOnce(() => new Promise(resolve => { finishOld = resolve }))
+    renderDrawer()
+    await userEvent.click(screen.getByRole('button', { name: 'Create template' }))
+    fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'Old draft' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Preview' }))
+    await waitFor(() => expect(templatesApi.preview).toHaveBeenCalledTimes(1))
+    fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'New draft' } })
+    await act(async () => finishOld({ channel: 'telegram', resolved_language: 'en', fallback_used: false, channel_preview: { profile: 'telegram_mobile', direction: 'ltr', message: { family: 'text', body: 'Outdated render' }, payload_bytes: 20, warnings: [] } }))
+    expect(screen.getByText('New draft', { selector: 'p' })).toBeVisible()
+    expect(screen.queryByText('Outdated render')).not.toBeInTheDocument()
   })
 
   it('shows an initialized client surface immediately and mirrors draft content before the server responds', async () => {

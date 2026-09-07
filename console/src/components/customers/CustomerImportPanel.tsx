@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Alert, Button, Card, Descriptions, Popconfirm, Progress, Select, Space, Steps, Table, Tag, Typography, Upload, App } from 'antd'
 import { DownloadOutlined, InboxOutlined, StopOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 import { listsApi } from '../../services/api/list'
 import { importJobApi, type ImportJob } from '../../services/api/marketing'
+import { ActionableError } from '../errors/ActionableError'
 
 interface CustomerImportPanelProps {
   workspaceId: string
@@ -55,12 +56,22 @@ export function CustomerImportPanel({ workspaceId, canWrite, canBindLists = true
     return false
   }
   const currentImport = activeImport.data ?? importJob
+  // Refresh the directory retained behind the import tab after background work finishes.
+  const completedJobs = (importHistory.data?.items ?? [])
+    .filter((job) => ['completed', 'cancelled'].includes(job.status))
+    .map((job) => job.id).sort().join(',')
+  useEffect(() => {
+    if (!completedJobs && !['completed', 'cancelled'].includes(currentImport?.status ?? '')) return
+    void queryClient.invalidateQueries({ queryKey: ['contacts', workspaceId] })
+    void queryClient.invalidateQueries({ queryKey: ['total-contacts', workspaceId] })
+  }, [completedJobs, currentImport?.status, queryClient, workspaceId])
   const total = currentImport?.counters.total ?? 0
   const terminal = (currentImport?.counters.succeeded ?? 0) + (currentImport?.counters.failed ?? 0)
   const percent = total === 0 ? 0 : Math.round((terminal / total) * 100)
   const activeStatus = currentImport?.status
   const importStep = activeStatus === 'completed' || activeStatus === 'cancelled' ? 4 : activeStatus === 'rejected' ? 2 : activeStatus === 'staged' || activeStatus === 'processing' ? 3 : 0
   const cancelImport = async (job: ImportJob) => {
+    if (!canWrite) return
     await importJobApi.cancel(workspaceId, job.id)
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['customer-imports', workspaceId] }),
@@ -135,13 +146,15 @@ export function CustomerImportPanel({ workspaceId, canWrite, canBindLists = true
             ]} />
             <Space>
               {currentImport.counters.failed > 0 ? <Button icon={<DownloadOutlined />} onClick={() => void importJobApi.downloadErrors(workspaceId, currentImport.id)}>{t`Download failed rows`}</Button> : null}
-              {['uploading', 'staged', 'processing'].includes(currentImport.status) ? <Popconfirm title={t`Unfinished rows will be marked as failed; successful rows are not rolled back.`} onConfirm={() => cancelImport(currentImport)}><Button danger icon={<StopOutlined />}>{t`Cancel import`}</Button></Popconfirm> : null}
+              {canWrite && ['uploading', 'staged', 'processing'].includes(currentImport.status) ? <Popconfirm title={t`Unfinished rows will be marked as failed; successful rows are not rolled back.`} onConfirm={() => cancelImport(currentImport)}><Button danger icon={<StopOutlined />}>{t`Cancel import`}</Button></Popconfirm> : null}
             </Space>
           </Space>
         </Card>
       ) : null}
 
       <Card size="small" title={t`Recent imports`} className="mt-4">
+        {importHistory.isError && <ActionableError error={importHistory.error} onRetry={() => void importHistory.refetch()} retrying={importHistory.isFetching} />}
+        {activeImport.isError && <ActionableError error={activeImport.error} onRetry={() => void activeImport.refetch()} retrying={activeImport.isFetching} />}
         <Table<ImportJob>
           rowKey="id"
           loading={importHistory.isLoading}

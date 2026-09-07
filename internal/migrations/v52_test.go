@@ -17,7 +17,7 @@ func TestV52MigrationMetadataAndRegistration(t *testing.T) {
 	assert.False(t, migration.HasSystemUpdate())
 	assert.True(t, migration.HasWorkspaceUpdate())
 	assert.False(t, migration.ShouldRestartServer())
-	assert.Equal(t, "55.0", config.VERSION)
+	assert.Equal(t, "56.0", config.VERSION)
 
 	registered := GetRegisteredMigrations()
 	found := false

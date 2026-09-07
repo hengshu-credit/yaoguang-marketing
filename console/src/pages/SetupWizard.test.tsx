@@ -61,8 +61,8 @@ describe('SetupWizard — SSO step', () => {
     renderWizard()
 
     expect(await screen.findByRole('img', { name: '衡枢真信' })).toBeInTheDocument()
-    expect(screen.getByText('瑶光营销平台')).toBeInTheDocument()
-    expect(screen.getByText('观心知意，循光达客')).toBeInTheDocument()
+    expect(screen.getByText('Alkaid Marketing Platform')).toBeInTheDocument()
+    expect(screen.getByText('Understanding Intent. Reaching Customers')).toBeInTheDocument()
   })
 
   it('uses the Yaoguang product name as the default SMTP sender', async () => {

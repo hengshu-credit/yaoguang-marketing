@@ -62,8 +62,9 @@ describe('RootLayout', () => {
     useMatch.mockImplementation(() => false)
 
     const { container } = render(<RootLayout />)
-    // Check for the ant-spin class on any element in the container
-    expect(container.querySelector('.ant-spin')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: '衡枢真信' })).toHaveClass('preload-splash-logo')
+    expect(screen.getByRole('status', { name: 'Loading...' })).toBeInTheDocument()
+    expect(container.querySelector('.loader2')).toBeInTheDocument()
   })
 
   it('redirects to signin when not authenticated and not on public route', () => {

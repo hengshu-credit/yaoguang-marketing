@@ -1,3 +1,5 @@
+import type { PreviewDevice } from '../../preview'
+
 export type PreviewRendererKind = 'phone' | 'desktop' | 'notification' | 'enterprise' | 'http' | 'unknown'
 
 const profileKinds: Record<string, Exclude<PreviewRendererKind, 'unknown'>> = {
@@ -22,3 +24,8 @@ const profileKinds: Record<string, Exclude<PreviewRendererKind, 'unknown'>> = {
 export const previewRendererKind = (profileId: string): PreviewRendererKind =>
   profileKinds[profileId] || 'unknown'
 
+export const previewDevice = (profileId: string): PreviewDevice => {
+  if (profileId.endsWith('_desktop') || profileId.endsWith('_web') || profileId === 'web_notification') return 'desktop'
+  if (/android|google_messages|huawei|honor|xiaomi|oppo|vivo/.test(profileId)) return 'android'
+  return 'ios'
+}

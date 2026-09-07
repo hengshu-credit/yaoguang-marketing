@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useLingui } from '@lingui/react/macro'
 import { Drawer, Typography, Spin, Alert, Tabs, Tag, Space, Descriptions, Segmented } from 'antd'
 import type { Template, MjmlCompileError, Workspace } from '../../services/api/types'
@@ -13,6 +13,7 @@ import OmnichannelPreview from './OmnichannelPreview'
 import { channelsApi } from '../../services/api/channels'
 import type { ChannelDefinition } from '../../services/api/channels'
 import EmailClientFrame from './EmailClientFrame'
+import { webTemplateHtml } from './webTemplateContent'
 import type { PushClientProfile } from './ChannelMessagePreview'
 
 const { Text } = Typography
@@ -50,6 +51,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   const [pushPlatform, setPushPlatform] = useState<PushClientProfile>('android')
   const [genericProfile, setGenericProfile] = useState('')
   const [channelDefinition, setChannelDefinition] = useState<ChannelDefinition | null>(null)
+  const previewGeneration = useRef(0)
 
   const availableLanguages = useMemo(() => {
     if (messageHistory) return []
@@ -64,6 +66,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
             translation.email &&
             (translation.email.visual_editor_tree || translation.email.mjml_source)) ||
           (record.channel === 'sms' && Boolean(translation.sms)) ||
+          (record.channel === 'web' && Boolean(webTemplateHtml(translation.web))) ||
           (record.channel === 'push' && Boolean(translation.push)) ||
           Boolean(translation.content)
         if (code !== defaultLang && hasContent) {
@@ -84,6 +87,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   }, [effectiveLanguage, record.email, record.translations, workspace.settings?.default_language])
 
   const fetchPreview = async () => {
+    const generation = ++previewGeneration.current
     const isMessageChannel = record.channel !== 'email' && record.channel !== 'web'
     const isCodeMode = effectiveEmail?.editor_mode === 'code'
 
@@ -100,6 +104,8 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       setMjmlError(null)
       setPreviewMjml(null)
       setPreviewHtml(null)
+      setChannelPreview(null)
+      setIsLoading(false)
       return
     }
 
@@ -115,10 +121,19 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     setActiveTabKey('1') // Reset to HTML tab on new fetch
 
     try {
+      if (record.channel === 'web') {
+        const webContent = effectiveLanguage === (workspace.settings?.default_language || 'en')
+          ? record.web : record.translations?.[effectiveLanguage]?.web || record.web
+        const html = webTemplateHtml(webContent)
+        if (!html) throw new Error(t`No preview available or template is empty.`)
+        setPreviewHtml(html)
+        return
+      }
       if (isMessageChannel) {
         let definition = channelDefinition
         if (record.channel !== 'sms' && record.channel !== 'push' && !definition) {
           const catalog = await channelsApi.list(workspace.id)
+          if (generation !== previewGeneration.current) return
           definition = catalog.channels.find((candidate) => candidate.id === record.channel) || null
           setChannelDefinition(definition)
         }
@@ -136,6 +151,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
           profile: record.channel !== 'sms' && record.channel !== 'push' ? profile : undefined,
           test_data: templateData || record.test_data || {}
         })
+        if (generation !== previewGeneration.current) return
         setChannelPreview(response)
         setEffectiveTestData(response.test_data ?? null)
         return
@@ -192,6 +208,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
 
       // console.log('Compile Request:', req)
       const response = await templatesApi.compile(req as CompileTemplateRequest)
+      if (generation !== previewGeneration.current) return
       // console.log('Compile Response:', response)
 
       // Server returns rendered subject/subject_preview on both success and
@@ -214,6 +231,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
         setMjmlError(null)
       }
     } catch (err) {
+      if (generation !== previewGeneration.current) return
       console.error('Compile Error:', err)
       const error = err as { response?: { data?: { error?: string } }; message?: string }
       const errorMsg =
@@ -223,7 +241,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       setPreviewMjml(null)
       setChannelPreview(null)
     } finally {
-      setIsLoading(false)
+      if (generation === previewGeneration.current) setIsLoading(false)
     }
   }
 
@@ -247,8 +265,20 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       setGenericProfile('')
       setChannelDefinition(null)
     }
+    return () => { previewGeneration.current += 1 }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchPreview is stable
   }, [isOpen, record.id, record.version, workspace.id, effectiveLanguage, pushPlatform, genericProfile])
+
+  const emailProvider = workspace.integrations?.find(
+    (i) =>
+      i.id ===
+      (record.category_purpose === 'marketing' || (!record.category_purpose && record.category === 'marketing')
+        ? workspace.settings?.marketing_email_provider_id
+        : workspace.settings?.transactional_email_provider_id)
+  )?.email_provider
+
+  const defaultSender = emailProvider?.senders.find((s) => s.is_default)
+  const templateSender = emailProvider?.senders.find((s) => s.id === (effectiveEmail?.sender_id || record.email?.sender_id))
 
   const items = []
 
@@ -276,7 +306,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     items.push({
       key: '1',
       label: t`HTML Preview`,
-      children: <EmailClientFrame html={previewHtml} title={t`HTML Preview of ${record.name}`} />
+      children: <EmailClientFrame html={previewHtml} title={t`HTML Preview of ${record.name}`} web={record.channel === 'web'} email={{ senderName: messageHistory?.channel_options?.from_name || templateSender?.name || defaultSender?.name, senderEmail: templateSender?.email || defaultSender?.email, subject: renderedSubject ?? effectiveEmail?.subject, previewText: renderedSubjectPreview ?? effectiveEmail?.subject_preview }} />
     })
   }
 
@@ -297,17 +327,6 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     label: t`Template Data`,
     children: <JsonDataViewer data={testData} />
   })
-
-  const emailProvider = workspace.integrations?.find(
-    (i) =>
-      i.id ===
-      (record.category_purpose === 'marketing' || (!record.category_purpose && record.category === 'marketing')
-        ? workspace.settings?.marketing_email_provider_id
-        : workspace.settings?.transactional_email_provider_id)
-  )?.email_provider
-
-  const defaultSender = emailProvider?.senders.find((s) => s.is_default)
-  const templateSender = emailProvider?.senders.find((s) => s.id === record.email?.sender_id)
 
   const drawerContent = (
     <div>

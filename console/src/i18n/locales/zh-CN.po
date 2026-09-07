@@ -29,6 +29,86 @@ msgstr ""
 #~ msgid "Settings"
 #~ msgstr "设置"
 
+#: src/components/automations/AutomationFlowViewer.tsx:1
+msgid "Duration"
+msgstr "时长"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Data"
+msgstr "数据"
+
+#: src/components/automations/AutomationFlowViewer.tsx:1
+msgid "Node configuration"
+msgstr "节点配置"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Read-only"
+msgstr "只读"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "No configuration"
+msgstr "暂无配置"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Unit"
+msgstr "单位"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Updated Fields"
+msgstr "变更字段"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Paths"
+msgstr "分支路径"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Variants"
+msgstr "实验分组"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Next node"
+msgstr "下一节点"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Continue node"
+msgstr "继续节点"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Exit node"
+msgstr "退出节点"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Entry guard"
+msgstr "准入限制"
+
+#: src/components/automations/AutomationNodeDetails.tsx:1
+msgid "Node ID"
+msgstr "节点 ID"
+
+#: src/components/timeline/ContactTimeline.tsx:1
+msgid "added"
+msgstr "已添加"
+
+#: src/pages/ContactsPage.tsx:98
+msgid "Import customers"
+msgstr "导入客户"
+
+#: src/components/contacts/ContactDetailsDrawer.tsx:1099
+msgid "Automation deliveries"
+msgstr "自动化投递"
+
+#: src/components/contacts/ContactCustomerDetails.tsx:59
+msgid "Customer read permission is required"
+msgstr "需要客户查看权限"
+
+#: src/components/contacts/ContactCustomerDetails.tsx:61
+msgid "No customer is linked to this contact"
+msgstr "该联系人尚未关联客户"
+
+#: src/components/contacts/ContactCustomerDetails.tsx:105
+msgid "Message history read permission is required to view deliveries"
+msgstr "需要消息历史查看权限才能查看投递记录"
+
 #: src/components/ai-assistant/useAIAssistant.tsx:355
 msgid " - Done"
 msgstr " - 没问题"
@@ -681,7 +761,7 @@ msgstr "行动"
 #: src/components/blog/PostsTable.tsx:296
 #: src/components/blog/RecentThemesTable.tsx:179
 #: src/components/customers/CustomerImportPanel.tsx:158
-#: src/pages/AudiencesPage.tsx:131
+#: src/pages/AudiencesPage.tsx:147
 #: src/pages/BroadcastsPage.tsx:940
 msgid "Actions"
 msgstr "行动"
@@ -1032,11 +1112,11 @@ msgstr "为跟踪邮件中的链接附加签名身份，收件人点击后无需
 msgid "Adjust list memberships"
 msgstr "调整名单归属"
 
-#: src/pages/SetupWizard.tsx:319
+#: src/pages/SetupWizard.tsx:340
 msgid "Admin email is required"
 msgstr "需要管理邮件"
 
-#: src/pages/SetupWizard.tsx:488
+#: src/pages/SetupWizard.tsx:509
 msgid "Advanced Settings"
 msgstr "高级设置"
 
@@ -1118,6 +1198,7 @@ msgid "Alimama FangYuan"
 msgstr "阿里妈妈方圆体"
 
 #: src/App.tsx:133
+#: src/components/brand/YaoguangBrand.tsx:101
 msgid "Alkaid Marketing Platform"
 msgstr "瑶光营销平台"
 
@@ -1192,7 +1273,7 @@ msgstr "此后所有事务邮件（通知、密码重置等）都将通过此服
 msgid "All workspace overrides will fall back to the bundled defaults."
 msgstr "所有工作区覆盖项都将恢复为内置默认值。"
 
-#: src/pages/SetupWizard.tsx:523
+#: src/pages/SetupWizard.tsx:544
 msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
 msgstr "允许接收邮件来触发事务通知。需要 TLS 证书。"
 
@@ -1206,7 +1287,7 @@ msgid "Allowed domains"
 msgstr "允许域"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:657
-#: src/pages/SetupWizard.tsx:701
+#: src/pages/SetupWizard.tsx:722
 msgid "Allowed email domains"
 msgstr "允许的邮件域"
 
@@ -1363,11 +1444,11 @@ msgstr "API 命令"
 #: src/components/settings/Integrations.tsx:2104
 #: src/components/settings/Integrations.tsx:2486
 #: src/components/settings/SystemSettingsDrawer.tsx:277
-#: src/pages/SetupWizard.tsx:329
+#: src/pages/SetupWizard.tsx:350
 msgid "API Endpoint"
 msgstr "API 端点"
 
-#: src/pages/SetupWizard.tsx:332
+#: src/pages/SetupWizard.tsx:353
 msgid "API endpoint is required"
 msgstr "需要 API 端点"
 
@@ -1493,7 +1574,7 @@ msgid "Are you sure you want to delete the invitation for {0}?"
 msgstr "您确定要删除邀请 {0}?"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:324
+#: src/pages/ListsPage.tsx:331
 msgid "Are you sure you want to delete the list \"{0}\"?"
 msgstr "您确定要删除列表 \"{0}\"?"
 
@@ -1600,7 +1681,7 @@ msgstr "起码"
 msgid "At least one condition is required"
 msgstr "至少需要一个条件"
 
-#: src/pages/SetupWizard.tsx:706
+#: src/pages/SetupWizard.tsx:727
 msgid "At least one domain is required when auto-create is enabled"
 msgstr "启用自动创建时至少需要一个域"
 
@@ -1668,7 +1749,7 @@ msgstr "客群通知"
 msgid "Audience notification journey"
 msgstr "客群通知自动化旅程"
 
-#: src/pages/AudiencesPage.tsx:168
+#: src/pages/AudiencesPage.tsx:195
 msgid "Audience segmentation"
 msgstr "客群划分"
 
@@ -1676,7 +1757,7 @@ msgstr "客群划分"
 msgid "Audience source"
 msgstr "客群来源"
 
-#: src/layouts/WorkspaceLayout.tsx:269
+#: src/layouts/WorkspaceLayout.tsx:403
 msgid "Audiences"
 msgstr "客群划分"
 
@@ -1731,7 +1812,7 @@ msgstr "自动"
 msgid "Auto"
 msgstr "自动"
 
-#: src/pages/SetupWizard.tsx:693
+#: src/pages/SetupWizard.tsx:714
 msgid "Auto-create accounts on first sign-in"
 msgstr "第一个登录时自动创建账户"
 
@@ -1787,7 +1868,7 @@ msgstr "自动化流程——包括触发器、节点及每位联系人的执行
 msgid "Automation Journey"
 msgstr "自动化旅程"
 
-#: src/layouts/WorkspaceLayout.tsx:287
+#: src/layouts/WorkspaceLayout.tsx:421
 msgid "Automation Journeys"
 msgstr "营销自动化"
 
@@ -1930,7 +2011,7 @@ msgstr "基准 URL (可选)"
 msgid "Base64 encoded TLS certificate"
 msgstr "Base64 编码的 TLS 证书"
 
-#: src/pages/SetupWizard.tsx:586
+#: src/pages/SetupWizard.tsx:607
 msgid "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
 msgstr "Base64 编码的 TLS 证书。运行：cat fullchain.pem | base64 -w 0"
 
@@ -1938,7 +2019,7 @@ msgstr "Base64 编码的 TLS 证书。运行：cat fullchain.pem | base64 -w 0"
 msgid "Base64 encoded TLS private key"
 msgstr "Base64 编码的 TLS 私钥"
 
-#: src/pages/SetupWizard.tsx:604
+#: src/pages/SetupWizard.tsx:625
 msgid "Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0"
 msgstr "Base64 编码的 TLS 私钥。运行：cat privkey.pem | base64 -w 0"
 
@@ -2447,7 +2528,7 @@ msgid "Button Attributes"
 msgstr "按键属性"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:619
-#: src/pages/SetupWizard.tsx:683
+#: src/pages/SetupWizard.tsx:704
 msgid "Button Label"
 msgstr "按键标签"
 
@@ -2585,12 +2666,12 @@ msgstr "营销活动"
 #: src/components/web_analytics/filters/FilterTable.tsx:292
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:105
 #: src/components/web_analytics/toolbar.tsx:94
-#: src/pages/AudiencesPage.tsx:223
+#: src/pages/AudiencesPage.tsx:260
 #: src/pages/BroadcastsPage.tsx:632
 #: src/pages/BroadcastsPage.tsx:654
 #: src/pages/BroadcastsPage.tsx:1018
 #: src/pages/BroadcastsPage.tsx:1734
-#: src/pages/ListsPage.tsx:308
+#: src/pages/ListsPage.tsx:315
 #: src/pages/TemplatesPage.tsx:392
 #: src/pages/TransactionalNotificationsPage.tsx:150
 msgid "Cancel"
@@ -2847,7 +2928,7 @@ msgid "Check"
 msgstr "检查"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:698
-#: src/pages/SetupWizard.tsx:506
+#: src/pages/SetupWizard.tsx:527
 msgid "Check for Updates"
 msgstr "检查更新"
 
@@ -3014,11 +3095,11 @@ msgid "Clicks"
 msgstr "点击"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:572
-#: src/pages/SetupWizard.tsx:663
+#: src/pages/SetupWizard.tsx:684
 msgid "Client ID"
 msgstr "客户身份"
 
-#: src/pages/SetupWizard.tsx:666
+#: src/pages/SetupWizard.tsx:687
 msgid "Client ID is required"
 msgstr "必须填写客户端 ID"
 
@@ -3033,11 +3114,11 @@ msgstr "客户端预览"
 
 #: src/components/settings/Integrations.tsx:2044
 #: src/components/settings/SystemSettingsDrawer.tsx:582
-#: src/pages/SetupWizard.tsx:673
+#: src/pages/SetupWizard.tsx:694
 msgid "Client Secret"
 msgstr "客户端机密"
 
-#: src/pages/SetupWizard.tsx:676
+#: src/pages/SetupWizard.tsx:697
 msgid "Client Secret is required"
 msgstr "需要客户端保密"
 
@@ -3102,8 +3183,9 @@ msgid "Code Editor"
 msgstr "代码编辑器"
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
-#: src/layouts/WorkspaceLayout.tsx:343
-#: src/layouts/WorkspaceLayout.tsx:418
+#: src/layouts/WorkspaceLayout.tsx:477
+#: src/layouts/WorkspaceLayout.tsx:556
+#: src/layouts/WorkspaceLayout.tsx:560
 msgid "Collapse"
 msgstr "折叠"
 
@@ -3132,7 +3214,7 @@ msgstr "列属性"
 msgid "Column width (e.g., '50%', '300px', 'auto')"
 msgstr "列宽( 如“ 50% ” 、 “ 300px ” 、 “ 自动” )"
 
-#: src/pages/SetupWizard.tsx:709
+#: src/pages/SetupWizard.tsx:730
 msgid "Comma-separated list of email domains permitted to auto-create accounts"
 msgstr "允许自动创建账户的以逗号分隔的邮件域列表"
 
@@ -3146,7 +3228,7 @@ msgstr "逗号分离. 只有这些域可以自动创建账户 。"
 
 #: src/components/settings/Integrations.tsx:1893
 #: src/components/settings/SystemSettingsDrawer.tsx:341
-#: src/pages/SetupWizard.tsx:406
+#: src/pages/SetupWizard.tsx:427
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 msgstr "共同港口:587(TLS)、465(SSL)、25(未加密)"
 
@@ -3214,7 +3296,7 @@ msgstr "申诉"
 #: src/components/broadcasts/BroadcastStats.tsx:317
 #: src/components/lists/ListStats.tsx:158
 msgid "Complaints"
-msgstr "申诉"
+msgstr "投诉"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:53
 msgid "Complement, don't repeat the subject line"
@@ -3229,7 +3311,7 @@ msgstr "完成"
 msgid "Complete a condition to preview the audience size"
 msgstr "完成一个筛选条件后即可预览客群人数"
 
-#: src/pages/SetupWizard.tsx:738
+#: src/pages/SetupWizard.tsx:759
 msgid "Complete Setup"
 msgstr "完成初始化"
 
@@ -3561,7 +3643,7 @@ msgid "Content"
 msgstr "内容"
 
 #: src/components/navigation/WorkspaceSectionTabs.tsx:94
-#: src/layouts/WorkspaceLayout.tsx:303
+#: src/layouts/WorkspaceLayout.tsx:437
 msgid "Content Center"
 msgstr "素材模板"
 
@@ -3866,8 +3948,8 @@ msgid "Create Broadcast"
 msgstr "创建群发"
 
 #: src/components/audiences/AudienceDrawer.tsx:172
-#: src/pages/AudiencesPage.tsx:181
-#: src/pages/AudiencesPage.tsx:188
+#: src/pages/AudiencesPage.tsx:208
+#: src/pages/AudiencesPage.tsx:215
 msgid "Create dynamic audience"
 msgstr "创建动态客群"
 
@@ -3875,7 +3957,7 @@ msgstr "创建动态客群"
 msgid "Create First Theme"
 msgstr "创建第一个主题"
 
-#: src/pages/AudiencesPage.tsx:176
+#: src/pages/AudiencesPage.tsx:203
 msgid "Create list"
 msgstr "创建名单"
 
@@ -3945,7 +4027,7 @@ msgstr "创建全渠道模板"
 msgid "Create or update one Customer profile with an idempotency key"
 msgstr "使用幂等键创建或更新单个客户档案"
 
-#: src/pages/ListsPage.tsx:159
+#: src/pages/ListsPage.tsx:160
 msgid "Create reusable customer groups and monitor their live membership counts."
 msgstr "创建可复用的客群，并实时监控人数。"
 
@@ -4005,7 +4087,7 @@ msgstr "创建第一个群发以开始使用"
 msgid "Create Your First Category"
 msgstr "创建您的第一类"
 
-#: src/pages/ListsPage.tsx:295
+#: src/pages/ListsPage.tsx:302
 msgid "Create your first list to get started"
 msgstr "创建您要启动的第一个列表"
 
@@ -4037,8 +4119,10 @@ msgstr "已创建"
 #: src/components/messages/MessageHistoryTable.tsx:135
 #: src/components/messages/MessageHistoryTable.tsx:336
 #: src/components/segment/labels.ts:84
+#: src/pages/AudiencesPage.tsx:144
 #: src/pages/ContactsPage.tsx:436
 #: src/pages/ContactsPage.tsx:739
+#: src/pages/ListsPage.tsx:261
 msgid "Created At"
 msgstr "创建时间"
 
@@ -4388,12 +4472,17 @@ msgstr "客户档案"
 msgid "Customer profile updated"
 msgstr "客户档案已更新"
 
+#. placeholder {0}: row.name
+#: src/pages/AudiencesPage.tsx:234
+msgid "Customer status counts for {0}"
+msgstr "{0} 的客户状态统计"
+
 #: src/services/api/permissions.ts:286
 msgid "Customer write can replace tags and list memberships and can explicitly merge an anonymous Customer into a known Customer. Merge is intentionally limited to that direction; known-to-known automatic merging is not allowed. Raw identity values are encrypted and responses expose only masked hints."
 msgstr "客户写权限可以替换标签和名单成员关系，并可将匿名客户显式合并到已知客户。合并仅允许此方向，不允许已知客户之间自动合并。身份原值会加密存储，响应只返回脱敏提示。"
 
 #: src/components/settings/PermissionsMatrix.tsx:119
-#: src/layouts/WorkspaceLayout.tsx:260
+#: src/layouts/WorkspaceLayout.tsx:394
 #: src/pages/CustomersPage.tsx:156
 #: src/services/api/errors.ts:214
 msgid "Customers"
@@ -4436,7 +4525,7 @@ msgid "Dashed"
 msgstr "虚构"
 
 #: src/components/navigation/WorkspaceSectionTabs.tsx:194
-#: src/layouts/WorkspaceLayout.tsx:244
+#: src/layouts/WorkspaceLayout.tsx:378
 msgid "Data Analytics"
 msgstr "数据分析"
 
@@ -4538,7 +4627,7 @@ msgid "Defaults to meta title"
 msgstr "默认元标题"
 
 #: src/components/settings/Integrations.tsx:2095
-#: src/pages/SetupWizard.tsx:466
+#: src/pages/SetupWizard.tsx:487
 msgid "Defaults to SMTP host"
 msgstr "SMTP 主机的默认值"
 
@@ -4546,7 +4635,7 @@ msgstr "SMTP 主机的默认值"
 msgid "Deferred"
 msgstr "已延后"
 
-#: src/pages/AudiencesPage.tsx:170
+#: src/pages/AudiencesPage.tsx:197
 msgid "Define reusable audiences from customer attributes, status, lists, activity, and goals."
 msgstr "根据客户属性、状态、名单、行为和目标事件定义可复用客群。"
 
@@ -4590,11 +4679,12 @@ msgstr "延迟"
 #: src/components/web_analytics/filters/FilterTable.tsx:136
 #: src/components/web_analytics/filters/FilterTable.tsx:291
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
-#: src/pages/AudiencesPage.tsx:148
-#: src/pages/AudiencesPage.tsx:232
+#: src/pages/AudiencesPage.tsx:164
+#: src/pages/AudiencesPage.tsx:184
+#: src/pages/AudiencesPage.tsx:269
 #: src/pages/BroadcastsPage.tsx:1744
 #: src/pages/ContactsPage.tsx:947
-#: src/pages/ListsPage.tsx:318
+#: src/pages/ListsPage.tsx:325
 msgid "Delete"
 msgstr "删除"
 
@@ -4603,7 +4693,8 @@ msgid "DELETE"
 msgstr "DELETE"
 
 #. placeholder {0}: row.name
-#: src/pages/AudiencesPage.tsx:144
+#: src/pages/AudiencesPage.tsx:160
+#: src/pages/AudiencesPage.tsx:180
 msgid "Delete {0}"
 msgstr "删除 {0}"
 
@@ -4685,6 +4776,10 @@ msgstr "删除注释 ?"
 msgid "Delete anyway"
 msgstr "无论如何删除"
 
+#: src/pages/AudiencesPage.tsx:256
+msgid "Delete audience"
+msgstr "删除动态客群"
+
 #: src/components/automations/AutomationCard.tsx:148
 #: src/components/automations/AutomationCard.tsx:163
 msgid "Delete Automation"
@@ -4756,9 +4851,9 @@ msgstr "删除 Header"
 msgid "Delete invitation"
 msgstr "删除邀请"
 
-#: src/pages/AudiencesPage.tsx:219
-#: src/pages/ListsPage.tsx:214
-#: src/pages/ListsPage.tsx:303
+#: src/pages/AudiencesPage.tsx:256
+#: src/pages/ListsPage.tsx:215
+#: src/pages/ListsPage.tsx:310
 msgid "Delete List"
 msgstr "删除列表"
 
@@ -4894,7 +4989,7 @@ msgstr "投递"
 msgid "Delivery blocked by frequency control"
 msgstr "投递已被频控拦截"
 
-#: src/layouts/WorkspaceLayout.tsx:319
+#: src/layouts/WorkspaceLayout.tsx:453
 #: src/pages/DeliveryCenterPage.tsx:134
 msgid "Delivery Center"
 msgstr "投递中心"
@@ -4937,8 +5032,8 @@ msgstr "描述这个图像..."
 #: src/components/lists/ListDrawer.tsx:206
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:308
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
-#: src/pages/AudiencesPage.tsx:120
-#: src/pages/ListsPage.tsx:259
+#: src/pages/AudiencesPage.tsx:140
+#: src/pages/ListsPage.tsx:260
 #: src/pages/TransactionalNotificationsPage.tsx:267
 msgid "Description"
 msgstr "描述"
@@ -5118,7 +5213,7 @@ msgstr "您要永久删除此文件吗 ?"
 msgid "Do you want to send \"{0}\" immediately or schedule it for later?"
 msgstr "您是否想要发送 \"{0}\" 即刻还是日后安排?"
 
-#: src/layouts/WorkspaceLayout.tsx:510
+#: src/layouts/WorkspaceLayout.tsx:673
 msgid "Documentation"
 msgstr "文档"
 
@@ -5133,11 +5228,11 @@ msgstr ""
 #: src/components/segment/labels.ts:97
 #: src/components/settings/Integrations.tsx:2152
 #: src/components/settings/Integrations.tsx:2495
-#: src/pages/SetupWizard.tsx:545
+#: src/pages/SetupWizard.tsx:566
 msgid "Domain"
 msgstr "域名"
 
-#: src/pages/SetupWizard.tsx:553
+#: src/pages/SetupWizard.tsx:574
 msgid "Domain for the SMTP bridge server (e.g., smtp.yourcompany.com)"
 msgstr "SMTP 桥服务器的域名( 如 smtp. yourcompany.com)"
 
@@ -5171,7 +5266,7 @@ msgid "Double Opt-in"
 msgstr "双重确认订阅"
 
 #: src/components/lists/ListDrawer.tsx:250
-#: src/pages/ListsPage.tsx:273
+#: src/pages/ListsPage.tsx:280
 msgid "Double Opt-in Template"
 msgstr "双切入模板"
 
@@ -5219,7 +5314,7 @@ msgstr "在树上拖动此块"
 msgid "Drop files here to upload"
 msgstr "在此丢弃文件上传"
 
-#: src/pages/AudiencesPage.tsx:115
+#: src/pages/AudiencesPage.tsx:135
 msgid "Dynamic"
 msgstr "动态"
 
@@ -5339,7 +5434,7 @@ msgstr "例如,欢迎——第1天"
 msgid "Each contact enters the automation only once"
 msgstr "每个联系人只输入一次自动化"
 
-#: src/pages/ListsPage.tsx:80
+#: src/pages/ListsPage.tsx:81
 msgid "edit"
 msgstr "编辑"
 
@@ -5359,8 +5454,8 @@ msgstr "编辑"
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:91
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:154
 #: src/components/web_analytics/filters/FilterTable.tsx:140
-#: src/pages/AudiencesPage.tsx:154
-#: src/pages/AudiencesPage.tsx:158
+#: src/pages/AudiencesPage.tsx:171
+#: src/pages/AudiencesPage.tsx:175
 #: src/pages/ContactsPage.tsx:941
 #: src/pages/TransactionalNotificationsPage.tsx:158
 msgid "Edit"
@@ -5474,13 +5569,13 @@ msgstr "编辑 HTML 内容"
 msgid "Edit Liquid Content"
 msgstr "编辑 Liquid 内容"
 
-#: src/pages/AudiencesPage.tsx:139
+#: src/pages/AudiencesPage.tsx:155
 msgid "Edit list"
 msgstr "编辑名单"
 
 #: src/components/lists/ListDrawer.tsx:154
 #: src/components/lists/ListDrawer.tsx:157
-#: src/pages/ListsPage.tsx:230
+#: src/pages/ListsPage.tsx:231
 msgid "Edit List"
 msgstr "编辑列表"
 
@@ -5578,7 +5673,7 @@ msgstr "编辑器模式"
 #: src/components/settings/Integrations.tsx:2092
 #: src/components/settings/Integrations.tsx:2436
 #: src/components/settings/SystemSettingsDrawer.tsx:432
-#: src/pages/SetupWizard.tsx:463
+#: src/pages/SetupWizard.tsx:484
 msgid "EHLO Hostname"
 msgstr "EHLO 主机名"
 
@@ -5786,7 +5881,7 @@ msgstr "空栏. 添加文本、按钮或图像内容。"
 msgid "Enable A/B Testing"
 msgstr "启用 A/B 测试"
 
-#: src/pages/SetupWizard.tsx:496
+#: src/pages/SetupWizard.tsx:517
 msgid "Enable Anonymous Telemetry"
 msgstr "启用匿名遥测"
 
@@ -5807,11 +5902,11 @@ msgstr "启用地理定位跟踪"
 msgid "Enable or disable a subscription"
 msgstr "启用或禁用订阅"
 
-#: src/pages/SetupWizard.tsx:627
+#: src/pages/SetupWizard.tsx:648
 msgid "Enable Single Sign-On (OpenID Connect)"
 msgstr "启用单签名( 打开ID 连接)"
 
-#: src/pages/SetupWizard.tsx:522
+#: src/pages/SetupWizard.tsx:543
 msgid "Enable SMTP Bridge Server"
 msgstr "启用 SMTP Bridge 服务"
 
@@ -5824,7 +5919,7 @@ msgid "Enable this rule?"
 msgstr "启用此规则 ?"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:355
-#: src/pages/SetupWizard.tsx:421
+#: src/pages/SetupWizard.tsx:442
 msgid "Enable TLS encryption for SMTP connection"
 msgstr "启用 SMTP 连接的 TLS 加密"
 
@@ -6010,6 +6105,10 @@ msgstr "输入高度"
 msgid "Enter icon URL or select image"
 msgstr "输入图标 URL 或选择图像"
 
+#: src/pages/AudiencesPage.tsx:278
+msgid "Enter ID to confirm"
+msgstr "输入 ID 以确认"
+
 #: src/components/email_builder/blocks/MjImageBlock.tsx:47
 msgid "Enter image URL"
 msgstr "输入图像 URL"
@@ -6030,8 +6129,7 @@ msgstr "输入链接 URL 或 {{ url }}"
 msgid "Enter list description"
 msgstr "输入列表描述"
 
-#: src/pages/AudiencesPage.tsx:241
-#: src/pages/ListsPage.tsx:330
+#: src/pages/ListsPage.tsx:337
 msgid "Enter list ID to confirm"
 msgstr "输入要确认的列表ID"
 
@@ -6075,10 +6173,14 @@ msgstr "请输入自动化:触发器标识"
 msgid "Enter the campaign ID"
 msgstr "请输入活动 ID"
 
-#. placeholder {0}: listToDelete.name
+#. placeholder {0}: itemToDelete.name
+#: src/pages/AudiencesPage.tsx:275
+msgid "Enter the ID to confirm deletion of \"{0}\"."
+msgstr "输入 ID 以确认删除“{0}”。"
+
 #: src/pages/AudiencesPage.tsx:238
-msgid "Enter the list ID to confirm deletion of \"{0}\"."
-msgstr "请输入名单 ID 以确认删除“{0}”。"
+#~ msgid "Enter the list ID to confirm deletion of \"{0}\"."
+#~ msgstr "请输入名单 ID 以确认删除“{0}”。"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:339
 msgid "Enter the name of the custom event (e.g., 'purchase', 'signup')"
@@ -6368,7 +6470,8 @@ msgstr "退出点"
 
 #: src/components/email_builder/ui/CodePreview.tsx:61
 #: src/components/web_analytics/DimensionTableWidget.tsx:127
-#: src/layouts/WorkspaceLayout.tsx:446
+#: src/layouts/WorkspaceLayout.tsx:556
+#: src/layouts/WorkspaceLayout.tsx:609
 msgid "Expand"
 msgstr "扩展"
 
@@ -6501,7 +6604,7 @@ msgstr "清除字段失败"
 msgid "Failed to compile template preview."
 msgstr "编译模板预览失败 。"
 
-#: src/pages/SetupWizard.tsx:196
+#: src/pages/SetupWizard.tsx:202
 msgid "Failed to complete setup"
 msgstr "完成设置失败"
 
@@ -6565,6 +6668,10 @@ msgstr "创建模板失败 : {0}"
 msgid "Failed to create workspace"
 msgstr "创建工作区失败"
 
+#: src/pages/AudiencesPage.tsx:102
+msgid "Failed to delete audience"
+msgstr "删除客群失败"
+
 #: src/pages/AutomationsPage.tsx:128
 #~ msgid "Failed to delete automation"
 #~ msgstr "删除自动化失败"
@@ -6594,8 +6701,7 @@ msgstr "删除集成失败"
 msgid "Failed to delete invitation"
 msgstr "删除邀请失败"
 
-#: src/pages/AudiencesPage.tsx:91
-#: src/pages/ListsPage.tsx:123
+#: src/pages/ListsPage.tsx:124
 msgid "Failed to delete list"
 msgstr "删除列表失败"
 
@@ -6673,7 +6779,9 @@ msgstr "获取新联系人数据失败"
 msgid "Failed to fetch objects: "
 msgstr "获取对象失败 : "
 
+#: src/layouts/RootLayout.tsx:168
 #: src/pages/SetupWizard.tsx:58
+#: src/pages/SetupWizard.tsx:270
 msgid "Failed to fetch setup status"
 msgstr "获取设置状态失败"
 
@@ -6913,7 +7021,7 @@ msgstr "测试邮件服务商失败"
 msgid "Failed to test recipient feed: {0}"
 msgstr "测试收件人种子失败 : {0}"
 
-#: src/pages/SetupWizard.tsx:87
+#: src/pages/SetupWizard.tsx:93
 msgid "Failed to test SMTP connection"
 msgstr "测试 SMTP 连接失败"
 
@@ -6995,7 +7103,7 @@ msgstr "更新网络分析设置失败"
 msgid "Failed to update workspace settings"
 msgstr "更新工作区设置失败"
 
-#: src/layouts/WorkspaceLayout.tsx:223
+#: src/layouts/WorkspaceLayout.tsx:357
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "更新工作区设置失败 : {errorMessage}"
 
@@ -7374,16 +7482,16 @@ msgid "From"
 msgstr "从"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:399
-#: src/pages/SetupWizard.tsx:444
+#: src/pages/SetupWizard.tsx:465
 msgid "From Email"
 msgstr "从邮件"
 
-#: src/pages/SetupWizard.tsx:447
+#: src/pages/SetupWizard.tsx:468
 msgid "From email is required"
 msgstr "需要邮件"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:415
-#: src/pages/SetupWizard.tsx:455
+#: src/pages/SetupWizard.tsx:476
 msgid "From Name"
 msgstr "发件人名称"
 
@@ -7495,7 +7603,7 @@ msgid "Global feed URL is required when enabled"
 msgstr "启用时需要全局种子 URL"
 
 #: src/pages/AcceptInvitationPage.tsx:125
-#: src/pages/SetupWizard.tsx:289
+#: src/pages/SetupWizard.tsx:310
 msgid "Go to Sign In"
 msgstr "前往登录"
 
@@ -7671,7 +7779,7 @@ msgstr "高度"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:718
 #: src/components/templates/CreateTemplateDrawer.tsx:156
-#: src/layouts/WorkspaceLayout.tsx:536
+#: src/layouts/WorkspaceLayout.tsx:699
 msgid "Help"
 msgstr "帮助"
 
@@ -7679,7 +7787,7 @@ msgstr "帮助"
 msgid "Help & Support"
 msgstr "帮助和支持( S)"
 
-#: src/pages/SetupWizard.tsx:497
+#: src/pages/SetupWizard.tsx:518
 msgid "Help us improve Yaoguang Marketing by sending anonymous usage statistics. No personal data or message content is collected."
 msgstr "发送匿名使用统计信息，帮助我们改进瑶光营销平台。我们不会收集个人数据或消息内容。"
 
@@ -7842,7 +7950,7 @@ msgstr "图标/ Favicon URL"
 #: src/components/automations/AutomationCard.tsx:293
 #: src/components/messages/MessageHistoryTable.tsx:211
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:355
-#: src/pages/ListsPage.tsx:257
+#: src/pages/ListsPage.tsx:258
 #: src/pages/TransactionalNotificationsPage.tsx:265
 msgid "ID"
 msgstr "ID"
@@ -7856,7 +7964,7 @@ msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "ID只能包含小写字母、数字和下划线"
 
 #: src/pages/BroadcastsPage.tsx:1775
-#: src/pages/ListsPage.tsx:336
+#: src/pages/ListsPage.tsx:343
 msgid "ID doesn't match"
 msgstr "ID 不匹配"
 
@@ -8262,8 +8370,8 @@ msgstr "集成"
 msgid "Invalid email"
 msgstr "无效的邮件"
 
-#: src/pages/SetupWizard.tsx:320
-#: src/pages/SetupWizard.tsx:448
+#: src/pages/SetupWizard.tsx:341
+#: src/pages/SetupWizard.tsx:469
 msgid "Invalid email format"
 msgstr "无效的邮件格式"
 
@@ -8322,7 +8430,7 @@ msgstr "无效的树状结构:不是对象"
 msgid "Invalid tree structure: root must be mjml type"
 msgstr "无效的树结构: 根必须是 mjml 类型"
 
-#: src/pages/SetupWizard.tsx:333
+#: src/pages/SetupWizard.tsx:354
 msgid "Invalid URL format"
 msgstr "无效的 URL 格式"
 
@@ -8407,11 +8515,11 @@ msgid "isolation requested but not provisioned"
 msgstr "请求隔离但未提供"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:553
-#: src/pages/SetupWizard.tsx:651
+#: src/pages/SetupWizard.tsx:672
 msgid "Issuer URL"
 msgstr "发行者 URL"
 
-#: src/pages/SetupWizard.tsx:654
+#: src/pages/SetupWizard.tsx:675
 msgid "Issuer URL is required"
 msgstr "需要发行者 URL"
 
@@ -8685,7 +8793,7 @@ msgstr ""
 msgid "less than or equal"
 msgstr ""
 
-#: src/pages/SetupWizard.tsx:628
+#: src/pages/SetupWizard.tsx:649
 msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
 msgstr "让用户与外部身份服务商签约(Google 工作区,Keycloak,Okta,... )与魔法密码并列."
 
@@ -8785,14 +8893,14 @@ msgstr "支持 Liquid 变量"
 #: src/components/messages/MessageHistoryTable.tsx:229
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:231
 #: src/components/web_analytics/tabs/DashboardTab.tsx:220
-#: src/pages/AudiencesPage.tsx:115
+#: src/pages/AudiencesPage.tsx:135
 #: src/pages/BroadcastsPage.tsx:1086
 #: src/pages/ContactsPage.tsx:380
 msgid "List"
 msgstr "列表"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:117
+#: src/pages/ListsPage.tsx:118
 msgid "List \"{0}\" deleted successfully"
 msgstr "清单 \"{0}\" 成功删除"
 
@@ -8947,7 +9055,7 @@ msgstr "列表 :"
 #: src/components/settings/UITranslationsSettings.tsx:113
 #: src/pages/ContactsPage.tsx:425
 #: src/pages/ContactsPage.tsx:545
-#: src/pages/ListsPage.tsx:157
+#: src/pages/ListsPage.tsx:158
 #: src/services/api/errors.ts:215
 msgid "Lists"
 msgstr "列表"
@@ -8956,7 +9064,7 @@ msgstr "列表"
 msgid "Lists could not be loaded. You can still import without list binding."
 msgstr "名单加载失败，您仍可不绑定名单直接导入。"
 
-#: src/pages/ListsPage.tsx:144
+#: src/pages/ListsPage.tsx:145
 msgid "Lists refreshed"
 msgstr "列表已刷新"
 
@@ -9027,7 +9135,7 @@ msgstr "正在加载名单..."
 msgid "Loading message history..."
 msgstr "正在加载消息历史..."
 
-#: src/pages/SetupWizard.tsx:252
+#: src/pages/SetupWizard.tsx:258
 msgid "Loading setup..."
 msgstr "正在加载设置..."
 
@@ -9057,10 +9165,10 @@ msgstr "正在加载 Webhook 状态..."
 #: src/components/timeline/ContactTimeline.tsx:1039
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:499
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:455
-#: src/layouts/RootLayout.tsx:90
+#: src/layouts/RootLayout.tsx:185
 #: src/pages/ContactsPage.tsx:532
 #: src/pages/ContactsPage.tsx:1182
-#: src/pages/ListsPage.tsx:150
+#: src/pages/ListsPage.tsx:151
 #: src/pages/LogsPage.tsx:19
 #: src/pages/TemplatesPage.tsx:215
 #: src/pages/TransactionalNotificationsPage.tsx:384
@@ -9080,7 +9188,7 @@ msgstr "日志预览"
 msgid "Logo URL"
 msgstr "标记 URL"
 
-#: src/layouts/WorkspaceLayout.tsx:549
+#: src/layouts/WorkspaceLayout.tsx:712
 msgid "Logout"
 msgstr "注销"
 
@@ -9225,7 +9333,7 @@ msgstr "营销"
 msgid "Marketing Campaign"
 msgstr "营销活动"
 
-#: src/layouts/WorkspaceLayout.tsx:278
+#: src/layouts/WorkspaceLayout.tsx:412
 msgid "Marketing Campaigns"
 msgstr "营销活动"
 
@@ -9255,8 +9363,8 @@ msgid "Marketing Provider"
 msgstr "营销渠道服务商"
 
 #: src/components/audiences/AudienceDrawer.tsx:189
-msgid "Marketing runs select the latest audience when execution starts, freeze the candidates, and check every customer again immediately before each message."
-msgstr "营销任务实际启动时使用最新客群规则冻结候选客户，并在每次触达前再次检查客户是否仍满足条件。"
+#~ msgid "Marketing runs select the latest audience when execution starts, freeze the candidates, and check every customer again immediately before each message."
+#~ msgstr "营销任务实际启动时使用最新客群规则冻结候选客户，并在每次触达前再次检查客户是否仍满足条件。"
 
 #: src/components/contacts/SegmentsFilter.tsx:73
 msgid "Matched"
@@ -9620,7 +9728,7 @@ msgstr "多维分析"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:557
 #: src/components/settings/SystemSettingsDrawer.tsx:599
-#: src/pages/SetupWizard.tsx:655
+#: src/pages/SetupWizard.tsx:676
 msgid "Must be a valid https URL"
 msgstr "必须是有效的 https URL"
 
@@ -9677,7 +9785,7 @@ msgstr "N/A"
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:119
 #: src/components/web_analytics/filters/FilterTable.tsx:192
 #: src/components/web_analytics/filters/TestFilterModal.tsx:230
-#: src/pages/AudiencesPage.tsx:98
+#: src/pages/AudiencesPage.tsx:118
 msgid "Name"
 msgstr "名称"
 
@@ -9763,7 +9871,7 @@ msgstr "新建主题"
 msgid "New Window"
 msgstr "新建窗口"
 
-#: src/layouts/WorkspaceLayout.tsx:485
+#: src/layouts/WorkspaceLayout.tsx:648
 #: src/pages/CreateWorkspacePage.tsx:104
 msgid "New workspace"
 msgstr "新工作区"
@@ -9854,7 +9962,7 @@ msgstr "未回复。 请再试一次"
 msgid "No attribution rules yet. Create the first one to start shaping your traffic data."
 msgstr "还没有归属规则 创建第一个开始构建您的流量数据 。"
 
-#: src/pages/AudiencesPage.tsx:196
+#: src/pages/AudiencesPage.tsx:223
 msgid "No audiences yet"
 msgstr "暂无客群或名单"
 
@@ -10084,7 +10192,7 @@ msgstr "不绑定名单"
 msgid "No list memberships"
 msgstr "未加入任何名单"
 
-#: src/pages/ListsPage.tsx:293
+#: src/pages/ListsPage.tsx:300
 msgid "No lists found"
 msgstr "未找到列表"
 
@@ -10496,7 +10604,7 @@ msgstr "符合下列条件:"
 msgid "Off (plaintext)"
 msgstr "关闭( 演示文稿)"
 
-#: src/pages/SetupWizard.tsx:657
+#: src/pages/SetupWizard.tsx:678
 msgid "OIDC issuer base URL — discovery happens at <issuer>/.well-known/openid-configuration"
 msgstr "OIDC 发行者基础 URL — 发现发生在 <issuer>/. 众所周知/开放配置"
 
@@ -10947,7 +11055,7 @@ msgstr "启用时需要每个接收者的种子 URL"
 msgid "Period — {detail}"
 msgstr "期间 - {detail}"
 
-#: src/pages/SetupWizard.tsx:507
+#: src/pages/SetupWizard.tsx:528
 msgid "Periodically check for new Yaoguang Marketing versions and security updates. A popup will list new versions available."
 msgstr "定期检查瑶光营销平台的新版本和安全更新，并通过弹窗展示可用版本。"
 
@@ -11324,11 +11432,11 @@ msgid "Policy name"
 msgstr "策略名称"
 
 #: src/components/transactional/ApiCommandModal.tsx:533
-#: src/pages/SetupWizard.tsx:559
+#: src/pages/SetupWizard.tsx:580
 msgid "Port"
 msgstr "端口"
 
-#: src/pages/SetupWizard.tsx:568
+#: src/pages/SetupWizard.tsx:589
 msgid "Port for the SMTP bridge server (default: 587)"
 msgstr "SMTP 桥服务器的端口( 默认: 587)"
 
@@ -11415,8 +11523,8 @@ msgstr "按 Enter 键或点击“确定”确认，按 Escape 键取消"
 msgid "Press Enter to confirm, Escape to cancel"
 msgstr "按 Enter 键确认, 退出取消"
 
-#: src/pages/ListsPage.tsx:64
-#: src/pages/ListsPage.tsx:73
+#: src/pages/ListsPage.tsx:65
+#: src/pages/ListsPage.tsx:74
 msgid "preview"
 msgstr "预览"
 
@@ -11584,7 +11692,7 @@ msgstr "需要优先权"
 msgid "Priority:"
 msgstr "优先级 :"
 
-#: src/pages/ListsPage.tsx:267
+#: src/pages/ListsPage.tsx:274
 msgid "Private"
 msgstr "私营"
 
@@ -11703,7 +11811,7 @@ msgid "Provider name"
 msgstr "供应商名称"
 
 #: src/components/lists/ListDrawer.tsx:214
-#: src/pages/ListsPage.tsx:263
+#: src/pages/ListsPage.tsx:270
 msgid "Public"
 msgstr "公开"
 
@@ -11711,7 +11819,7 @@ msgstr "公开"
 msgid "Public lists are visible in the Notification Center for users to subscribe to"
 msgstr "公众名单可见于通知中心,供用户订阅。"
 
-#: src/pages/SetupWizard.tsx:335
+#: src/pages/SetupWizard.tsx:356
 msgid "Public URL where this Yaoguang Marketing instance is accessible"
 msgstr "可访问此瑶光营销平台实例的公开 URL"
 
@@ -12136,7 +12244,7 @@ msgstr "参考文件"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:429
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:429
 #: src/pages/ContactsPage.tsx:911
-#: src/pages/ListsPage.tsx:164
+#: src/pages/ListsPage.tsx:165
 msgid "Refresh"
 msgstr "刷新"
 
@@ -12370,7 +12478,7 @@ msgstr "答复"
 msgid "Report — {dimensions}"
 msgstr "报 告 - {dimensions}"
 
-#: src/layouts/WorkspaceLayout.tsx:523
+#: src/layouts/WorkspaceLayout.tsx:686
 msgid "Report An Issue"
 msgstr "报告问题"
 
@@ -12468,6 +12576,10 @@ msgstr "重置过滤器"
 #: src/components/templates/TemplateTranslationsTab.tsx:241
 msgid "Reset translation"
 msgstr "重置翻译"
+
+#: src/layouts/WorkspaceLayout.tsx:568
+msgid "Resize sidebar"
+msgstr "调整侧边栏宽度"
 
 #: src/pages/DeliveryCenterPage.tsx:168
 msgid "Resolve status"
@@ -12599,8 +12711,10 @@ msgstr "继续上传"
 msgid "Retain invalid rows"
 msgstr "保留无效行"
 
+#: src/layouts/RootLayout.tsx:170
 #: src/pages/AudienceMembersPage.tsx:268
 #: src/pages/CustomersPage.tsx:212
+#: src/pages/SetupWizard.tsx:272
 msgid "Retry"
 msgstr "重试"
 
@@ -12648,7 +12762,7 @@ msgid "Rolling window"
 msgstr "滚动窗口"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:254
-#: src/pages/SetupWizard.tsx:316
+#: src/pages/SetupWizard.tsx:337
 msgid "Root Email"
 msgstr "根邮件"
 
@@ -13061,7 +13175,7 @@ msgstr "警卫"
 msgid "See broadcast send tasks; a listing that names no type is narrowed to the types you may read"
 msgstr "参见群发发送任务; 无名称类型缩小为您可能读取的类型列表"
 
-#: src/pages/SetupWizard.tsx:352
+#: src/pages/SetupWizard.tsx:373
 msgid "See docs for:"
 msgstr "见文件:"
 
@@ -13490,7 +13604,7 @@ msgstr "选择此触发器适用于哪段"
 msgid "Select Winner"
 msgstr "选择赢家"
 
-#: src/layouts/WorkspaceLayout.tsx:457
+#: src/layouts/WorkspaceLayout.tsx:620
 #: src/pages/DashboardPage.tsx:31
 msgid "Select workspace"
 msgstr "选择工作区"
@@ -13678,7 +13792,7 @@ msgstr "搜索引擎的SEO标题(建议:50-60字符)"
 msgid "Separate sides"
 msgstr "单边"
 
-#: src/pages/SetupWizard.tsx:165
+#: src/pages/SetupWizard.tsx:171
 msgid "Server is restarting with new configuration..."
 msgstr "服务器正在以新配置重新启动..."
 
@@ -13687,7 +13801,7 @@ msgid "Server is restarting..."
 msgstr "服务器正在重新启动..."
 
 #: src/components/settings/SystemSettingsDrawer.tsx:202
-#: src/pages/SetupWizard.tsx:189
+#: src/pages/SetupWizard.tsx:195
 msgid "Server restart timeout. Please refresh the page manually."
 msgstr "服务器重新开始超时 。 请手动刷新页面 。"
 
@@ -13695,7 +13809,7 @@ msgstr "服务器重新开始超时 。 请手动刷新页面 。"
 msgid "Server restarted successfully!"
 msgstr "服务器已成功重新启动 !"
 
-#: src/pages/SetupWizard.tsx:179
+#: src/pages/SetupWizard.tsx:185
 msgid "Server restarted successfully! You can now sign in."
 msgstr "服务器已成功重新启动 ! 你现在可以报名了"
 
@@ -13868,21 +13982,21 @@ msgstr "设置整个邮件的响应断点"
 msgid "Sets the screen width below which the email will switch to mobile layout. Most email clients use 480px as the standard mobile breakpoint."
 msgstr "设置屏幕宽度, 下方的邮件将切换到移动布局 。 大多数邮件客户端使用480px作为标准的移动断点."
 
-#: src/pages/SetupWizard.tsx:738
+#: src/pages/SetupWizard.tsx:759
 msgid "Setting up..."
 msgstr "准备..."
 
 #: src/components/settings/SettingsSidebar.tsx:155
 #: src/components/settings/UITranslationsSettings.tsx:101
-#: src/layouts/WorkspaceLayout.tsx:328
+#: src/layouts/WorkspaceLayout.tsx:462
 msgid "Settings"
 msgstr "设置"
 
-#: src/pages/SetupWizard.tsx:296
+#: src/pages/SetupWizard.tsx:317
 msgid "Setup"
 msgstr "系统初始化"
 
-#: src/pages/SetupWizard.tsx:272
+#: src/pages/SetupWizard.tsx:293
 msgid "Setup Complete!"
 msgstr "初始化完成！"
 
@@ -13935,7 +14049,7 @@ msgid "Sign In"
 msgstr "登录"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:625
-#: src/pages/SetupWizard.tsx:687
+#: src/pages/SetupWizard.tsx:708
 #: src/pages/SignInPage.tsx:250
 msgid "Sign in with SSO"
 msgstr "与 SSO 签约"
@@ -14025,7 +14139,7 @@ msgstr "短信"
 msgid "SMTP Bridge"
 msgstr "SMTP 网关"
 
-#: src/pages/SetupWizard.tsx:550
+#: src/pages/SetupWizard.tsx:571
 msgid "SMTP bridge domain is required"
 msgstr "需要 SMTP 桥域"
 
@@ -14033,7 +14147,7 @@ msgstr "需要 SMTP 桥域"
 msgid "SMTP bridge is not configured."
 msgstr "SMTP 桥没有配置 。"
 
-#: src/pages/SetupWizard.tsx:565
+#: src/pages/SetupWizard.tsx:586
 msgid "SMTP bridge port is required"
 msgstr "需要SMTP桥端口"
 
@@ -14041,11 +14155,11 @@ msgstr "需要SMTP桥端口"
 msgid "SMTP bridge server for forwarding transactional emails"
 msgstr "用于转发事务邮件的 SMTP 网关服务器"
 
-#: src/pages/SetupWizard.tsx:347
+#: src/pages/SetupWizard.tsx:368
 msgid "SMTP Configuration"
 msgstr "SMTP 配置"
 
-#: src/pages/SetupWizard.tsx:84
+#: src/pages/SetupWizard.tsx:90
 msgid "SMTP connection successful!"
 msgstr "SMTP 连接成功！"
 
@@ -14064,17 +14178,17 @@ msgstr "SMTP 域名"
 #: src/components/settings/Integrations.tsx:1884
 #: src/components/settings/Integrations.tsx:2415
 #: src/components/settings/SystemSettingsDrawer.tsx:316
-#: src/pages/SetupWizard.tsx:394
+#: src/pages/SetupWizard.tsx:415
 msgid "SMTP Host"
 msgstr "SMTP 主机"
 
-#: src/pages/SetupWizard.tsx:396
+#: src/pages/SetupWizard.tsx:417
 msgid "SMTP host is required"
 msgstr "需要SMTP主机"
 
 #: src/components/settings/Integrations.tsx:2082
 #: src/components/settings/SystemSettingsDrawer.tsx:384
-#: src/pages/SetupWizard.tsx:435
+#: src/pages/SetupWizard.tsx:456
 msgid "SMTP Password"
 msgstr "SMTP 密码"
 
@@ -14084,11 +14198,11 @@ msgstr "SMTP 端口"
 
 #: src/components/settings/Integrations.tsx:1891
 #: src/components/settings/SystemSettingsDrawer.tsx:329
-#: src/pages/SetupWizard.tsx:403
+#: src/pages/SetupWizard.tsx:424
 msgid "SMTP Port"
 msgstr "SMTP 端口"
 
-#: src/pages/SetupWizard.tsx:405
+#: src/pages/SetupWizard.tsx:426
 msgid "SMTP port is required"
 msgstr "需要 SMTP 端口"
 
@@ -14110,7 +14224,7 @@ msgstr "SMTP 用户"
 
 #: src/components/settings/Integrations.tsx:2077
 #: src/components/settings/SystemSettingsDrawer.tsx:371
-#: src/pages/SetupWizard.tsx:430
+#: src/pages/SetupWizard.tsx:451
 msgid "SMTP Username"
 msgstr "SMTP 用户名"
 
@@ -14879,7 +14993,7 @@ msgid "Test Completed"
 msgstr "测试完成"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:310
-#: src/pages/SetupWizard.tsx:475
+#: src/pages/SetupWizard.tsx:496
 msgid "Test Connection"
 msgstr "测试连接"
 
@@ -15007,7 +15121,7 @@ msgstr "文本铺设"
 msgid "Text Settings"
 msgstr "文本设置"
 
-#: src/pages/SetupWizard.tsx:685
+#: src/pages/SetupWizard.tsx:706
 msgid "Text shown on the sign-in button"
 msgstr "签名按钮上显示的文本"
 
@@ -15020,8 +15134,8 @@ msgid "The"
 msgstr "那个"
 
 #: src/components/audiences/AudienceDrawer.tsx:81
-msgid "The active audience version has no editable condition tree"
-msgstr ""
+#~ msgid "The active audience version has no editable condition tree"
+#~ msgstr ""
 
 #: src/services/api/permissions.ts:936
 msgid "The AI assistant: chat over the workspace's configured LLM integration, and the server-side tools it may call."
@@ -15030,6 +15144,10 @@ msgstr "AI助手:就工作区配置的LLM集成进行聊天,以及它可能调�
 #: src/components/settings/SystemSettingsDrawer.tsx:155
 msgid "The API endpoint has changed. After restart, the console will be available at:"
 msgstr "API端点改变. 重新启动后,控制台将在以下时间可用:"
+
+#: src/components/audiences/AudienceDrawer.tsx:81
+msgid "The audience has no editable condition tree"
+msgstr "该动态客群没有可编辑的筛选条件"
 
 #: src/components/automations/AutomationCard.tsx:210
 #~ msgid "The automation will start processing contacts that match the trigger."
@@ -15120,7 +15238,7 @@ msgid "The generated email has issues that prevent it from rendering:"
 msgstr "生成的邮件有问题阻止其渲染:"
 
 #: src/components/settings/Integrations.tsx:2093
-#: src/pages/SetupWizard.tsx:464
+#: src/pages/SetupWizard.tsx:485
 msgid "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
 msgstr "您的服务器主机名在连接 SMTP 服务器时会识别自己 。 如果为空, 默认 SMTP 主机值 。"
 
@@ -15144,6 +15262,10 @@ msgstr "系统现在按最新客群规则圈选候选客户并投入流程；每
 #: src/components/settings/BlogSettings.tsx:344
 msgid "The main title for your blog"
 msgstr "您博客的主标题"
+
+#: src/components/audiences/AudienceDrawer.tsx:189
+msgid "The matching customers update automatically as customer data changes. Marketing runs freeze their candidates when execution starts and check every customer again immediately before each message."
+msgstr "匹配客户会随客户数据变化自动更新。营销任务会在开始执行时冻结候选客户，并在每次发送消息前再次检查客户。"
 
 #: src/services/api/permissions.ts:752
 msgid "The outbound message log: every email the workspace sent, its delivery status, and the engagement counted against it."
@@ -15290,7 +15412,7 @@ msgstr "此操作无法撤销。"
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "这一行动不能取消。 要确认,请输入群发ID:"
 
-#: src/pages/ListsPage.tsx:326
+#: src/pages/ListsPage.tsx:333
 msgid "This action cannot be undone. To confirm, please enter the list ID:"
 msgstr "这一行动不能取消。 要确认,请输入列表ID:"
 
@@ -15356,7 +15478,7 @@ msgstr "该客户尚未进入任何自动化旅程"
 msgid "This customer was merged"
 msgstr "该客户已被合并"
 
-#: src/pages/SetupWizard.tsx:322
+#: src/pages/SetupWizard.tsx:343
 msgid "This email will be used for the root administrator account"
 msgstr "此邮件将被用于根管理员账户"
 
@@ -15709,11 +15831,11 @@ msgid "TLS"
 msgstr "TLS"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:506
-#: src/pages/SetupWizard.tsx:578
+#: src/pages/SetupWizard.tsx:599
 msgid "TLS Certificate (Base64)"
 msgstr "TLS 证书 (Base64)"
 
-#: src/pages/SetupWizard.tsx:583
+#: src/pages/SetupWizard.tsx:604
 msgid "TLS certificate is required"
 msgstr "需要 TLS 证书"
 
@@ -15725,11 +15847,11 @@ msgstr "TLS 已启用"
 msgid "TLS Key (Base64)"
 msgstr "TLS 密钥 (Base64)"
 
-#: src/pages/SetupWizard.tsx:596
+#: src/pages/SetupWizard.tsx:617
 msgid "TLS Private Key (Base64)"
 msgstr "TLS 私钥 (Base64)"
 
-#: src/pages/SetupWizard.tsx:601
+#: src/pages/SetupWizard.tsx:622
 msgid "TLS private key is required"
 msgstr "需要 TLS 私人密钥"
 
@@ -16029,7 +16151,7 @@ msgid "type"
 msgstr "类型"
 
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:365
-#: src/pages/AudiencesPage.tsx:110
+#: src/pages/AudiencesPage.tsx:130
 msgid "Type"
 msgstr "类型"
 
@@ -16111,6 +16233,10 @@ msgstr "了解转介的质量"
 msgid "Understand website traffic, acquisition quality and visitor behaviour over time."
 msgstr "了解网站流量、获客质量和访客行为随时间的变化。"
 
+#: src/components/brand/YaoguangBrand.tsx:102
+msgid "Understanding Intent. Reaching Customers"
+msgstr "观心知意，循光达客"
+
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:670
 #: src/components/email_builder/EmailBuilder.tsx:818
@@ -16165,7 +16291,7 @@ msgstr "未知"
 msgid "Unknown date"
 msgstr "未知日期"
 
-#: src/layouts/WorkspaceLayout.tsx:222
+#: src/layouts/WorkspaceLayout.tsx:356
 msgid "Unknown error"
 msgstr "未知错误"
 
@@ -16228,7 +16354,7 @@ msgstr "未设置"
 
 #: src/components/lists/ListStats.tsx:110
 msgid "Unsub"
-msgstr "不明数据"
+msgstr "已退订"
 
 #: src/components/analytics/EmailMetricsChart.tsx:483
 #: src/components/broadcasts/BroadcastStats.tsx:341
@@ -16336,6 +16462,8 @@ msgstr "已调整 {0} 条名单归属，{1} 条未变化"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:537
 #: src/components/segment/labels.ts:85
+#: src/pages/AudiencesPage.tsx:145
+#: src/pages/ListsPage.tsx:264
 msgid "Updated At"
 msgstr "更新时间"
 
@@ -16378,7 +16506,7 @@ msgstr "上传文件"
 msgid "Upload or select font"
 msgstr "上传或选择字体"
 
-#: src/layouts/WorkspaceLayout.tsx:91
+#: src/layouts/WorkspaceLayout.tsx:225
 msgid "Uploaded console font could not be loaded. Using the system font instead."
 msgstr "无法加载已上传的后台字体，已改用系统字体。"
 
@@ -16491,7 +16619,7 @@ msgstr "使用此主题"
 
 #: src/components/settings/Integrations.tsx:1902
 #: src/components/settings/SystemSettingsDrawer.tsx:354
-#: src/pages/SetupWizard.tsx:420
+#: src/pages/SetupWizard.tsx:441
 msgid "Use TLS"
 msgstr "使用 TLS"
 
@@ -16658,7 +16786,6 @@ msgid "Verifying invitation..."
 msgstr "正在校验邀请..."
 
 #: src/components/blog/RecentThemesTable.tsx:113
-#: src/pages/AudiencesPage.tsx:125
 msgid "Version"
 msgstr "版本"
 
@@ -16667,8 +16794,8 @@ msgstr "版本"
 #~ msgstr "版本 {0}"
 
 #: src/pages/AudiencesPage.tsx:128
-msgid "Version {version}"
-msgstr "版本 {version}"
+#~ msgid "Version {version}"
+#~ msgstr "版本 {version}"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:474
 msgid "VERSION NOTES (OPTIONAL)"
@@ -16749,7 +16876,7 @@ msgstr "查看网页"
 msgid "View website"
 msgstr "查看网站"
 
-#: src/pages/ListsPage.tsx:260
+#: src/pages/ListsPage.tsx:267
 msgid "Visibility"
 msgstr "可见度"
 
@@ -16796,7 +16923,7 @@ msgstr "等待时间"
 msgid "Wait until {0}, then try again."
 msgstr "请等待至 {0} 后重试。"
 
-#: src/pages/SetupWizard.tsx:289
+#: src/pages/SetupWizard.tsx:310
 msgid "Waiting for server restart..."
 msgstr "正在等待服务器重新启动..."
 
@@ -17048,7 +17175,7 @@ msgstr "用户互动最活跃时"
 msgid "When matched, execute these operations:"
 msgstr "匹配时, 执行这些操作 :"
 
-#: src/pages/SetupWizard.tsx:694
+#: src/pages/SetupWizard.tsx:715
 msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 msgstr "当关闭(推荐)时,只有已经邀请的用户才能通过SSO签名. 打开时, 一个允许域中已核实的邮件会自动创建账户 。"
 
@@ -17186,14 +17313,14 @@ msgstr "工作区名称"
 msgid "Workspace name must be at least 3 characters long"
 msgstr "工作区名称必须至少有3个字符长"
 
-#: src/layouts/WorkspaceLayout.tsx:201
+#: src/layouts/WorkspaceLayout.tsx:335
 #: src/pages/AnalyticsPage.tsx:69
 #: src/pages/FileManagerPage.tsx:58
 msgid "Workspace not found"
 msgstr "找不到工作区"
 
 #: src/components/settings/GeneralSettings.tsx:126
-#: src/layouts/WorkspaceLayout.tsx:219
+#: src/layouts/WorkspaceLayout.tsx:353
 msgid "Workspace settings updated successfully"
 msgstr "工作区设置成功更新"
 
@@ -17393,9 +17520,9 @@ msgid "You don't have write permission for contacts"
 msgstr "联系人没有写权限"
 
 #: src/components/contacts/BulkActionsBar.tsx:54
-#: src/pages/ListsPage.tsx:175
-#: src/pages/ListsPage.tsx:213
-#: src/pages/ListsPage.tsx:229
+#: src/pages/ListsPage.tsx:176
+#: src/pages/ListsPage.tsx:214
+#: src/pages/ListsPage.tsx:230
 msgid "You don't have write permission for lists"
 msgstr "你没有写列表的权限"
 
@@ -17499,7 +17626,7 @@ msgstr "您的工作区 API 密钥"
 msgid "Your workspace settings have not been saved. Leaving this page discards them."
 msgstr "您的工作区设置尚未保存 。 离开这页会丢弃他们。"
 
-#: src/pages/SetupWizard.tsx:274
+#: src/pages/SetupWizard.tsx:295
 msgid "Your Yaoguang Marketing instance has been successfully configured."
 msgstr "瑶光营销平台实例已成功配置。"
 
@@ -17530,3 +17657,7 @@ msgstr "Zapier 拥有此 Webhook 的端点 URL, 因此无法在此更改 。 更
 #: src/components/file_manager/fileManager.tsx:784
 msgid "Zip"
 msgstr "齐普"
+
+#: src/components/templates/channelPreviews/MessageContent.tsx
+msgid "Image unavailable"
+msgstr "图片暂时无法加载"

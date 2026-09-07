@@ -26,6 +26,11 @@ vi.mock('../contexts/AuthContext', () => ({
 }))
 vi.mock('../services/api/marketing', () => ({ audienceApi: { list: vi.fn(), delete: vi.fn() } }))
 vi.mock('../services/api/list', () => ({ listsApi: { list: vi.fn(), delete: vi.fn() } }))
+vi.mock('../components/lists/ListStats', () => ({
+  ListStats: ({ listId }: { listId: string }) => (
+    <div data-testid={`list-stats-${listId}`}>Active 12 · Pending 3 · Unsubscribed 4 · Bounced 2 · Complained 1</div>
+  )
+}))
 vi.mock('../components/audiences/AudienceDrawer', () => ({
   AudienceDrawer: ({ audienceId }: { audienceId?: string }) => (
     <div>{audienceId ? `Editing audience ${audienceId}` : 'Audience drawer'}</div>
@@ -46,7 +51,9 @@ beforeEach(() => {
         name: 'Recently active customers',
         description: 'Customers with recent activity',
         kind: 'dynamic',
-        active_version: 2
+        active_version: 2,
+        created_at: '2026-08-02T08:30:00Z',
+        updated_at: '2026-08-03T09:45:00Z'
       }
     ],
     total: 1
@@ -65,6 +72,7 @@ beforeEach(() => {
     ]
   } as never)
   vi.mocked(listsApi.delete).mockResolvedValue({ status: 'success' })
+  vi.mocked(audienceApi.delete).mockResolvedValue({ deleted: true })
 })
 
 it('shows lists and dynamic audiences as linked rows in one audience table', async () => {
@@ -84,6 +92,13 @@ it('shows lists and dynamic audiences as linked rows in one audience table', asy
   )
   expect(screen.getByText('List')).toBeInTheDocument()
   expect(screen.getByText('Dynamic')).toBeInTheDocument()
+  expect(screen.queryByRole('columnheader', { name: 'Version' })).not.toBeInTheDocument()
+  expect(screen.getByRole('columnheader', { name: 'Created At' })).toBeInTheDocument()
+  expect(screen.getByRole('columnheader', { name: 'Updated At' })).toBeInTheDocument()
+  expect(screen.getAllByText('2026-08-01 00:00')).toHaveLength(2)
+  expect(screen.getByText('2026-08-03 09:45')).toBeInTheDocument()
+  expect(screen.getByTestId('list-stats-newsletter')).toHaveTextContent('Active 12')
+  expect(screen.getByTestId('list-stats-newsletter')).toHaveTextContent('Complained 1')
   expect(screen.getByRole('button', { name: 'Create list' })).toBeEnabled()
   expect(screen.getByRole('button', { name: 'Create dynamic audience' })).toBeEnabled()
   fireEvent.click(screen.getByRole('button', { name: 'Edit Recently active customers' }))
@@ -116,7 +131,7 @@ it('keeps list editing and guarded deletion on the unified audience page', async
   expect(await screen.findByRole('button', { name: 'Edit list' })).toBeEnabled()
   fireEvent.click(screen.getByRole('button', { name: 'Delete Newsletter' }))
   expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled()
-  fireEvent.change(screen.getByPlaceholderText('Enter list ID to confirm'), {
+  fireEvent.change(screen.getByPlaceholderText('Enter ID to confirm'), {
     target: { value: 'newsletter' }
   })
   fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
@@ -125,4 +140,23 @@ it('keeps list editing and guarded deletion on the unified audience page', async
     workspace_id: 'workspace-1',
     id: 'newsletter'
   }))
+})
+
+it('lets users delete a dynamic audience after confirming its ID', async () => {
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <AudiencesPage />
+    </QueryClientProvider>
+  )
+
+  fireEvent.click(await screen.findByRole('button', { name: 'Delete Recently active customers' }))
+  expect(screen.getByText('Delete audience')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled()
+  fireEvent.change(screen.getByPlaceholderText('Enter ID to confirm'), {
+    target: { value: 'audience-1' }
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+  await waitFor(() => expect(audienceApi.delete).toHaveBeenCalledWith('workspace-1', 'audience-1'))
+  expect(listsApi.delete).not.toHaveBeenCalled()
 })

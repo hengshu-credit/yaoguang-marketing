@@ -1,9 +1,10 @@
 import { Outlet, useNavigate, useMatch } from '@tanstack/react-router'
-import { Button, Spin } from 'antd'
+import { Button } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { useAuth } from '../contexts/AuthContext'
 import { useEffect, useState } from 'react'
 import { setupApi } from '../services/api/setup'
+import { BRAND } from '../constants/brand'
 
 type InstallationStatus = 'checking' | 'installed' | 'uninstalled' | 'error'
 
@@ -14,6 +15,28 @@ async function fetchInstallationStatus(): Promise<'installed' | 'uninstalled'> {
     return 'installed'
   }
   return 'uninstalled'
+}
+
+function AppLoadingScreen({ label }: { label: string }) {
+  return (
+    <div className="preload-splash">
+      <div className="preload-splash-brand">
+        <img
+          src={BRAND.logoPath}
+          alt={BRAND.companyName}
+          className="preload-splash-logo"
+        />
+        <div
+          className="preload-splash-content"
+          role="status"
+          aria-label={label}
+          aria-live="polite"
+        >
+          <div className="loader2" aria-hidden="true" />
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export function RootLayout() {
@@ -159,13 +182,7 @@ export function RootLayout() {
     shouldRedirectToSignin ||
     shouldRedirectToCreateWorkspace
   ) {
-    return (
-      <div
-        style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}
-      >
-        <Spin size="large" description={t`Loading...`} fullscreen />
-      </div>
-    )
+    return <AppLoadingScreen label={t`Loading...`} />
   }
 
   return <Outlet />

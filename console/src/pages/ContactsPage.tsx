@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient, useMutation, keepPreviousData } from '@tanstack/react-query'
-import { Alert, Table, Tag, Button, Space, Tooltip, message, Dropdown } from 'antd'
+import { Alert, Spin, Table, Tabs, Tag, Button, Space, Tooltip, message, Dropdown } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { MenuProps } from 'antd'
 import { useParams, useSearch, useNavigate } from '@tanstack/react-router'
@@ -44,6 +44,7 @@ import { ExportContactsModal } from '../components/contacts/ExportContactsModal'
 import { useContactsCsvUpload } from '../components/contacts/ContactsCsvUploadProvider'
 import { getCustomFieldLabel } from '../hooks/useCustomFieldLabel'
 import { useLingui } from '@lingui/react/macro'
+import { CustomerImportPanel } from '../components/customers/CustomerImportPanel'
 
 const STORAGE_KEY = 'contact_columns_visibility'
 
@@ -83,6 +84,38 @@ const DEFAULT_VISIBLE_COLUMNS = {
 }
 
 export function ContactsPage() {
+  const { t } = useLingui()
+  const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/contacts' })
+  const { permissions, loading } = useWorkspacePermissions(workspaceId)
+  const [selectedTab, setSelectedTab] = React.useState<string>()
+  const canReadContacts = Boolean(permissions?.contacts?.read)
+  const canReadCustomers = Boolean(permissions?.customers?.read)
+  if (loading) return <div className="p-6"><Spin /></div>
+  if (!canReadContacts && !canReadCustomers) return <div className="p-6"><Alert type="error" title={t`No Access`} /></div>
+  const activeTab = selectedTab === 'import' && canReadCustomers ? 'import' : canReadContacts ? 'contacts' : 'import'
+  return (
+    <div className="p-6">
+      <Tabs
+        activeKey={activeTab}
+        onChange={setSelectedTab}
+        items={[
+          { key: 'contacts', label: t`Contacts`, disabled: !canReadContacts, children: canReadContacts ? <ContactsDirectory /> : null },
+          ...(permissions?.customers?.read ? [{
+            key: 'import',
+            label: t`Import customers`,
+            children: <CustomerImportPanel
+              workspaceId={workspaceId}
+              canWrite={Boolean(permissions.customers.write)}
+              canBindLists={Boolean(permissions.lists?.read || permissions.lists?.write)}
+            />
+          }] : [])
+        ]}
+      />
+    </div>
+  )
+}
+
+function ContactsDirectory() {
   const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/contacts' })
   const search = useSearch({ from: workspaceContactsRoute.id })
@@ -994,27 +1027,7 @@ export function ContactsPage() {
   const showEmptyState = !isLoading && !isFetching && contacts.length === 0
 
   return (
-    <div className="p-6">
-      <Alert
-        type="info"
-        showIcon
-        className="mb-4"
-        title={t`Email compatibility view`}
-        description={t`Contacts keeps the existing email-first workflows available. Use Customers for the unified customer profile, external user ID, phone and other identity aliases.`}
-        action={
-          <Button
-            size="small"
-            onClick={() =>
-              navigate({
-                to: '/console/workspace/$workspaceId/customers',
-                params: { workspaceId }
-              })
-            }
-          >
-            {t`Open Customers`}
-          </Button>
-        }
-      />
+    <div>
       {/* Header with title and actions */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">

@@ -315,8 +315,10 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
       <Drawer
         title={t`Flow Stats: ${automation.name}`}
         placement="right"
+        push={false}
         size="100%"
         open={drawerOpen}
+        destroyOnHidden
         onClose={() => setDrawerOpen(false)}
       >
         <div style={{ height: 'calc(100vh - 120px)', overflowY: 'auto' }}>
@@ -326,6 +328,7 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
               nodeStats={nodeStats}
               loading={statsLoading}
               onHeightCalculated={setFlowHeight}
+              listNames={Object.fromEntries(lists.map((list) => [list.id, list.name]))}
             />
           </div>
         </div>
