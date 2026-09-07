@@ -345,6 +345,8 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
   // Cleanup compile timeout and editor refs on unmount
   useEffect(() => {
     return () => {
+      // Request generations need the latest counter, rather than a captured DOM node.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       compileGeneration.current++
       if (compileTimeoutRef.current) {
         clearTimeout(compileTimeoutRef.current)

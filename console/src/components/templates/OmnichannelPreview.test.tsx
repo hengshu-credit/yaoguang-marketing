@@ -95,11 +95,12 @@ describe('OmnichannelPreview', () => {
     }
     const webhookPreview: GenericChannelPreview = {
       profile: 'http_request', direction: 'ltr', payload_bytes: 90,
-      message: { family: 'webhook_payload', webhook: { content_type: 'application/json', body: '{"customer":"42"}' } },
+      message: { family: 'webhook_payload', webhook: { content_type: 'application/json', body: '{"customer":"42"}', headers: { 'X-Event-Type': 'member_offer' } } },
       warnings: []
     }
     render(<OmnichannelPreview definition={webhookDefinition} preview={webhookPreview} onProfileChange={vi.fn()} />)
     expect(screen.getByText('{"customer":"42"}')).toBeVisible()
     expect(screen.getByText(/X-Yaoguang-Signature/i)).toBeVisible()
+    expect(screen.getByText('X-Event-Type: member_offer')).toBeVisible()
   })
 })

@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { previewRendererKind } from './clientProfiles'
 
-const registry = readFileSync(new URL('../../../../../internal/domain/channel_catalog.go', import.meta.url), 'utf8')
+const registry = readFileSync(resolve(process.cwd(), '../internal/domain/channel_catalog.go'), 'utf8')
 const profiles = [...registry.matchAll(/profile\("([^"]+)"/g)].map(match => match[1])
 const nativeHtmlProfiles = new Set(['email_mobile', 'email_desktop', 'web_page'])
 

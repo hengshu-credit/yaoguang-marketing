@@ -99,13 +99,17 @@ describe('CreateTemplateDrawer conflict handling', () => {
     fireEvent.change(screen.getByLabelText(/^Email subject$/i), { target: { value: 'Welcome {{ contact.first_name }}' } })
     fireEvent.change(screen.getByLabelText(/^Subject preview$/i), { target: { value: 'Benefits for {{ contact.first_name }}' } })
     const metadata = { senderName: 'Member services', senderEmail: 'members@example.com', subject: 'Welcome {{ contact.first_name }}', previewText: 'Benefits for {{ contact.first_name }}' }
+    await userEvent.click(screen.getByRole('tab', { name: '2. Template' }))
+    await waitFor(() => expect((editorCaptures.visual as PreviewEditorProps).emailPreview).toEqual(metadata))
     const visual = editorCaptures.visual as PreviewEditorProps
     expect(visual.emailPreview).toEqual(metadata)
     const result = await visual.onCompile(makeTemplate(1).email!.visual_editor_tree, { contact: { first_name: 'Ada' } })
     expect(result.subject).toBe('Welcome Ada')
     expect(result.subject_preview).toBe('Benefits for Ada')
     expect(templatesApi.compile).toHaveBeenLastCalledWith(expect.objectContaining({ subject: metadata.subject, subject_preview: metadata.previewText }))
+    await userEvent.click(screen.getByRole('tab', { name: '1. Settings' }))
     await userEvent.click(screen.getByRole('radio', { name: 'Code (MJML)' }))
+    await userEvent.click(screen.getByRole('tab', { name: '2. Template' }))
     const code = editorCaptures.code as PreviewEditorProps
     expect(code.emailPreview).toEqual(metadata)
     expect((await code.onCompile('<mjml />', { contact: { first_name: 'Ada' } })).subject).toBe('Welcome Ada')

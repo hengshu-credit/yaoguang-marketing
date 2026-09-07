@@ -5,9 +5,11 @@ import TemplatePreviewDrawer from './TemplatePreviewDrawer'
 import { templatesApi } from '../../services/api/template'
 import type { Template, Workspace } from '../../services/api/types'
 import type { EmailBlock } from '../email_builder/types'
+import type { EmailPreviewMetadata } from '../preview'
+import type { MessageHistory } from '../../services/api/messages_history'
 
 vi.mock('./EmailClientFrame', () => ({
-  default: ({ html }: { html: string }) => <div data-testid="email-preview">{html}</div>
+  default: ({ html, email }: { html: string; email?: EmailPreviewMetadata }) => <div><div data-testid="email-preview">{html}</div><div data-testid="saved-email-metadata">{JSON.stringify(email)}</div></div>
 }))
 
 describe('TemplatePreviewDrawer', () => {
@@ -16,6 +18,16 @@ describe('TemplatePreviewDrawer', () => {
     settings: { timezone: 'UTC', email_tracking_enabled: false, default_language: 'en', languages: ['en'] },
     created_at: '', updated_at: ''
   } satisfies Workspace
+
+  it('passes rendered subject/summary and the historical sender override to the shared mail header', async () => {
+    const configured = { ...workspace, settings: { ...workspace.settings, marketing_email_provider_id: 'mail-provider' }, integrations: [{ id: 'mail-provider', email_provider: { senders: [{ id: 'sender-1', name: 'Current sender', email: 'sender@example.com', is_default: true }] } }] } as unknown as Workspace
+    const record = { id: 'email-1', name: 'Email', version: 1, channel: 'email', category: 'marketing', email: { editor_mode: 'code', mjml_source: '<mjml />', sender_id: 'sender-1', subject: 'Hello {{name}}', subject_preview: 'Summary {{name}}' }, created_at: '', updated_at: '' } as Template
+    vi.spyOn(templatesApi, 'compile').mockResolvedValue({ html: '<p>Rendered body</p>', mjml: '', subject: 'Hello Ada', subject_preview: 'Summary Ada' })
+    render(<TemplatePreviewDrawer record={record} workspace={configured} messageHistory={{ channel_options: { from_name: 'Historical sender' } } as MessageHistory}><button>Open historical email</button></TemplatePreviewDrawer>)
+    await userEvent.click(screen.getByRole('button', { name: 'Open historical email' }))
+    await screen.findByTestId('email-preview')
+    expect(JSON.parse(screen.getByTestId('saved-email-metadata').textContent || '{}')).toEqual({ senderName: 'Historical sender', senderEmail: 'sender@example.com', subject: 'Hello Ada', previewText: 'Summary Ada' })
+  })
 
   it('previews saved Web HTML without sending it to the email compiler', async () => {
     const compile = vi.spyOn(templatesApi, 'compile')

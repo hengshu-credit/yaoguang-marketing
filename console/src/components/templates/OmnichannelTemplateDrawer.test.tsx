@@ -40,6 +40,13 @@ describe('OmnichannelTemplateDrawer', () => {
     vi.mocked(templatesApi.create).mockResolvedValue({ template: {} as never })
   })
 
+  it('automatically renders an existing draft with its saved test data when opened', async () => {
+    renderDrawer({ livePreviewDelay: 0, template: { id: 'existing', name: 'Existing', version: 1, channel: 'telegram', category: 'marketing', content: { family: 'text', body: 'Hello {{ customer.name }}' }, test_data: { customer: { name: 'Ada' } }, created_at: '', updated_at: '' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Template' }))
+    expect(await screen.findByText('Hello Ada', { selector: 'p' })).toBeVisible()
+    expect(templatesApi.preview).toHaveBeenCalledWith(expect.objectContaining({ profile: 'telegram_mobile', test_data: { customer: { name: 'Ada' } } }))
+  })
+
   it('initializes an existing template from its own channel even when Email is first in the catalogue', async () => {
     const saved = { id: 'whatsapp', name: 'Offer', version: 1, channel: 'whatsapp' as const, category: 'marketing', content: { family: 'rich_card' as const, body: 'Offer', actions: [{ type: 'url' as const, label: 'Open', value: 'https://example.com' }] }, created_at: '', updated_at: '' }
     renderDrawer({ defaultChannel: undefined, template: saved, definitions: [

@@ -1148,7 +1148,7 @@ function EmailTemplateDrawer({
               </div>
 
               <div style={{ display: tab === 'template' ? 'block' : 'none' }}>
-                <Form.Item dependencies={['id']} style={{ margin: 0 }}>
+                <Form.Item dependencies={['id', 'category', 'test_data', ['email', 'subject'], ['email', 'subject_preview'], ['email', 'sender_id']]} style={{ margin: 0 }}>
                   {(form) => {
                     const testData = form.getFieldValue('test_data')
                     const templateId = form.getFieldValue('id')
