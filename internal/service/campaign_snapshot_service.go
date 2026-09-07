@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -10,9 +11,11 @@ import (
 )
 
 type CampaignSnapshotService struct {
-	repository domain.CampaignRepository
-	pageSize   int
-	now        func() time.Time
+	businessDefinitions domain.BusinessDefinitionRepository
+	executions          *ExecutionSnapshotService
+	repository          domain.CampaignRepository
+	pageSize            int
+	now                 func() time.Time
 }
 
 type campaignAudienceBuildResolver interface {
@@ -51,6 +54,9 @@ func (s *CampaignSnapshotService) StartAsyncResolved(ctx context.Context, worksp
 }
 
 func (s *CampaignSnapshotService) startAsync(ctx context.Context, workspaceID, campaignID string, version int, audienceBuildID string, requireResolvedBuild bool) (*domain.CampaignRun, error) {
+	if version == 0 {
+		return s.startCurrent(ctx, workspaceID, campaignID, audienceBuildID)
+	}
 	campaignVersion, err := s.repository.GetCampaignVersion(ctx, workspaceID, campaignID, version)
 	if err != nil {
 		return nil, err
@@ -92,7 +98,17 @@ func (s *CampaignSnapshotService) ProcessNextPage(ctx context.Context, workspace
 	if run.Status != "snapshotting" {
 		return false, errors.New("campaign run is not snapshotting")
 	}
-	version, err := s.repository.GetCampaignVersion(ctx, workspaceID, run.CampaignID, run.CampaignVersion)
+	var version *domain.CampaignVersion
+	if len(run.ExecutionConfiguration) > 0 {
+		var configuration domain.CampaignConfiguration
+		if err = json.Unmarshal(run.ExecutionConfiguration, &configuration); err != nil {
+			return false, err
+		}
+		adapter := configuration.LegacyAdapter(run.CampaignID)
+		version = &adapter
+	} else {
+		version, err = s.repository.GetCampaignVersion(ctx, workspaceID, run.CampaignID, run.CampaignVersion)
+	}
 	if err != nil {
 		return false, err
 	}

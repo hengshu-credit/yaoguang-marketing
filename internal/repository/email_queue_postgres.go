@@ -48,6 +48,11 @@ func (r *EmailQueueRepository) Enqueue(ctx context.Context, workspaceID string, 
 	if len(entries) == 0 {
 		return nil
 	}
+	for _, entry := range entries {
+		if err := domain.CaptureExecutionMedia(ctx, workspaceID, entry.Payload.ExecutionID, entry.MessageID, map[string]any{"payload": entry.Payload, "contact_email": entry.ContactEmail}); err != nil {
+			return err
+		}
+	}
 
 	db, err := r.getDB(ctx, workspaceID)
 	if err != nil {
@@ -383,14 +388,20 @@ func (r *EmailQueueRepository) MarkAsSent(ctx context.Context, workspaceID strin
 		return fmt.Errorf("failed to get database connection: %w", err)
 	}
 
-	query := `DELETE FROM email_queue WHERE id = $1`
-
-	_, err = db.ExecContext(ctx, query, id)
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
+		return fmt.Errorf("begin sent email transaction: %w", err)
+	}
+	defer tx.Rollback()
+	// Separate statements ensure PostgreSQL runs the evidence trigger before
+	// deleting the same row. A data-modifying CTE cannot reliably do both.
+	if _, err = tx.ExecContext(ctx, `UPDATE email_queue SET status='confirmed',updated_at=CURRENT_TIMESTAMP WHERE id=$1`, id); err != nil {
+		return fmt.Errorf("record sent email: %w", err)
+	}
+	if _, err = tx.ExecContext(ctx, `DELETE FROM email_queue WHERE id=$1`, id); err != nil {
 		return fmt.Errorf("failed to delete sent email: %w", err)
 	}
-
-	return nil
+	return tx.Commit()
 }
 
 // MarkAsFailed marks an entry as failed and schedules retry

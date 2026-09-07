@@ -17,6 +17,25 @@ func NewTriggerBindingCompiler(queryBuilder *QueryBuilder) *TriggerBindingCompil
 	return &TriggerBindingCompiler{queryBuilder: queryBuilder}
 }
 
+// CompileAll expands the selected codes while keeping one condition identity
+// for the complete trigger configuration.
+func (c *TriggerBindingCompiler) CompileAll(automation *domain.Automation) ([]domain.TriggerBinding, error) {
+	binding, err := c.Compile(automation)
+	if err != nil {
+		return nil, err
+	}
+	if automation.Trigger.EventKind != "tracked_event" {
+		return []domain.TriggerBinding{binding}, nil
+	}
+	out := make([]domain.TriggerBinding, 0, len(automation.Trigger.EventRule.Events))
+	for _, code := range automation.Trigger.EventRule.Events {
+		next := binding
+		next.EventType = code
+		out = append(out, next)
+	}
+	return out, nil
+}
+
 func (c *TriggerBindingCompiler) Compile(automation *domain.Automation) (domain.TriggerBinding, error) {
 	if automation == nil || automation.Trigger == nil {
 		return domain.TriggerBinding{}, fmt.Errorf("automation and trigger are required")
@@ -99,6 +118,9 @@ func compileTriggerIndex(trigger *domain.TimelineTriggerConfig) (string, string,
 	dependencies := make([]string, 0, len(trigger.UpdatedFields)+1)
 
 	switch {
+	case trigger.EventKind == "tracked_event":
+		eventType = trigger.EventRule.Events[0]
+		subjectType = trigger.EventRule.SubjectType
 	case trigger.EventKind == "custom_event":
 		eventType = "custom_event." + *trigger.CustomEventName
 		subjectType = "custom_event"

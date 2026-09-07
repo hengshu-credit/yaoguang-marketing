@@ -1,0 +1,423 @@
+BusinessDefinition:
+  type: object
+  required:
+    - kind
+    - key
+    - name
+    - schema
+    - settings
+  properties:
+    id:
+      type: string
+      format: uuid
+    kind:
+      type: string
+      enum:
+        - customer_attribute
+        - object_type
+        - object_relation
+        - event
+        - event_mapping
+        - state
+        - funnel
+    key:
+      type: string
+    name:
+      type: string
+    description:
+      type: string
+    schema:
+      type: object
+      additionalProperties: true
+      description: >-
+        Configurable recursive validation schema. Supported types, object properties, required fields, array
+        items, enum, nullable type, numeric and length bounds, UUID/email/date-time formats.
+    settings:
+      type: object
+      additionalProperties: true
+      description: Kind-specific configuration; see docs/guides/configurable-marketing.md.
+    status:
+      type: string
+      enum:
+        - draft
+        - active
+        - archived
+    revision:
+      type: integer
+      description: Optimistic concurrency token for definitions; this is not a campaign version.
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+BusinessObject:
+  type: object
+  required:
+    - customer_id
+    - object_type
+    - source
+    - external_key
+  properties:
+    id:
+      type: string
+      format: uuid
+    customer_id:
+      type: string
+      format: uuid
+    object_type:
+      type: string
+    source:
+      type: string
+    external_key:
+      type: string
+    attributes:
+      type: object
+      additionalProperties: true
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+StateRule:
+  type: object
+  required:
+    - kind
+  properties:
+    kind:
+      type: string
+      enum:
+        - all
+        - any
+        - not
+        - attribute
+        - event
+        - state
+        - object_any
+    children:
+      type: array
+      items:
+        $ref: '#/StateRule'
+    field:
+      type: string
+    operator:
+      type: string
+      enum:
+        - eq
+        - neq
+        - gt
+        - gte
+        - lt
+        - lte
+        - exists
+    operand: {}
+    event:
+      type: string
+    revoke_event:
+      type: string
+    window_seconds:
+      type: integer
+    minimum:
+      type: integer
+    state_key:
+      type: string
+    value:
+      type: string
+      enum:
+        - 'true'
+        - 'false'
+        - unknown
+    subject_type:
+      type: string
+    relation_key:
+      type: string
+StateOverride:
+  type: object
+  required:
+    - state_key
+    - value
+    - reason
+  properties:
+    state_key:
+      type: string
+    value:
+      type: string
+      enum:
+        - 'true'
+        - 'false'
+        - unknown
+    reason:
+      type: string
+    actor:
+      type: string
+      description: Overwritten with the authenticated user identity.
+    valid_from:
+      type: string
+      format: date-time
+      description: Set to server current time on manual update.
+    valid_to:
+      type: string
+      format: date-time
+      nullable: true
+FunnelStep:
+  type: object
+  required:
+    - id
+  properties:
+    id:
+      type: string
+    name:
+      type: string
+    subject_type:
+      type: string
+      description: Defaults to the root counting object; an entered child object stays bound in later steps.
+    relation_key:
+      type: string
+    events:
+      type: array
+      items:
+        type: string
+    all_events:
+      type: array
+      items:
+        type: string
+      description: Parallel events; mutually exclusive with events.
+    optional:
+      type: boolean
+    window_seconds:
+      type: integer
+    filter:
+      $ref: '#/StateRule'
+    state_filters:
+      type: object
+      additionalProperties:
+        type: string
+        enum:
+          - 'true'
+          - 'false'
+          - unknown
+FunnelDefinition:
+  type: object
+  required:
+    - subject_type
+    - window_seconds
+    - steps
+  properties:
+    subject_type:
+      type: string
+    customer_via_object:
+      type: boolean
+    window_seconds:
+      type: integer
+      minimum: 1
+      maximum: 31536000
+    late_grace_seconds:
+      type: integer
+    allow_same_time:
+      type: boolean
+    steps:
+      type: array
+      items:
+        $ref: '#/FunnelStep'
+      minItems: 1
+      maxItems: 30
+    scope:
+      type: string
+      enum:
+        - all_site
+        - recipients
+        - attributed
+    run_id:
+      type: string
+    attribution_window_seconds:
+      type: integer
+FunnelQuery:
+  type: object
+  required:
+    - workspace_id
+    - start
+    - end
+  properties:
+    workspace_id:
+      type: string
+    key:
+      type: string
+    definition:
+      $ref: '#/FunnelDefinition'
+    start:
+      type: string
+      format: date-time
+    end:
+      type: string
+      format: date-time
+    watermark:
+      type: string
+      format: date-time
+    include_details:
+      type: boolean
+FunnelResult:
+  type: object
+  properties:
+    steps:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+          objects:
+            type: integer
+          occurrences:
+            type: integer
+          pending:
+            type: integer
+          expired:
+            type: integer
+          step_rate:
+            type: number
+            nullable: true
+          cumulative_rate:
+            type: number
+            nullable: true
+          amount_minor:
+            type: object
+            additionalProperties:
+              type: integer
+          branches:
+            type: object
+            additionalProperties:
+              type: integer
+    entered:
+      type: integer
+    converted:
+      type: integer
+    mature:
+      type: integer
+    pending:
+      type: integer
+    excluded:
+      type: integer
+    watermark:
+      type: string
+      format: date-time
+    computed_at:
+      type: string
+      format: date-time
+    details:
+      type: array
+      items:
+        type: object
+        additionalProperties: true
+        description: >-
+          Matched event IDs, root Customer UUID and subject, bound related objects, attribution, observation
+          interval.
+FunnelQueryJob:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    workspace_id:
+      type: string
+    status:
+      type: string
+      enum:
+        - queued
+        - running
+        - completed
+        - failed
+        - cancelled
+    query:
+      $ref: '#/FunnelQuery'
+    result:
+      $ref: '#/FunnelResult'
+    error:
+      type: string
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+MarketingTrackingPlan:
+  type: object
+  required:
+    - subject_type
+    - events
+    - states
+    - window_seconds
+  properties:
+    subject_type:
+      type: string
+    events:
+      type: array
+      items:
+        type: string
+    states:
+      type: array
+      items:
+        type: string
+    goal_events:
+      type: array
+      items:
+        type: string
+    window_seconds:
+      type: integer
+      minimum: 1
+      maximum: 31536000
+StateCoverageQuery:
+  type: object
+  required:
+    - workspace_id
+    - subject_type
+    - as_of
+    - watermark
+    - selected_state_keys
+  properties:
+    workspace_id:
+      type: string
+    subject_type:
+      type: string
+    as_of:
+      type: string
+      format: date-time
+    watermark:
+      type: string
+      format: date-time
+    selected_state_keys:
+      type: array
+      items:
+        type: string
+      minItems: 1
+      maxItems: 50
+StateCoverageResult:
+  type: object
+  properties:
+    subject_type:
+      type: string
+    as_of:
+      type: string
+      format: date-time
+    watermark:
+      type: string
+      format: date-time
+    total:
+      type: integer
+    intersection:
+      type: integer
+    union:
+      type: integer
+    states:
+      type: array
+      items:
+        type: object
+        properties:
+          state_key:
+            type: string
+          satisfied:
+            type: integer
+          'false':
+            type: integer
+          unknown:
+            type: integer

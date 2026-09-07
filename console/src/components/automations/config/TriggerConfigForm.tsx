@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { Form, Select, Input, Cascader, ConfigProvider, Alert } from 'antd'
+import { Form, Select, Input, Cascader, ConfigProvider, Alert, Collapse } from 'antd'
 import { useQuery } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
 import { ConditionsField } from './ConditionsField'
@@ -10,6 +10,9 @@ import { listSegments } from '../../../services/api/segment'
 import { OptionSelector } from '../../ui/OptionSelector'
 import type { Workspace } from '../../../services/api/types'
 import type { JourneyEntryGuard } from '../../../services/api/automation'
+import type { MarketingEventRule, MarketingTrackingPlan } from '../../../services/api/marketing_tracking'
+import { MarketingEventRuleEditor } from '../../business/MarketingEventRuleEditor'
+import { MarketingTrackingPlanEditor } from '../../business/MarketingTrackingPlanEditor'
 
 // Kinds that fire often enough that a condition is worth a word about cost: it runs for every
 // matching row written to contact_timeline.
@@ -20,7 +23,7 @@ const FREQUENT_EVENT_KINDS = ['email.opened', 'email.clicked', 'contact.updated'
 // Helper to get cascader value from event_kind
 const getCascaderValue = (eventKind?: string): string[] => {
   if (!eventKind) return []
-  if (eventKind === 'custom_event') return ['custom_event']
+  if (eventKind === 'custom_event' || eventKind === 'tracked_event') return [eventKind]
   const prefix = eventKind.split('.')[0]
   return [prefix, eventKind]
 }
@@ -39,6 +42,8 @@ const getFieldLabel = (
 }
 
 export interface TriggerConfig {
+  event_rule?: MarketingEventRule
+  tracking_plan?: MarketingTrackingPlan | null
   event_kind?: string
   list_id?: string
   segment_id?: string
@@ -119,7 +124,8 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
         { value: 'email.unsubscribed', label: t`Unsubscribed` }
       ]
     },
-    { value: 'custom_event', label: t`Custom Event` }
+    { value: 'custom_event', label: t`Custom Event` },
+    { value: 'tracked_event', label: t`Configured customer or business event` }
   ], [t])
 
   // Build contact field options with custom labels from workspace settings
@@ -216,6 +222,11 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
       tag: undefined,
       updated_fields: undefined
     }
+    if (eventKind === 'tracked_event') {
+      newConfig.event_rule = { subject_type: 'customer', events: [], max_causation_depth: 8 }
+      newConfig.frequency = 'every_time'
+      newConfig.conditions = undefined
+    } else newConfig.event_rule = undefined
     onChange(newConfig)
   }
 
@@ -288,6 +299,8 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
           />
         </ConfigProvider>
       </Form.Item>
+
+      {config.event_kind === 'tracked_event' && <MarketingEventRuleEditor workspaceId={workspaceId} value={config.event_rule ?? { subject_type: 'customer', events: [], max_causation_depth: 8 }} onChange={(event_rule) => onChange({ ...config, event_rule, frequency: event_rule.once_per_object ? 'every_time' : config.frequency })} />}
 
       {/* List selector for list events */}
       {isListEvent && (
@@ -374,7 +387,7 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
         </Form.Item>
       )}
 
-      {showFrequency && (
+      {showFrequency && !config.event_rule?.once_per_object && (
         <Form.Item label={t`Frequency`} required>
           <OptionSelector
             value={config.frequency || 'once'}
@@ -395,7 +408,7 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
         </Form.Item>
       )}
 
-      {showEntryConditions && (
+      {showEntryConditions && config.event_kind !== 'tracked_event' && (
         <ConditionsField
           title={t`Entry conditions`}
           description={t`Only enroll contacts matching these conditions.`}
@@ -426,6 +439,7 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
         />
       )}
 
+      <Collapse items={[{ key: 'tracking', label: t`Task conversion tracking`, children: <MarketingTrackingPlanEditor workspaceId={workspaceId} value={config.tracking_plan} onChange={(tracking_plan) => onChange({ ...config, tracking_plan })} /> }]} />
     </Form>
   )
 }

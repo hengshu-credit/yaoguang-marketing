@@ -19,6 +19,7 @@ import (
 )
 
 type WorkspaceService struct {
+	executionSnapshots     automationProviderArchiveRefresher
 	repo                   domain.WorkspaceRepository
 	userRepo               domain.UserRepository
 	taskRepo               domain.TaskRepository
@@ -530,7 +531,7 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 		return nil, err
 	}
 
-	if err := s.repo.Update(ctx, existingWorkspace); err != nil {
+	if err := s.saveWorkspaceWithExecutionProviders(ctx, existingWorkspace); err != nil {
 		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Error("Failed to update workspace")
 		return nil, err
 	}
@@ -1599,7 +1600,7 @@ func (s *WorkspaceService) addIntegration(ctx context.Context, workspaceID strin
 
 	workspace.AddIntegration(integration)
 
-	if err := s.repo.Update(ctx, workspace); err != nil {
+	if err := s.saveWorkspaceWithExecutionProviders(ctx, workspace); err != nil {
 		s.logger.WithField("workspace_id", workspaceID).WithField("integration_id", integration.ID).WithField("error", err.Error()).Error("Failed to update workspace with new integration")
 		return err
 	}
@@ -2200,7 +2201,7 @@ func (s *WorkspaceService) UpdateIntegration(ctx context.Context, req domain.Upd
 	workspace.AddIntegration(updatedIntegration) // This will replace the existing one
 
 	// Save the updated workspace
-	if err := s.repo.Update(ctx, workspace); err != nil {
+	if err := s.saveWorkspaceWithExecutionProviders(ctx, workspace); err != nil {
 		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("integration_id", req.IntegrationID).WithField("error", err.Error()).Error("Failed to update workspace with updated integration")
 		return err
 	}
@@ -2304,7 +2305,7 @@ func (s *WorkspaceService) DeleteIntegration(ctx context.Context, workspaceID, i
 	}
 
 	// Save the updated workspace
-	if err := s.repo.Update(ctx, workspace); err != nil {
+	if err := s.saveWorkspaceWithExecutionProviders(ctx, workspace); err != nil {
 		s.logger.WithField("workspace_id", workspaceID).WithField("integration_id", integrationID).WithField("error", err.Error()).Error("Failed to update workspace after integration deletion")
 		return err
 	}

@@ -266,6 +266,8 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     switch (type) {
       case 'delay':
         return { duration: 0, unit: 'minutes' }
+      case 'business_condition':
+        return { mode: 'wait', subject_type: 'customer', events: [], timeout_seconds: 86400, on_timeout: 'exit' }
       case 'sms':
       case 'push':
         return { template_id: '', integration_id: '' }

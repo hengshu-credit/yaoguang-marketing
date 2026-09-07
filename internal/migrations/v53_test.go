@@ -32,5 +32,4 @@ func TestV53MigrationMetadataAndRegistration(t *testing.T) {
 	assert.Equal(t, 53.0, migration.GetMajorVersion())
 	assert.False(t, migration.HasSystemUpdate())
 	assert.True(t, migration.HasWorkspaceUpdate())
-	assert.Equal(t, "56.0", config.VERSION)
 }

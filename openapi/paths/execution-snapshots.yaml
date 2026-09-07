@@ -1,0 +1,74 @@
+executionsGet:
+  get:
+    operationId: getExecutionSnapshot
+    summary: Read the immutable configuration, materials, and evidence for an execution
+    tags: [Executions]
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: query
+        name: workspace_id
+        required: true
+        schema: {type: string}
+      - in: query
+        name: execution_id
+        required: true
+        schema: {type: string}
+      - in: query
+        name: after
+        schema: {type: string}
+    responses:
+      '200':
+        description: Snapshot and up to 100 append-only evidence items; next is the evidence cursor
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [snapshot, evidence]
+              properties:
+                snapshot: {type: object, additionalProperties: true}
+                evidence: {type: array, items: {type: object, additionalProperties: true}}
+                next: {type: string}
+      '403': {description: Broadcast or automation read and contact read permission required}
+      '404': {description: No historical snapshot was captured; current configuration is never substituted}
+executionsList:
+  get:
+    operationId: listExecutionSnapshots
+    summary: List snapshots by campaign, broadcast, or automation source
+    tags: [Executions]
+    security:
+      - BearerAuth: []
+    parameters:
+      - {in: query, name: workspace_id, required: true, schema: {type: string}}
+      - {in: query, name: source_id, required: true, schema: {type: string}}
+    responses:
+      '200': {description: Up to 50 immutable snapshots ordered newest first}
+      '403': {description: Insufficient permission}
+executionsAsset:
+  get:
+    operationId: downloadExecutionAsset
+    summary: Download a hash-verified archived material referenced by this execution
+    tags: [Executions]
+    security:
+      - BearerAuth: []
+    parameters:
+      - {in: query, name: workspace_id, required: true, schema: {type: string}}
+      - {in: query, name: execution_id, required: true, schema: {type: string}}
+      - {in: query, name: hash, required: true, schema: {type: string}}
+    responses:
+      '200': {description: Immutable material bytes with private caching}
+      '403': {description: Insufficient permission}
+      '404': {description: Asset is not bound to the execution or does not exist}
+executionsObservations:
+  get:
+    operationId: getExecutionObservations
+    summary: Count saved task events and states in the exact execution cohort
+    tags: [Executions]
+    security:
+      - BearerAuth: []
+    parameters:
+      - {in: query, name: workspace_id, required: true, schema: {type: string}}
+      - {in: query, name: execution_id, required: true, schema: {type: string}}
+    responses:
+      '200': {description: Saved tracking plan, data watermark, event occurrence IDs, distinct customers and configured objects, with observed and attributed counts separate}
+      '403': {description: Broadcast or automation read and contact read permission required}

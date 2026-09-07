@@ -6,6 +6,9 @@ import { customerApi, customerQueryKeys, type CustomerUpdatePatch } from '../../
 import { listsApi } from '../../services/api/list'
 import { CustomerTimelineTab } from './CustomerTimelineTab'
 import { CustomerJourneysTab } from './CustomerJourneysTab'
+import { CustomerBusinessActivity } from './CustomerBusinessActivity'
+import { SubjectStatesPanel } from '../business_states/SubjectStatesPanel'
+import { CustomerEndpointsTab } from './CustomerEndpointsTab'
 import { CustomerDeliveriesTab } from './CustomerDeliveriesTab'
 import { CustomerProfilePanel } from './CustomerProfilePanel'
 import { JourneyTraceDrawer } from '../automations/JourneyTraceDrawer'
@@ -109,7 +112,10 @@ export function CustomerDrawer({ workspaceId, customerId, open, onClose, canWrit
                 items={[
                   { key: 'summary', label: t`Activity overview`, children: <Typography.Text type="secondary">{t`Open a tab to inspect this customer's timeline, journeys or deliveries.`}</Typography.Text> },
                   { key: 'timeline', label: t`Activity timeline`, children: <CustomerTimelineTab workspaceId={workspaceId} customerId={customer.customer_id} active={activeTab === 'timeline'} /> },
+                  { key: 'business', label: t`Business events and objects`, children: <CustomerBusinessActivity key={`${workspaceId}:${customer.customer_id}`} workspaceId={workspaceId} customerId={customer.customer_id} active={activeTab === 'business'} /> },
+                  { key: 'states', label: t`Customer states`, children: <SubjectStatesPanel key={`${workspaceId}:${customer.customer_id}`} workspaceId={workspaceId} subjectType="customer" subjectId={customer.customer_id} canWrite={canWrite} /> },
                   { key: 'journeys', label: t`Journeys`, children: <CustomerJourneysTab workspaceId={workspaceId} customerId={customer.customer_id} active={activeTab === 'journeys'} onViewTrace={setTraceInstanceId} /> },
+                  { key: 'endpoints', label: t`Channel endpoints`, children: <CustomerEndpointsTab key={customer.customer_id} workspaceId={workspaceId} customerId={customer.customer_id} canWrite={canWrite} consents={customer.consents} /> },
                   { key: 'deliveries', label: t`Deliveries`, children: <CustomerDeliveriesTab workspaceId={workspaceId} customerId={customer.customer_id} active={activeTab === 'deliveries'} /> }
                 ]}
               />

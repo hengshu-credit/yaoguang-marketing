@@ -22,6 +22,7 @@ var (
 )
 
 type DeliveryReceiptService struct {
+	executionSnapshots   *ExecutionSnapshotService
 	auth                 domain.AuthService
 	repo                 domain.DeliveryReceiptRepository
 	workspaceRepo        domain.WorkspaceRepository
@@ -144,6 +145,10 @@ func (s *DeliveryReceiptService) ProcessTwilioCallback(
 	workspace, err := s.workspaceRepo.GetByID(ctx, callback.WorkspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("load Twilio callback workspace: %w", err)
+	}
+	workspace, err = s.callbackProviderWorkspace(ctx, callback.WorkspaceID, callback.IntegrationID, callback.MessageID, callback.EffectKey, firstFormValue(callback.Form, "MessageSid"), workspace)
+	if err != nil {
+		return nil, err
 	}
 	integration := workspace.GetIntegrationByID(callback.IntegrationID)
 	if integration == nil || integration.Type != domain.IntegrationTypeSMS ||

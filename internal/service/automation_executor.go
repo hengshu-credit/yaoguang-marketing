@@ -15,6 +15,8 @@ import (
 
 // AutomationExecutor processes contacts through automation workflows
 type AutomationExecutor struct {
+	journeyStartGate    configuredJourneyStartGate
+	executionSnapshots  *ExecutionSnapshotService
 	automationRepo      domain.AutomationRepository
 	contactRepo         domain.ContactRepository
 	workspaceRepo       domain.WorkspaceRepository
@@ -44,6 +46,7 @@ type AutomationAudienceEligibilityChecker interface {
 }
 
 type journeySideEffectData struct {
+	StartExpiresAt      *time.Time             `json:"start_expires_at,omitempty"`
 	ContactAutomationID string                 `json:"contact_automation_id"`
 	AutomationID        string                 `json:"automation_id"`
 	AutomationName      string                 `json:"automation_name"`
@@ -52,6 +55,7 @@ type journeySideEffectData struct {
 	AutomationExitReply bool                   `json:"automation_exit_on_reply"`
 	StateVersion        int64                  `json:"state_version"`
 	ContactEmail        string                 `json:"contact_email"`
+	CustomerID          string                 `json:"customer_id,omitempty"`
 	NodeID              string                 `json:"node_id"`
 	NodeType            domain.NodeType        `json:"node_type"`
 	NodeConfig          map[string]interface{} `json:"node_config"`
@@ -206,10 +210,28 @@ func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, co
 		return e.handleError(ctx, workspaceID, contactAutomation, err, "failed to get automation")
 	}
 
+	ctx, automation, err = e.bindJourneySnapshot(ctx, workspaceID, contactAutomation.ID, automation)
+	if err != nil {
+		return err
+	}
+
 	// Check if automation is paused/not live
 	// When paused, contacts stay frozen at their current node (they don't get exited)
 	if automation.Status != domain.AutomationStatusLive {
 		return nil
+	}
+	if contactAutomation.Context["business_started_at"] == nil {
+		reason, _, gateErr := e.checkConfiguredStart(ctx, workspaceID, contactAutomation, time.Now().UTC())
+		if gateErr != nil {
+			return gateErr
+		}
+		if reason != "" {
+			contactAutomation.Status = domain.ContactAutomationStatusExited
+			contactAutomation.ExitReason = &reason
+			contactAutomation.CurrentNodeID = nil
+			contactAutomation.ScheduledAt = nil
+			return e.automationRepo.UpdateContactAutomation(ctx, workspaceID, contactAutomation)
+		}
 	}
 
 	// Early exit if already completed (no current node) - avoid fetching contact unnecessarily
@@ -218,9 +240,12 @@ func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, co
 	}
 
 	// Get contact data once (outside loop) - only if we have nodes to process
-	contactData, err := e.contactRepo.GetContactByEmail(ctx, workspaceID, contactAutomation.ContactEmail)
-	if err != nil {
-		return e.handleError(ctx, workspaceID, contactAutomation, err, "failed to get contact")
+	var contactData *domain.Contact
+	if contactAutomation.ContactEmail != "" {
+		contactData, err = e.contactRepo.GetContactByEmail(ctx, workspaceID, contactAutomation.ContactEmail)
+		if err != nil {
+			return e.handleError(ctx, workspaceID, contactAutomation, err, "failed to get contact")
+		}
 	}
 
 	// LOOP: Process nodes until delay, completion, or max iterations
@@ -286,6 +311,9 @@ func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, co
 		// Update contact automation state
 		contactAutomation.CurrentNodeID = result.NextNodeID
 		contactAutomation.ScheduledAt = result.ScheduledAt
+		if result.Context != nil {
+			contactAutomation.Context = result.Context
+		}
 		if result.ExitReason != nil {
 			contactAutomation.ExitReason = result.ExitReason
 		}
@@ -383,6 +411,10 @@ func (e *AutomationExecutor) PlanClaimedJourneyStep(
 	if automation.Status != domain.AutomationStatusLive {
 		return commit, fmt.Errorf("automation %s is not live", automation.ID)
 	}
+	ctx, automation, err = e.bindJourneySnapshot(ctx, workspaceID, next.ID, automation)
+	if err != nil {
+		return commit, err
+	}
 	node := automation.GetNodeByID(*next.CurrentNodeID)
 	if node == nil {
 		reason := "automation_node_deleted"
@@ -391,6 +423,22 @@ func (e *AutomationExecutor) PlanClaimedJourneyStep(
 		commit.ContactAutomation.ScheduledAt = nil
 		return commit, nil
 	}
+	if claim.StateVersion == 0 {
+		reason, _, gateErr := e.checkConfiguredStart(ctx, workspaceID, &next, now)
+		if gateErr != nil {
+			return commit, gateErr
+		}
+		commit.ContactAutomation = next
+		if reason != "" {
+			commit.ContactAutomation.Status = domain.ContactAutomationStatusExited
+			commit.ContactAutomation.ExitReason = &reason
+			commit.ContactAutomation.CurrentNodeID = nil
+			commit.ContactAutomation.ScheduledAt = nil
+			commit.Evidence = e.claimEvidence(ctx, &next, node, domain.NodeActionSkipped, map[string]any{"reason": reason, "side_effect_executed": false})
+			return commit, nil
+		}
+		claim.ContactAutomation = next
+	}
 
 	skipTouch, eligibilityErr := e.shouldSkipAudienceTouch(ctx, workspaceID, &next, node)
 	if eligibilityErr != nil {
@@ -398,6 +446,8 @@ func (e *AutomationExecutor) PlanClaimedJourneyStep(
 	}
 	if skipTouch {
 		result := audienceTouchSkipResult(node)
+		commit.Evidence = e.claimEvidence(ctx, &next, node, domain.NodeActionSkipped, result.Output)
+
 		commit.ContactAutomation.CurrentNodeID = result.NextNodeID
 		commit.ContactAutomation.Status = result.Status
 		commit.ContactAutomation.ScheduledAt = nil
@@ -410,7 +460,20 @@ func (e *AutomationExecutor) PlanClaimedJourneyStep(
 	}
 
 	if channel, external := journeySideEffectChannel(node.Type); external {
-		return planJourneySideEffect(workspaceID, claim, automation, node, channel, now)
+		plannedNode := *node
+		if domain.ExecutionIDFromContext(ctx) != "" {
+			redacted, redactErr := domain.SanitizeExecutionJSON(node.Config)
+			if redactErr != nil {
+				return commit, redactErr
+			}
+			plannedNode.Config = nil
+			if redactErr = json.Unmarshal(redacted, &plannedNode.Config); redactErr != nil {
+				return commit, redactErr
+			}
+		}
+		planned, err := planJourneySideEffect(workspaceID, claim, automation, &plannedNode, channel, now)
+		planned.Evidence = e.claimEvidence(ctx, &next, node, domain.NodeActionProcessing, map[string]interface{}{"status": "side_effect_planned", "channel": channel})
+		return planned, err
 	}
 
 	executor, ok := e.nodeExecutors[node.Type]
@@ -438,6 +501,7 @@ func (e *AutomationExecutor) PlanClaimedJourneyStep(
 	if err != nil {
 		return commit, fmt.Errorf("plan claimed node %s: %w", node.ID, err)
 	}
+	commit.Evidence = e.claimEvidence(ctx, &next, node, domain.NodeActionCompleted, result.Output)
 	commit.ContactAutomation.CurrentNodeID = result.NextNodeID
 	commit.ContactAutomation.ScheduledAt = result.ScheduledAt
 	commit.ContactAutomation.Status = result.Status
@@ -471,7 +535,7 @@ func (e *AutomationExecutor) ExecuteJourneySideEffect(
 		return fmt.Errorf("decode journey side effect command: %w", err)
 	}
 	if command.ContactAutomationID == "" || command.AutomationID == "" ||
-		command.ContactEmail == "" || command.NodeID == "" {
+		(command.ContactEmail == "" && command.CustomerID == "") || command.NodeID == "" {
 		return fmt.Errorf("journey side effect identity is incomplete")
 	}
 	if _, supported := journeySideEffectChannel(command.NodeType); !supported {
@@ -484,7 +548,7 @@ func (e *AutomationExecutor) ExecuteJourneySideEffect(
 
 	var contactData *domain.Contact
 	var err error
-	if command.NodeType == domain.NodeTypeEmail || command.NodeType == domain.NodeTypeWebhook {
+	if command.NodeType == domain.NodeTypeEmail || (command.NodeType == domain.NodeTypeWebhook && command.ContactEmail != "") {
 		contactData, err = e.contactRepo.GetContactByEmail(ctx, envelope.WorkspaceID, command.ContactEmail)
 		if err != nil {
 			return fmt.Errorf("load contact for journey side effect: %w", err)
@@ -493,17 +557,40 @@ func (e *AutomationExecutor) ExecuteJourneySideEffect(
 	contactAutomation := &domain.ContactAutomation{
 		ID: command.ContactAutomationID, AutomationID: command.AutomationID,
 		ContactEmail: command.ContactEmail, Status: domain.ContactAutomationStatusActive,
+		CustomerID: command.CustomerID,
 	}
 	automation := &domain.Automation{
 		ID: command.AutomationID, WorkspaceID: envelope.WorkspaceID, Name: command.AutomationName,
 		ListID: command.AutomationListID, ExitOnReply: command.AutomationExitReply,
 	}
-	_, err = nodeExecutor.Execute(ctx, NodeExecutionParams{
+	ctx, automation, err = e.bindJourneySnapshot(ctx, envelope.WorkspaceID, command.ContactAutomationID, automation)
+	if err != nil {
+		return err
+	}
+	if envelope.CausationID != nil {
+		ctx = domain.WithExecutionCausation(ctx, envelope.CausationID.String())
+	}
+	executionNode := &domain.AutomationNode{ID: command.NodeID, Type: command.NodeType, Config: command.NodeConfig}
+	if domain.ExecutionIDFromContext(ctx) != "" {
+		var matched bool
+		for _, frozenNode := range automation.Nodes {
+			if frozenNode.ID == command.NodeID {
+				executionNode = frozenNode
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			return fmt.Errorf("side effect node is absent from immutable configuration")
+		}
+	}
+	if command.StartExpiresAt != nil && !time.Now().UTC().Before(*command.StartExpiresAt) {
+		return e.recordExpiredInitialEffect(ctx, envelope.WorkspaceID, command, effectKey)
+	}
+	result, err := nodeExecutor.Execute(ctx, NodeExecutionParams{
 		WorkspaceID: envelope.WorkspaceID,
 		Contact:     contactAutomation,
-		Node: &domain.AutomationNode{
-			ID: command.NodeID, Type: command.NodeType, Config: command.NodeConfig,
-		},
+		Node:        executionNode,
 		Automation:  automation,
 		ContactData: contactData,
 		ExecutionContext: map[string]interface{}{
@@ -511,6 +598,21 @@ func (e *AutomationExecutor) ExecuteJourneySideEffect(
 			realtimeOccurredAtContext: envelope.OccurredAt.UTC(),
 		},
 	})
+	if executionID := domain.ExecutionIDFromContext(ctx); executionID != "" && e.executionSnapshots != nil {
+		status := "completed"
+		payload := map[string]interface{}{"configuration": executionNode.Config, "result": result}
+		if err != nil {
+			status = "failed"
+			payload["error"] = err.Error()
+		}
+		body, captureErr := domain.SanitizeExecutionJSON(payload)
+		if captureErr == nil {
+			captureErr = e.executionSnapshots.AppendInternal(ctx, envelope.WorkspaceID, domain.ExecutionEvidence{ExecutionID: executionID, Key: effectKey + ":" + status, Kind: "node", NodeID: command.NodeID, CustomerID: command.CustomerID, Status: status, Payload: body})
+		}
+		if captureErr != nil {
+			return fmt.Errorf("%w: capture node result: %v", ErrSideEffectOutcomeUnknown, captureErr)
+		}
+	}
 	if err != nil {
 		var networkError net.Error
 		if command.NodeType == domain.NodeTypeWebhook &&
@@ -577,7 +679,18 @@ func planJourneySideEffect(
 		origin := *claim.OriginEventID
 		causationID = &origin
 	}
+	var startExpiry *time.Time
+	if claim.StateVersion == 0 {
+		if raw, ok := next.Context["business_start_expires_at"].(string); ok {
+			at, parseErr := time.Parse(time.RFC3339Nano, raw)
+			if parseErr != nil {
+				return domain.JourneyStateCommit{}, parseErr
+			}
+			startExpiry = &at
+		}
+	}
 	data, err := json.Marshal(journeySideEffectData{
+		StartExpiresAt:      startExpiry,
 		ContactAutomationID: next.ID,
 		AutomationID:        automation.ID,
 		AutomationName:      automation.Name,
@@ -586,6 +699,7 @@ func planJourneySideEffect(
 		AutomationExitReply: automation.ExitOnReply,
 		StateVersion:        claim.StateVersion,
 		ContactEmail:        next.ContactEmail,
+		CustomerID:          next.CustomerID,
 		NodeID:              node.ID,
 		NodeType:            node.Type,
 		NodeConfig:          node.Config,
@@ -596,7 +710,7 @@ func planJourneySideEffect(
 	envelope := domain.EventEnvelope{
 		ID: messageID, EventID: eventID, Type: "journey.side_effect.requested", SchemaVersion: 1,
 		WorkspaceID: workspaceID,
-		Subject:     domain.EventSubject{Type: "contact_automation", ID: next.ID, ContactEmail: next.ContactEmail},
+		Subject:     domain.EventSubject{Type: "contact_automation", ID: next.ID, ContactEmail: next.ContactEmail, CustomerID: next.CustomerID},
 		Source:      "journey-worker", OccurredAt: now, ReceivedAt: now,
 		CorrelationID: correlationID, CausationID: causationID, Data: data,
 	}

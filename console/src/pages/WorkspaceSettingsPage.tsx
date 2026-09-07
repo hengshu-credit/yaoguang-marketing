@@ -10,6 +10,8 @@ import { GeneralSettings } from '../components/settings/GeneralSettings'
 import { SMTPBridgeSettings } from '../components/settings/SMTPBridgeSettings'
 import { Integrations } from '../components/settings/Integrations'
 import { CustomFieldsConfiguration } from '../components/settings/CustomFieldsConfiguration'
+import { BusinessConfigurationSettings } from '../components/business/BusinessConfigurationSettings'
+import { BusinessStatesSettings } from '../components/business_states/BusinessStatesSettings'
 import { BlogSettings } from '../components/settings/BlogSettings'
 import { WebAnalyticsSettings } from '../components/settings/WebAnalyticsSettings'
 import { WebhooksSettings } from '../components/settings/WebhooksSettings'
@@ -158,6 +160,10 @@ export function WorkspaceSettingsPage() {
 
   const renderSection = () => {
     switch (activeSection) {
+      case 'business-states':
+        return <BusinessStatesSettings key={workspaceId} workspaceId={workspaceId} canManage={memberAccessResolved && canManageCustomFields} />
+      case 'business':
+        return <BusinessConfigurationSettings workspaceId={workspaceId} canManage={memberAccessResolved && canManageCustomFields} />
       case 'team':
         return (
           <WorkspaceMembers

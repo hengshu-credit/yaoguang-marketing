@@ -210,7 +210,20 @@ export interface GoalData {
 }
 
 // Public API
+export interface BusinessEventInput {
+  /** New for each occurrence. Omit to generate once before durable queueing. */
+  report_id?: string;
+  event_code: string;
+  event_name?: string;
+  data: Record<string, unknown>;
+  triggered_at?: string;
+  expires_at?: string | null;
+}
+
 export interface NotifuseAnalyticsAPI {
+  trackEvent(event: BusinessEventInput): Promise<string>;
+  identifyCustomer(credential: string): Promise<void>;
+  flushEvents(): Promise<void>;
   init(config: NotifuseAnalyticsConfig): Promise<void>;
   getSessionId(): Promise<string>;
   getConfig(): Readonly<NotifuseAnalyticsConfig> | null;

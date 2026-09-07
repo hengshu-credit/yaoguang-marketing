@@ -17,6 +17,7 @@ import (
 
 // BroadcastService handles all broadcast-related operations
 type BroadcastService struct {
+	businessDefinitions  domain.BusinessDefinitionRepository
 	logger               logger.Logger
 	repo                 domain.BroadcastRepository
 	workspaceRepo        domain.WorkspaceRepository
@@ -139,6 +140,9 @@ func (s *BroadcastService) CreateBroadcast(ctx context.Context, request *domain.
 		s.logger.Error("Failed to validate broadcast creation request")
 		return nil, err
 	}
+	if err := ValidateTaskTracking(ctx, request.WorkspaceID, s.businessDefinitions, broadcast.Metadata["tracking_plan"]); err != nil {
+		return nil, err
+	}
 
 	// Generate a unique ID for the broadcast if not provided
 	if broadcast.ID == "" {
@@ -233,6 +237,9 @@ func (s *BroadcastService) UpdateBroadcast(ctx context.Context, request *domain.
 	updatedBroadcast, err := request.Validate(existingBroadcast)
 	if err != nil {
 		s.logger.Error("Failed to validate broadcast update request")
+		return nil, err
+	}
+	if err := ValidateTaskTracking(ctx, request.WorkspaceID, s.businessDefinitions, updatedBroadcast.Metadata["tracking_plan"]); err != nil {
 		return nil, err
 	}
 

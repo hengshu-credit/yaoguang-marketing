@@ -1,0 +1,160 @@
+/api/events.track:
+  post:
+    summary: Record one business event occurrence
+    description: Every report ID records a distinct occurrence, including repeated event codes for one customer or object. Identical source/report ID retries return the first event UUID and reported_at; changed payload returns 409. No email is required.
+    operationId: trackBusinessEvent
+    security: [{BearerAuth: []}]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: '../components/schemas/tracked-event.yaml#/TrackEventRequest'}
+    responses:
+      '200':
+        description: Accepted or duplicate occurrence
+        content:
+          application/json:
+            schema: {$ref: '../components/schemas/tracked-event.yaml#/TrackedEventResult'}
+      '400': {description: Invalid event fields or identity conflict}
+      '403': {description: Workspace permission denied}
+      '409': {description: Same report ID with different payload}
+/api/events.batch:
+  post:
+    summary: Record up to 100 independent occurrences
+    operationId: batchTrackBusinessEvents
+    security: [{BearerAuth: []}]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [events]
+            properties:
+              events:
+                type: array
+                minItems: 1
+                maxItems: 100
+                items: {$ref: '../components/schemas/tracked-event.yaml#/TrackEventRequest'}
+    responses:
+      '200': {description: Results contains one index and result or error per input event.}
+/api/events.get:
+  get:
+    summary: Read a report receipt
+    operationId: getBusinessEvent
+    security: [{BearerAuth: []}]
+    parameters:
+      - {name: workspace_id, in: query, required: true, schema: {type: string}}
+      - {name: source, in: query, required: true, schema: {type: string}}
+      - {name: report_id, in: query, required: true, schema: {type: string}}
+    responses:
+      '200': {description: Original normalized receipt with sensitive attribute values redacted unless workspace-write permission is granted.}
+/api/events.list:
+  get:
+    summary: List the latest customer event occurrences
+    operationId: listBusinessEvents
+    security: [{BearerAuth: []}]
+    parameters:
+      - {name: workspace_id, in: query, required: true, schema: {type: string}}
+      - {name: customer_id, in: query, schema: {type: string, format: uuid}}
+      - {name: limit, in: query, schema: {type: integer, maximum: 500, default: 100}}
+    responses:
+      '200': {description: An events array; repeated names/codes remain separate rows.}
+/api/browserEvents.issueCredential:
+  post:
+    summary: Issue a limited browser identity credential
+    description: Call from an authenticated application backend after verifying the logged-in customer. Binds existing Customer UUID, session ID, exact Origin and explicitly browser-enabled event codes for 15 minutes. Never expose the backend API credential to JavaScript.
+    operationId: issueBrowserEventCredential
+    security: [{BearerAuth: []}]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [workspace_id, customer_id, session_id, origin, event_codes]
+            properties:
+              workspace_id: {type: string}
+              customer_id: {type: string, format: uuid}
+              session_id: {type: string}
+              origin: {type: string, example: 'https://shop.example'}
+              event_codes: {type: array, items: {type: string}}
+    responses:
+      '200': {description: credential and expires_in 900}
+/api/events.resolvePending:
+  post:
+    summary: Resolve one pending occurrence using its original definitions
+    security: [{BearerAuth: []}]
+    description: Requires contacts-write and customers-write. Preserves event UUID, report ID, mapping revision and original timestamps. Expiry is checked now; only an eligible occurrence is released downstream once.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [workspace_id, source, report_id, reason]
+            properties:
+              workspace_id: {type: string}
+              source: {type: string}
+              report_id: {type: string}
+              customer_id: {type: string, format: uuid}
+              reason: {type: string, minLength: 1, maxLength: 1000}
+    responses:
+      '200': {description: Original occurrence with resolved customer and current processing status.}
+/api/events.diagnostics:
+  get:
+    summary: List recent ingestion diagnostics
+    security: [{BearerAuth: []}]
+    parameters:
+      - {in: query, name: workspace_id, required: true, schema: {type: string}}
+      - {in: query, name: source, schema: {type: string}}
+      - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 500}}
+    responses:
+      '200': {description: Diagnostic metadata without raw request bodies.}
+/track/events:
+  post:
+    summary: Collect an explicitly allowed browser event
+    security: []
+    description: Requires Origin allowed by the event definition. Without a signed credential, the event remains pending for its anonymous session. Browser identity, source, business-object association, authoritative events and backfill cannot be supplied. A verified touchpoint_token is attribution evidence only.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [workspace_id, session_id, event]
+            properties:
+              workspace_id: {type: string}
+              session_id: {type: string}
+              credential: {type: string}
+              touchpoint_token: {type: string}
+              event:
+                type: object
+                required: [report_id, event_code, data, triggered_at]
+                properties:
+                  report_id: {type: string}
+                  event_code: {type: string}
+                  event_name: {type: string}
+                  data: {type: object, additionalProperties: true}
+                  triggered_at: {type: string, format: date-time}
+                  expires_at: {type: string, format: date-time, nullable: true}
+    responses:
+      '200': {description: Public acknowledgement containing report ID, event UUID, reported time, duplicate flag and processing status.}
+/track/identify:
+  post:
+    summary: Associate anonymous occurrences with a verified session customer
+    security: []
+    description: workspace_id, session_id and credential are required. The signed credential must match Origin and session. Only permitted event codes are linked. Historical association never emits another marketing event.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [workspace_id, session_id, credential]
+            properties:
+              workspace_id: {type: string}
+              session_id: {type: string}
+              credential: {type: string}
+    responses:
+      '200': {description: Number of associated historical occurrences.}

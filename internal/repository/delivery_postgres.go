@@ -169,6 +169,9 @@ func (r *DeliveryPostgresRepository) ReserveAndEnqueue(ctx context.Context, work
 	if r.queueRepo == nil {
 		return result, errors.New("email queue repository is required")
 	}
+	if err := domain.CaptureExecutionMedia(ctx, workspaceID, entry.Payload.ExecutionID, entry.MessageID, map[string]any{"payload": entry.Payload, "contact_email": entry.ContactEmail}); err != nil {
+		return result, err
+	}
 	db, err := r.getDB(ctx, workspaceID)
 	if err != nil {
 		return result, fmt.Errorf("get workspace database: %w", err)

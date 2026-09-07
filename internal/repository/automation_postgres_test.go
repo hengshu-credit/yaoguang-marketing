@@ -55,11 +55,11 @@ func TestContactAutomationClaimAcquiresExpiredLease(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "automation_id", "contact_email", "current_node_id", "status", "exit_reason",
 			"entered_at", "scheduled_at", "context", "retry_count", "last_error", "last_retry_at", "max_retries",
-			"origin_event_id", "automation_version", "state_version", "claim_token", "claimed_by", "claimed_at", "claim_expires_at",
+			"origin_event_id", "automation_version", "state_version", "claim_token", "claimed_by", "claimed_at", "claim_expires_at", "customer_id",
 		}).AddRow(
 			"ca-1", "automation-1", "person@example.com", currentNodeID, domain.ContactAutomationStatusActive, nil,
 			now.Add(-time.Hour), now, contextJSON, 0, nil, nil, 3,
-			originEventID, 4, int64(7), claimToken, "journey-worker-1", now, expiresAt,
+			originEventID, 4, int64(7), claimToken, "journey-worker-1", now, expiresAt, "customer-1",
 		))
 
 	claim, acquired, err := repo.ClaimContactAutomation(context.Background(), "workspace-1", "ca-1", "journey-worker-1", now, time.Minute)
@@ -946,10 +946,10 @@ func TestAutomationRepository_GetContactAutomation(t *testing.T) {
 	rows := sqlmock.NewRows([]string{
 		"id", "automation_id", "contact_email", "current_node_id", "status",
 		"exit_reason", "entered_at", "scheduled_at", "context", "retry_count", "last_error",
-		"last_retry_at", "max_retries",
+		"last_retry_at", "max_retries", "customer_id",
 	}).AddRow(
 		id, "auto-123", "test@example.com", "node-1", "active",
-		nil, now, now, contextJSON, 0, nil, nil, 3,
+		nil, now, now, contextJSON, 0, nil, nil, 3, nil,
 	)
 
 	mock.ExpectQuery("SELECT .* FROM contact_automations WHERE id = .*").
@@ -991,10 +991,10 @@ func TestAutomationRepository_GetContactAutomationByEmail(t *testing.T) {
 	rows := sqlmock.NewRows([]string{
 		"id", "automation_id", "contact_email", "current_node_id", "status",
 		"exit_reason", "entered_at", "scheduled_at", "context", "retry_count", "last_error",
-		"last_retry_at", "max_retries",
+		"last_retry_at", "max_retries", "customer_id",
 	}).AddRow(
 		"ca-123", automationID, email, nil, "active",
-		nil, now, nil, contextJSON, 0, nil, nil, 3,
+		nil, now, nil, contextJSON, 0, nil, nil, 3, nil,
 	)
 
 	mock.ExpectQuery("SELECT .* FROM contact_automations WHERE automation_id = .* AND contact_email = .*").
@@ -1035,13 +1035,13 @@ func TestAutomationRepository_ListContactAutomations(t *testing.T) {
 	rows := sqlmock.NewRows([]string{
 		"id", "automation_id", "contact_email", "current_node_id", "status",
 		"exit_reason", "entered_at", "scheduled_at", "context", "retry_count", "last_error",
-		"last_retry_at", "max_retries",
+		"last_retry_at", "max_retries", "customer_id",
 	}).AddRow(
 		"ca-1", "auto-123", "user1@example.com", nil, "active",
-		nil, now, nil, contextJSON, 0, nil, nil, 3,
+		nil, now, nil, contextJSON, 0, nil, nil, 3, nil,
 	).AddRow(
 		"ca-2", "auto-123", "user2@example.com", nil, "active",
-		nil, now, nil, contextJSON, 0, nil, nil, 3,
+		nil, now, nil, contextJSON, 0, nil, nil, 3, nil,
 	)
 
 	mock.ExpectQuery("SELECT .* FROM contact_automations WHERE").
@@ -1121,10 +1121,10 @@ func TestAutomationRepository_GetScheduledContactAutomations(t *testing.T) {
 	rows := sqlmock.NewRows([]string{
 		"id", "automation_id", "contact_email", "current_node_id", "status",
 		"exit_reason", "entered_at", "scheduled_at", "context", "retry_count", "last_error",
-		"last_retry_at", "max_retries",
+		"last_retry_at", "max_retries", "customer_id",
 	}).AddRow(
 		"ca-1", "auto-123", "user1@example.com", "node-1", "active",
-		nil, now, now, contextJSON, 0, nil, nil, 3,
+		nil, now, now, contextJSON, 0, nil, nil, 3, nil,
 	)
 
 	mock.ExpectQuery("SELECT ca.* FROM contact_automations ca JOIN automations a").
@@ -1141,7 +1141,7 @@ func TestAutomationRepository_GetScheduledContactAutomations(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "automation_id", "contact_email", "current_node_id", "status",
 			"exit_reason", "entered_at", "scheduled_at", "context", "retry_count", "last_error",
-			"last_retry_at", "max_retries",
+			"last_retry_at", "max_retries", "customer_id",
 		}))
 
 	cas, err = repo.GetScheduledContactAutomations(ctx, workspaceID, now, limit)

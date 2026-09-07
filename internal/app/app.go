@@ -147,6 +147,12 @@ type App struct {
 	campaignRepo                  domain.CampaignRepository
 	frequencyPolicyRepo           domain.FrequencyPolicyRepository
 	importJobRepo                 domain.ImportJobRepository
+	businessDefinitionRepo        domain.BusinessDefinitionRepository
+	businessObjectRepo            domain.BusinessObjectRepository
+	trackedEventRepo              domain.TrackedEventRepository
+	executionSnapshotRepo         domain.ExecutionSnapshotRepository
+	subjectStateRepo              domain.SubjectStateRepository
+	funnelRepo                    domain.FunnelRepository
 
 	// Services
 	authService                      *service.AuthService
@@ -197,6 +203,16 @@ type App struct {
 	ingestService                    *service.IngestService
 	contactEndpointService           *service.ContactEndpointService
 	annotationService                *service.AnnotationService
+	businessConfigService            *service.BusinessConfigService
+	businessObjectService            *service.BusinessObjectService
+	trackedEventService              *service.TrackedEventService
+	executionSnapshotService         *service.ExecutionSnapshotService
+	subjectStateService              *service.SubjectStateService
+	subjectStateMaintenanceWorker    *service.SubjectStateMaintenanceWorker
+	configuredEventWorker            *service.ConfiguredEventWorker
+	executionMaterialBackfillWorker  *service.ExecutionMaterialBackfillWorker
+	browserEventService              *service.BrowserEventService
+	funnelService                    *service.FunnelService
 	webhookSubscriptionService       *service.WebhookSubscriptionService
 	webhookDeliveryWorker            *service.WebhookDeliveryWorker
 	automationService                *service.AutomationService
@@ -482,6 +498,9 @@ func (a *App) InitRepositories() error {
 		return fmt.Errorf("failed to initialize customer repository: %w", err)
 	}
 	a.customerReconciliationRepo = repository.NewCustomerReconciliationRepository(a.workspaceRepo)
+	if err := a.initConfigurableMarketingRepositories(); err != nil {
+		return err
+	}
 	a.listRepo = repository.NewListRepository(a.workspaceRepo)
 	a.contactListRepo = repository.NewContactListRepository(a.workspaceRepo)
 	a.templateRepo = repository.NewTemplateRepository(a.workspaceRepo)
@@ -733,6 +752,9 @@ func (a *App) InitServices() error {
 		return fmt.Errorf("failed to initialize campaign service: %w", err)
 	}
 	a.campaignService.SetAudienceExecutionService(a.audienceService)
+	if err := a.initConfigurableMarketingServices(); err != nil {
+		return err
+	}
 	importMaxRows := a.config.Ingest.CustomerImportMaxRows
 	if importMaxRows <= 0 {
 		importMaxRows = 1_000_000
@@ -1003,6 +1025,7 @@ func (a *App) InitServices() error {
 		a.dataFeedFetcher,    // Data feed fetcher for global/recipient data
 		a.config.APIEndpoint, // API endpoint for tracking URLs
 	)
+	a.broadcastService.SetBusinessDefinitions(a.businessDefinitionRepo)
 	if progressRepository, ok := a.deliveryRepo.(domain.DeliveryManagementRepository); ok {
 		a.broadcastService.SetDeliveryProgressRepository(progressRepository)
 	}
@@ -1071,6 +1094,7 @@ func (a *App) InitServices() error {
 		return fmt.Errorf("failed to initialize delivery receipt service: %w", err)
 	}
 	a.deliveryReceiptService.SetChannelWebhookNonceRepository(a.channelWebhookNonceRepo)
+	a.deliveryReceiptService.SetExecutionSnapshotService(a.executionSnapshotService)
 	deliveryManagementRepo, ok := a.deliveryRepo.(domain.DeliveryManagementRepository)
 	if !ok {
 		return errors.New("delivery repository does not support management operations")
@@ -1088,6 +1112,7 @@ func (a *App) InitServices() error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize channel message service: %w", err)
 	}
+	a.channelMessageService.SetExecutionSnapshotService(a.executionSnapshotService)
 
 	// Initialize notification center service
 	a.notificationCenterService = service.NewNotificationCenterService(
@@ -1150,6 +1175,7 @@ func (a *App) InitServices() error {
 		a.dnsVerificationService,
 		a.blogService,
 	)
+	a.workspaceService.SetExecutionSnapshotService(a.executionSnapshotService)
 
 	// Initialize durable Campaign, Audience and customer-import processors.
 	a.campaignService.SetTaskScheduler(a.taskService)
@@ -1259,7 +1285,8 @@ func (a *App) InitServices() error {
 		a.logger,
 		service.WithAutomationRealtimeMode(a.config.Realtime.Mode),
 		service.WithAutomationRealtimeOperations(reconciliationService, cutoverService),
-		service.WithAutomationNodeValidator(service.NewAutomationNodeReferenceValidator(a.templateService, a.workspaceRepo)),
+		service.WithAutomationNodeValidator(service.NewConfigurableAutomationValidator(service.NewAutomationNodeReferenceValidator(a.templateService, a.workspaceRepo), a.businessDefinitionRepo)),
+		service.WithAutomationMaterialArchives(a.executionSnapshotService),
 	)
 	automationAudienceRepository, ok := a.automationRepo.(service.AutomationAudienceRunRepository)
 	if !ok {
@@ -1426,6 +1453,7 @@ func (a *App) InitServices() error {
 	// Enable the stop-on-reply just-in-time guard for automation sends.
 	a.emailQueueWorker.SetAutomationRepo(a.automationRepo)
 	a.emailQueueWorker.SetDeliveryRepository(a.deliveryRepo)
+	a.emailQueueWorker.SetExecutionProviderResolver(a.executionSnapshotService)
 	a.emailQueueWorker.SetAudienceEligibilityChecker(a.audienceService)
 
 	// Initialize Firecrawl service
@@ -1456,6 +1484,8 @@ func (a *App) InitServices() error {
 		a.config.APIEndpoint,
 		service.WithChannelMessageService(a.channelMessageService),
 		service.WithAutomationAudienceEligibility(a.audienceService),
+		service.WithAutomationExecutionSnapshots(a.executionSnapshotService),
+		service.WithBusinessConditionNodes(repository.NewRealtimeRepository(a.workspaceRepo)),
 	)
 	a.automationScheduler = service.NewAutomationScheduler(
 		a.automationExecutor,
@@ -1754,6 +1784,7 @@ func (a *App) InitHandlers() error {
 	contactHandler.RegisterRoutes(a.mux)
 	customerHandler.RegisterRoutes(a.mux)
 	customerReconciliationHandler.RegisterRoutes(a.mux)
+	a.registerConfigurableMarketingHandlers(a.mux, getJWTSecret)
 	listHandler.RegisterRoutes(a.mux)
 	contactListHandler.RegisterRoutes(a.mux)
 	templateHandler.RegisterRoutes(a.mux)
@@ -1863,6 +1894,15 @@ func (a *App) Start() error {
 	// delay keeps it away from the boot path.
 	if a.webAnalyticsMaintenanceWorker != nil && a.config.Realtime.Role.Runs(config.CapabilityScheduler) {
 		go a.webAnalyticsMaintenanceWorker.Start(a.GetShutdownContext())
+	}
+	if a.subjectStateMaintenanceWorker != nil && a.config.Realtime.Role.Runs(config.CapabilityScheduler) {
+		go a.subjectStateMaintenanceWorker.Start(a.GetShutdownContext())
+	}
+	if a.configuredEventWorker != nil && a.config.Realtime.Role.Runs(config.CapabilityScheduler) {
+		go a.configuredEventWorker.Start(a.GetShutdownContext())
+	}
+	if a.executionMaterialBackfillWorker != nil && a.config.Realtime.Role.Runs(config.CapabilityScheduler) {
+		go a.executionMaterialBackfillWorker.Start(a.GetShutdownContext())
 	}
 
 	// Start internal task scheduler if enabled (with 30 second delay)
@@ -2004,6 +2044,15 @@ func (a *App) startWorkerRoleBackgroundServices() {
 	if a.config.Realtime.Role.Runs(config.CapabilityScheduler) {
 		if a.webAnalyticsMaintenanceWorker != nil {
 			go a.webAnalyticsMaintenanceWorker.Start(ctx)
+		}
+		if a.subjectStateMaintenanceWorker != nil {
+			go a.subjectStateMaintenanceWorker.Start(ctx)
+		}
+		if a.configuredEventWorker != nil {
+			go a.configuredEventWorker.Start(ctx)
+		}
+		if a.executionMaterialBackfillWorker != nil {
+			go a.executionMaterialBackfillWorker.Start(ctx)
 		}
 		if a.config.TaskScheduler.Enabled && a.taskScheduler != nil {
 			go a.taskScheduler.Start(ctx)

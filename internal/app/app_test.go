@@ -1448,6 +1448,11 @@ func TestTaskSchedulerDelayedStart(t *testing.T) {
 		require.NoError(t, err)
 
 		// Set a shorter shutdown timeout for testing
+		// This test isolates the task scheduler's delayed startup. The independent
+		// configurable-marketing workers have their own database/worker tests.
+		appImpl.configuredEventWorker = nil
+		appImpl.subjectStateMaintenanceWorker = nil
+		appImpl.executionMaterialBackfillWorker = nil
 		app.SetShutdownTimeout(2 * time.Second)
 
 		// Start server in goroutine
@@ -1530,6 +1535,11 @@ func TestTaskSchedulerDelayedStart(t *testing.T) {
 		err = app.InitServices()
 		require.NoError(t, err)
 
+		// Keep this scheduler timing test independent from database-backed workers.
+		appImpl := app.(*App)
+		appImpl.configuredEventWorker = nil
+		appImpl.subjectStateMaintenanceWorker = nil
+		appImpl.executionMaterialBackfillWorker = nil
 		app.SetShutdownTimeout(2 * time.Second)
 
 		// Start server in goroutine

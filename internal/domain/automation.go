@@ -69,6 +69,7 @@ var ValidEventKinds = []string{
 	"email.bounced", "email.complained", "email.unsubscribed",
 	// Custom events (require custom_event_name)
 	"custom_event",
+	"tracked_event",
 }
 
 // IsValidEventKind checks if the given event kind is valid
@@ -85,24 +86,25 @@ func IsValidEventKind(kind string) bool {
 type NodeType string
 
 const (
-	NodeTypeTrigger          NodeType = "trigger"
-	NodeTypeDelay            NodeType = "delay"
-	NodeTypeEmail            NodeType = "email"
-	NodeTypeSMS              NodeType = "sms"
-	NodeTypePush             NodeType = "push"
-	NodeTypeBranch           NodeType = "branch"
-	NodeTypeFilter           NodeType = "filter"
-	NodeTypeAddToList        NodeType = "add_to_list"
-	NodeTypeRemoveFromList   NodeType = "remove_from_list"
-	NodeTypeABTest           NodeType = "ab_test"
-	NodeTypeWebhook          NodeType = "webhook"
-	NodeTypeListStatusBranch NodeType = "list_status_branch"
+	NodeTypeTrigger           NodeType = "trigger"
+	NodeTypeDelay             NodeType = "delay"
+	NodeTypeBusinessCondition NodeType = "business_condition"
+	NodeTypeEmail             NodeType = "email"
+	NodeTypeSMS               NodeType = "sms"
+	NodeTypePush              NodeType = "push"
+	NodeTypeBranch            NodeType = "branch"
+	NodeTypeFilter            NodeType = "filter"
+	NodeTypeAddToList         NodeType = "add_to_list"
+	NodeTypeRemoveFromList    NodeType = "remove_from_list"
+	NodeTypeABTest            NodeType = "ab_test"
+	NodeTypeWebhook           NodeType = "webhook"
+	NodeTypeListStatusBranch  NodeType = "list_status_branch"
 )
 
 // IsValid checks if the node type is valid
 func (t NodeType) IsValid() bool {
 	switch t {
-	case NodeTypeTrigger, NodeTypeDelay, NodeTypeEmail, NodeTypeSMS, NodeTypePush, NodeTypeBranch,
+	case NodeTypeTrigger, NodeTypeDelay, NodeTypeBusinessCondition, NodeTypeEmail, NodeTypeSMS, NodeTypePush, NodeTypeBranch,
 		NodeTypeFilter, NodeTypeAddToList, NodeTypeRemoveFromList,
 		NodeTypeABTest, NodeTypeWebhook, NodeTypeListStatusBranch:
 		return true
@@ -156,15 +158,17 @@ func (a NodeAction) IsValid() bool {
 
 // TimelineTriggerConfig defines the trigger configuration for an automation
 type TimelineTriggerConfig struct {
-	EventKind       string             `json:"event_kind"`                  // Timeline event type to listen for
-	ListID          *string            `json:"list_id,omitempty"`           // Required for list.* events
-	SegmentID       *string            `json:"segment_id,omitempty"`        // Required for segment.* events
-	CustomEventName *string            `json:"custom_event_name,omitempty"` // Required for custom_event
-	Tag             *string            `json:"tag,omitempty"`               // Required for contact.tagged/contact.untagged
-	UpdatedFields   []string           `json:"updated_fields,omitempty"`    // For contact.updated: only trigger on these field changes
-	Conditions      *TreeNode          `json:"conditions"`                  // Reuse segments condition system
-	Frequency       TriggerFrequency   `json:"frequency"`
-	EntryGuard      *JourneyEntryGuard `json:"entry_guard,omitempty"`
+	EventKind       string                 `json:"event_kind"`                  // Timeline event type to listen for
+	ListID          *string                `json:"list_id,omitempty"`           // Required for list.* events
+	SegmentID       *string                `json:"segment_id,omitempty"`        // Required for segment.* events
+	CustomEventName *string                `json:"custom_event_name,omitempty"` // Required for custom_event
+	Tag             *string                `json:"tag,omitempty"`               // Required for contact.tagged/contact.untagged
+	UpdatedFields   []string               `json:"updated_fields,omitempty"`    // For contact.updated: only trigger on these field changes
+	Conditions      *TreeNode              `json:"conditions"`                  // Reuse segments condition system
+	Frequency       TriggerFrequency       `json:"frequency"`
+	EntryGuard      *JourneyEntryGuard     `json:"entry_guard,omitempty"`
+	EventRule       *MarketingEventRule    `json:"event_rule,omitempty"`
+	TrackingPlan    *MarketingTrackingPlan `json:"tracking_plan,omitempty"`
 }
 
 // Validate validates the trigger configuration
@@ -179,6 +183,25 @@ func (c *TimelineTriggerConfig) Validate() error {
 
 	if !c.Frequency.IsValid() {
 		return fmt.Errorf("invalid trigger frequency: %s", c.Frequency)
+	}
+	if c.TrackingPlan != nil {
+		if err := c.TrackingPlan.Validate(); err != nil {
+			return err
+		}
+	}
+	if c.EventKind == "tracked_event" {
+		if c.EventRule == nil {
+			return fmt.Errorf("event rule is required")
+		}
+		if err := c.EventRule.Validate(); err != nil {
+			return err
+		}
+		if c.Conditions != nil {
+			return fmt.Errorf("use event rule conditions for configured events")
+		}
+		if c.EventRule.OncePerObject && c.Frequency != TriggerFrequencyEveryTime {
+			return fmt.Errorf("once per object requires every_time customer frequency")
+		}
 	}
 	if c.EntryGuard != nil {
 		if err := c.EntryGuard.Validate(); err != nil {
@@ -473,6 +496,7 @@ type ContactAutomation struct {
 	ID            string                  `json:"id"`
 	AutomationID  string                  `json:"automation_id"`
 	ContactEmail  string                  `json:"contact_email"`
+	CustomerID    string                  `json:"customer_id,omitempty"`
 	CurrentNodeID *string                 `json:"current_node_id,omitempty"`
 	Status        ContactAutomationStatus `json:"status"`
 	ExitReason    *string                 `json:"exit_reason,omitempty"` // Why contact exited: completed, filter_rejected, automation_node_deleted, manual, unsubscribed
@@ -504,6 +528,7 @@ type ContactAutomationClaim struct {
 // SideEffect are optional but must either both be present or both be absent.
 // Repositories persist all three pieces in one transaction.
 type JourneyStateCommit struct {
+	Evidence          *NodeExecution       `json:"evidence,omitempty"`
 	ContactAutomation ContactAutomation    `json:"contact_automation"`
 	SideEffect        *SideEffectExecution `json:"side_effect,omitempty"`
 	Command           *OutboxMessage       `json:"command,omitempty"`

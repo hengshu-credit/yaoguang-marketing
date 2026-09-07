@@ -167,6 +167,7 @@ type CompiledTriggerCondition struct {
 }
 
 type RuleProcessRequest struct {
+	ConfiguredOnly bool
 	WorkspaceID    string
 	Consumer       string
 	MessageID      uuid.UUID

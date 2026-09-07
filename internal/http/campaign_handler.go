@@ -23,6 +23,8 @@ func NewCampaignHandler(service *service.CampaignService, getJWTSecret func() ([
 
 func (h *CampaignHandler) RegisterRoutes(mux *http.ServeMux) {
 	auth := middleware.NewAuthMiddleware(h.getJWTSecret)
+	mux.Handle("/api/campaigns.configuration", auth.RequireAuth()(http.HandlerFunc(h.configuration)))
+	mux.Handle("/api/campaigns.update", auth.RequireAuth()(http.HandlerFunc(h.update)))
 	mux.Handle("/api/campaigns.create", auth.RequireAuth()(http.HandlerFunc(h.create)))
 	mux.Handle("/api/campaigns.list", auth.RequireAuth()(http.HandlerFunc(h.list)))
 	mux.Handle("/api/campaigns.start", auth.RequireAuth()(http.HandlerFunc(h.start)))
@@ -132,4 +134,41 @@ func (h *CampaignHandler) writeError(w http.ResponseWriter, r *http.Request, err
 		status = http.StatusForbidden
 	}
 	writeAPIError(w, requestIDFor(r), "campaign_error", err.Error(), status)
+}
+
+func (h *CampaignHandler) configuration(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeAPIError(w, requestIDFor(r), "method_not_allowed", "Method not allowed", 405)
+		return
+	}
+	item, err := h.service.Configuration(r.Context(), r.URL.Query().Get("workspace_id"), r.URL.Query().Get("campaign_id"))
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	writeJSON(w, 200, item)
+}
+func (h *CampaignHandler) update(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeAPIError(w, requestIDFor(r), "method_not_allowed", "Method not allowed", 405)
+		return
+	}
+	var request struct {
+		WorkspaceID   string                       `json:"workspace_id"`
+		CampaignID    string                       `json:"campaign_id"`
+		Name          string                       `json:"name"`
+		Configuration domain.CampaignConfiguration `json:"configuration"`
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 2<<20)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&request); err != nil {
+		writeAPIError(w, requestIDFor(r), "invalid_request", err.Error(), 400)
+		return
+	}
+	if err := h.service.Update(r.Context(), request.WorkspaceID, request.CampaignID, request.Name, request.Configuration); err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"success": true})
 }

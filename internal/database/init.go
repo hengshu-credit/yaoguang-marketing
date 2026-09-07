@@ -78,6 +78,20 @@ func InitializeDatabase(db *sql.DB, rootEmails []string) error {
 
 // InitializeWorkspaceDatabase creates the necessary tables for a workspace database
 func InitializeWorkspaceDatabase(db *sql.DB) error {
+	if err := initializeWorkspaceDatabaseBase(db); err != nil {
+		return err
+	}
+	for _, query := range schema.ConfigurableMarketingTableDefinitions() {
+		if _, err := db.Exec(query); err != nil {
+			return fmt.Errorf("failed to install configurable marketing: %w", err)
+		}
+	}
+	return nil
+}
+
+// The legacy schema stays separate so upgrades and fresh installation apply
+// the same extension functions after all legacy triggers exist.
+func initializeWorkspaceDatabaseBase(db *sql.DB) error {
 	// Create workspace tables
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS contacts (

@@ -34,6 +34,7 @@ import { listsApi, type List } from '../../services/api/list'
 import { DataFeedSettings } from './DataFeedSettings'
 import type { GlobalFeedSettings, RecipientFeedSettings } from '../../services/api/broadcast'
 import { audienceApi } from '../../services/api/marketing'
+import { MarketingTrackingPlanEditor } from '../business/MarketingTrackingPlanEditor'
 
 // Custom component to handle A/B testing configuration
 const ABTestingConfig = ({ form }: { form: ReturnType<typeof Form.useForm>[0] }) => {
@@ -177,10 +178,8 @@ export function UpsertBroadcastDrawer({
           source_type: broadcast.audience.audience_id ? 'audience' : 'list'
         },
         test_settings: broadcast.test_settings,
-        utm_parameters: broadcast.utm_parameters || undefined
-        // metadata is deliberately not seeded: no field registers it, so the form
-        // would hold a value nothing can edit and nothing reads back. The server
-        // keeps the stored metadata when the key is absent from the payload.
+        utm_parameters: broadcast.utm_parameters || undefined,
+        metadata: { tracking_plan: broadcast.metadata?.tracking_plan }
       })
       // Set data feed settings from broadcast
       setGlobalFeed(
@@ -421,6 +420,7 @@ export function UpsertBroadcastDrawer({
               const payload = {
                 ...values,
                 workspace_id: workspace.id,
+                ...(values.metadata?.tracking_plan !== undefined ? { metadata: { ...broadcast?.metadata, ...values.metadata } } : {}),
                 // Include data feed settings (consolidated). Both sub-feeds are always
                 // sent, disabled ones included: the server reads an absent data_feed -
                 // and an absent sub-feed inside it - as "keep what is stored", so
@@ -431,6 +431,8 @@ export function UpsertBroadcastDrawer({
                   recipient_feed: recipientFeed
                 }
               }
+
+              if (values.metadata?.tracking_plan === undefined) delete payload.metadata
 
               if (broadcast) {
                 payload.id = broadcast.id
@@ -529,10 +531,15 @@ export function UpsertBroadcastDrawer({
                   {
                     key: 'content',
                     label: t`4. Content`
+                  },
+                  {
+                    key: 'tracking',
+                    label: t`5. Conversion tracking`
                   }
                 ]}
               />
               <div className="flex-1 relative">
+                <div style={{ display: tab === 'tracking' ? 'block' : 'none' }} className="pt-8 pr-8"><Form.Item name={['metadata', 'tracking_plan']}><MarketingTrackingPlanEditor workspaceId={workspace.id} /></Form.Item></div>
                 <div style={{ display: tab === 'audience' ? 'block' : 'none' }}>
                   <div className="pt-8 pr-8">
                     <Form.Item

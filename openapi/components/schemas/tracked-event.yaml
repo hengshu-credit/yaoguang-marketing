@@ -1,0 +1,31 @@
+TrackedEvent:
+  type: object
+  required: [report_id, event_code, customer_attributes, data, triggered_at]
+  properties:
+    report_id:
+      type: string
+      description: Unique occurrence ID within the source. Reuse only when retrying this exact occurrence. Login or borrow codes may occur repeatedly for the same customer.
+    event_code: {type: string}
+    event_name: {type: string, description: Defaults to the configured event name.}
+    customer_attributes: {type: object, additionalProperties: true}
+    data: {type: object, additionalProperties: true}
+    triggered_at: {type: string, format: date-time}
+    expires_at: {type: string, nullable: true, format: date-time}
+    backfill: {type: boolean, default: false}
+TrackEventRequest:
+  type: object
+  required: [workspace_id, source, event]
+  properties:
+    workspace_id: {type: string}
+    source: {type: string}
+    mapping_key: {type: string}
+    event: {$ref: '#/TrackedEvent'}
+TrackedEventResult:
+  type: object
+  properties:
+    report_id: {type: string}
+    event_id: {type: string, format: uuid}
+    customer_id: {type: string, format: uuid}
+    reported_at: {type: string, format: date-time}
+    duplicate: {type: boolean}
+    processing_status: {type: string, enum: [accepted, expired, backfill, pending_identity, associated_history]}

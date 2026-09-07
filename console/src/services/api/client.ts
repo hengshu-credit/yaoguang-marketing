@@ -81,8 +81,9 @@ async function requestBlob(endpoint: string): Promise<Blob> {
 export const api = {
   get: <T>(endpoint: string) => request<T>(endpoint),
   getBlob: (endpoint: string) => requestBlob(endpoint),
-  post: <T>(endpoint: string, data: unknown) =>
+  post: <T>(endpoint: string, data: unknown, options?: Pick<RequestInit, 'signal'>) =>
     request<T>(endpoint, {
+      ...options,
       method: 'POST',
       body: JSON.stringify(data)
     }),

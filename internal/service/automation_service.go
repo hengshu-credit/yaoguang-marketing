@@ -15,13 +15,14 @@ import (
 
 // AutomationService handles automation business logic
 type AutomationService struct {
-	repo           domain.AutomationRepository
-	authService    domain.AuthService
-	logger         logger.Logger
-	realtimeMode   config.RealtimeMode
-	reconciliation *RealtimeReconciliationService
-	cutover        *RealtimeCutoverService
-	nodeValidator  domain.AutomationNodeValidator
+	executionSnapshots *ExecutionSnapshotService
+	repo               domain.AutomationRepository
+	authService        domain.AuthService
+	logger             logger.Logger
+	realtimeMode       config.RealtimeMode
+	reconciliation     *RealtimeReconciliationService
+	cutover            *RealtimeCutoverService
+	nodeValidator      domain.AutomationNodeValidator
 }
 
 type AutomationServiceOption func(*AutomationService)
@@ -327,6 +328,11 @@ func (s *AutomationService) Update(ctx context.Context, workspaceID string, auto
 	// over a transition that has landed since. Without it, a Pause completing between the
 	// read above and this write is silently reverted to live — and the trigger it dropped is
 	// never reinstalled, leaving an automation that shows Live and enrols nobody.
+	if s.executionSnapshots != nil {
+		if err := s.executionSnapshots.PrepareAutomation(ctx, workspaceID, automation); err != nil {
+			return fmt.Errorf("archive automation materials: %w", err)
+		}
+	}
 	updated, err := s.repo.UpdateIfStatus(ctx, workspaceID, automation, existing.Status)
 	if err != nil {
 		s.logger.WithField("automation_id", automation.ID).Error(fmt.Sprintf("failed to update automation: %v", err))
@@ -466,6 +472,12 @@ func (s *AutomationService) Activate(ctx context.Context, workspaceID, automatio
 	if s.nodeValidator != nil {
 		if err := s.nodeValidator.ValidateAutomationNodes(ctx, workspaceID, automation); err != nil {
 			return fmt.Errorf("cannot activate automation: %w", err)
+		}
+	}
+
+	if s.executionSnapshots != nil {
+		if err := s.executionSnapshots.PrepareAutomation(ctx, workspaceID, automation); err != nil {
+			return fmt.Errorf("archive automation materials: %w", err)
 		}
 	}
 

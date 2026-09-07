@@ -21,6 +21,7 @@ export function DataAnalyticsPageShell({
 }: DataAnalyticsPageShellProps) {
   const { t } = useLingui()
   const descriptions: Record<DataAnalyticsTabKey, string> = {
+    funnels: t`Build conversion funnels from events for customers and configured business objects.`,
     marketing: t`Track message performance, engagement and delivery trends across marketing channels.`,
     dashboard: t`Understand website traffic, acquisition quality and visitor behaviour over time.`,
     live: t`Monitor active sessions, locations, pages and acquisition sources in near real time.`,

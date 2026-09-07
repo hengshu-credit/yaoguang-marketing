@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"regexp"
 	"strings"
 	"time"
@@ -168,6 +169,7 @@ type ContactEndpointRepository interface {
 }
 
 type ListContactEndpointsRequest struct {
+	CustomerID  string `json:"customer_id,omitempty"`
 	WorkspaceID string `json:"workspace_id"`
 	Email       string `json:"email"`
 	Channel     string `json:"channel,omitempty"`
@@ -183,8 +185,13 @@ func (r *ListContactEndpointsRequest) Validate() error {
 	}
 	r.Email = NormalizeEmail(r.Email)
 	contact := &Contact{Email: r.Email}
-	if err := contact.Validate(); err != nil {
+	if err := contact.Validate(); err != nil && r.CustomerID == "" {
 		return fmt.Errorf("invalid email")
+	}
+	if r.CustomerID != "" {
+		if id, err := uuid.Parse(r.CustomerID); err != nil || id == uuid.Nil {
+			return fmt.Errorf("invalid customer_id")
+		}
 	}
 	r.Email = contact.Email
 	r.Channel = strings.TrimSpace(strings.ToLower(r.Channel))

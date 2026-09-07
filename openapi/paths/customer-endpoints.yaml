@@ -1,0 +1,46 @@
+contactEndpointsList:
+  get:
+    operationId: listContactEndpoints
+    summary: List endpoint metadata by canonical Customer ID or legacy email
+    tags: [Customers]
+    security:
+      - BearerAuth: []
+    parameters:
+      - {in: query, name: workspace_id, required: true, schema: {type: string}}
+      - {in: query, name: customer_id, schema: {type: string, format: uuid}}
+      - {in: query, name: email, schema: {type: string}}
+      - {in: query, name: channel, schema: {type: string}}
+    responses:
+      '200': {description: Endpoint metadata without decrypted provider addresses}
+      '403': {description: Contact read permission required}
+contactEndpointsUpsert:
+  post:
+    operationId: upsertCustomerEndpoint
+    summary: Register or disable a customer endpoint with explicit audited marketing consent
+    tags: [Customers]
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [workspace_id, customer_id, endpoint]
+            properties:
+              workspace_id: {type: string}
+              customer_id: {type: string, format: uuid}
+              endpoint:
+                type: object
+                required: [operation, endpoint_id]
+                properties:
+                  operation: {type: string, enum: [upsert, disable]}
+                  endpoint_id: {type: string}
+                  channel: {type: string}
+                  provider: {type: string}
+                  platform: {type: string}
+                  address: {type: string, writeOnly: true}
+              marketing_consent: {type: boolean, description: Explicit grant or revoke; omitted leaves consent unchanged}
+    responses:
+      '200': {description: Saved in one transaction with consent audit}
+      '403': {description: Contact write permission required}

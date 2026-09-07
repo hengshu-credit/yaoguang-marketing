@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
-	"github.com/google/uuid"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -53,7 +53,7 @@ type MessageSender interface {
 // MatchesAllowedHost treats empty as "no host at all" — but leaving the whole
 // gate to it would still mint a live per-recipient credential, and hold it out
 // of the email's links by that one downstream check alone.
-func mintIdentifyToken(email string, workspaceSecretKey string, webAnalytics *domain.WebAnalyticsSettings) (token string, allowedHosts []string, err error) {
+func mintIdentifyToken(email string, workspaceSecretKey string, webAnalytics *domain.WebAnalyticsSettings, touchpointIDs ...string) (token string, allowedHosts []string, err error) {
 	// The workspace has to have asked for this. Every other identity path starts
 	// in the customer's own code — identify() takes their secret to sign —
 	// whereas this token is minted by us, for every recipient of every tracked
@@ -64,7 +64,11 @@ func mintIdentifyToken(email string, workspaceSecretKey string, webAnalytics *do
 		return "", nil, nil
 	}
 
-	token, err = domain.BuildWebIdentifyToken(email, workspaceSecretKey, domain.WebIdentifyTokenTTL, time.Now().UTC())
+	if len(touchpointIDs) > 0 && touchpointIDs[0] != "" {
+		token, err = domain.BuildWebIdentifyTokenWithTouchpoint(touchpointIDs[0], workspaceSecretKey, domain.WebIdentifyTokenTTL, time.Now().UTC())
+	} else {
+		token, err = domain.BuildWebIdentifyToken(email, workspaceSecretKey, domain.WebIdentifyTokenTTL, time.Now().UTC())
+	}
 	if err != nil {
 		return "", nil, err
 	}

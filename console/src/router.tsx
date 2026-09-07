@@ -19,6 +19,7 @@ import { TransactionalNotificationsPage } from './pages/TransactionalNotificatio
 import { LogsPage } from './pages/LogsPage'
 import { DeliveryCenterPage } from './pages/DeliveryCenterPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
+import { WorkspaceFunnelsPage } from './pages/WorkspaceFunnelsPage'
 import { WebAnalyticsPage } from './pages/WebAnalyticsPage'
 import { WebAnalyticsLivePage } from './pages/WebAnalyticsLivePage'
 import {
@@ -331,6 +332,12 @@ const workspaceAnalyticsRoute = createRoute({
   component: AnalyticsPage
 })
 
+const workspaceFunnelsRoute = createRoute({
+  getParentRoute: () => workspaceRoute,
+  path: '/funnels',
+  component: WorkspaceFunnelsPage
+})
+
 // eslint-disable-next-line react-refresh/only-export-components -- Internal redirect component
 const WebAnalyticsRedirect = () => {
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/web-analytics' })
@@ -447,6 +454,7 @@ const routeTree = rootRoute.addChildren([
     workspaceSettingsRoute,
     workspaceTemplatesRoute,
     workspaceAnalyticsRoute,
+    workspaceFunnelsRoute,
     workspaceWebAnalyticsRedirectRoute,
     workspaceWebAnalyticsLiveRoute,
     workspaceWebAnalyticsRoute,

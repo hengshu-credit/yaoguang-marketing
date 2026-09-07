@@ -36,6 +36,7 @@ import '@xyflow/react/dist/style.css'
 const nodeTypes: NodeTypes = {
   trigger: StatNode,
   delay: StatNode,
+  business_condition: StatNode,
   email: StatNode,
   sms: StatNode,
   push: StatNode,

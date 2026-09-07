@@ -40,9 +40,18 @@ func (s *ContactEndpointService) List(
 			"Insufficient permissions: read access to contacts required for endpoint list",
 		)
 	}
-	endpoints, err := s.repository.ListActiveByEmail(
-		authenticatedCtx, request.WorkspaceID, request.Email, request.Channel,
-	)
+	var endpoints []*domain.ContactEndpoint
+	if request.CustomerID != "" {
+		repo, ok := s.repository.(interface {
+			ListCustomerEndpoints(context.Context, string, string, string) ([]*domain.ContactEndpoint, error)
+		})
+		if !ok {
+			return nil, errors.New("customer endpoint storage unavailable")
+		}
+		endpoints, err = repo.ListCustomerEndpoints(authenticatedCtx, request.WorkspaceID, request.CustomerID, request.Channel)
+	} else {
+		endpoints, err = s.repository.ListActiveByEmail(authenticatedCtx, request.WorkspaceID, request.Email, request.Channel)
+	}
 	if err != nil {
 		return nil, err
 	}

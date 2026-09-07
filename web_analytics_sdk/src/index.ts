@@ -57,6 +57,7 @@ import type {
   NotifuseAnalyticsConfig,
   NotifuseAnalyticsAPI,
   GoalData,
+  BusinessEventInput,
   SessionDebugInfo,
 } from './types';
 
@@ -65,6 +66,9 @@ const sdk = new NotifuseAnalyticsSDK();
 
 // Public API wrapper with both auto-init and manual init support
 const NotifuseAnalytics: NotifuseAnalyticsAPI = {
+  trackEvent: (event: BusinessEventInput) => sdk.trackEvent(event),
+  identifyCustomer: (credential: string) => sdk.identifyCustomer(credential),
+  flushEvents: () => sdk.flushEvents(),
   init: (config: NotifuseAnalyticsConfig) => sdk.init(config),
   getSessionId: () => sdk.getSessionId(),
   getConfig: () => sdk.getConfig(),
@@ -88,6 +92,7 @@ const NotifuseAnalytics: NotifuseAnalyticsAPI = {
 
 // Export types
 export type {
+  BusinessEventInput,
   NotifuseAnalyticsConfig,
   NotifuseAnalyticsAPI,
   GoalData,

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -94,6 +95,13 @@ func (s *CampaignService) Create(ctx context.Context, request CreateCampaignRequ
 	if err := version.Validate(); err != nil {
 		return nil, err
 	}
+	if current, ok := s.repository.(currentCampaignCreator); ok {
+		config := domain.CampaignConfiguration{AudienceID: version.AudienceID, AudienceVersion: version.AudienceVersion, ListID: version.ListID, Channel: version.Channel, Variants: version.Variants}
+		if err := current.CreateCurrentCampaign(authorized, request.WorkspaceID, campaign, config); err != nil {
+			return nil, err
+		}
+		return &campaign, nil
+	}
 	if err := s.repository.CreateCampaign(authorized, request.WorkspaceID, campaign, version); err != nil {
 		return nil, err
 	}
@@ -154,6 +162,9 @@ func (s *CampaignService) PrepareBroadcast(ctx context.Context, workspaceID stri
 	if s.tasks == nil {
 		return nil, errors.New("campaign snapshot scheduler is unavailable")
 	}
+	if _, ok := s.repository.(broadcastCurrentCampaignRepository); ok {
+		return s.prepareBroadcastCurrent(ctx, workspaceID, broadcast, broadcast.Audience.AudienceVersion, "")
+	}
 	variants := broadcastCampaignVariants(broadcast)
 	version, err := repository.EnsureBroadcastCampaign(ctx, workspaceID, broadcast.ID, broadcast.Name,
 		audienceID, broadcast.Audience.AudienceVersion, listID, broadcast.EffectiveChannelType(), variants)
@@ -207,6 +218,9 @@ func (s *CampaignService) PrepareBroadcastExecution(ctx context.Context, workspa
 		resolvedBuildID = build.ID
 	}
 
+	if _, ok := s.repository.(broadcastCurrentCampaignRepository); ok {
+		return s.prepareBroadcastCurrent(ctx, workspaceID, broadcast, resolvedVersion, resolvedBuildID)
+	}
 	version, err := repository.EnsureBroadcastCampaign(ctx, workspaceID, broadcast.ID, broadcast.Name,
 		audienceID, resolvedVersion, listID, broadcast.EffectiveChannelType(), broadcastCampaignVariants(broadcast))
 	if err != nil {
@@ -250,4 +264,109 @@ func broadcastCampaignVariants(broadcast *domain.Broadcast) []domain.CampaignVar
 		result = append(result, domain.CampaignVariant{ID: id, WeightBP: weight})
 	}
 	return result
+}
+
+type currentCampaignCreator interface {
+	CreateCurrentCampaign(context.Context, string, domain.Campaign, domain.CampaignConfiguration) error
+}
+type broadcastCurrentCampaignRepository interface {
+	EnsureBroadcastCurrentCampaign(context.Context, string, *domain.Broadcast, domain.CampaignConfiguration) (string, error)
+}
+type currentCampaignSaver interface {
+	SaveCurrentCampaignConfiguration(context.Context, string, string, string, domain.CampaignConfiguration) error
+}
+
+func (s *CampaignService) Update(ctx context.Context, ws, id, name string, config domain.CampaignConfiguration) error {
+	ctx, err := s.authorize(ctx, ws, domain.PermissionTypeWrite)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(name) == "" {
+		return errors.New("campaign name is required")
+	}
+	repo, ok := s.repository.(currentCampaignSaver)
+	if !ok {
+		return errors.New("current configuration storage is unavailable")
+	}
+	if err := s.snapshots.validateTracking(ctx, ws, config); err != nil {
+		return err
+	}
+	return repo.SaveCurrentCampaignConfiguration(ctx, ws, id, name, config)
+}
+func (s *CampaignService) Configuration(ctx context.Context, ws, id string) (*domain.CampaignConfiguration, error) {
+	ctx, err := s.authorize(ctx, ws, domain.PermissionTypeRead)
+	if err != nil {
+		return nil, err
+	}
+	repo, ok := s.repository.(currentCampaignReader)
+	if !ok {
+		return nil, errors.New("current configuration storage is unavailable")
+	}
+	return repo.GetCurrentCampaignConfiguration(ctx, ws, id)
+}
+func (s *CampaignService) prepareBroadcastCurrent(ctx context.Context, ws string, broadcast *domain.Broadcast, version int, buildID string) (*domain.CampaignRun, error) {
+	settings, err := json.Marshal(broadcast)
+	if err != nil {
+		return nil, err
+	}
+	variants := broadcastCampaignVariants(broadcast)
+	for i, item := range broadcast.TestSettings.Variations {
+		if i < len(variants) {
+			variants[i].TemplateID = item.TemplateID
+		}
+	}
+	config := domain.CampaignConfiguration{AudienceID: broadcast.Audience.AudienceID, AudienceVersion: version, ListID: broadcast.Audience.List, Channel: broadcast.EffectiveChannelType(), Variants: variants, Settings: settings}
+	id, err := s.repository.(broadcastCurrentCampaignRepository).EnsureBroadcastCurrentCampaign(ctx, ws, broadcast, config)
+	if err != nil {
+		return nil, err
+	}
+	run, err := s.snapshots.StartConfiguration(ctx, ws, id, config, buildID)
+	if err != nil {
+		return nil, err
+	}
+	task := &domain.Task{ID: run.ID, WorkspaceID: ws, Type: domain.SnapshotCampaignTaskType, Status: domain.TaskStatusPending, MaxRuntime: 50, MaxRetries: 20, RetryInterval: 10, State: &domain.TaskState{SnapshotCampaign: &domain.SnapshotCampaignState{RunID: run.ID, BroadcastID: broadcast.ID}}}
+	if err = s.tasks.CreateTask(ctx, ws, task); err != nil {
+		return nil, fmt.Errorf("create campaign snapshot task: %w", err)
+	}
+	return run, nil
+}
+
+// BindBroadcastExecution supplies the frozen settings and templates to all
+// subsequent compilation in the orchestrator. Operational status stays live.
+func (s *CampaignService) BindBroadcastExecution(ctx context.Context, ws string, broadcast *domain.Broadcast) (context.Context, *domain.Broadcast, error) {
+	if broadcast.Audience.CampaignRunID == "" || s.snapshots.executions == nil {
+		return ctx, broadcast, nil
+	}
+	snapshot, err := s.snapshots.executions.GetInternal(ctx, ws, broadcast.Audience.CampaignRunID)
+	if errors.Is(err, domain.ErrExecutionSnapshotNotFound) {
+		run, runErr := s.repository.GetCampaignRun(ctx, ws, broadcast.Audience.CampaignRunID)
+		if runErr == nil && run.CampaignVersion > 0 {
+			return ctx, broadcast, nil
+		}
+	}
+	if err != nil {
+		return ctx, nil, err
+	}
+	var config domain.CampaignConfiguration
+	if err = json.Unmarshal(snapshot.Configuration, &config); err != nil {
+		return ctx, nil, err
+	}
+	if len(config.Settings) == 0 {
+		return ctx, nil, errors.New("broadcast execution configuration is missing")
+	}
+	var frozen domain.Broadcast
+	if err = json.Unmarshal(config.Settings, &frozen); err != nil {
+		return ctx, nil, err
+	}
+	frozen.Status = broadcast.Status
+	frozen.WinningTemplate = broadcast.WinningTemplate
+	frozen.Audience.CampaignRunID = broadcast.Audience.CampaignRunID
+	frozen.Audience.AudienceVersion = broadcast.Audience.AudienceVersion
+	frozen.Audience.AudienceBuildID = broadcast.Audience.AudienceBuildID
+	bound, err := domain.WithExecutionSnapshot(ctx, snapshot)
+	if err == nil {
+		bound, err = s.snapshots.executions.bindRuntimeProviders(bound, ws, snapshot)
+	}
+	bound = domain.WithExecutionMediaArchive(bound, s.snapshots.executions.ArchiveRenderedMedia)
+	return bound, &frozen, err
 }

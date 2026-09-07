@@ -33,7 +33,7 @@ export const NodePalette: React.FC<NodePaletteProps> = ({ hasListSelected }) => 
             onDragStart={(e) => !isDisabled && onDragStart(e, item.key)}
           >
             {item.icon}
-            <span>{item.label}</span>
+            <span>{item.key === 'business_condition' ? t`Event or state condition` : item.label}</span>
           </div>
         )
         return isDisabled ? (

@@ -28,12 +28,14 @@ vi.mock('./config', () => {
 vi.mock('./context', () => ({
   useAutomation: () => ({ workspace: { id: 'ws-1' } })
 }))
+vi.mock('./config/BusinessConditionConfigForm', () => ({ BusinessConditionConfigForm: () => <div data-testid="type-form" /> }))
 
 // The NodeType union has no runtime counterpart; build the list from a map typed against it so a
 // new node type is a compile error here rather than a node that quietly cannot be described.
 const ALL_NODE_TYPES = Object.keys({
   trigger: true,
   delay: true,
+  business_condition: true,
   email: true,
   sms: true,
   push: true,

@@ -7,6 +7,7 @@ import { useWorkspacePermissions } from '../../contexts/AuthContext'
 export type ContentCenterTabKey = 'templates' | 'blog' | 'file-manager'
 export type DataAnalyticsTabKey =
   | 'marketing'
+  | 'funnels'
   | 'dashboard'
   | 'live'
   | 'explore'
@@ -119,6 +120,10 @@ export function DataAnalyticsTabs(props: {
 
   if (canRead(permissions?.web_analytics)) {
     items.push(
+      {
+        key: 'funnels',
+        label: <Link to="/console/workspace/$workspaceId/funnels" params={{ workspaceId: props.workspaceId }}>{t`Conversion funnels`}</Link>
+      },
       {
         key: 'dashboard',
         label: (

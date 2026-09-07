@@ -325,7 +325,7 @@ export function JourneyCreateWizard({
             <Paragraph type="secondary">
               {t`Entry frequency decides when a customer creates a Journey instance.`}
             </Paragraph>
-            <OptionSelector<'once' | 'every_time'>
+            {triggerConfig.event_rule?.once_per_object ? <Alert type="info" title={t`Each business object can enter this journey once`} /> : <OptionSelector<'once' | 'every_time'>
               value={triggerConfig.frequency ?? 'once'}
               onChange={(frequency) => updateTrigger({ ...triggerConfig, frequency })}
               options={[
@@ -341,6 +341,7 @@ export function JourneyCreateWizard({
                 }
               ]}
             />
+            }
             <Collapse
               className="mt-4"
               items={[

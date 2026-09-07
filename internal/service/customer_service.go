@@ -186,7 +186,8 @@ func (s *CustomerService) MergeCustomer(ctx context.Context, request *domain.Cus
 		actorID = user.ID
 	}
 	return s.repository.Merge(authenticatedCtx, domain.CustomerMergeCommand{
-		WorkspaceID: request.WorkspaceID, IdempotencyKey: request.IdempotencyKey, PayloadHash: payloadHash,
+		AllowKnownSource: true,
+		WorkspaceID:      request.WorkspaceID, IdempotencyKey: request.IdempotencyKey, PayloadHash: payloadHash,
 		Source: request.Source, Target: request.Target, ActorID: actorID, Reason: request.Reason,
 	})
 }

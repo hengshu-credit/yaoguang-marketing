@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -25,6 +26,7 @@ const (
 var ErrChannelSendHashConflict = errors.New("effect key already exists with a different channel send request")
 
 type SendChannelMessageRequest struct {
+	CustomerID      string   `json:"customer_id,omitempty"`
 	WorkspaceID     string   `json:"workspace_id"`
 	EffectKey       string   `json:"effect_key"`
 	Channel         string   `json:"channel"`
@@ -66,8 +68,13 @@ func (r *SendChannelMessageRequest) Validate() error {
 	if r.IntegrationID == "" || utf8.RuneCountInString(r.IntegrationID) > 255 {
 		return fmt.Errorf("integration_id must contain 1 to 255 characters")
 	}
+	if r.CustomerID != "" {
+		if id, err := uuid.Parse(r.CustomerID); err != nil || id == uuid.Nil {
+			return fmt.Errorf("invalid customer_id")
+		}
+	}
 	contact := &Contact{Email: r.ContactEmail}
-	if err := contact.Validate(); err != nil {
+	if err := contact.Validate(); err != nil && r.CustomerID == "" {
 		return fmt.Errorf("invalid contact_email")
 	}
 	if utf8.RuneCountInString(r.EndpointID) > 128 {
@@ -109,6 +116,7 @@ func (r SendChannelMessageRequest) RequestHash() (string, error) {
 }
 
 type ChannelSendExecution struct {
+	CustomerID        string            `json:"customer_id,omitempty"`
 	EffectKey         string            `json:"effect_key"`
 	RequestHash       string            `json:"request_hash"`
 	MessageID         string            `json:"message_id"`

@@ -41,6 +41,7 @@ vi.mock('@xyflow/react', () => ({
 const ALL_NODE_TYPES = Object.keys({
   trigger: true,
   delay: true,
+  business_condition: true,
   email: true,
   sms: true,
   push: true,

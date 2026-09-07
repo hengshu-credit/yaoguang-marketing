@@ -3,6 +3,7 @@ import { analyticsService } from './analytics'
 import { TreeNode } from './segment'
 import type { EmailProviderKind } from './workspace'
 import type { DeliveryIntent } from './delivery'
+import type { MarketingEventRule, MarketingTrackingPlan } from './marketing_tracking'
 
 // Email provider kinds that can ingest inbound replies (used to gate the automation
 // "Exit on reply" feature). Keep in sync with the backend: a provider belongs here once
@@ -64,6 +65,7 @@ export interface JourneyEntryGuard {
 
 // Node types
 export type NodeType =
+  | 'business_condition'
   | 'trigger'
   | 'delay'
   | 'email'
@@ -112,13 +114,16 @@ export const VALID_EVENT_KINDS = [
   'email.complained',
   'email.unsubscribed',
   // Custom events (require custom_event_name)
-  'custom_event'
+  'custom_event',
+  'tracked_event'
 ] as const
 
 export type EventKind = (typeof VALID_EVENT_KINDS)[number]
 
 // Trigger configuration
 export interface TimelineTriggerConfig {
+  event_rule?: MarketingEventRule
+  tracking_plan?: MarketingTrackingPlan | null
   event_kind: string
   list_id?: string // Required for list.* events
   segment_id?: string // Required for segment.* events

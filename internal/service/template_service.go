@@ -14,12 +14,13 @@ import (
 )
 
 type TemplateService struct {
-	repo          domain.TemplateRepository
-	categoryRepo  domain.TemplateCategoryRepository
-	workspaceRepo domain.WorkspaceRepository
-	authService   domain.AuthService
-	logger        logger.Logger
-	apiEndpoint   string
+	executionSnapshots *ExecutionSnapshotService
+	repo               domain.TemplateRepository
+	categoryRepo       domain.TemplateCategoryRepository
+	workspaceRepo      domain.WorkspaceRepository
+	authService        domain.AuthService
+	logger             logger.Logger
+	apiEndpoint        string
 }
 
 func (s *TemplateService) SetTemplateCategoryRepository(repo domain.TemplateCategoryRepository) {
@@ -250,6 +251,12 @@ func (s *TemplateService) CreateTemplate(ctx context.Context, workspaceID string
 		return err
 	}
 
+	if s.executionSnapshots != nil {
+		if err := s.executionSnapshots.PrepareTemplate(ctx, workspaceID, template); err != nil {
+			return fmt.Errorf("archive template media: %w", err)
+		}
+	}
+
 	// Create template in repository
 	if err := s.repo.CreateTemplate(ctx, workspaceID, template); err != nil {
 		s.logger.WithField("template_id", template.ID).Error(fmt.Sprintf("Failed to create template: %v", err))
@@ -417,6 +424,12 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, workspaceID string
 	// Preserve creation time from existing template
 	template.CreatedAt = existingTemplate.CreatedAt
 	template.UpdatedAt = time.Now().UTC()
+
+	if s.executionSnapshots != nil {
+		if err := s.executionSnapshots.PrepareTemplate(ctx, workspaceID, template); err != nil {
+			return fmt.Errorf("archive template media: %w", err)
+		}
+	}
 
 	// Update template (this creates a new version in the repo and atomically rejects a
 	// stale-base save). Return the conflict unwrapped so the handler maps it to 409.

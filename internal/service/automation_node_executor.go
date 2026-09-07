@@ -207,6 +207,7 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 	if err != nil {
 		return nil, fmt.Errorf("workspace not found: %w", err)
 	}
+	workspace = domain.ExecutionProviderWorkspace(ctx, workspace)
 
 	// 3. Get email provider - use node-level override if set, else workspace default
 	var emailProvider *domain.EmailProvider
@@ -299,7 +300,7 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 	messageID := fmt.Sprintf("%s_%s", params.WorkspaceID, messageUUID.String())
 
 	// 6. Setup tracking settings, including this contact's web analytics identity
-	trackingSettings := e.buildTrackingSettings(params, workspace, config.TemplateID, messageID)
+	trackingSettings := e.buildTrackingSettings(params, workspace, config.TemplateID, messageID, domain.ExecutionIDFromContext(ctx))
 
 	// 7. Build template data using shared domain.BuildTemplateData
 	var listID, listName string
@@ -404,6 +405,8 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 		MessageID:     messageID,
 		TemplateID:    config.TemplateID,
 		Payload: domain.EmailQueuePayload{
+			ExecutionMetadata:   domain.ExecutionMetadataFromContext(ctx),
+			ExecutionID:         domain.ExecutionIDFromContext(ctx),
 			FromAddress:         sender.Email,
 			FromName:            sender.Name,
 			Subject:             subject,
@@ -476,16 +479,18 @@ func (e *EmailNodeExecutor) buildTrackingSettings(
 	workspace *domain.Workspace,
 	templateID string,
 	messageID string,
+	executionIDs ...string,
 ) notifuse_mjml.TrackingSettings {
 	var identifyToken string
 	var identifyAllowedHosts []string
 	if wa := workspace.Settings.WebAnalytics; wa.CanIdentifyFromEmailLinks() {
-		token, err := domain.BuildWebIdentifyToken(
-			params.ContactData.Email,
-			workspace.Settings.SecretKey,
-			domain.WebIdentifyTokenTTL,
-			time.Now().UTC(),
-		)
+		var token string
+		var err error
+		if len(executionIDs) > 0 && executionIDs[0] != "" {
+			token, err = domain.BuildWebIdentifyTokenWithTouchpoint(messageID, workspace.Settings.SecretKey, domain.WebIdentifyTokenTTL, time.Now().UTC())
+		} else {
+			token, err = domain.BuildWebIdentifyToken(params.ContactData.Email, workspace.Settings.SecretKey, domain.WebIdentifyTokenTTL, time.Now().UTC())
+		}
 		if err != nil {
 			// Identity is an analytics enrichment on top of the send; the send is
 			// the legitimate work. A token that cannot be built costs the visit its

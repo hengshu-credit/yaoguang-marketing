@@ -20,6 +20,7 @@ import { Tooltip } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { TriggerNode, DelayNode, EmailNode, ChannelNode, ABTestNode, AddToListNode, RemoveFromListNode, FilterNode, WebhookNode, ListStatusBranchNode } from './nodes'
 import { PlaceholderNode } from './nodes/PlaceholderNode'
+import { BusinessConditionNode } from './nodes/BusinessConditionNode'
 import { NodeConfigPanel } from './NodeConfigPanel'
 import { AddNodeEdge, type AddNodeEdgeData } from './edges/AddNodeEdge'
 import { AutomationEdge, type AutomationEdgeData } from './edges/AutomationEdge'
@@ -50,6 +51,7 @@ const isAutomationNodeChange = (
 const nodeTypes: NodeTypes = {
   trigger: TriggerNode,
   delay: DelayNode,
+  business_condition: BusinessConditionNode,
   email: EmailNode,
   sms: ChannelNode,
   push: ChannelNode,

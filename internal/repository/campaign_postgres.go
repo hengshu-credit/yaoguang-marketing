@@ -228,7 +228,7 @@ func (r *CampaignPostgresRepository) GetCampaignRun(ctx context.Context, workspa
 	item := &domain.CampaignRun{}
 	var lastCustomerID, audienceID, audienceBuildID sql.NullString
 	var audienceVersion sql.NullInt64
-	err = db.QueryRowContext(ctx, `SELECT id, campaign_id, campaign_version, audience_id, audience_version,
+	err = db.QueryRowContext(ctx, `SELECT id, campaign_id, COALESCE(campaign_version,0), audience_id, audience_version,
 		audience_build_id, status, run_seed,
 		snapshot_last_customer_id, snapshot_count, next_ordinal, created_at FROM campaign_runs WHERE id = NULLIF($1, '')::uuid`, runID).
 		Scan(&item.ID, &item.CampaignID, &item.CampaignVersion, &audienceID, &audienceVersion,
@@ -238,6 +238,9 @@ func (r *CampaignPostgresRepository) GetCampaignRun(ctx context.Context, workspa
 	item.AudienceID = audienceID.String
 	item.AudienceVersion = int(audienceVersion.Int64)
 	item.AudienceBuildID = audienceBuildID.String
+	if err == nil && item.CampaignVersion == 0 {
+		err = db.QueryRowContext(ctx, `SELECT execution_configuration FROM campaign_runs WHERE id=$1`, runID).Scan(&item.ExecutionConfiguration)
+	}
 	return item, err
 }
 

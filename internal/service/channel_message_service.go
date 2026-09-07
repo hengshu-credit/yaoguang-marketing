@@ -63,14 +63,15 @@ type ChannelMessageServiceConfig struct {
 }
 
 type ChannelMessageService struct {
-	auth             domain.AuthService
-	workspaceRepo    domain.WorkspaceRepository
-	contactRepo      domain.ContactRepository
-	endpointRepo     domain.ContactEndpointRepository
-	templateService  domain.TemplateService
-	sendRepo         domain.ChannelSendRepository
-	providerResolver ChannelProviderResolver
-	apiEndpoint      string
+	executionSnapshots *ExecutionSnapshotService
+	auth               domain.AuthService
+	workspaceRepo      domain.WorkspaceRepository
+	contactRepo        domain.ContactRepository
+	endpointRepo       domain.ContactEndpointRepository
+	templateService    domain.TemplateService
+	sendRepo           domain.ChannelSendRepository
+	providerResolver   ChannelProviderResolver
+	apiEndpoint        string
 }
 
 func NewChannelMessageService(config ChannelMessageServiceConfig) (*ChannelMessageService, error) {
@@ -111,9 +112,29 @@ func (s *ChannelMessageService) Send(ctx context.Context, request *domain.SendCh
 	if workspace == nil {
 		return nil, fmt.Errorf("load channel send workspace: workspace not found")
 	}
-	contact, err := s.contactRepo.GetContactByEmail(authenticatedCtx, request.WorkspaceID, request.ContactEmail)
-	if err != nil {
-		return nil, fmt.Errorf("load channel send contact: %w", err)
+	var contact *domain.Contact
+	var customer *domain.Customer
+	var endpoints []*domain.ContactEndpoint
+	if request.CustomerID != "" {
+		resolver, ok := s.endpointRepo.(interface {
+			ResolveCustomerChannel(context.Context, string, string, string) (*domain.Customer, []*domain.ContactEndpoint, error)
+		})
+		if !ok {
+			return nil, errors.New("customer channel resolver unavailable")
+		}
+		customer, endpoints, err = resolver.ResolveCustomerChannel(authenticatedCtx, request.WorkspaceID, request.CustomerID, request.Channel)
+		if err != nil {
+			return nil, fmt.Errorf("resolve customer channel: %w", err)
+		}
+		request.ContactEmail = ""
+		if customer.Profile != nil && request.Language == "" && customer.Profile.Language != nil {
+			request.Language = resolvableChannelLanguage(*customer.Profile.Language)
+		}
+	} else {
+		contact, err = s.contactRepo.GetContactByEmail(authenticatedCtx, request.WorkspaceID, request.ContactEmail)
+		if err != nil {
+			return nil, fmt.Errorf("load channel send contact: %w", err)
+		}
 	}
 	template, err := s.templateService.GetTemplateByID(systemContext(authenticatedCtx), request.WorkspaceID, request.TemplateID, request.TemplateVersion)
 	if err != nil {
@@ -122,7 +143,9 @@ func (s *ChannelMessageService) Send(ctx context.Context, request *domain.SendCh
 	if template.Channel != request.Channel {
 		return nil, domain.NewValidationError(fmt.Sprintf("template %s is for channel %s, not %s", template.ID, template.Channel, request.Channel))
 	}
-	endpoints, err := s.endpointRepo.ListActiveByEmail(authenticatedCtx, request.WorkspaceID, request.ContactEmail, request.Channel)
+	if request.CustomerID == "" {
+		endpoints, err = s.endpointRepo.ListActiveByEmail(authenticatedCtx, request.WorkspaceID, request.ContactEmail, request.Channel)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("load channel send endpoints: %w", err)
 	}
@@ -130,7 +153,7 @@ func (s *ChannelMessageService) Send(ctx context.Context, request *domain.SendCh
 	if endpoint == nil {
 		return nil, domain.NewValidationError("no active matching contact endpoint")
 	}
-	provider, err := s.providerResolver.Resolve(workspace, request.IntegrationID, request.Channel)
+	provider, err := s.providerResolver.Resolve(domain.ExecutionProviderWorkspace(ctx, workspace), request.IntegrationID, request.Channel)
 	if err != nil {
 		return nil, domain.NewValidationError(err.Error())
 	}
@@ -139,7 +162,7 @@ func (s *ChannelMessageService) Send(ctx context.Context, request *domain.SendCh
 	request.TemplateVersion = template.Version
 	if request.Language == "" {
 		request.Language = resolvableChannelLanguage(endpoint.Locale)
-		if request.Language == "" && contact.Language != nil && !contact.Language.IsNull {
+		if request.Language == "" && contact != nil && contact.Language != nil && !contact.Language.IsNull {
 			request.Language = resolvableChannelLanguage(contact.Language.String)
 		}
 	}
@@ -153,6 +176,13 @@ func (s *ChannelMessageService) Send(ctx context.Context, request *domain.SendCh
 	})
 	if err != nil {
 		return nil, fmt.Errorf("build channel template data: %w", err)
+	}
+	if customer != nil {
+		templateData["customer"] = customer
+		templateData["customer_id"] = customer.ID
+		if customer.Profile != nil {
+			templateData["profile"] = customer.Profile.Attributes
+		}
 	}
 	preview, err := s.templateService.PreviewTemplate(systemContext(authenticatedCtx), domain.PreviewTemplateRequest{
 		WorkspaceID: request.WorkspaceID, Channel: request.Channel, SMS: template.SMS, Push: template.Push,
@@ -198,12 +228,20 @@ func (s *ChannelMessageService) Send(ctx context.Context, request *domain.SendCh
 	if preview.ChannelPreview != nil {
 		delivery.Generic = &preview.ChannelPreview.Message
 	}
+	if executionID := domain.ExecutionIDFromContext(ctx); executionID != "" {
+		if s.executionSnapshots == nil {
+			return nil, errors.New("execution media archival is unavailable")
+		}
+		if err := s.executionSnapshots.ArchiveRenderedMedia(ctx, request.WorkspaceID, executionID, messageID, map[string]any{"delivery": delivery, "customer_id": request.CustomerID, "contact_email": request.ContactEmail}); err != nil {
+			return nil, err
+		}
+	}
 	hash, err := request.RequestHash()
 	if err != nil {
 		return nil, err
 	}
 	execution := domain.ChannelSendExecution{
-		EffectKey: request.EffectKey, RequestHash: hash, MessageID: messageID,
+		EffectKey: request.EffectKey, RequestHash: hash, MessageID: messageID, CustomerID: request.CustomerID,
 		Channel: request.Channel, IntegrationID: request.IntegrationID, ContactEmail: request.ContactEmail,
 		EndpointID: endpoint.EndpointID, TemplateID: template.ID, TemplateVersion: template.Version,
 		Language: preview.ResolvedLanguage, Status: domain.ChannelSendReserved,
@@ -215,8 +253,25 @@ func (s *ChannelMessageService) Send(ctx context.Context, request *domain.SendCh
 		}
 		return nil, err
 	}
-	if !created {
+	if !created && stored.Status != domain.ChannelSendReserved {
+		if stored.Status == domain.ChannelSendConfirmed {
+			if err := s.captureChannelConfirmation(ctx, request.WorkspaceID, stored); err != nil {
+				return nil, err
+			}
+		}
 		return &domain.SendChannelMessageResponse{Execution: stored, Duplicate: true}, nil
+	}
+	if executionID := domain.ExecutionIDFromContext(ctx); executionID != "" {
+		if s.executionSnapshots == nil {
+			return nil, errors.New("execution evidence storage is unavailable")
+		}
+		payload, encodeErr := domain.SanitizeExecutionJSON(map[string]any{"message_id": messageID, "touchpoint_id": messageID, "execution_id": executionID, "delivery": delivery, "render_inputs": templateData, "selected_language": preview.ResolvedLanguage})
+		if encodeErr != nil {
+			return nil, encodeErr
+		}
+		if captureErr := s.executionSnapshots.AppendInternal(ctx, request.WorkspaceID, domain.ExecutionEvidence{ExecutionID: executionID, Key: request.EffectKey + ":rendered", Kind: "delivery_content", CustomerID: request.CustomerID, DeliveryID: messageID, Status: "rendered", Payload: payload}); captureErr != nil {
+			return nil, captureErr
+		}
 	}
 	now := time.Now().UTC()
 	transitioned, err := s.sendRepo.MarkSubmitted(authenticatedCtx, request.WorkspaceID, request.EffectKey, now)
@@ -248,6 +303,10 @@ func (s *ChannelMessageService) Send(ctx context.Context, request *domain.SendCh
 	for key, value := range request.Metadata {
 		metadata[key] = value
 	}
+	for key, value := range domain.ExecutionMetadataFromContext(ctx) {
+		metadata[key] = value
+	}
+	metadata["customer_id"] = request.CustomerID
 	metadata["effect_key"] = request.EffectKey
 	metadata["endpoint_id"] = endpoint.EndpointID
 	metadata["integration_id"] = request.IntegrationID
@@ -257,6 +316,9 @@ func (s *ChannelMessageService) Send(ctx context.Context, request *domain.SendCh
 		TemplateID: template.ID, TemplateVersion: template.Version, Channel: request.Channel,
 		StatusInfo: &statusInfo, SentAt: sentAt,
 		MessageData: domain.MessageData{Data: templateData, Metadata: metadata},
+	}
+	if automationID, ok := metadata["automation_id"].(string); ok && automationID != "" {
+		message.AutomationID = &automationID
 	}
 	execution.Provider = result.Provider
 	execution.ProviderMessageID = result.ProviderMessageID
@@ -293,7 +355,25 @@ func (s *ChannelMessageService) Send(ctx context.Context, request *domain.SendCh
 	}
 	execution.Status = domain.ChannelSendConfirmed
 	execution.UpdatedAt = sentAt
+	if err := s.captureChannelConfirmation(ctx, request.WorkspaceID, execution); err != nil {
+		return nil, err
+	}
 	return &domain.SendChannelMessageResponse{Execution: execution}, nil
+}
+
+func (s *ChannelMessageService) captureChannelConfirmation(ctx context.Context, ws string, execution domain.ChannelSendExecution) error {
+	id := domain.ExecutionIDFromContext(ctx)
+	if id == "" {
+		return nil
+	}
+	if s.executionSnapshots == nil {
+		return errors.New("execution evidence storage is unavailable")
+	}
+	evidence, err := domain.ChannelConfirmationEvidence(id, execution)
+	if err != nil {
+		return err
+	}
+	return s.executionSnapshots.AppendInternal(ctx, ws, evidence)
 }
 
 func resolvableChannelLanguage(language string) string {
@@ -327,4 +407,8 @@ func selectChannelEndpoint(endpoints []*domain.ContactEndpoint, endpointID strin
 		}
 	}
 	return nil
+}
+
+func (s *ChannelMessageService) SetExecutionSnapshotService(snapshots *ExecutionSnapshotService) {
+	s.executionSnapshots = snapshots
 }

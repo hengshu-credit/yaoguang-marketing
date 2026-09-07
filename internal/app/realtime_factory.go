@@ -149,6 +149,7 @@ func (f *appRealtimeComponentFactory) Build(capability config.RuntimeCapability)
 		if err != nil {
 			return nil, err
 		}
+		worker.SetStateProjector(f.app.subjectStateService)
 		return f.consumerComponent(capability, consumer, "notifuse.rule", worker.HandleDelivery), nil
 
 	case config.CapabilityJourney:

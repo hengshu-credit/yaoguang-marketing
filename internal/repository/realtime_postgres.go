@@ -49,12 +49,28 @@ func (r *RealtimePostgresRepository) getDB(ctx context.Context, workspaceID stri
 	return db, nil
 }
 
-func (r *RealtimePostgresRepository) AppendEvent(
-	ctx context.Context,
-	workspaceID string,
-	envelope domain.EventEnvelope,
-	receivedAt time.Time,
-) (domain.EventAppendResult, error) {
+func (r *RealtimePostgresRepository) AppendEvent(ctx context.Context, workspaceID string, envelope domain.EventEnvelope, receivedAt time.Time) (domain.EventAppendResult, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return domain.EventAppendResult{}, err
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return domain.EventAppendResult{}, fmt.Errorf("begin event transaction: %w", err)
+	}
+	defer tx.Rollback()
+	result, err := AppendRealtimeEventTx(ctx, tx, workspaceID, envelope, receivedAt)
+	if err != nil {
+		return domain.EventAppendResult{}, err
+	}
+	if err = tx.Commit(); err != nil {
+		return domain.EventAppendResult{}, fmt.Errorf("commit event append: %w", err)
+	}
+	return result, nil
+}
+
+// AppendRealtimeEventTx appends a ledger fact and its outbox message in the caller's transaction.
+func AppendRealtimeEventTx(ctx context.Context, tx *sql.Tx, workspaceID string, envelope domain.EventEnvelope, receivedAt time.Time) (domain.EventAppendResult, error) {
 	if receivedAt.IsZero() {
 		receivedAt = time.Now().UTC()
 	} else {
@@ -104,16 +120,6 @@ func (r *RealtimePostgresRepository) AppendEvent(
 		return domain.EventAppendResult{}, fmt.Errorf("marshal event headers: %w", err)
 	}
 
-	db, err := r.getDB(ctx, workspaceID)
-	if err != nil {
-		return domain.EventAppendResult{}, err
-	}
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return domain.EventAppendResult{}, fmt.Errorf("begin event transaction: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-
 	var storedReceivedAt time.Time
 	err = tx.QueryRowContext(ctx, `
 		INSERT INTO event_idempotency (id, received_at, payload_hash)
@@ -137,11 +143,8 @@ func (r *RealtimePostgresRepository) AppendEvent(
 			return domain.EventAppendResult{}, fmt.Errorf("load existing event idempotency record: %w", lookupErr)
 		}
 		if existingHash != payloadHash {
-			_ = tx.Rollback()
+
 			return domain.EventAppendResult{}, domain.ErrEventPayloadConflict
-		}
-		if err := tx.Commit(); err != nil {
-			return domain.EventAppendResult{}, fmt.Errorf("commit duplicate event lookup: %w", err)
 		}
 		return domain.EventAppendResult{
 			EventID:    envelope.EventID,
@@ -178,9 +181,6 @@ func (r *RealtimePostgresRepository) AppendEvent(
 		return domain.EventAppendResult{}, fmt.Errorf("append event outbox: %w", err)
 	}
 
-	if err := tx.Commit(); err != nil {
-		return domain.EventAppendResult{}, fmt.Errorf("commit event append: %w", err)
-	}
 	return domain.EventAppendResult{
 		EventID:    envelope.EventID,
 		MessageID:  envelope.ID,
@@ -693,9 +693,29 @@ func (r *RealtimePostgresRepository) ProcessRuleEvent(
 	if err != nil {
 		return domain.RuleProcessResult{}, err
 	}
+	if request.ConfiguredOnly && request.Envelope.Subject.Type != "customer" {
+		customerBindings, err := listTriggerBindings(ctx, tx, request.Envelope.Type, "customer", request.DependencyKeys)
+		if err != nil {
+			return domain.RuleProcessResult{}, err
+		}
+		bindings = append(bindings, customerBindings...)
+	}
 	result := domain.RuleProcessResult{Candidates: len(bindings)}
 	for _, binding := range bindings {
-		matched, compiled, err := evaluateTriggerBinding(ctx, tx, binding, request.Envelope.Subject.ContactEmail)
+		var compiled domain.CompiledTriggerCondition
+		if err := json.Unmarshal(binding.CompiledCondition, &compiled); err != nil {
+			return domain.RuleProcessResult{}, err
+		}
+		configured := compiled.Trigger != nil && compiled.Trigger.EventKind == "tracked_event"
+		if configured != request.ConfiguredOnly {
+			continue
+		}
+		var matched bool
+		if configured {
+			matched, err = evaluateConfiguredTrigger(ctx, tx, binding, compiled, request.Envelope, request.Now)
+		} else {
+			matched, compiled, err = evaluateTriggerBinding(ctx, tx, binding, request.Envelope.Subject.ContactEmail)
+		}
 		if err != nil {
 			return domain.RuleProcessResult{}, fmt.Errorf("evaluate automation %s: %w", binding.AutomationID, err)
 		}
@@ -730,6 +750,9 @@ func (r *RealtimePostgresRepository) ProcessRuleEvent(
 				entryOutcome = enrollment.Outcome
 				switch enrollment.Outcome {
 				case domain.JourneyEntryOutcomeEnrolled:
+					if err := recordConfiguredEnrollment(ctx, tx, binding, compiled, request, customerID, enrollment.ContactAutomationID); err != nil {
+						return domain.RuleProcessResult{}, err
+					}
 					result.Enrolled++
 					contactAutomationID = &enrollment.ContactAutomationID
 				case domain.JourneyEntryOutcomeGuardDeferred:

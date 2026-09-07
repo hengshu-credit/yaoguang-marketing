@@ -44,7 +44,7 @@ func (e *ChannelNodeExecutor) Execute(ctx context.Context, params NodeExecutionP
 	data["automation_name"] = params.Automation.Name
 	response, err := e.service.Send(systemContext(ctx), &domain.SendChannelMessageRequest{
 		WorkspaceID: params.WorkspaceID, EffectKey: effectKey, Channel: e.channel,
-		IntegrationID: config.IntegrationID, ContactEmail: params.Contact.ContactEmail,
+		IntegrationID: config.IntegrationID, ContactEmail: params.Contact.ContactEmail, CustomerID: params.Contact.CustomerID,
 		EndpointID: config.EndpointID, TemplateID: config.TemplateID, TemplateVersion: config.TemplateVersion, Language: config.Language,
 		Data: data, Metadata: domain.MapOfAny{"automation_id": params.Automation.ID, "automation_node_id": params.Node.ID},
 	})

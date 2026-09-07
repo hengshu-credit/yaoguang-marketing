@@ -22,11 +22,20 @@ var (
 )
 
 type RuleWorker struct {
-	processor  domain.RuleEventProcessor
-	mode       config.RealtimeMode
-	inboxLease time.Duration
-	now        func() time.Time
+	processor      domain.RuleEventProcessor
+	projector      EventStateProjector
+	configuredOnly bool
+	mode           config.RealtimeMode
+	inboxLease     time.Duration
+	now            func() time.Time
 }
+
+type EventStateProjector interface {
+	ProcessEvent(context.Context, string, domain.EventEnvelope) error
+}
+
+func (w *RuleWorker) SetStateProjector(projector EventStateProjector) { w.projector = projector }
+func (w *RuleWorker) SetConfiguredOnly(only bool)                     { w.configuredOnly = only }
 
 func NewRuleWorker(
 	processor domain.RuleEventProcessor,
@@ -64,13 +73,44 @@ func (w *RuleWorker) Handle(ctx context.Context, message broker.Message) error {
 	if err := envelope.Validate(); err != nil {
 		return fmt.Errorf("%w: %v", ErrInvalidRuleMessage, err)
 	}
-	if envelope.Subject.ContactEmail == "" {
-		return fmt.Errorf("%w: contact_email is required for rule matching", ErrInvalidRuleMessage)
+	var metadata struct {
+		ProcessingStatus string     `json:"processing_status"`
+		ExpiresAt        *time.Time `json:"expires_at"`
+	}
+	if err := json.Unmarshal(envelope.Data, &metadata); err != nil {
+		return fmt.Errorf("%w: invalid event metadata: %v", ErrInvalidRuleMessage, err)
+	}
+	if metadata.ProcessingStatus == "pending_identity" {
+		return nil
+	}
+	if envelope.Subject.ContactEmail == "" && envelope.Subject.CustomerID == "" && envelope.Subject.Type != "customer" {
+		if metadata.ProcessingStatus == "expired" || metadata.ProcessingStatus == "backfill" || metadata.ProcessingStatus == "associated_history" {
+			return nil
+		}
+		return fmt.Errorf("%w: customer identity is required for rule matching", ErrInvalidRuleMessage)
+	}
+	if w.projector != nil && (envelope.Subject.CustomerID != "" || envelope.Subject.Type == "customer") {
+		if err := w.projector.ProcessEvent(ctx, envelope.WorkspaceID, envelope); err != nil {
+			return fmt.Errorf("project event state: %w", err)
+		}
+	}
+	// The ledger and analytical projections retain historical reports. Eligibility
+	// is checked again at dispatch because a queued report may expire while waiting.
+	if metadata.ProcessingStatus != "" && metadata.ProcessingStatus != "accepted" {
+		return nil
+	}
+	if metadata.ExpiresAt != nil && !w.now().Before(*metadata.ExpiresAt) {
+		return nil
 	}
 
+	consumer := "rule-worker"
+	if w.configuredOnly {
+		consumer = "configured-rule-worker"
+	}
 	result, err := w.processor.ProcessRuleEvent(ctx, domain.RuleProcessRequest{
+		ConfiguredOnly: w.configuredOnly,
 		WorkspaceID:    envelope.WorkspaceID,
-		Consumer:       "rule-worker",
+		Consumer:       consumer,
 		MessageID:      message.ID,
 		Envelope:       envelope,
 		DependencyKeys: eventDependencyKeys(envelope.Data),

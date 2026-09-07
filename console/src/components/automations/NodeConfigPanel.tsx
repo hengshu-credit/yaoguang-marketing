@@ -17,6 +17,8 @@ import {
   type TriggerConfig
 } from './config'
 import { useAutomation } from './context'
+import { BusinessConditionConfigForm } from './config/BusinessConditionConfigForm'
+import type { BusinessConditionNodeConfig } from '../../services/api/marketing_tracking'
 import type { AutomationNodeData, Structural } from './utils/flowConverter'
 import type {
   DelayNodeConfig,
@@ -38,6 +40,7 @@ const { Title } = Typography
 // with the same members: it accepts the interface on the way in (parameters are contravariant) and
 // satisfies `Record<string, unknown>` on the way back out into the node's config bag.
 type NodeConfigUpdate =
+  | Structural<BusinessConditionNodeConfig>
   | Structural<TriggerConfig>
   | Structural<DelayNodeConfig>
   | Structural<EmailNodeConfig>
@@ -74,6 +77,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
     switch (nodeType) {
       case 'trigger': return t`Trigger`
       case 'delay': return t`Delay`
+      case 'business_condition': return t`Event or state condition`
       case 'email': return t`Email`
       case 'sms': return t`SMS`
       case 'push': return t`Push`
@@ -100,6 +104,8 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
 
   const renderConfigForm = () => {
     switch (nodeType) {
+      case 'business_condition':
+        return <BusinessConditionConfigForm workspaceId={workspaceId} value={config as Structural<BusinessConditionNodeConfig>} onChange={handleConfigChange} />
       case 'trigger':
         return (
           <TriggerConfigForm

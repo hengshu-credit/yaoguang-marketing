@@ -3,7 +3,7 @@
  * Ultra-reliable web analytics for tracking TimeScore metrics
  * V3 Session Payload Architecture
  */
-import type { WebIdentity, NotifuseAnalyticsConfig, GoalData, SessionDebugInfo } from './types';
+import type { WebIdentity, BusinessEventInput, NotifuseAnalyticsConfig, GoalData, SessionDebugInfo } from './types';
 export declare class NotifuseAnalyticsSDK {
     private config;
     private storage;
@@ -11,6 +11,8 @@ export declare class NotifuseAnalyticsSDK {
     private sessionManager;
     private sessionState;
     private sender;
+    private businessEventSender;
+    private businessEventSession;
     private deviceDetector;
     private scrollTracker;
     private navigationTracker;
@@ -202,6 +204,10 @@ export declare class NotifuseAnalyticsSDK {
      * while silently doing nothing.
      */
     identify(email: string, hmac: string): Promise<void>;
+    private eventTransport;
+    trackEvent(event: BusinessEventInput): Promise<string>;
+    identifyCustomer(credential: string): Promise<void>;
+    flushEvents(): Promise<void>;
     /**
      * Current identity, or null when anonymous.
      */

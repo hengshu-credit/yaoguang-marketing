@@ -35,7 +35,7 @@
  * URL parameters custom_1 through custom_10 are automatically captured on init.
  * Existing dimension values take priority over URL parameters.
  */
-import type { NotifuseAnalyticsConfig, NotifuseAnalyticsAPI, GoalData, SessionDebugInfo } from './types';
-export type { NotifuseAnalyticsConfig, NotifuseAnalyticsAPI, GoalData, SessionDebugInfo, };
+import type { NotifuseAnalyticsConfig, NotifuseAnalyticsAPI, GoalData, BusinessEventInput, SessionDebugInfo } from './types';
+export type { BusinessEventInput, NotifuseAnalyticsConfig, NotifuseAnalyticsAPI, GoalData, SessionDebugInfo, };
 declare const _default: NotifuseAnalyticsAPI;
 export default _default;

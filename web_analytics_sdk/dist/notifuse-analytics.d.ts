@@ -135,7 +135,19 @@ interface GoalData {
      */
     properties?: Record<string, string>;
 }
+interface BusinessEventInput {
+    /** New for each occurrence. Omit to generate once before durable queueing. */
+    report_id?: string;
+    event_code: string;
+    event_name?: string;
+    data: Record<string, unknown>;
+    triggered_at?: string;
+    expires_at?: string | null;
+}
 interface NotifuseAnalyticsAPI {
+    trackEvent(event: BusinessEventInput): Promise<string>;
+    identifyCustomer(credential: string): Promise<void>;
+    flushEvents(): Promise<void>;
     init(config: NotifuseAnalyticsConfig): Promise<void>;
     getSessionId(): Promise<string>;
     getConfig(): Readonly<NotifuseAnalyticsConfig> | null;
@@ -209,4 +221,4 @@ interface SessionDebugInfo {
 declare const _default: NotifuseAnalyticsAPI;
 
 export { _default as default };
-export type { GoalData, NotifuseAnalyticsAPI, NotifuseAnalyticsConfig, SessionDebugInfo };
+export type { BusinessEventInput, GoalData, NotifuseAnalyticsAPI, NotifuseAnalyticsConfig, SessionDebugInfo };

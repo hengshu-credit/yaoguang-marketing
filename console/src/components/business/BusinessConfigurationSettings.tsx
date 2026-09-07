@@ -1,0 +1,72 @@
+import { useEffect, useState } from 'react'
+import { Alert, Button, Input, Popconfirm, Space, Table, Tabs, Tag, Typography } from 'antd'
+import { PlusOutlined, ReloadOutlined } from '@ant-design/icons'
+import { useLingui } from '@lingui/react/macro'
+import { businessApi, type BusinessDefinition, type BusinessDefinitionKind } from '../../services/api/business'
+import { WorkspacePageTitle } from '../navigation/WorkspacePageTitle'
+import { BusinessDefinitionEditor } from './BusinessDefinitionEditor'
+import { useBusinessCatalogue } from './useBusinessCatalogue'
+import { businessDefinitionDisplayName } from './builtin-event-labels'
+
+interface Props { workspaceId: string; canManage: boolean }
+
+export function BusinessConfigurationSettings(props: Props) {
+  return <ConfigurationContent key={props.workspaceId} {...props} />
+}
+
+function ConfigurationContent({ workspaceId, canManage }: Props) {
+  const { t, i18n } = useLingui()
+  const [kind, setKind] = useState<BusinessDefinitionKind>('event')
+  const [items, setItems] = useState<BusinessDefinition[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const [refresh, setRefresh] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [editor, setEditor] = useState<BusinessDefinition>()
+  const [archiving, setArchiving] = useState<string>()
+  const catalogue = useBusinessCatalogue(workspaceId, refresh)
+  const labels: Partial<Record<BusinessDefinitionKind, string>> = { event: t`Events`, customer_attribute: t`Customer attributes`, object_type: t`Business object types`, object_relation: t`Object relations`, event_mapping: t`Event field mappings` }
+  const statuses = { draft: t`Draft`, active: t`Active`, archived: t`Archived` }
+
+  useEffect(() => {
+    let current = true
+    setItems([]); setTotal(0); setLoading(true); setError('')
+    businessApi.list(workspaceId, kind, { search, limit: 20, offset: (page - 1) * 20 }).then((result) => {
+      if (current) { setItems(result.definitions ?? []); setTotal(result.total) }
+    }).catch((cause) => { if (current) setError(cause instanceof Error ? cause.message : String(cause)) }).finally(() => { if (current) setLoading(false) })
+    return () => { current = false }
+  }, [workspaceId, kind, page, search, refresh])
+
+  const create = () => {
+    const settings: Record<string, unknown> = kind === 'event' ? { subject_type: 'customer', expiry_mode: 'never', unmatched_customer: 'pending', browser_enabled: false } : kind === 'object_relation' ? { cardinality: 'one_to_many' } : kind === 'event_mapping' ? { fields: { report_id: '$.report_id', customer_attributes: '$.customer_attributes', event_code: '$.event_code', event_name: '$.event_name', data: '$.data', triggered_at: '$.triggered_at', expires_at: '$.expires_at' }, attribute_mappings: [] } : kind === 'customer_attribute' ? { identity: false, sensitive: false, writable: true, normalization: 'trim' } : { identity_fields: [] }
+    setEditor({ kind, key: '', name: '', schema: kind === 'customer_attribute' ? { type: 'string' } : { type: 'object', properties: {}, required: [] }, settings, status: 'draft' })
+  }
+  const archive = async (definition: BusinessDefinition) => {
+    if (!canManage) return
+    setArchiving(definition.key); setError('')
+    try { await businessApi.archive(workspaceId, definition); setRefresh((value) => value + 1) }
+    catch (cause) { setError(cause instanceof Error ? cause.message : t`Failed to archive definition`) }
+    finally { setArchiving(undefined) }
+  }
+
+  return <div className="space-y-5">
+    <div><WorkspacePageTitle>{t`Customer and event configuration`}</WorkspacePageTitle><Typography.Paragraph type="secondary">{t`Define customer attributes, business objects, event data and external field mappings for this workspace.`}</Typography.Paragraph></div>
+    {error && <Alert type="error" showIcon title={error} action={<Button size="small" onClick={() => setRefresh((value) => value + 1)}>{t`Retry`}</Button>} />}
+    {catalogue.error && <Alert type="error" showIcon title={t`Failed to load related definitions`} description={catalogue.error.message} />}
+    <Tabs activeKey={kind} onChange={(next) => { setKind(next as BusinessDefinitionKind); setPage(1); setSearch('') }} items={Object.entries(labels).map(([key, label]) => ({ key, label }))} />
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <Input.Search key={kind} aria-label={t`Search definitions`} placeholder={t`Search by name or key`} allowClear style={{ maxWidth: 360 }} onSearch={(value) => { setSearch(value); setPage(1) }} />
+      <Space><Button icon={<ReloadOutlined />} aria-label={t`Refresh definitions`} onClick={() => setRefresh((value) => value + 1)} />{canManage && <Button type="primary" aria-label={t`New definition`} icon={<PlusOutlined aria-hidden />} onClick={create}>{t`New definition`}</Button>}</Space>
+    </div>
+    <Table<BusinessDefinition> rowKey="id" loading={loading} dataSource={items} scroll={{ x: 720 }} pagination={{ current: page, pageSize: 20, total, showSizeChanger: false, onChange: setPage }} columns={[
+      { title: t`Name`, key: 'name', render: (_, definition) => <div><Button type="link" style={{ padding: 0 }} onClick={() => setEditor(definition)}>{businessDefinitionDisplayName(definition, i18n)}</Button><div className="text-xs text-gray-500">{definition.description}</div></div> },
+      { title: t`Key`, dataIndex: 'key', render: (key: string) => <code>{key}</code> },
+      { title: t`Status`, dataIndex: 'status', render: (status: BusinessDefinition['status']) => <Tag color={status === 'active' ? 'green' : undefined}>{statuses[status]}</Tag> },
+      { title: t`Origin`, key: 'origin', render: (_, definition) => definition.builtin || definition.settings.builtin === true ? t`Built-in` : t`Custom` },
+      ...(canManage ? [{ title: t`Actions`, key: 'actions', render: (_: unknown, definition: BusinessDefinition) => <Space><Button type="link" onClick={() => setEditor(definition)}>{t`View`}</Button>{definition.status !== 'archived' && !definition.builtin && definition.settings.builtin !== true && <Popconfirm title={t`Archive this definition?`} description={t`Historical reports keep their recorded definition. Archived definitions cannot accept new use.`} onConfirm={() => archive(definition)} okText={t`Archive`} cancelText={t`Cancel`}><Button type="link" danger loading={archiving === definition.key}>{t`Archive`}</Button></Popconfirm>}</Space> }] : [])
+    ]} />
+    {editor && <BusinessDefinitionEditor key={`${editor.kind}:${editor.key}:${editor.revision ?? 0}`} workspaceId={workspaceId} definition={editor} catalogue={catalogue.definitions} readOnly={!canManage} onClose={() => setEditor(undefined)} onSaved={() => { setEditor(undefined); setRefresh((value) => value + 1) }} />}
+  </div>
+}

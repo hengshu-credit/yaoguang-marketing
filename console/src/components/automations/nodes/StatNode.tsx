@@ -23,6 +23,7 @@ import type { NodeType, AutomationNodeStats, ABTestNodeConfig } from '../../../s
 const nodeIcons: Record<NodeType, React.ReactNode> = {
   trigger: <Play size={16} />,
   delay: <Clock size={16} />,
+  business_condition: <ListChecks size={16} />,
   email: <Mail size={16} />,
   sms: <MessageSquareText size={16} />,
   push: <Smartphone size={16} />,
@@ -83,6 +84,7 @@ export const StatNode: React.FC<StatNodeProps> = ({ data }) => {
   const nodeLabels: Record<NodeType, string> = {
     trigger: t`Trigger`,
     delay: t`Delay`,
+    business_condition: t`Event or state condition`,
     email: t`Email`,
     sms: t`SMS`,
     push: t`Push`,

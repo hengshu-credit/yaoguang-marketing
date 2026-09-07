@@ -311,10 +311,13 @@ func TestEmailQueueRepository_MarkAsSent(t *testing.T) {
 
 		repo := NewEmailQueueRepositoryWithDB(db)
 
-		mock.ExpectExec(`DELETE FROM email_queue WHERE id = \$1`).
+		mock.ExpectBegin()
+		mock.ExpectExec(`UPDATE email_queue SET status='confirmed'`).WithArgs("entry-123").WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectExec(`DELETE FROM email_queue WHERE id=\$1`).
 			WithArgs("entry-123").
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
+		mock.ExpectCommit()
 		err := repo.MarkAsSent(ctx, "workspace-123", "entry-123")
 		assert.NoError(t, err)
 		assert.NoError(t, mock.ExpectationsWereMet())
@@ -326,9 +329,12 @@ func TestEmailQueueRepository_MarkAsSent(t *testing.T) {
 
 		repo := NewEmailQueueRepositoryWithDB(db)
 
-		mock.ExpectExec(`DELETE FROM email_queue WHERE id = \$1`).
+		mock.ExpectBegin()
+		mock.ExpectExec(`UPDATE email_queue SET status='confirmed'`).WithArgs("entry-123").WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectExec(`DELETE FROM email_queue WHERE id=\$1`).
 			WithArgs("entry-123").
 			WillReturnError(errors.New("database error"))
+		mock.ExpectRollback()
 
 		err := repo.MarkAsSent(ctx, "workspace-123", "entry-123")
 		assert.Error(t, err)

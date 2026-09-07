@@ -324,7 +324,7 @@ function parseUTMParams(url, adClickIds = DEFAULT_AD_CLICK_IDS) {
  * Session management
  * Handles session creation, persistence, and expiry
  */
-const SDK_VERSION$1 = "39.0";
+const SDK_VERSION$1 = "57.0";
 const CLOCK_SKEW_TOLERANCE$1 = 60; // seconds
 // Absolute lifetime of one session id, independent of activity.
 //
@@ -905,7 +905,7 @@ class SessionManager {
  * - No attributesSent optimization - always include attributes
  */
 const STORAGE_KEY = 'nf_session_state';
-const SDK_VERSION = "39.0";
+const SDK_VERSION = "57.0";
 const MAX_ACTIONS = 1000; // Match server limit from Phase 2
 class SessionState {
     constructor(config) {
@@ -1472,6 +1472,105 @@ class Sender {
         }
         catch {
             return false;
+        }
+    }
+}
+
+function credentialScope(credential) {
+    try {
+        return JSON.parse(atob(credential.split('.')[0].replace(/-/g, '+').replace(/_/g, '/')));
+    }
+    catch {
+        return null;
+    }
+}
+/** One immutable queued payload per real occurrence. Credentials are only held in memory. */
+class BusinessEventSender {
+    constructor(endpoint, workspace, session, storage, tabId = 'default') {
+        this.endpoint = endpoint;
+        this.workspace = workspace;
+        this.session = session;
+        this.storage = storage;
+        this.credential = '';
+        this.flushing = null;
+        this.retryTimer = null;
+        this.online = () => { void this.flush(); };
+        this.key = `business_events_${workspace}_${session}_${tabId}`;
+        if (typeof window !== 'undefined')
+            window.addEventListener('online', this.online);
+    }
+    async track(input, touchpointToken) {
+        if (!input.event_code || !input.data || Array.isArray(input.data) || typeof input.data !== 'object')
+            throw new Error('event_code and data object are required');
+        const queue = this.storage.get(this.key) ?? [];
+        if (queue.length >= 100)
+            throw new Error('Event queue is full; retry when the connection is available');
+        const reportId = input.report_id ?? crypto.randomUUID();
+        const event = JSON.parse(JSON.stringify({ ...input, report_id: reportId, triggered_at: input.triggered_at ?? new Date().toISOString() }));
+        queue.push({ event, touchpoint_token: touchpointToken, queued_at: Date.now(), identity_customer: credentialScope(this.credential)?.customer_id });
+        this.storage.set(this.key, queue);
+        await this.flush();
+        return reportId;
+    }
+    async identify(credential) {
+        if (!credential)
+            throw new Error('A server-issued browser credential is required');
+        const response = await fetch(`${this.endpoint.replace(/\/$/, '')}/track/identify`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'omit',
+            body: JSON.stringify({ workspace_id: this.workspace, session_id: this.session, credential })
+        });
+        if (!response.ok)
+            throw new Error(`Browser identity was rejected (${response.status})`);
+        this.credential = credential;
+        await this.flush();
+        // Flush may have persisted previously offline anonymous events after the first association.
+        const linked = await fetch(`${this.endpoint.replace(/\/$/, '')}/track/identify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'omit', body: JSON.stringify({ workspace_id: this.workspace, session_id: this.session, credential }) });
+        if (!linked.ok)
+            throw new Error(`Historical identity association was rejected (${linked.status})`);
+    }
+    clearIdentity() { this.credential = ''; }
+    dispose() { if (this.retryTimer)
+        clearTimeout(this.retryTimer); if (typeof window !== 'undefined')
+        window.removeEventListener('online', this.online); }
+    flush() {
+        if (this.flushing)
+            return this.flushing;
+        this.flushing = this.sendQueue().finally(() => { this.flushing = null; });
+        return this.flushing;
+    }
+    async sendQueue() {
+        if (this.retryTimer) {
+            clearTimeout(this.retryTimer);
+            this.retryTimer = null;
+        }
+        for (;;) {
+            const queue = this.storage.get(this.key) ?? [];
+            const scope = credentialScope(this.credential);
+            // Preserve other accounts' occurrences while allowing this account's queue
+            // to progress. An identity change must neither relabel nor starve events.
+            const item = queue.find(entry => !entry.identity_customer || (scope?.customer_id === entry.identity_customer && scope.expires_at * 1000 > Date.now()));
+            if (!item)
+                return;
+            let retry = false;
+            try {
+                const response = await fetch(`${this.endpoint.replace(/\/$/, '')}/track/events`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'omit', keepalive: true,
+                    body: JSON.stringify({ workspace_id: this.workspace, session_id: this.session, credential: item.identity_customer ? this.credential : undefined, event: item.event, touchpoint_token: item.touchpoint_token })
+                });
+                retry = !response.ok && (response.status >= 500 || response.status === 408 || response.status === 429);
+                if (!response.ok && !retry)
+                    console.warn(`[NotifuseAnalytics] Event ${item.event.report_id} rejected (${response.status})`);
+            }
+            catch {
+                retry = true;
+            }
+            if (retry) {
+                this.retryTimer = setTimeout(() => { void this.flush(); }, 5000);
+                return;
+            }
+            // Re-read because track() may have appended while the network request was in flight.
+            const current = this.storage.get(this.key) ?? [];
+            this.storage.set(this.key, current.filter(entry => entry.event.report_id !== item.event.report_id));
         }
     }
 }
@@ -2229,6 +2328,8 @@ class NotifuseAnalyticsSDK {
         this.sessionManager = null;
         this.sessionState = null;
         this.sender = null;
+        this.businessEventSender = null;
+        this.businessEventSession = null;
         this.deviceDetector = null;
         this.scrollTracker = null;
         this.navigationTracker = null;
@@ -3049,6 +3150,32 @@ class NotifuseAnalyticsSDK {
         }
         this.sessionManager?.setIdentity({ email, hmac });
     }
+    eventTransport() {
+        if (!this.config || !this.storage || !this.sessionManager)
+            throw new Error('SDK is not initialized');
+        const session = this.sessionManager.getSessionId();
+        if (!this.businessEventSender || session !== this.businessEventSession) {
+            this.businessEventSender?.dispose();
+            this.businessEventSender = new BusinessEventSender(this.config.endpoint, this.config.workspace_id, session, this.storage, this.sessionManager.getTabId());
+            this.businessEventSession = session;
+        }
+        return this.businessEventSender;
+    }
+    async trackEvent(event) {
+        await this.ensureInitialized();
+        if (this.isPaused)
+            throw new Error('Tracking is paused');
+        const identity = this.sessionManager?.getIdentity();
+        return this.eventTransport().track(event, identity?.token);
+    }
+    async identifyCustomer(credential) {
+        await this.ensureInitialized();
+        await this.eventTransport().identify(credential);
+    }
+    async flushEvents() {
+        await this.ensureInitialized();
+        await this.eventTransport().flush();
+    }
     /**
      * Current identity, or null when anonymous.
      */
@@ -3065,6 +3192,7 @@ class NotifuseAnalyticsSDK {
     async clearIdentity() {
         await this.ensureInitialized();
         this.sessionManager?.clearIdentity();
+        this.businessEventSender?.clearIdentity();
     }
     /**
      * Pause tracking
@@ -3264,6 +3392,9 @@ class NotifuseAnalyticsSDK {
 const sdk = new NotifuseAnalyticsSDK();
 // Public API wrapper with both auto-init and manual init support
 const NotifuseAnalytics = {
+    trackEvent: (event) => sdk.trackEvent(event),
+    identifyCustomer: (credential) => sdk.identifyCustomer(credential),
+    flushEvents: () => sdk.flushEvents(),
     init: (config) => sdk.init(config),
     getSessionId: () => sdk.getSessionId(),
     getConfig: () => sdk.getConfig(),

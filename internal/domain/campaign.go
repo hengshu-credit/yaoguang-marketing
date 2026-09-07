@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"strings"
 	"time"
@@ -31,8 +32,10 @@ type Campaign struct {
 }
 
 type CampaignVariant struct {
-	ID       string `json:"id"`
-	WeightBP int    `json:"weight_bp"`
+	TemplateID      string `json:"template_id,omitempty"`
+	TemplateVersion int64  `json:"template_version,omitempty"`
+	ID              string `json:"id"`
+	WeightBP        int    `json:"weight_bp"`
 }
 
 type CampaignVersion struct {
@@ -48,18 +51,19 @@ type CampaignVersion struct {
 }
 
 type CampaignRun struct {
-	ID                     string    `json:"id"`
-	CampaignID             string    `json:"campaign_id"`
-	CampaignVersion        int       `json:"campaign_version"`
-	AudienceID             string    `json:"audience_id,omitempty"`
-	AudienceVersion        int       `json:"audience_version,omitempty"`
-	AudienceBuildID        string    `json:"audience_build_id,omitempty"`
-	Status                 string    `json:"status"`
-	RunSeed                string    `json:"run_seed"`
-	SnapshotLastCustomerID string    `json:"snapshot_last_customer_id,omitempty"`
-	SnapshotCount          int64     `json:"snapshot_count"`
-	NextOrdinal            int64     `json:"next_ordinal"`
-	CreatedAt              time.Time `json:"created_at"`
+	ExecutionConfiguration json.RawMessage `json:"execution_configuration,omitempty"`
+	ID                     string          `json:"id"`
+	CampaignID             string          `json:"campaign_id"`
+	CampaignVersion        int             `json:"campaign_version"`
+	AudienceID             string          `json:"audience_id,omitempty"`
+	AudienceVersion        int             `json:"audience_version,omitempty"`
+	AudienceBuildID        string          `json:"audience_build_id,omitempty"`
+	Status                 string          `json:"status"`
+	RunSeed                string          `json:"run_seed"`
+	SnapshotLastCustomerID string          `json:"snapshot_last_customer_id,omitempty"`
+	SnapshotCount          int64           `json:"snapshot_count"`
+	NextOrdinal            int64           `json:"next_ordinal"`
+	CreatedAt              time.Time       `json:"created_at"`
 }
 
 type CampaignRecipientSnapshot struct {

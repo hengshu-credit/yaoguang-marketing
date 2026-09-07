@@ -6,6 +6,7 @@
 
 import type {
   WebIdentity,
+  BusinessEventInput,
   NotifuseAnalyticsConfig,
   InternalConfig,
   GoalData,
@@ -21,6 +22,7 @@ import { Storage, TabStorage } from './storage/storage';
 import { SessionManager } from './core/session';
 import { SessionState, SessionStateConfig } from './core/session-state';
 import { Sender } from './transport/sender';
+import { BusinessEventSender } from './transport/business-events';
 import { DeviceDetector } from './detection/device';
 import { ScrollTracker } from './events/scroll';
 import { NavigationTracker } from './events/navigation';
@@ -74,6 +76,8 @@ export class NotifuseAnalyticsSDK {
   private sessionManager: SessionManager | null = null;
   private sessionState: SessionState | null = null;
   private sender: Sender | null = null;
+  private businessEventSender: BusinessEventSender | null = null;
+  private businessEventSession: string | null = null;
   private deviceDetector: DeviceDetector | null = null;
   private scrollTracker: ScrollTracker | null = null;
   private navigationTracker: NavigationTracker | null = null;
@@ -1039,6 +1043,34 @@ export class NotifuseAnalyticsSDK {
     this.sessionManager?.setIdentity({ email, hmac });
   }
 
+  private eventTransport(): BusinessEventSender {
+    if (!this.config || !this.storage || !this.sessionManager) throw new Error('SDK is not initialized');
+    const session = this.sessionManager.getSessionId();
+    if (!this.businessEventSender || session !== this.businessEventSession) {
+      this.businessEventSender?.dispose();
+      this.businessEventSender = new BusinessEventSender(this.config.endpoint, this.config.workspace_id, session, this.storage, this.sessionManager.getTabId());
+      this.businessEventSession = session;
+    }
+    return this.businessEventSender;
+  }
+
+  async trackEvent(event: BusinessEventInput): Promise<string> {
+    await this.ensureInitialized();
+    if (this.isPaused) throw new Error('Tracking is paused');
+    const identity = this.sessionManager?.getIdentity();
+    return this.eventTransport().track(event, identity?.token);
+  }
+
+  async identifyCustomer(credential: string): Promise<void> {
+    await this.ensureInitialized();
+    await this.eventTransport().identify(credential);
+  }
+
+  async flushEvents(): Promise<void> {
+    await this.ensureInitialized();
+    await this.eventTransport().flush();
+  }
+
   /**
    * Current identity, or null when anonymous.
    */
@@ -1056,6 +1088,7 @@ export class NotifuseAnalyticsSDK {
   async clearIdentity(): Promise<void> {
     await this.ensureInitialized();
     this.sessionManager?.clearIdentity();
+    this.businessEventSender?.clearIdentity();
   }
 
   /**

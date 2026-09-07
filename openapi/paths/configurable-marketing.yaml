@@ -1,0 +1,682 @@
+/api/businessDefinitions.list:
+  get:
+    summary: List configurable business definitions
+    operationId: businessDefinitions_list
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: kind
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: search
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+    responses:
+      '200':
+        description: Success
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                definitions:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/configurable-marketing.yaml#/BusinessDefinition
+                total:
+                  type: integer
+      '400':
+        description: Invalid fields or inactive/incompatible definitions
+      '401':
+        description: Authentication required
+      '403':
+        description: Workspace permission denied
+/api/businessDefinitions.get:
+  get:
+    summary: Read one definition
+    operationId: businessDefinitions_get
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: kind
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: key
+        in: query
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Success
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                definition:
+                  $ref: ../components/schemas/configurable-marketing.yaml#/BusinessDefinition
+      '400':
+        description: Invalid fields or inactive/incompatible definitions
+      '401':
+        description: Authentication required
+      '403':
+        description: Workspace permission denied
+/api/businessDefinitions.save:
+  post:
+    summary: Create or update one definition
+    operationId: businessDefinitions_save
+    security:
+      - BearerAuth: []
+    description: >-
+      Requires workspace-write. Send the last revision when editing. Built-in meanings are protected; archived
+      definitions remain available to historical evidence.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - workspace_id
+              - definition
+            properties:
+              workspace_id:
+                type: string
+              definition:
+                $ref: ../components/schemas/configurable-marketing.yaml#/BusinessDefinition
+    responses:
+      '200':
+        description: Success
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                definition:
+                  $ref: ../components/schemas/configurable-marketing.yaml#/BusinessDefinition
+      '400':
+        description: Invalid fields or inactive/incompatible definitions
+      '401':
+        description: Authentication required
+      '403':
+        description: Workspace permission denied
+      '409':
+        description: Key or revision conflict
+/api/businessDefinitions.archive:
+  post:
+    summary: Archive a definition without deleting its history
+    operationId: businessDefinitions_archive
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - workspace_id
+              - kind
+              - key
+              - revision
+            properties:
+              workspace_id:
+                type: string
+              kind:
+                type: string
+              key:
+                type: string
+              revision:
+                type: integer
+    responses:
+      '200':
+        description: Success
+      '400':
+        description: Invalid fields or inactive/incompatible definitions
+      '401':
+        description: Authentication required
+      '403':
+        description: Workspace permission denied
+/api/businessDefinitions.preview:
+  post:
+    summary: Validate a sample without writing events or attributes
+    operationId: businessDefinitions_preview
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - workspace_id
+              - definition
+              - sample
+            properties:
+              workspace_id:
+                type: string
+              definition:
+                $ref: ../components/schemas/configurable-marketing.yaml#/BusinessDefinition
+              sample:
+                type: object
+                additionalProperties: true
+    responses:
+      '200':
+        description: Success
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                valid:
+                  type: boolean
+                errors:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                normalized_event:
+                  type: object
+                  additionalProperties: true
+                resolved_customer_id:
+                  type: string
+                  format: uuid
+                attribute_changes:
+                  type: object
+                  additionalProperties: true
+      '400':
+        description: Invalid fields or inactive/incompatible definitions
+      '401':
+        description: Authentication required
+      '403':
+        description: Workspace permission denied
+/api/businessObjects.upsert:
+  post:
+    summary: Upsert a configured object under its canonical Customer UUID
+    operationId: businessObjects_upsert
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - workspace_id
+              - object
+            properties:
+              workspace_id:
+                type: string
+              object:
+                $ref: ../components/schemas/configurable-marketing.yaml#/BusinessObject
+    responses:
+      '200':
+        description: Success
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                object:
+                  $ref: ../components/schemas/configurable-marketing.yaml#/BusinessObject
+      '400':
+        description: Invalid fields or inactive/incompatible definitions
+      '401':
+        description: Authentication required
+      '403':
+        description: Workspace permission denied
+/api/businessObjects.get:
+  get:
+    summary: Read an object by its source key
+    operationId: businessObjects_get
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: object_type
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: source
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: external_key
+        in: query
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Success
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                object:
+                  $ref: ../components/schemas/configurable-marketing.yaml#/BusinessObject
+      '400':
+        description: Invalid fields or inactive/incompatible definitions
+      '401':
+        description: Authentication required
+      '403':
+        description: Workspace permission denied
+/api/businessObjects.list:
+  get:
+    summary: List objects for a customer
+    operationId: businessObjects_list
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: customer_id
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: object_type
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+    responses:
+      '200':
+        description: Success
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                objects:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/configurable-marketing.yaml#/BusinessObject
+      '400':
+        description: Invalid fields or inactive/incompatible definitions
+      '401':
+        description: Authentication required
+      '403':
+        description: Workspace permission denied
+/api/businessObjects.relate:
+  post:
+    summary: Connect two existing objects using a configured relation
+    operationId: businessObjects_relate
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - workspace_id
+              - relation_key
+              - from_id
+              - to_id
+            properties:
+              workspace_id:
+                type: string
+              relation_key:
+                type: string
+              from_id:
+                type: string
+                format: uuid
+              to_id:
+                type: string
+                format: uuid
+    responses:
+      '200':
+        description: Success
+      '400':
+        description: Invalid fields or inactive/incompatible definitions
+      '401':
+        description: Authentication required
+      '403':
+        description: Workspace permission denied
+/api/subjectStates.list:
+  get:
+    summary: Read independent states and optional temporal history
+    operationId: subjectStates_list
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: subject_type
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: subject_id
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: history
+        in: query
+        required: false
+        schema:
+          type: boolean
+    responses:
+      '200':
+        description: Success
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                states:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+      '400':
+        description: Invalid fields or inactive/incompatible definitions
+      '401':
+        description: Authentication required
+      '403':
+        description: Workspace permission denied
+/api/subjectStates.set:
+  post:
+    summary: Set an audited manual state override
+    operationId: subjectStates_set
+    security:
+      - BearerAuth: []
+    description: >-
+      Requires customers-write and an active state for this subject type. States are independent
+      true/false/unknown values, not an exclusive lifecycle enum.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - workspace_id
+              - subject_type
+              - subject_id
+              - override
+            properties:
+              workspace_id:
+                type: string
+              subject_type:
+                type: string
+              subject_id:
+                type: string
+                format: uuid
+              override:
+                $ref: ../components/schemas/configurable-marketing.yaml#/StateOverride
+    responses:
+      '200':
+        description: Success
+      '400':
+        description: Invalid fields or inactive/incompatible definitions
+      '401':
+        description: Authentication required
+      '403':
+        description: Workspace permission denied
+/api/subjectStates.coverage:
+  post:
+    summary: Count independent states and their intersection and union
+    operationId: subjectStates_coverage
+    security:
+      - BearerAuth: []
+    description: >-
+      Requires customers-read. Uses as_of <= watermark <= current time. Subjects without state evidence count
+      as unknown. Overlapping states do not form mutually exclusive percentages.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/configurable-marketing.yaml#/StateCoverageQuery
+    responses:
+      '200':
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/configurable-marketing.yaml#/StateCoverageResult
+      '400':
+        description: Invalid fields or inactive/incompatible definitions
+      '401':
+        description: Authentication required
+      '403':
+        description: Workspace permission denied
+/api/funnels.query:
+  post:
+    summary: Calculate an event-time funnel synchronously
+    operationId: funnels_query
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/configurable-marketing.yaml#/FunnelQuery
+    responses:
+      '200':
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/configurable-marketing.yaml#/FunnelResult
+      '400':
+        description: Invalid fields or inactive/incompatible definitions
+      '401':
+        description: Authentication required
+      '403':
+        description: Workspace permission denied
+/api/funnels.start:
+  post:
+    summary: Persist and start a cancellable funnel query
+    operationId: funnels_start
+    security:
+      - BearerAuth: []
+    description: >-
+      Saves the definition and watermark with the job. Repeated report IDs are deduplicated, distinct
+      occurrences remain. Counts root subjects through relation-bound child steps; never combines siblings.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/configurable-marketing.yaml#/FunnelQuery
+    responses:
+      '202':
+        description: Query accepted
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/configurable-marketing.yaml#/FunnelQueryJob
+      '400':
+        description: Invalid fields or inactive/incompatible definitions
+      '401':
+        description: Authentication required
+      '403':
+        description: Workspace permission denied
+/api/funnels.get:
+  get:
+    summary: Read saved query status and immutable completed result
+    operationId: funnels_get
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/configurable-marketing.yaml#/FunnelQueryJob
+      '400':
+        description: Invalid fields or inactive/incompatible definitions
+      '401':
+        description: Authentication required
+      '403':
+        description: Workspace permission denied
+/api/funnels.cancel:
+  post:
+    summary: Cancel a saved query
+    operationId: funnels_cancel
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - workspace_id
+              - id
+            properties:
+              workspace_id:
+                type: string
+              id:
+                type: string
+                format: uuid
+    responses:
+      '200':
+        description: Success
+      '400':
+        description: Invalid fields or inactive/incompatible definitions
+      '401':
+        description: Authentication required
+      '403':
+        description: Workspace permission denied
+/api/campaigns.configuration:
+  get:
+    summary: Read the current editable campaign configuration
+    operationId: campaigns_configuration
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: campaign_id
+        in: query
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Success
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      '400':
+        description: Invalid fields or inactive/incompatible definitions
+      '401':
+        description: Authentication required
+      '403':
+        description: Workspace permission denied
+/api/campaigns.update:
+  post:
+    summary: Update campaign configuration for subsequent runs
+    operationId: campaigns_update
+    security:
+      - BearerAuth: []
+    description: >-
+      Does not create a campaign version. Each actual run retains its own immutable configuration and
+      materials in executions.get.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - workspace_id
+              - campaign_id
+              - name
+              - configuration
+            properties:
+              workspace_id:
+                type: string
+              campaign_id:
+                type: string
+              name:
+                type: string
+              configuration:
+                type: object
+                additionalProperties: true
+    responses:
+      '200':
+        description: Success
+      '400':
+        description: Invalid fields or inactive/incompatible definitions
+      '401':
+        description: Authentication required
+      '403':
+        description: Workspace permission denied

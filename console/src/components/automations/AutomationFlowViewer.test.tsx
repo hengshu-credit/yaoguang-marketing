@@ -227,6 +227,7 @@ describe('AutomationFlowViewer', () => {
     const registered = Object.keys({
       trigger: true,
       delay: true,
+      business_condition: true,
       email: true,
       sms: true,
       push: true,

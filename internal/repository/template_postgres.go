@@ -134,6 +134,9 @@ func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID str
 }
 
 func (r *templateRepository) GetTemplateByID(ctx context.Context, workspaceID string, id string, version int64) (*domain.Template, error) {
+	if template, bound, err := domain.ExecutionTemplateFromContext(ctx, id, version); bound {
+		return template, err
+	}
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {

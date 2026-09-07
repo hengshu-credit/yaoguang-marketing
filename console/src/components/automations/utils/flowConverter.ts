@@ -1,4 +1,5 @@
 import type { Node, Edge } from '@xyflow/react'
+import { t } from '@lingui/core/macro'
 import { v4 as uuidv4 } from 'uuid'
 import type {
   Automation,
@@ -54,6 +55,7 @@ export function getNodeLabel(type: NodeType): string {
   const labels: Record<NodeType, string> = {
     trigger: 'Trigger',
     delay: 'Delay',
+    business_condition: t`Event or state condition`,
     email: 'Email',
     sms: 'SMS',
     push: 'Push',

@@ -838,13 +838,14 @@ func (request CustomerMergeRequest) CanonicalPayloadHash() (string, error) {
 }
 
 type CustomerMergeCommand struct {
-	WorkspaceID    string
-	IdempotencyKey string
-	PayloadHash    string
-	Source         CustomerLocator
-	Target         CustomerLocator
-	ActorID        string
-	Reason         string
+	AllowKnownSource bool
+	WorkspaceID      string
+	IdempotencyKey   string
+	PayloadHash      string
+	Source           CustomerLocator
+	Target           CustomerLocator
+	ActorID          string
+	Reason           string
 }
 
 type CustomerMergeResult struct {

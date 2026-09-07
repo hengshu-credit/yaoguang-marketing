@@ -41,6 +41,14 @@ func (s *DeliveryReceiptService) ProcessChannelWebhookCallback(
 	if err != nil {
 		return nil, fmt.Errorf("load channel Webhook callback workspace: %w", err)
 	}
+	var locator domain.ChannelWebhookReceiptPayload
+	if err = json.Unmarshal(callback.Body, &locator); err != nil {
+		return nil, domain.NewValidationError("invalid channel Webhook receipt")
+	}
+	workspace, err = s.callbackProviderWorkspace(ctx, callback.WorkspaceID, callback.IntegrationID, locator.MessageID, locator.EffectKey, locator.ProviderMessageID, workspace)
+	if err != nil {
+		return nil, err
+	}
 	integration := workspace.GetIntegrationByID(callback.IntegrationID)
 	if integration == nil || integration.Type != domain.IntegrationTypeChannelWebhook ||
 		integration.ChannelWebhookSettings == nil || integration.ChannelWebhookSettings.Secret == "" {

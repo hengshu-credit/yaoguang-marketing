@@ -68,6 +68,8 @@ type EmailQueueEntry struct {
 // EmailQueuePayload contains all data needed to send the email
 // This is stored as JSONB in the database
 type EmailQueuePayload struct {
+	ExecutionMetadata map[string]interface{} `json:"execution_metadata,omitempty"`
+	ExecutionID       string                 `json:"execution_id,omitempty"`
 	// Email content (compiled and ready to send)
 	FromAddress string `json:"from_address"`
 	FromName    string `json:"from_name"`

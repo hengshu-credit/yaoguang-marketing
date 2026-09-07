@@ -20,6 +20,8 @@ export const SETTINGS_SECTIONS = [
   'frequency',
   'webhooks',
   'custom-fields',
+  'business',
+  'business-states',
   'smtp-bridge',
   'general',
   'blog',
@@ -123,6 +125,16 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
       key: 'custom-fields',
       icon: <TagsOutlined />,
       label: t`Custom Fields`
+    },
+    {
+      key: 'business',
+      icon: <TagsOutlined />,
+      label: t`Customer and event configuration`
+    },
+    {
+      key: 'business-states',
+      icon: <TagsOutlined />,
+      label: t`Customer and object states`
     },
     {
       key: 'smtp-bridge',

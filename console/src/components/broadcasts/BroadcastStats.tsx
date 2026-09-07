@@ -1,3 +1,4 @@
+import { ExecutionHistoryButton } from '../executions/ExecutionDetails'
 import { useQuery } from '@tanstack/react-query'
 import React, { useEffect } from 'react'
 import { Row, Col, Statistic, Space, Tooltip, Spin } from 'antd'
@@ -125,7 +126,7 @@ export function BroadcastStats({
   }
 
   return (
-    <Row gutter={[16, 16]} wrap className="flex-nowrap overflow-x-auto">
+    <><div style={{ marginBottom: 12 }}><ExecutionHistoryButton workspaceId={workspaceId} sourceId={broadcastId} /></div><Row gutter={[16, 16]} wrap className="flex-nowrap overflow-x-auto">
       <Col span={3}>
         <Tooltip title={t`${stats.total_sent} total emails sent - Click to view details`}>
           <div
@@ -348,6 +349,6 @@ export function BroadcastStats({
           </div>
         </Tooltip>
       </Col>
-    </Row>
+    </Row></>
   )
 }

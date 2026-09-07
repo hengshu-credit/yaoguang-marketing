@@ -10,6 +10,7 @@ import type { NodeType } from '../../services/api/automation'
 // Menu items structure without labels (labels are added inside component for i18n)
  
 export const ADD_NODE_MENU_ITEMS: { key: NodeType; label: string; icon: React.ReactNode }[] = [
+  { key: 'business_condition', label: '', icon: <ListChecks size={14} style={{ color: '#0e7490' }} /> },
   { key: 'delay', label: 'Delay', icon: <FontAwesomeIcon icon={faHourglass} style={{ color: '#faad14' }} /> },
   { key: 'email', label: 'Email', icon: <FontAwesomeIcon icon={faEnvelope} style={{ color: '#1890ff' }} /> },
   { key: 'sms', label: 'SMS', icon: <MessageSquareText size={14} style={{ color: '#08979c' }} /> },
@@ -76,6 +77,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({
       const labels: Record<NodeType, string> = {
         trigger: t`Trigger`,
         delay: t`Delay`,
+        business_condition: t`Event or state condition`,
         email: t`Email`,
         sms: t`SMS`,
         push: t`Push`,

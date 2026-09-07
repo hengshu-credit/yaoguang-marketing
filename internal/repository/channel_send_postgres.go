@@ -35,14 +35,15 @@ const channelSendFields = `effect_key, request_hash, message_id, channel, integr
 
 func scanChannelSend(scanner interface{ Scan(...interface{}) error }) (domain.ChannelSendExecution, error) {
 	var execution domain.ChannelSendExecution
-	var language, provider, providerMessageID, lastError sql.NullString
+	var email, language, provider, providerMessageID, lastError sql.NullString
 	err := scanner.Scan(
 		&execution.EffectKey, &execution.RequestHash, &execution.MessageID, &execution.Channel,
-		&execution.IntegrationID, &execution.ContactEmail, &execution.EndpointID,
+		&execution.IntegrationID, &email, &execution.EndpointID,
 		&execution.TemplateID, &execution.TemplateVersion, &language, &execution.Status,
 		&provider, &providerMessageID, &execution.Attempts, &lastError,
 		&execution.CreatedAt, &execution.UpdatedAt,
 	)
+	execution.ContactEmail = email.String
 	execution.Language = language.String
 	execution.Provider = provider.String
 	execution.ProviderMessageID = providerMessageID.String
@@ -79,6 +80,7 @@ func (r *ChannelSendPostgresRepository) Reserve(
 		execution.TemplateVersion, execution.Language, execution.Status, execution.CreatedAt, execution.UpdatedAt,
 	))
 	if err == nil {
+		stored.CustomerID = execution.CustomerID
 		return stored, true, nil
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
@@ -92,6 +94,7 @@ func (r *ChannelSendPostgresRepository) Reserve(
 	if stored.RequestHash != execution.RequestHash {
 		return domain.ChannelSendExecution{}, false, domain.ErrChannelSendHashConflict
 	}
+	stored.CustomerID = execution.CustomerID
 	return stored, false, nil
 }
 
@@ -173,12 +176,22 @@ func (r *ChannelSendPostgresRepository) Confirm(
 	externalID := providerMessageID
 	_, err = tx.ExecContext(ctx, `INSERT INTO message_history (
 		id, external_id, contact_email, template_id, template_version, channel,
-		status_info, message_data, channel_options, sent_at, created_at, updated_at
-	) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$10,$10)`,
+		status_info, message_data, channel_options, sent_at, created_at, updated_at, automation_id, customer_id
+	) VALUES ($1,$2,NULLIF($3,''),$4,$5,$6,$7,$8,$9,$10,$10,$10,NULLIF($8::jsonb->'metadata'->>'automation_id',''),NULLIF($8::jsonb->'metadata'->>'customer_id','')::uuid)`,
 		message.ID, externalID, message.ContactEmail, message.TemplateID, message.TemplateVersion,
 		message.Channel, message.StatusInfo, encryptedData, message.ChannelOptions, message.SentAt.UTC())
 	if err != nil {
 		return false, fmt.Errorf("record confirmed channel message: %w", err)
+	}
+	if executionID, _ := message.MessageData.Metadata["execution_id"].(string); executionID != "" {
+		customerID, _ := message.MessageData.Metadata["customer_id"].(string)
+		evidence, err := domain.ChannelConfirmationEvidence(executionID, domain.ChannelSendExecution{EffectKey: effectKey, MessageID: message.ID, CustomerID: customerID, Provider: provider, ProviderMessageID: providerMessageID})
+		if err != nil {
+			return false, err
+		}
+		if err = appendExecutionEvidence(ctx, tx, evidence); err != nil {
+			return false, fmt.Errorf("record confirmed channel evidence: %w", err)
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return false, fmt.Errorf("commit channel send confirmation: %w", err)

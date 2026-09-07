@@ -56,7 +56,10 @@ func (r *CustomerPostgresRepository) Get(ctx context.Context, workspaceID string
 	if err != nil {
 		return nil, err
 	}
-	if customer.MergedIntoID != nil {
+	for depth := 0; customer.MergedIntoID != nil; depth++ {
+		if depth >= 32 {
+			return nil, fmt.Errorf("customer merge redirect depth exceeded")
+		}
 		sourceID := customer.ID
 		customer, err = r.findCustomer(ctx, db, workspaceID, domain.CustomerLocator{CustomerID: *customer.MergedIntoID})
 		if err != nil {
@@ -432,7 +435,7 @@ func (r *CustomerPostgresRepository) findCustomerWithLock(ctx context.Context, d
 		query += " WHERE c.customer_no = $1"
 		args = []interface{}{locator.CustomerNo}
 	case locator.ExternalUserID != "":
-		query += " WHERE c.external_user_id = $1"
+		query += " WHERE c.external_user_id = $1 OR c.id = (SELECT customer_id FROM customer_external_id_aliases WHERE external_user_id = $1)"
 		args = []interface{}{locator.ExternalUserID}
 	case locator.Identity != nil:
 		normalized, err := domain.NormalizeCustomerIdentity(domain.CustomerIdentityInput{Type: locator.Identity.Type, Value: locator.Identity.Value})
@@ -699,7 +702,7 @@ func (r *CustomerPostgresRepository) Merge(ctx context.Context, command domain.C
 		if target.MergedIntoID != nil {
 			return &domain.ErrCustomerMergeRejected{Reason: "target customer has already been merged"}
 		}
-		if source.ExternalUserID != nil {
+		if source.ExternalUserID != nil && !command.AllowKnownSource {
 			return &domain.ErrCustomerMergeRejected{Reason: "source must be anonymous and have no external user ID"}
 		}
 		if target.ExternalUserID == nil {
@@ -715,6 +718,11 @@ func (r *CustomerPostgresRepository) Merge(ctx context.Context, command domain.C
 		now := r.now().UTC()
 		if err := moveCustomerAggregate(ctx, tx, source.ID, target.ID, now); err != nil {
 			return err
+		}
+		if command.AllowKnownSource {
+			if err := moveBusinessCustomerAggregate(ctx, tx, source.ID, target.ID); err != nil {
+				return err
+			}
 		}
 		if _, err := tx.ExecContext(ctx, `UPDATE customers SET merged_into_id = $1, merged_at = $2,
 			version = version + 1, updated_at = $2 WHERE id = $3`, target.ID, now, source.ID); err != nil {
@@ -844,7 +852,10 @@ func (r *CustomerPostgresRepository) resolveCustomerForUpsert(ctx context.Contex
 		if err != nil {
 			return nil, err
 		}
-		if customer.MergedIntoID != nil {
+		for depth := 0; customer.MergedIntoID != nil; depth++ {
+			if depth >= 32 {
+				return nil, fmt.Errorf("customer merge redirect depth exceeded")
+			}
 			customer, err = r.findCustomerWithLock(ctx, tx, workspaceID, domain.CustomerLocator{CustomerID: *customer.MergedIntoID}, true)
 			if err != nil {
 				return nil, err
@@ -864,7 +875,7 @@ func (r *CustomerPostgresRepository) resolveCustomerForUpsert(ctx context.Contex
 			}
 		} else {
 			var ownerID string
-			err := tx.QueryRowContext(ctx, `SELECT id FROM customers WHERE external_user_id = $1 AND id <> $2 FOR UPDATE`, *input.ExternalUserID, customer.ID).Scan(&ownerID)
+			err := tx.QueryRowContext(ctx, `SELECT id FROM customers WHERE external_user_id = $1 AND id <> $2 OR id = (SELECT customer_id FROM customer_external_id_aliases WHERE external_user_id=$1 AND customer_id<>$2) FOR UPDATE`, *input.ExternalUserID, customer.ID).Scan(&ownerID)
 			switch {
 			case err == nil:
 				return nil, &domain.ErrCustomerExternalIDConflict{}

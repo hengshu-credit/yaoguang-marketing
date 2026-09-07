@@ -18,6 +18,74 @@ servers:
         description: Your Yaoguang Marketing deployment domain
         default: marketing.example.com
 paths:
+  /api/subjectStates.coverage:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1subjectStates.coverage'
+
+
+  /api/contactEndpoints.list:
+    $ref: './paths/customer-endpoints.yaml#/contactEndpointsList'
+  /api/contactEndpoints.upsert:
+    $ref: './paths/customer-endpoints.yaml#/contactEndpointsUpsert'
+  /api/businessDefinitions.list:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1businessDefinitions.list'
+  /api/businessDefinitions.get:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1businessDefinitions.get'
+  /api/businessDefinitions.save:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1businessDefinitions.save'
+  /api/businessDefinitions.archive:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1businessDefinitions.archive'
+  /api/businessDefinitions.preview:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1businessDefinitions.preview'
+  /api/businessObjects.upsert:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1businessObjects.upsert'
+  /api/businessObjects.get:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1businessObjects.get'
+  /api/businessObjects.list:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1businessObjects.list'
+  /api/businessObjects.relate:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1businessObjects.relate'
+  /api/subjectStates.list:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1subjectStates.list'
+  /api/subjectStates.set:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1subjectStates.set'
+  /api/funnels.query:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1funnels.query'
+  /api/funnels.start:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1funnels.start'
+  /api/funnels.get:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1funnels.get'
+  /api/funnels.cancel:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1funnels.cancel'
+  /api/campaigns.configuration:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1campaigns.configuration'
+  /api/campaigns.update:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1campaigns.update'
+  /api/events.track:
+    $ref: './paths/tracked-events.yaml#/~1api~1events.track'
+  /api/events.batch:
+    $ref: './paths/tracked-events.yaml#/~1api~1events.batch'
+  /api/events.get:
+    $ref: './paths/tracked-events.yaml#/~1api~1events.get'
+  /api/events.list:
+    $ref: './paths/tracked-events.yaml#/~1api~1events.list'
+  /api/browserEvents.issueCredential:
+    $ref: './paths/tracked-events.yaml#/~1api~1browserEvents.issueCredential'
+  /api/events.resolvePending:
+    $ref: './paths/tracked-events.yaml#/~1api~1events.resolvePending'
+  /api/events.diagnostics:
+    $ref: './paths/tracked-events.yaml#/~1api~1events.diagnostics'
+  /track/events:
+    $ref: './paths/tracked-events.yaml#/~1track~1events'
+  /track/identify:
+    $ref: './paths/tracked-events.yaml#/~1track~1identify'
+  /api/executions.get:
+    $ref: './paths/execution-snapshots.yaml#/executionsGet'
+  /api/executions.list:
+    $ref: './paths/execution-snapshots.yaml#/executionsList'
+  /api/executions.asset:
+    $ref: './paths/execution-snapshots.yaml#/executionsAsset'
+  /api/executions.observations:
+    $ref: './paths/execution-snapshots.yaml#/executionsObservations'
   /api/channels.catalog:
     $ref: './paths/channels.yaml#/~1api~1channels.catalog'
   /api/timeline.list:

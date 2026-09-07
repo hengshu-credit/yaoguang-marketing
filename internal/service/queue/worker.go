@@ -49,6 +49,9 @@ type EmailFailedCallback func(workspaceID string, sourceType domain.EmailQueueSo
 
 // EmailQueueWorker processes queued emails
 type EmailQueueWorker struct {
+	executionProviders interface {
+		ResolveExecutionIntegration(context.Context, string, string, string, *domain.Workspace) (*domain.Integration, error)
+	}
 	queueRepo           domain.EmailQueueRepository
 	workspaceRepo       domain.WorkspaceRepository
 	emailService        domain.EmailServiceInterface
@@ -302,12 +305,27 @@ func (w *EmailQueueWorker) SetAudienceEligibilityChecker(checker AudienceEligibi
 	w.audienceEligibility = checker
 }
 
+func (w *EmailQueueWorker) SetExecutionProviderResolver(resolver interface {
+	ResolveExecutionIntegration(context.Context, string, string, string, *domain.Workspace) (*domain.Integration, error)
+}) {
+	w.executionProviders = resolver
+}
+
 func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *domain.EmailQueueEntry) {
 	claimed := entry.ClaimToken != ""
 	deliveryEnabled := claimed && w.deliveryRepo != nil && entry.DeliveryIntentID != ""
 	// Get the integration to retrieve the email provider (needed for circuit breaker check)
 	integration := workspace.GetIntegrationByID(entry.IntegrationID)
-	if integration == nil {
+	var providerErr error
+	if entry.Payload.ExecutionID != "" {
+		if w.executionProviders == nil {
+			providerErr = errors.New("execution provider archive unavailable")
+			integration = nil
+		} else {
+			integration, providerErr = w.executionProviders.ResolveExecutionIntegration(w.ctx, workspace.ID, entry.Payload.ExecutionID, entry.IntegrationID, workspace)
+		}
+	}
+	if integration == nil || providerErr != nil {
 		// Mark as processing first to increment attempts, then handle error
 		if !claimed {
 			if err := w.queueRepo.MarkAsProcessing(w.ctx, workspace.ID, entry.ID); err != nil {
@@ -318,7 +336,7 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 				return
 			}
 		}
-		w.handleError(workspace, entry, fmt.Errorf("integration not found: %s", entry.IntegrationID), nil)
+		w.handleError(workspace, entry, fmt.Errorf("integration unavailable for execution: %s", entry.IntegrationID), nil)
 		return
 	}
 
@@ -828,8 +846,8 @@ func (w *EmailQueueWorker) upsertMessageHistory(
 		TemplateID:      entry.TemplateID,
 		TemplateVersion: int64(entry.Payload.TemplateVersion),
 		Channel:         "email",
-		MessageData:     domain.MessageData{Data: entry.Payload.TemplateData}, // Include template data for logging
-		SentAt:          entry.CreatedAt,                                      // Use queue entry creation time (stable across retries)
+		MessageData:     domain.MessageData{Data: entry.Payload.TemplateData, Metadata: entry.Payload.ExecutionMetadata}, // Include template data for logging
+		SentAt:          entry.CreatedAt,                                                                                 // Use queue entry creation time (stable across retries)
 		CreatedAt:       entry.CreatedAt,
 		UpdatedAt:       now,
 	}

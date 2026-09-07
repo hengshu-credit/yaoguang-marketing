@@ -558,3 +558,14 @@ func scanBroadcast(scanner interface {
 
 	return broadcast, nil
 }
+
+// UpdateBroadcastExecutionProgress cannot overwrite settings edited for a
+// future run while an old immutable execution finishes.
+func (r *broadcastRepository) UpdateBroadcastExecutionProgress(ctx context.Context, b *domain.Broadcast) error {
+	db, err := r.workspaceRepo.GetConnection(ctx, b.WorkspaceID)
+	if err != nil {
+		return err
+	}
+	_, err = db.ExecContext(ctx, `UPDATE broadcasts SET status=$3,winning_template=$4,test_sent_at=$5,winner_sent_at=$6,enqueued_count=$7,started_at=$8,completed_at=$9,cancelled_at=$10,paused_at=$11,pause_reason=$12,updated_at=CURRENT_TIMESTAMP WHERE id=$1 AND workspace_id=$2`, b.ID, b.WorkspaceID, b.Status, b.WinningTemplate, b.TestSentAt, b.WinnerSentAt, b.EnqueuedCount, b.StartedAt, b.CompletedAt, b.CancelledAt, b.PausedAt, b.PauseReason)
+	return err
+}

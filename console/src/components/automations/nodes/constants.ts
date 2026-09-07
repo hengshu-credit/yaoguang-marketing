@@ -4,6 +4,7 @@ import type { NodeType } from '../../../services/api/automation'
 export const nodeTypeColors: Record<NodeType, string> = {
   trigger: '#52c41a', // green
   delay: '#faad14', // gold
+  business_condition: '#0e7490',
   email: '#1890ff', // blue
   sms: '#08979c', // cyan
   push: '#531dab', // purple

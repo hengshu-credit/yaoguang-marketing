@@ -592,13 +592,13 @@ func (r *AutomationRepository) ClaimContactAutomation(
 		  AND a.id = ca.automation_id
 		  AND a.status = 'live'
 		  AND a.deleted_at IS NULL
-		  AND a.version = ca.automation_version
+		  AND (a.version = ca.automation_version OR EXISTS(SELECT 1 FROM journey_instances i JOIN execution_config_snapshots s ON s.execution_id=i.id::text WHERE i.contact_automation_id=ca.id AND (s.configuration->>'version')::integer=ca.automation_version))
 		RETURNING ca.id, ca.automation_id, ca.contact_email, ca.current_node_id,
 		          ca.status, ca.exit_reason, ca.entered_at, ca.scheduled_at,
 		          ca.context, ca.retry_count, ca.last_error, ca.last_retry_at,
 		          ca.max_retries, ca.origin_event_id, ca.automation_version,
 		          ca.state_version, ca.claim_token, ca.claimed_by, ca.claimed_at,
-		          ca.claim_expires_at
+		          ca.claim_expires_at, ca.customer_id
 	`, contactAutomationID, now, domain.ContactAutomationStatusActive, claimToken, workerID, expiresAt))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, false, nil
@@ -619,12 +619,12 @@ func scanContactAutomationClaim(scanner rowScanner) (*domain.ContactAutomationCl
 
 	err := scanner.Scan(
 		&claim.ContactAutomation.ID, &claim.ContactAutomation.AutomationID,
-		&claim.ContactAutomation.ContactEmail, &currentNodeID,
+		optionalString{&claim.ContactAutomation.ContactEmail}, &currentNodeID,
 		&claim.ContactAutomation.Status, &exitReason, &claim.ContactAutomation.EnteredAt,
 		&scheduledAt, &contextJSON, &claim.ContactAutomation.RetryCount,
 		&lastError, &lastRetryAt, &claim.ContactAutomation.MaxRetries,
 		&originEventID, &claim.AutomationVersion, &claim.StateVersion,
-		&claimToken, &claimedBy, &claimedAt, &expiresAt,
+		&claimToken, &claimedBy, &claimedAt, &expiresAt, optionalString{&claim.ContactAutomation.CustomerID},
 	)
 	if err != nil {
 		return nil, err
@@ -747,7 +747,7 @@ func (r *AutomationRepository) CommitContactAutomationState(
 		  AND EXISTS (
 		      SELECT 1 FROM automations AS a
 		      WHERE a.id = contact_automations.automation_id
-		        AND a.version = $13
+		        AND (a.version = $13 OR EXISTS(SELECT 1 FROM journey_instances i JOIN execution_config_snapshots s ON s.execution_id=i.id::text WHERE i.contact_automation_id=contact_automations.id AND (s.configuration->>'version')::integer=$13))
 		        AND a.status = 'live'
 		        AND a.deleted_at IS NULL
 		  )
@@ -766,6 +766,12 @@ func (r *AutomationRepository) CommitContactAutomationState(
 	}
 	if rows == 0 {
 		return false, nil
+	}
+
+	if commit.Evidence != nil {
+		if err := r.CreateNodeExecutionTx(ctx, tx, workspaceID, commit.Evidence); err != nil {
+			return false, err
+		}
 	}
 
 	if commit.SideEffect != nil {
@@ -962,6 +968,9 @@ func (r *AutomationRepository) DeleteTx(ctx context.Context, tx *sql.Tx, workspa
 
 // CreateAutomationTrigger creates a database trigger for an automation
 func (r *AutomationRepository) CreateAutomationTrigger(ctx context.Context, workspaceID string, automation *domain.Automation) error {
+	if automation.Trigger != nil && automation.Trigger.EventKind == "tracked_event" {
+		return r.CreateRealtimeTriggerBinding(ctx, workspaceID, automation)
+	}
 	db, err := r.getDB(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to get database connection: %w", err)
@@ -1065,10 +1074,11 @@ func (r *AutomationRepository) CreateRealtimeTriggerBinding(
 	if r.bindingCompiler == nil {
 		return errors.New("realtime trigger binding compiler is not configured")
 	}
-	binding, err := r.bindingCompiler.Compile(automation)
+	bindings, err := r.bindingCompiler.CompileAll(automation)
 	if err != nil {
 		return domain.NewTriggerConditionError(fmt.Sprintf("failed to compile realtime trigger binding: %v", err))
 	}
+	binding := bindings[0]
 	db, err := r.getDB(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to get database connection: %w", err)
@@ -1113,7 +1123,10 @@ func (r *AutomationRepository) CreateRealtimeTriggerBinding(
 	`, automation.ID, workspaceID).Scan(&binding.AutomationVersion); err != nil {
 		return fmt.Errorf("failed to version realtime trigger binding: %w", err)
 	}
-	if err := replaceTriggerBindingsTx(ctx, tx, automation.ID, []domain.TriggerBinding{binding}); err != nil {
+	for index := range bindings {
+		bindings[index].AutomationVersion = binding.AutomationVersion
+	}
+	if err := replaceTriggerBindingsTx(ctx, tx, automation.ID, bindings); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {
@@ -1245,7 +1258,7 @@ func (r *AutomationRepository) GetContactAutomationTx(ctx context.Context, tx *s
 		Select(
 			"id", "automation_id", "contact_email", "current_node_id", "status",
 			"exit_reason", "entered_at", "scheduled_at", "context", "retry_count", "last_error",
-			"last_retry_at", "max_retries",
+			"last_retry_at", "max_retries", "customer_id",
 		).
 		From("contact_automations").
 		Where(sq.Eq{"id": id}).
@@ -1271,9 +1284,9 @@ func (r *AutomationRepository) GetContactAutomationTx(ctx context.Context, tx *s
 	var contextJSON []byte
 
 	err = queryer.QueryRowContext(ctx, query, args...).Scan(
-		&ca.ID, &ca.AutomationID, &ca.ContactEmail, &ca.CurrentNodeID, &ca.Status,
+		&ca.ID, &ca.AutomationID, optionalString{&ca.ContactEmail}, &ca.CurrentNodeID, &ca.Status,
 		&ca.ExitReason, &ca.EnteredAt, &ca.ScheduledAt, &contextJSON, &ca.RetryCount, &ca.LastError,
-		&ca.LastRetryAt, &ca.MaxRetries,
+		&ca.LastRetryAt, &ca.MaxRetries, optionalString{&ca.CustomerID},
 	)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("contact automation not found: %s", id)
@@ -1302,7 +1315,7 @@ func (r *AutomationRepository) GetContactAutomationByEmail(ctx context.Context, 
 		Select(
 			"id", "automation_id", "contact_email", "current_node_id", "status",
 			"exit_reason", "entered_at", "scheduled_at", "context", "retry_count", "last_error",
-			"last_retry_at", "max_retries",
+			"last_retry_at", "max_retries", "customer_id",
 		).
 		From("contact_automations").
 		Where(sq.Eq{"automation_id": automationID, "contact_email": email}).
@@ -1317,9 +1330,9 @@ func (r *AutomationRepository) GetContactAutomationByEmail(ctx context.Context, 
 	var contextJSON []byte
 
 	err = db.QueryRowContext(ctx, query, args...).Scan(
-		&ca.ID, &ca.AutomationID, &ca.ContactEmail, &ca.CurrentNodeID, &ca.Status,
+		&ca.ID, &ca.AutomationID, optionalString{&ca.ContactEmail}, &ca.CurrentNodeID, &ca.Status,
 		&ca.ExitReason, &ca.EnteredAt, &ca.ScheduledAt, &contextJSON, &ca.RetryCount, &ca.LastError,
-		&ca.LastRetryAt, &ca.MaxRetries,
+		&ca.LastRetryAt, &ca.MaxRetries, optionalString{&ca.CustomerID},
 	)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("contact automation not found for email: %s", email)
@@ -1384,7 +1397,7 @@ func (r *AutomationRepository) ListContactAutomations(ctx context.Context, works
 		Select(
 			"id", "automation_id", "contact_email", "current_node_id", "status",
 			"exit_reason", "entered_at", "scheduled_at", "context", "retry_count", "last_error",
-			"last_retry_at", "max_retries",
+			"last_retry_at", "max_retries", "customer_id",
 		).
 		From("contact_automations").
 		Where(whereClause).
@@ -1414,9 +1427,9 @@ func (r *AutomationRepository) ListContactAutomations(ctx context.Context, works
 		var contextJSON []byte
 
 		err := rows.Scan(
-			&ca.ID, &ca.AutomationID, &ca.ContactEmail, &ca.CurrentNodeID, &ca.Status,
+			&ca.ID, &ca.AutomationID, optionalString{&ca.ContactEmail}, &ca.CurrentNodeID, &ca.Status,
 			&ca.ExitReason, &ca.EnteredAt, &ca.ScheduledAt, &contextJSON, &ca.RetryCount, &ca.LastError,
-			&ca.LastRetryAt, &ca.MaxRetries,
+			&ca.LastRetryAt, &ca.MaxRetries, optionalString{&ca.CustomerID},
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan contact automation row: %w", err)
@@ -1511,7 +1524,7 @@ func (r *AutomationRepository) GetScheduledContactAutomations(ctx context.Contex
 	query := `
 		SELECT ca.id, ca.automation_id, ca.contact_email, ca.current_node_id, ca.status,
 		       ca.exit_reason, ca.entered_at, ca.scheduled_at, ca.context, ca.retry_count, ca.last_error,
-		       ca.last_retry_at, ca.max_retries
+		       ca.last_retry_at, ca.max_retries, ca.customer_id
 		FROM contact_automations ca
 		JOIN automations a ON ca.automation_id = a.id
 		WHERE ca.status = 'active'
@@ -1536,9 +1549,9 @@ func (r *AutomationRepository) GetScheduledContactAutomations(ctx context.Contex
 		var contextJSON []byte
 
 		err := rows.Scan(
-			&ca.ID, &ca.AutomationID, &ca.ContactEmail, &ca.CurrentNodeID, &ca.Status,
+			&ca.ID, &ca.AutomationID, optionalString{&ca.ContactEmail}, &ca.CurrentNodeID, &ca.Status,
 			&ca.ExitReason, &ca.EnteredAt, &ca.ScheduledAt, &contextJSON, &ca.RetryCount, &ca.LastError,
-			&ca.LastRetryAt, &ca.MaxRetries,
+			&ca.LastRetryAt, &ca.MaxRetries, optionalString{&ca.CustomerID},
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan contact automation row: %w", err)

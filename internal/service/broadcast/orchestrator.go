@@ -56,6 +56,10 @@ type BroadcastOrchestrator struct {
 	audienceRunResolver AudienceRunResolver
 }
 
+type broadcastExecutionBinder interface {
+	BindBroadcastExecution(context.Context, string, *domain.Broadcast) (context.Context, *domain.Broadcast, error)
+}
+
 type AudienceRunResolver interface {
 	PrepareBroadcastExecution(context.Context, string, *domain.Broadcast) (*domain.CampaignRun, error)
 }
@@ -164,7 +168,7 @@ func (o *BroadcastOrchestrator) ensureExecutionAudience(ctx context.Context, wor
 	if o.timeProvider != nil {
 		broadcast.UpdatedAt = o.timeProvider.Now().UTC()
 	}
-	if err := o.broadcastRepo.UpdateBroadcast(ctx, broadcast); err != nil {
+	if err := o.persistBroadcastProgress(ctx, broadcast); err != nil {
 		return false, fmt.Errorf("persist resolved broadcast audience: %w", err)
 	}
 	return true, nil
@@ -876,6 +880,13 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 		}
 	}
 
+	if binder, ok := o.audienceRunResolver.(broadcastExecutionBinder); ok {
+		ctx, broadcast, err = binder.BindBroadcastExecution(ctx, task.WorkspaceID, broadcast)
+		if err != nil {
+			return false, err
+		}
+	}
+
 	// Determine phase based on broadcast status and test settings
 	if broadcast.TestSettings.Enabled {
 		// A/B testing enabled
@@ -893,7 +904,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 					if broadcast.Status != domain.BroadcastStatusTesting {
 						broadcast.Status = domain.BroadcastStatusTesting
 						broadcast.UpdatedAt = time.Now().UTC()
-						if err := o.broadcastRepo.UpdateBroadcast(ctx, broadcast); err != nil {
+						if err := o.persistBroadcastProgress(ctx, broadcast); err != nil {
 							o.logger.WithFields(map[string]interface{}{
 								"broadcast_id": broadcast.ID,
 								"error":        err.Error(),
@@ -1060,6 +1071,12 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 		// Refresh broadcast each iteration to observe external changes (e.g., manual winner selection, cancellation)
 		if refreshed, refreshErr := o.broadcastRepo.GetBroadcast(ctx, task.WorkspaceID, broadcastState.BroadcastID); refreshErr == nil && refreshed != nil {
 			broadcast = refreshed
+			if binder, ok := o.audienceRunResolver.(broadcastExecutionBinder); ok {
+				ctx, broadcast, err = binder.BindBroadcastExecution(ctx, task.WorkspaceID, broadcast)
+				if err != nil {
+					return false, err
+				}
+			}
 
 			// Check if broadcast has been cancelled
 			if broadcast.Status == domain.BroadcastStatusCancelled {
@@ -1732,4 +1749,15 @@ func (o *BroadcastOrchestrator) evaluateWinner(ctx context.Context, broadcast *d
 	}).Info("Auto winner evaluation completed successfully")
 
 	return nil
+}
+
+func (o *BroadcastOrchestrator) persistBroadcastProgress(ctx context.Context, b *domain.Broadcast) error {
+	if domain.ExecutionIDFromContext(ctx) != "" {
+		if writer, ok := o.broadcastRepo.(interface {
+			UpdateBroadcastExecutionProgress(context.Context, *domain.Broadcast) error
+		}); ok {
+			return writer.UpdateBroadcastExecutionProgress(ctx, b)
+		}
+	}
+	return o.broadcastRepo.UpdateBroadcast(ctx, b)
 }

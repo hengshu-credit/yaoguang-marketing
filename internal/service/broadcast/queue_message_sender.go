@@ -509,6 +509,7 @@ func (s *queueMessageSender) checkAudienceEligibility(
 		NodeOrPhase: phase, Occurrence: occurrence, Variant: template.ID, Status: domain.DeliveryStatusSuppressed,
 		SuppressionReason: audienceNoLongerMatchedReason,
 		Metadata: domain.MapOfAny{
+			"execution_id": broadcast.Audience.CampaignRunID, "run_id": broadcast.Audience.CampaignRunID,
 			"audience_id": broadcast.Audience.AudienceID, "audience_version": broadcast.Audience.AudienceVersion,
 			"audience_build_id": broadcast.Audience.AudienceBuildID, "snapshot_ordinal": snapshotOrdinal,
 		},
@@ -556,7 +557,7 @@ func (s *queueMessageSender) buildQueueEntry(
 	// here is that recipient's own. A mint failure is logged and the entry is
 	// built without it: an unidentified visit costs analytics precision, a
 	// dropped entry costs the email.
-	identifyToken, identifyAllowedHosts, identifyErr := mintIdentifyToken(email, workspaceSecretKey, webAnalytics)
+	identifyToken, identifyAllowedHosts, identifyErr := mintIdentifyToken(email, workspaceSecretKey, webAnalytics, executionTouchpointID(ctx, messageID))
 	if identifyErr != nil {
 		s.logger.WithFields(map[string]interface{}{
 			"broadcast_id": broadcast.ID,
@@ -582,6 +583,12 @@ func (s *queueMessageSender) buildQueueEntry(
 	}
 
 	// Resolve language variant
+	if frozen, id, bound, err := domain.ExecutionEmailProviderFromContext(ctx); bound {
+		if err != nil {
+			return nil, err
+		}
+		emailProvider, integrationID = frozen, id
+	}
 	emailContent := template.ResolveEmailContent(contactLanguage, workspaceDefaultLanguage)
 	if emailContent == nil {
 		return nil, fmt.Errorf("email content not available after language resolution")
@@ -648,6 +655,8 @@ func (s *queueMessageSender) buildQueueEntry(
 		MessageID:     messageID,
 		TemplateID:    template.ID,
 		Payload: domain.EmailQueuePayload{
+			ExecutionMetadata:  domain.ExecutionMetadataFromContext(ctx),
+			ExecutionID:        domain.ExecutionIDFromContext(ctx),
 			FromAddress:        sender.Email,
 			FromName:           sender.Name,
 			Subject:            subject,
@@ -705,6 +714,9 @@ func (s *queueMessageSender) selectTemplate(templates map[string]*domain.Templat
 }
 
 func broadcastDeliverySourceVersion(broadcast *domain.Broadcast) string {
+	if broadcast != nil && broadcast.Audience.CampaignRunID != "" {
+		return broadcast.Audience.CampaignRunID
+	}
 	if broadcast != nil && broadcast.Metadata != nil {
 		if version, ok := broadcast.Metadata["source_version"].(string); ok && strings.TrimSpace(version) != "" {
 			return strings.TrimSpace(version)
@@ -821,7 +833,7 @@ func (s *queueMessageSender) reserveBroadcastEntry(ctx context.Context, workspac
 		SourceID: broadcast.ID, SourceVersion: broadcastDeliverySourceVersion(broadcast), CustomerID: customerID,
 		Channel: "email", TemplateID: template.ID, TemplateVersion: template.Version,
 		NodeOrPhase: phase, Occurrence: occurrence, Variant: template.ID, Status: domain.DeliveryStatusReserved,
-		Metadata: domain.MapOfAny{"recipient_email": domain.NormalizeEmail(email)},
+		Metadata: domain.MapOfAny{"recipient_email": domain.NormalizeEmail(email), "execution_id": broadcast.Audience.CampaignRunID, "run_id": broadcast.Audience.CampaignRunID, "touchpoint_id": entry.MessageID},
 	}
 	if s.frequencyEvaluator != nil {
 		decision, evaluationErr := s.frequencyEvaluator.Evaluate(ctx, domain.FrequencyEvaluationRequest{
@@ -858,7 +870,14 @@ func (s *queueMessageSender) reserveMissingIdentityIntent(ctx context.Context, w
 		SourceID: broadcast.ID, SourceVersion: broadcastDeliverySourceVersion(broadcast), CustomerID: customerID,
 		Channel: "email", TemplateID: template.ID, TemplateVersion: template.Version,
 		NodeOrPhase: phase, Occurrence: occurrence, Variant: template.ID, Status: domain.DeliveryStatusSuppressed,
-		SuppressionReason: "missing_identity", Metadata: domain.MapOfAny{"snapshot_ordinal": ordinal},
+		SuppressionReason: "missing_identity", Metadata: domain.MapOfAny{"snapshot_ordinal": ordinal, "execution_id": broadcast.Audience.CampaignRunID, "run_id": broadcast.Audience.CampaignRunID},
 	})
 	return err
+}
+
+func executionTouchpointID(ctx context.Context, messageID string) string {
+	if domain.ExecutionIDFromContext(ctx) != "" {
+		return messageID
+	}
+	return ""
 }
