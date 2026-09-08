@@ -19963,3 +19963,12 @@ msgstr "模板与客户导出的字段一致，并自动包含最新字段和客
 
 msgid "Include external_id, email or phone; at least one customer identifier is required."
 msgstr "请包含 external_id、email 或 phone；至少需要一个客户标识。"
+
+msgid "Message cards"
+msgstr "消息卡片"
+
+msgid "Swipe to explore"
+msgstr "左右滑动，查看更多"
+
+msgid "Show card {number}"
+msgstr "查看第 {number} 张卡片"

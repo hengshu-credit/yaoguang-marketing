@@ -4,6 +4,8 @@
 
 `HtmlPreview` renders HTML inside the same device with an empty iframe sandbox. Keep the sandbox when adding new HTML surfaces. `PreviewToolbar` provides shared controls and the simulation label.
 
+Mobile In-App messages distinguish the three content families: a top-aligned notification with a thumbnail, a rich card with a hero image and touch-friendly actions, and horizontally snapping carousel cards with a neighboring-card hint, page buttons and a count. `MobileCarousel` tracks manual scrolling, supports RTL and keyboard navigation, and respects reduced motion when selecting a page. Long content remains available through the device viewport; failed media retains text and actions. These styles are scoped to `material-mobile-marketing`; desktop clients, native Push and chat-channel layouts keep their existing presentation.
+
 `EmailPreview` combines that sandboxed body with the sender name/address, rendered subject and preview text. Email editors pass the metadata from their settings and use the subject/summary returned by the same compile request as the body. Web pages continue to use `HtmlPreview` without a mail header.
 
 The HTML layout viewport is independent of the available panel width: desktop uses 1024px, Android 393px, and iOS/H5 375px, then scales to the device screen. This keeps desktop media queries from falling back to mobile layouts inside narrow drawers.

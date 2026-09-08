@@ -25,6 +25,21 @@ const preview: GenericChannelPreview = {
 }
 
 describe('OmnichannelPreview', () => {
+  it.each(['ltr', 'rtl'] as const)('supports mobile carousel page controls and keyboard navigation in %s', (direction) => {
+    const cards = ['First', 'Second', 'Third'].map(title => ({ title, body: 'Offer details' }))
+    const { rerender } = render(<OmnichannelPreview definition={{ ...definition, id: 'in_app' }} preview={{ ...preview, profile: 'in_app_ios', direction, message: { family: 'carousel', cards } }} onProfileChange={vi.fn()} />)
+    const rail = screen.getByRole('region', { name: 'Message cards' })
+    rail.scrollBy = vi.fn()
+    fireEvent.click(screen.getByRole('button', { name: 'Show card 3' }))
+    expect(screen.getByRole('button', { name: 'Show card 3' })).toHaveAttribute('aria-current', 'true')
+    fireEvent.keyDown(rail, { key: direction === 'rtl' ? 'ArrowRight' : 'ArrowLeft' })
+    expect(screen.getByRole('button', { name: 'Show card 2' })).toHaveAttribute('aria-current', 'true')
+    fireEvent.keyDown(rail, { key: 'Home' })
+    expect(screen.getByRole('button', { name: 'Show card 1' })).toHaveAttribute('aria-current', 'true')
+    rerender(<OmnichannelPreview definition={{ ...definition, id: 'in_app' }} preview={{ ...preview, profile: 'in_app_ios', direction, message: { family: 'carousel', cards: cards.slice(0, 1) } }} onProfileChange={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: 'Show card 2' })).not.toBeInTheDocument()
+    expect(screen.getByText('First')).toBeVisible()
+  })
   it('renders In-App content inside an app rather than a lock screen notification', () => {
     const { container } = render(<OmnichannelPreview definition={{ ...definition, id: 'in_app', label_key: 'In-App' }} preview={{ ...preview, profile: 'in_app_web' }} onProfileChange={vi.fn()} />)
     expect(container.querySelector('.material-in-app')).toBeInTheDocument()

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLingui } from '@lingui/react/macro'
 import { ImageOff } from 'lucide-react'
 import type { ChannelAction, ChannelMedia, ChannelTemplateContent } from '../../../services/api/template'
+import MobileCarousel from './MobileCarousel'
 
 function Media({ media }: { media: ChannelMedia }) {
   const { t } = useLingui()
@@ -22,8 +23,8 @@ function Actions({ actions }: { actions?: ChannelAction[] }) {
   )}</div>
 }
 
-export default function MessageContent({ content, direction }: { content: ChannelTemplateContent; direction: 'ltr' | 'rtl' }) {
-  return <div className="material-message" dir={direction}>
+export default function MessageContent({ content, direction, mobileMarketing = false }: { content: ChannelTemplateContent; direction: 'ltr' | 'rtl'; mobileMarketing?: boolean }) {
+  return <div className={`material-message${mobileMarketing ? ` material-message--mobile-${content.family}` : ''}`} dir={direction}>
     {content.media?.url && <Media media={content.media} />}
     {(content.title || content.body || content.footer || content.external_template) && <div className="material-message__text">
       {content.title && <strong>{content.title}</strong>}
@@ -31,7 +32,7 @@ export default function MessageContent({ content, direction }: { content: Channe
       {content.footer && <small>{content.footer}</small>}
       {content.external_template && <><strong>{content.external_template.id}</strong><small>{content.external_template.language}</small>{content.external_template.parameters?.map((parameter, index) => <p key={index}>{parameter.name}: {parameter.value}</p>)}</>}
     </div>}
-    {content.cards?.length ? <div className="material-message__cards" tabIndex={0}>{content.cards.map((card, index) => <div className="material-message__card" key={index}>
+    {content.cards?.length ? mobileMarketing ? <MobileCarousel cards={content.cards} direction={direction} /> : <div className="material-message__cards" tabIndex={0}>{content.cards.map((card, index) => <div className="material-message__card" key={index}>
       <MessageContent content={{ ...card, family: 'rich_card' }} direction={direction} />
     </div>)}</div> : null}
     <Actions actions={content.actions} />

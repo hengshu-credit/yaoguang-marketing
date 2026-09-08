@@ -19867,3 +19867,12 @@ msgstr "Templates match customer exports and include the latest fields and attri
 
 msgid "Include external_id, email or phone; at least one customer identifier is required."
 msgstr "Include external_id, email or phone; at least one customer identifier is required."
+
+msgid "Message cards"
+msgstr "Message cards"
+
+msgid "Swipe to explore"
+msgstr "Swipe to explore"
+
+msgid "Show card {number}"
+msgstr "Show card {number}"
