@@ -6,6 +6,8 @@ import { useLingui } from '@lingui/react/macro'
 import { listsApi } from '../../services/api/list'
 import { importJobApi, type ImportJob } from '../../services/api/marketing'
 import { ActionableError } from '../errors/ActionableError'
+import { ImportTemplateButtons } from '../contacts/ImportTemplateButtons'
+import { CONTACT_IMPORT_ACCEPT, isContactImportFile } from '../../utils/contactImportFile'
 
 interface CustomerImportPanelProps {
   workspaceId: string
@@ -42,12 +44,18 @@ export function CustomerImportPanel({ workspaceId, canWrite, canBindLists = true
     refetchInterval: (query) => query.state.data && ['staged', 'processing', 'uploading'].includes(query.state.data.status) ? 2000 : false
   })
   const upload = async (file: File) => {
+    if (!canWrite || uploading) return false
+    if (!isContactImportFile(file)) {
+      message.error(t`Please upload a CSV, XLSX or XLS file.`)
+      return false
+    }
     setUploading(true)
     try {
       const job = await importJobApi.upload(workspaceId, file, canBindLists ? selectedListIDs : [])
       setImportJob(job)
       await queryClient.invalidateQueries({ queryKey: ['customer-imports', workspaceId] })
-      message.success(job.status === 'rejected' ? t`The file was received but rejected by the configured import limits.` : t`The file was received and will continue processing in the background.`)
+      if (job.status === 'rejected') message.warning(t`The import was rejected. Check the file format, headers and configured import limits.`)
+      else message.success(t`The file was received and will continue processing in the background.`)
     } catch (error) {
       message.error(error instanceof Error ? error.message : t`Upload failed`)
     } finally {
@@ -85,7 +93,7 @@ export function CustomerImportPanel({ workspaceId, canWrite, canBindLists = true
   }
 
   return (
-    <Card title={t`Customer CSV import`}>
+    <Card>
       <Alert
         type="info"
         showIcon
@@ -114,22 +122,24 @@ export function CustomerImportPanel({ workspaceId, canWrite, canBindLists = true
       </div> : null}
 
       <Steps className="mb-6" current={importStep} items={[
-        { title: t`Upload`, content: t`Receive the complete CSV` },
+        { title: t`Upload`, content: t`Receive the complete file` },
         { title: t`Map fields`, content: t`Read customer identifiers` },
         { title: t`Validate`, content: t`Retain invalid rows` },
         { title: t`Process`, content: t`Continue after this page closes` },
         { title: t`Complete`, content: t`Review successes and failures` }
       ]} />
+      <ImportTemplateButtons workspaceId={workspaceId} />
       <Upload.Dragger
-        accept=".csv,text/csv"
+        accept={CONTACT_IMPORT_ACCEPT}
         maxCount={1}
         beforeUpload={(file) => { void upload(file); return false }}
         showUploadList={false}
         disabled={!canWrite || uploading || (canBindLists && lists.isLoading)}
       >
         <p className="ant-upload-drag-icon"><InboxOutlined /></p>
-        <p>{t`Click or drag a CSV file here`}</p>
-        <p>{t`Include external_user_id, email or phone; at least one customer identifier is required.`}</p>
+        <p>{uploading ? t`Uploading...` : t`Click or drag a CSV or Excel file here`}</p>
+        <p>{t`Include external_id, email or phone; at least one customer identifier is required.`}</p>
+        <p>{t`Excel imports the first worksheet. Keep identifiers and phone numbers as text to preserve leading zeros and long numbers.`}</p>
       </Upload.Dragger>
 
       {currentImport ? (

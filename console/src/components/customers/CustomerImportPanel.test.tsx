@@ -82,6 +82,24 @@ describe('CustomerImportPanel', () => {
     expect(fileInput).not.toBeDisabled()
   })
 
+  it.each(['xlsx', 'xls'])('accepts %s files and exposes both template downloads', async (extension) => {
+    const { container } = render(<CustomerImportPanel workspaceId="ws1" canWrite canBindLists={false} />, { wrapper })
+    expect(screen.getByRole('button', { name: 'Download CSV template' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Download Excel template' })).toBeInTheDocument()
+    const fileInput = container.querySelector<HTMLInputElement>('input[type="file"]')!
+    expect(fileInput.accept).toContain(`.${extension}`)
+    const file = new File(['workbook'], `customers.${extension}`)
+    fireEvent.change(fileInput, { target: { files: [file] } })
+    await waitFor(() => expect(uploadImport).toHaveBeenCalledWith('ws1', file, []))
+  })
+
+  it('rejects unsupported files before making an upload request', async () => {
+    const { container } = render(<CustomerImportPanel workspaceId="ws1" canWrite canBindLists={false} />, { wrapper })
+    fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [new File(['{}'], 'customers.json')] } })
+    expect(await screen.findByText('Please upload a CSV, XLSX or XLS file.')).toBeInTheDocument()
+    expect(uploadImport).not.toHaveBeenCalled()
+  })
+
   it('disables uploads and hides cancellation for read-only users', async () => {
     listLists.mockResolvedValue({ lists: [] })
     const job = { id: 'job-2', filename: 'pending.csv', status: 'processing', counters: { total: 1, pending: 0, processing: 1, succeeded: 0, failed: 0 } }

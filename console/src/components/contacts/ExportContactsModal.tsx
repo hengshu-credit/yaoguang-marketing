@@ -5,7 +5,7 @@ import Papa from 'papaparse'
 import { ContactsSearch } from '../../router'
 import { Workspace, List, Segment } from '../../services/api/types'
 import { contactsApi, Contact, ListContactsRequest } from '../../services/api/contacts'
-import { getCustomFieldLabel } from '../../hooks/useCustomFieldLabel'
+import { contactFileSchema, exportContactField } from '../../utils/contactFileSchema'
 
 interface ExportContactsModalProps {
   visible: boolean
@@ -21,7 +21,6 @@ export function ExportContactsModal({
   visible,
   onCancel,
   workspaceId,
-  workspace,
   filters,
   segmentsData,
   listsData
@@ -97,7 +96,7 @@ export function ExportContactsModal({
 
   // Download file helper
   const downloadFile = (content: string, filename: string) => {
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
+    const blob = new Blob(['\uFEFF', content], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
@@ -131,6 +130,7 @@ export function ExportContactsModal({
     let cursor: string | undefined = undefined
 
     try {
+      const fields = await contactFileSchema.load(workspaceId)
       // Fetch all contacts with pagination
       while (true) {
         // Check if aborted
@@ -146,13 +146,15 @@ export function ExportContactsModal({
           external_id: filters.external_id,
           first_name: filters.first_name,
           last_name: filters.last_name,
+          full_name: filters.full_name,
           phone: filters.phone,
           country: filters.country,
           language: filters.language,
           list_id: filters.list_id,
           contact_list_status: filters.contact_list_status,
           segments: filters.segments,
-          with_contact_lists: false // Skip for performance
+          with_contact_lists: false,
+          with_profiles: fields.some(field => field.key.startsWith('profile.'))
         }
 
         const response = await contactsApi.list(request)
@@ -183,85 +185,8 @@ export function ExportContactsModal({
         return
       }
 
-      // Generate CSV headers
-      const headers = [
-        'email',
-        'external_id',
-        'first_name',
-        'last_name',
-        'full_name',
-        'phone',
-        'timezone',
-        'language',
-        'country',
-        'address_line_1',
-        'address_line_2',
-        'state',
-        'postcode',
-        'job_title',
-        getCustomFieldLabel('custom_string_1', workspace),
-        getCustomFieldLabel('custom_string_2', workspace),
-        getCustomFieldLabel('custom_string_3', workspace),
-        getCustomFieldLabel('custom_string_4', workspace),
-        getCustomFieldLabel('custom_string_5', workspace),
-        getCustomFieldLabel('custom_number_1', workspace),
-        getCustomFieldLabel('custom_number_2', workspace),
-        getCustomFieldLabel('custom_number_3', workspace),
-        getCustomFieldLabel('custom_number_4', workspace),
-        getCustomFieldLabel('custom_number_5', workspace),
-        getCustomFieldLabel('custom_datetime_1', workspace),
-        getCustomFieldLabel('custom_datetime_2', workspace),
-        getCustomFieldLabel('custom_datetime_3', workspace),
-        getCustomFieldLabel('custom_datetime_4', workspace),
-        getCustomFieldLabel('custom_datetime_5', workspace),
-        getCustomFieldLabel('custom_json_1', workspace),
-        getCustomFieldLabel('custom_json_2', workspace),
-        getCustomFieldLabel('custom_json_3', workspace),
-        getCustomFieldLabel('custom_json_4', workspace),
-        getCustomFieldLabel('custom_json_5', workspace),
-        'created_at',
-        'updated_at'
-      ]
-
-      // Generate CSV data
-      const data = allContacts.map((c) => [
-        c.email,
-        c.external_id || '',
-        c.first_name || '',
-        c.last_name || '',
-        c.full_name || '',
-        c.phone || '',
-        c.timezone || '',
-        c.language || '',
-        c.country || '',
-        c.address_line_1 || '',
-        c.address_line_2 || '',
-        c.state || '',
-        c.postcode || '',
-        c.job_title || '',
-        c.custom_string_1 || '',
-        c.custom_string_2 || '',
-        c.custom_string_3 || '',
-        c.custom_string_4 || '',
-        c.custom_string_5 || '',
-        c.custom_number_1 !== undefined ? String(c.custom_number_1) : '',
-        c.custom_number_2 !== undefined ? String(c.custom_number_2) : '',
-        c.custom_number_3 !== undefined ? String(c.custom_number_3) : '',
-        c.custom_number_4 !== undefined ? String(c.custom_number_4) : '',
-        c.custom_number_5 !== undefined ? String(c.custom_number_5) : '',
-        c.custom_datetime_1 || '',
-        c.custom_datetime_2 || '',
-        c.custom_datetime_3 || '',
-        c.custom_datetime_4 || '',
-        c.custom_datetime_5 || '',
-        c.custom_json_1 ? JSON.stringify(c.custom_json_1) : '',
-        c.custom_json_2 ? JSON.stringify(c.custom_json_2) : '',
-        c.custom_json_3 ? JSON.stringify(c.custom_json_3) : '',
-        c.custom_json_4 ? JSON.stringify(c.custom_json_4) : '',
-        c.custom_json_5 ? JSON.stringify(c.custom_json_5) : '',
-        c.created_at,
-        c.updated_at
-      ])
+      const headers = fields.map(field => field.header)
+      const data = allContacts.map(contact => fields.map(field => exportContactField(contact, field)))
 
       // Generate CSV using PapaParse
       const csv = Papa.unparse({

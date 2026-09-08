@@ -1,0 +1,119 @@
+### Page
+- Page URL: http://127.0.0.1:8081/console/workspace/import-review/contacts?limit=10
+- Page Title: 瑶光营销平台
+### Snapshot
+```yaml
+- generic [ref=e5]:
+  - complementary [ref=e6]:
+    - generic [ref=e7]:
+      - generic "瑶光营销平台, 观心知意，循光达客" [ref=e9]:
+        - img "衡枢真信" [ref=e10]
+        - generic [ref=e11]:
+          - generic [ref=e12]: 瑶光营销平台
+          - generic [ref=e13]: 观心知意，循光达客
+      - menu [ref=e15]:
+        - menuitem [ref=e16] [cursor=pointer]:
+          - img "team" [ref=e17]
+          - link "客户管理" [ref=e21]:
+            - /url: /console/workspace/import-review/contacts
+        - menuitem [ref=e22] [cursor=pointer]:
+          - img "usergroup-add" [ref=e23]
+          - link "客群划分" [ref=e27]:
+            - /url: /console/workspace/import-review/audiences
+        - menuitem [ref=e28] [cursor=pointer]:
+          - img "file-text" [ref=e29]
+          - link "素材模板" [ref=e33]:
+            - /url: /console/workspace/import-review/blog
+        - menuitem [ref=e34] [cursor=pointer]:
+          - img "setting" [ref=e35]
+          - link "设置" [ref=e39]:
+            - /url: /console/workspace/import-review/settings
+      - generic [ref=e40]:
+        - generic [ref=e41]: v57.0
+        - button "折叠" [ref=e42] [cursor=pointer]
+      - separator "调整侧边栏宽度" [ref=e47]
+  - banner [ref=e48]:
+    - generic [ref=e51] [cursor=pointer]:
+      - generic [ref=e52]:
+        - generic [ref=e53]: 客户导入验收
+        - combobox [ref=e55]
+      - img "down" [ref=e57]
+    - generic [ref=e60]:
+      - button "帮助" [ref=e62] [cursor=pointer]
+      - button "ZH-CN" [ref=e68] [cursor=pointer]
+      - button "review@example.com down" [ref=e71] [cursor=pointer]:
+        - generic [ref=e72]:
+          - generic [ref=e76]: review@example.com
+          - img "down" [ref=e78]
+  - main [ref=e82]:
+    - generic [ref=e84]:
+      - tablist [ref=e85]:
+        - generic [ref=e87]:
+          - tab "联系人 1" [selected] [ref=e89] [cursor=pointer]:
+            - generic [ref=e90]:
+              - generic [ref=e91]: 联系人
+              - generic [ref=e92]: "1"
+          - tab "导入客户" [ref=e95] [cursor=pointer]
+        - generic [ref=e98]:
+          - button "导入 / 导出" [ref=e100] [cursor=pointer]
+          - button "批量更新" [ref=e104] [cursor=pointer]
+          - button [ref=e108] [cursor=pointer]:
+            - generic [ref=e109]:
+              - img "plus" [ref=e110]
+              - text: 添加
+      - tabpanel "联系人 1" [ref=e116]:
+        - generic [ref=e117]:
+          - generic [ref=e118]:
+            - generic [ref=e119]: "过滤器 :"
+            - generic [ref=e123]:
+              - button "邮 件" [ref=e125] [cursor=pointer]
+              - button "外部标识" [ref=e128] [cursor=pointer]
+              - button "名 称" [ref=e131] [cursor=pointer]
+              - button "姓" [ref=e134] [cursor=pointer]
+              - button "完整名称" [ref=e137] [cursor=pointer]
+              - button "电 话" [ref=e140] [cursor=pointer]
+              - button "语 言" [ref=e143] [cursor=pointer]
+              - button "国 家" [ref=e146] [cursor=pointer]
+              - button "列 表" [ref=e149] [cursor=pointer]
+              - button "列表状态" [ref=e152] [cursor=pointer]
+          - generic [ref=e154]:
+            - generic [ref=e155]: "细分群体:"
+            - button "细分群体" [ref=e158] [cursor=pointer]
+          - table [ref=e169]:
+            - rowgroup [ref=e181]:
+              - row [ref=e182]:
+                - columnheader [ref=e183]:
+                  - checkbox "Select all" [ref=e187] [cursor=pointer]
+                - columnheader "邮件" [ref=e188]
+                - columnheader "列表" [ref=e189]
+                - columnheader "细分群体" [ref=e190]
+                - columnheader "名称" [ref=e191]
+                - columnheader "姓" [ref=e192]
+                - columnheader "国家" [ref=e193]
+                - columnheader "语言" [ref=e194]
+                - columnheader "时区" [ref=e195]
+                - columnheader [ref=e196]:
+                  - generic [ref=e197]:
+                    - button [ref=e199] [cursor=pointer]
+                    - button [ref=e204] [cursor=pointer]
+            - rowgroup [ref=e208]:
+              - checkbox [ref=e212] [cursor=pointer]
+              - generic [ref=e213]:
+                - button [ref=e215] [cursor=pointer]
+                - button [ref=e220] [cursor=pointer]
+              - row [ref=e224] [cursor=pointer]:
+                - cell [ref=e225]:
+                  - checkbox "Select row 1" [ref=e228]
+                - cell "file-review@example.com" [ref=e229]
+                - cell [ref=e230]
+                - cell [ref=e231]
+                - cell "小明" [ref=e232]
+                - cell "-" [ref=e233]
+                - cell [ref=e234]
+                - cell [ref=e235]
+                - cell [ref=e236]
+                - cell [ref=e237]:
+                  - generic [ref=e238]:
+                    - button [ref=e240]
+                    - button [ref=e245]
+```

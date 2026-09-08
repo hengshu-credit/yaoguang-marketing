@@ -27,6 +27,7 @@ type ContactService struct {
 	segmentRepo             domain.SegmentRepository
 	contactSegmentQueueRepo domain.ContactSegmentQueueRepository
 	customerAuthority       *LegacyContactAdapter
+	fileFields              domain.ContactFileRepository
 	logger                  logger.Logger
 }
 
@@ -80,6 +81,8 @@ func (s *ContactService) SetCustomerAuthority(authority *LegacyContactAdapter) e
 	s.customerAuthority = authority
 	return nil
 }
+
+func (s *ContactService) SetFileFields(fields domain.ContactFileRepository) { s.fileFields = fields }
 
 func (s *ContactService) GetContactByEmail(ctx context.Context, workspaceID string, email string) (*domain.Contact, error) {
 	// Normalize email for consistent lookups
@@ -163,10 +166,21 @@ func (s *ContactService) GetContacts(ctx context.Context, req *domain.GetContact
 		)
 	}
 
+	if req.WithProfiles && !userWorkspace.HasPermission(domain.PermissionResourceCustomers, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(domain.PermissionResourceCustomers, domain.PermissionTypeRead, "Customer profile export requires customer read permission")
+	}
 	response, err := s.repo.GetContacts(ctx, req)
 	if err != nil {
 		s.logger.Error(fmt.Sprintf("Failed to get contacts: %v", err))
 		return nil, fmt.Errorf("failed to get contacts: %w", err)
+	}
+	if req.WithProfiles {
+		if s.fileFields == nil {
+			return nil, fmt.Errorf("contact profile export is not configured")
+		}
+		if err := s.fileFields.LoadProfiles(ctx, req.WorkspaceID, response.Contacts); err != nil {
+			return nil, err
+		}
 	}
 
 	return response, nil

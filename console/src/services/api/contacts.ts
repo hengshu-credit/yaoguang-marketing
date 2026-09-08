@@ -12,6 +12,7 @@ export interface ListContactsRequest {
   country?: string
   language?: string
   with_contact_lists?: boolean
+  with_profiles?: boolean
   list_id?: string
   contact_list_status?: string
   segments?: string[]
@@ -141,6 +142,7 @@ export const contactsApi = {
     if (params.cursor) searchParams.append('cursor', params.cursor)
     if (params.with_contact_lists)
       searchParams.append('with_contact_lists', params.with_contact_lists.toString())
+    if (params.with_profiles) searchParams.append('with_profiles', 'true')
     return api.get<ListContactsResponse>(`/api/contacts.list?${searchParams.toString()}`)
   },
 

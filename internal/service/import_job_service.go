@@ -2,6 +2,7 @@ package service
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/csv"
@@ -21,10 +22,11 @@ type ImportJobServiceDependencies struct {
 	Repository   domain.ImportJobRepository
 	Customers    domain.CustomerService
 	Tasks        ImportTaskScheduler
-	Auth         *AuthService
+	Auth         domain.AuthService
 	MaxRows      int
 	ChunkSize    int
 	MaxFileBytes int64
+	FileFields   domain.ContactFileRepository
 }
 
 type ImportTaskScheduler interface {
@@ -38,8 +40,9 @@ type ImportJobService struct {
 	chunkSize  int
 	maxBytes   int64
 	now        func() time.Time
-	auth       *AuthService
+	auth       domain.AuthService
 	tasks      ImportTaskScheduler
+	fileFields domain.ContactFileRepository
 }
 
 func NewImportJobService(dependencies ImportJobServiceDependencies) (*ImportJobService, error) {
@@ -47,7 +50,7 @@ func NewImportJobService(dependencies ImportJobServiceDependencies) (*ImportJobS
 		return nil, errors.New("import repository and positive limits are required")
 	}
 	return &ImportJobService{repository: dependencies.Repository, customers: dependencies.Customers,
-		maxRows: dependencies.MaxRows, chunkSize: dependencies.ChunkSize, maxBytes: dependencies.MaxFileBytes, now: time.Now, auth: dependencies.Auth, tasks: dependencies.Tasks}, nil
+		maxRows: dependencies.MaxRows, chunkSize: dependencies.ChunkSize, maxBytes: dependencies.MaxFileBytes, now: time.Now, auth: dependencies.Auth, tasks: dependencies.Tasks, fileFields: dependencies.FileFields}, nil
 }
 
 func (s *ImportJobService) SetTaskScheduler(tasks ImportTaskScheduler) {
@@ -68,7 +71,7 @@ func (s *ImportJobService) authorize(ctx context.Context, workspaceID string, pe
 	return authorized, nil
 }
 
-// StageCSV persists every physical data row before a worker may process it.
+// StageCSV persists every CSV data record before a worker may process it.
 // Malformed rows are persisted as explicit failures instead of disappearing.
 func (s *ImportJobService) StageCSV(ctx context.Context, workspaceID, filename string, listIDs []string, source io.Reader) (*domain.ImportJob, error) {
 	if strings.TrimSpace(workspaceID) == "" || strings.TrimSpace(filename) == "" || source == nil {
@@ -79,6 +82,10 @@ func (s *ImportJobService) StageCSV(ctx context.Context, workspaceID, filename s
 		return nil, err
 	}
 	ctx = authorized
+	fileFields, err := s.loadFileFields(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
 	normalizedListIDs, err := normalizeImportListIDs(listIDs)
 	if err != nil {
 		return nil, err
@@ -91,14 +98,18 @@ func (s *ImportJobService) StageCSV(ctx context.Context, workspaceID, filename s
 	}
 
 	hash := sha256.New()
-	scanner := bufio.NewScanner(io.TeeReader(source, hash))
-	maxScannerCapacity := int(s.maxBytes)
-	if maxScannerCapacity > 16<<20 {
-		maxScannerCapacity = 16 << 20
+	buffered := bufio.NewReader(io.TeeReader(source, hash))
+	var bomBytes int64
+	if prefix, _ := buffered.Peek(3); bytes.Equal(prefix, []byte{0xEF, 0xBB, 0xBF}) {
+		_, _ = buffered.Discard(3)
+		bomBytes = 3
 	}
-	scanner.Buffer(make([]byte, 64*1024), maxScannerCapacity)
+	reader := csv.NewReader(buffered)
+	reader.FieldsPerRecord = -1
+	reader.TrimLeadingSpace = true
 	var headers []string
-	var ordinal, fileBytes int64
+	var ordinal int64
+	headerRead := false
 	rows := make([]domain.ImportJobRow, 0, s.chunkSize)
 	rejectedReason := ""
 	flush := func() error {
@@ -109,18 +120,40 @@ func (s *ImportJobService) StageCSV(ctx context.Context, workspaceID, filename s
 		rows = rows[:0]
 		return err
 	}
-	for scanner.Scan() {
-		line := append([]byte(nil), scanner.Bytes()...)
-		fileBytes += int64(len(line)) + 1
-		if headers == nil {
-			headers = parseCSVLine(line)
-			if len(headers) == 0 {
+	for {
+		fields, readErr := reader.Read()
+		if readErr == io.EOF {
+			break
+		}
+		if !headerRead {
+			headerRead = true
+			headers = fields
+			if readErr != nil || !resolveContactFileHeaders(headers, fileFields) {
 				rejectedReason = "CSV 表头无效"
+			}
+			if readErr != nil {
+				break
 			}
 			continue
 		}
+		var encoded bytes.Buffer
+		writer := csv.NewWriter(&encoded)
+		_ = writer.Write(fields)
+		writer.Flush()
+		line := bytes.TrimSuffix(encoded.Bytes(), []byte("\n"))
 		ordinal++
 		payload, errorCode := importCSVPayload(headers, line)
+		if readErr != nil {
+			errorCode = "csv_parse_error"
+		}
+		if errorCode == "" {
+			normalized, err := normalizeContactFilePayload(payload, fileFields)
+			if err != nil {
+				errorCode = "mapping_error"
+			} else {
+				payload = normalized
+			}
+		}
 		status := domain.ImportRowPending
 		if errorCode != "" {
 			status = domain.ImportRowFailed
@@ -129,7 +162,7 @@ func (s *ImportJobService) StageCSV(ctx context.Context, workspaceID, filename s
 			status, errorCode = domain.ImportRowFailed, "row_limit_exceeded"
 			rejectedReason = fmt.Sprintf("导入行数超过后台限制 %d", s.maxRows)
 		}
-		if fileBytes > s.maxBytes {
+		if reader.InputOffset()+bomBytes > s.maxBytes {
 			status, errorCode = domain.ImportRowFailed, "file_size_exceeded"
 			rejectedReason = fmt.Sprintf("导入文件超过后台限制 %d bytes", s.maxBytes)
 		}
@@ -141,9 +174,16 @@ func (s *ImportJobService) StageCSV(ctx context.Context, workspaceID, filename s
 				return nil, err
 			}
 		}
+		if readErr != nil {
+			var parseErr *csv.ParseError
+			if !errors.As(readErr, &parseErr) {
+				rejectedReason = "读取上传流失败: " + readErr.Error()
+				break
+			}
+		}
 	}
-	if err := scanner.Err(); err != nil {
-		rejectedReason = "读取上传流失败: " + err.Error()
+	if len(headers) == 0 || ordinal == 0 {
+		rejectedReason = "导入文件必须包含表头和至少一条客户数据"
 	}
 	if err := flush(); err != nil {
 		return nil, err
@@ -205,12 +245,6 @@ func parseCSVLine(line []byte) []string {
 	fields, err := reader.Read()
 	if err != nil {
 		return nil
-	}
-	for index := range fields {
-		fields[index] = strings.TrimSpace(fields[index])
-		if fields[index] == "" {
-			return nil
-		}
 	}
 	return fields
 }
@@ -356,8 +390,12 @@ func (s *ImportJobService) Errors(ctx context.Context, workspaceID, jobID string
 	for _, row := range rows {
 		values := map[string]string{}
 		_ = json.Unmarshal(row.RawPayload, &values)
+		external := strings.TrimSpace(values["external_id"])
+		if external == "" {
+			external = strings.TrimSpace(values["external_user_id"])
+		}
 		result = append(result, domain.ImportJobError{Ordinal: row.Ordinal,
-			ExternalUserID: strings.TrimSpace(values["external_user_id"]), DisplayIdentity: maskedImportIdentity(values),
+			ExternalUserID: external, DisplayIdentity: maskedImportIdentity(values),
 			ErrorCode: row.ErrorCode, ErrorDetail: row.ErrorDetail})
 	}
 	return result, total, nil
@@ -389,7 +427,11 @@ func importRowToCustomer(row domain.ImportJobRow, listIDs []string) (domain.Cust
 		return domain.CustomerBatchUpsertItem{}, err
 	}
 	input := domain.CustomerUpsertInput{}
-	if external := strings.TrimSpace(values["external_user_id"]); external != "" {
+	external := strings.TrimSpace(values["external_id"])
+	if external == "" {
+		external = strings.TrimSpace(values["external_user_id"])
+	}
+	if external != "" {
 		input.ExternalUserID = &external
 	}
 	if email := strings.TrimSpace(values["email"]); email != "" {
@@ -397,6 +439,55 @@ func importRowToCustomer(row domain.ImportJobRow, listIDs []string) (domain.Cust
 	}
 	if phone := strings.TrimSpace(values["phone"]); phone != "" {
 		input.Identities = append(input.Identities, domain.CustomerIdentityInput{Type: domain.CustomerIdentityPhone, Value: phone, Primary: true})
+	}
+	profile := &domain.CustomerProfilePatch{}
+	attributes := map[string]interface{}{}
+	for _, field := range domain.BaseContactFileFields(nil) {
+		raw := values[field.Key]
+		if raw == "" || field.ReadOnly || field.Key == "email" || field.Key == "external_id" {
+			continue
+		}
+		switch field.Key {
+		case "language":
+			profile.Language = &raw
+		case "timezone":
+			profile.Timezone = &raw
+		default:
+			value, err := parseContactFileValue(raw, field.Type)
+			if err != nil {
+				return domain.CustomerBatchUpsertItem{}, err
+			}
+			attributes[field.Key] = value
+		}
+	}
+	if raw := values["profile.status"]; raw != "" {
+		profile.Status = &raw
+	}
+	if raw := values["profile.tags"]; raw != "" {
+		var tags []string
+		if err := json.Unmarshal([]byte(raw), &tags); err != nil {
+			return domain.CustomerBatchUpsertItem{}, err
+		}
+		input.Tags = &tags
+	}
+	if raw := values["profile.attributes"]; raw != "" {
+		var dynamic map[string]interface{}
+		if err := json.Unmarshal([]byte(raw), &dynamic); err != nil {
+			return domain.CustomerBatchUpsertItem{}, err
+		}
+		for key, value := range dynamic {
+			attributes[key] = value
+		}
+	}
+	if len(attributes) > 0 {
+		encoded, err := json.Marshal(attributes)
+		if err != nil {
+			return domain.CustomerBatchUpsertItem{}, err
+		}
+		profile.Attributes = &domain.CustomerAttributesPatch{Merge: encoded}
+	}
+	if profile.Language != nil || profile.Timezone != nil || profile.Status != nil || profile.Attributes != nil {
+		input.Profile = profile
 	}
 	if len(listIDs) > 0 {
 		memberships := make([]domain.CustomerListMembershipInput, len(listIDs))

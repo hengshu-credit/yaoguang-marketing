@@ -1,0 +1,140 @@
+### Page
+- Page URL: http://127.0.0.1:8081/console/workspace/import-review/settings/business
+- Page Title: 瑶光营销平台
+### Snapshot
+```yaml
+- generic [ref=f14e5]:
+  - complementary [ref=f14e6]:
+    - generic [ref=f14e7]:
+      - generic "瑶光营销平台, 观心知意，循光达客" [ref=f14e9]:
+        - img "衡枢真信" [ref=f14e10]
+        - generic [ref=f14e11]:
+          - generic [ref=f14e12]: 瑶光营销平台
+          - generic [ref=f14e13]: 观心知意，循光达客
+      - menu [ref=f14e15]:
+        - menuitem [ref=f14e16] [cursor=pointer]:
+          - img "team" [ref=f14e17]
+          - link "客户管理" [ref=f14e21]:
+            - /url: /console/workspace/import-review/contacts
+        - menuitem [ref=f14e22] [cursor=pointer]:
+          - img "usergroup-add" [ref=f14e23]
+          - link "客群划分" [ref=f14e27]:
+            - /url: /console/workspace/import-review/audiences
+        - menuitem [ref=f14e28] [cursor=pointer]:
+          - img "file-text" [ref=f14e29]
+          - link "素材模板" [ref=f14e33]:
+            - /url: /console/workspace/import-review/blog
+        - menuitem [ref=f14e34] [cursor=pointer]:
+          - img "setting" [ref=f14e35]
+          - link "设置" [ref=f14e39]:
+            - /url: /console/workspace/import-review/settings
+      - generic [ref=f14e40]:
+        - generic [ref=f14e41]: v57.0
+        - button "折叠" [ref=f14e42] [cursor=pointer]
+      - separator "调整侧边栏宽度" [ref=f14e47]
+  - banner [ref=f14e48]:
+    - generic [ref=f14e51] [cursor=pointer]:
+      - generic [ref=f14e52]:
+        - generic [ref=f14e53]: 客户导入验收
+        - combobox [ref=f14e55]
+      - img "down" [ref=f14e57]
+    - generic [ref=f14e60]:
+      - button "帮助" [ref=f14e62] [cursor=pointer]
+      - button "ZH-CN" [ref=f14e68] [cursor=pointer]
+      - button "review@example.com down" [ref=f14e71] [cursor=pointer]:
+        - generic [ref=f14e72]:
+          - generic [ref=f14e76]: review@example.com
+          - img "down" [ref=f14e78]
+  - main [ref=f14e82]:
+    - generic [ref=f14e83]:
+      - complementary [ref=f14e84]:
+        - generic [ref=f14e86]:
+          - generic [ref=f14e87]: 设置
+          - separator [ref=f14e88]
+          - menu [ref=f14e89]:
+            - menuitem "team 团队" [ref=f14e90] [cursor=pointer]:
+              - img "team" [ref=f14e91]
+              - generic [ref=f14e94]: 团队
+            - menuitem "集成" [ref=f14e95] [cursor=pointer]
+            - menuitem "field-time 触达频控" [ref=f14e100] [cursor=pointer]:
+              - img "field-time" [ref=f14e101]
+              - generic [ref=f14e105]: 触达频控
+            - menuitem "Webhook" [ref=f14e106] [cursor=pointer]
+            - menuitem "博客" [ref=f14e112] [cursor=pointer]
+            - menuitem "line-chart 网站分析" [ref=f14e116] [cursor=pointer]:
+              - img "line-chart" [ref=f14e117]
+              - generic [ref=f14e120]: 网站分析
+            - menuitem "tags 自定义字段" [ref=f14e121] [cursor=pointer]:
+              - img "tags" [ref=f14e122]
+              - generic [ref=f14e125]: 自定义字段
+            - menuitem "tags 客户与事件配置" [ref=f14e126] [cursor=pointer]:
+              - img "tags" [ref=f14e127]
+              - generic [ref=f14e130]: 客户与事件配置
+            - menuitem "tags 客户与对象状态" [ref=f14e131] [cursor=pointer]:
+              - img "tags" [ref=f14e132]
+              - generic [ref=f14e135]: 客户与对象状态
+            - menuitem "mail SMTP 网关" [ref=f14e136] [cursor=pointer]:
+              - img "mail" [ref=f14e137]
+              - generic [ref=f14e140]: SMTP 网关
+            - menuitem "setting 常规" [ref=f14e141] [cursor=pointer]:
+              - img "setting" [ref=f14e142]
+              - generic [ref=f14e145]: 常规
+            - menuitem "translation 语言" [ref=f14e146] [cursor=pointer]:
+              - img "translation" [ref=f14e147]
+              - generic [ref=f14e151]: 语言
+            - menuitem "exclamation-circle 危险区域" [ref=f14e152] [cursor=pointer]:
+              - img "exclamation-circle" [ref=f14e153]
+              - generic [ref=f14e157]: 危险区域
+      - main [ref=f14e159]:
+        - generic [ref=f14e161]:
+          - generic [ref=f14e162]:
+            - heading "客户与事件配置" [level=1] [ref=f14e163]
+            - generic [ref=f14e164]: 为当前工作空间定义客户属性、业务对象、事件数据和外部字段映射。
+          - generic [ref=f14e165]:
+            - tablist [ref=f14e166]:
+              - generic [ref=f14e168]:
+                - tab "事件管理" [selected] [ref=f14e170] [cursor=pointer]
+                - tab "客户属性" [ref=f14e172] [cursor=pointer]
+                - tab "业务对象类型" [ref=f14e174] [cursor=pointer]
+                - tab "对象关系" [ref=f14e176] [cursor=pointer]
+                - tab "事件字段映射" [ref=f14e178] [cursor=pointer]
+            - generic:
+              - generic:
+                - tabpanel "事件管理"
+          - generic [ref=f14e179]:
+            - generic [ref=f14e180]:
+              - searchbox "搜索定义" [ref=f14e182]
+              - button [ref=f14e184] [cursor=pointer]:
+                - img "search" [ref=f14e186]
+            - generic [ref=f14e189]:
+              - button "刷新定义" [ref=f14e191] [cursor=pointer]:
+                - img "reload" [ref=f14e193]
+              - button "新建定义" [ref=f14e197] [cursor=pointer]
+          - generic [ref=f14e206]:
+            - table [ref=f14e210]:
+              - rowgroup [ref=f14e211]:
+                - row [ref=f14e212]:
+                  - columnheader "名称" [ref=f14e213]
+                  - columnheader "编码" [ref=f14e214]
+                  - columnheader "状态" [ref=f14e215]
+                  - columnheader "来源" [ref=f14e216]
+                  - columnheader "行动" [ref=f14e217]
+              - rowgroup [ref=f14e218]:
+                - row [ref=f14e219]:
+                  - cell [ref=f14e220]:
+                    - button "客户已创建" [ref=f14e222] [cursor=pointer]
+                  - cell [ref=f14e224]:
+                    - code [ref=f14e225]: contact.created
+                  - cell "活跃" [ref=f14e226]
+                  - cell "内置" [ref=f14e228]
+                  - cell [ref=f14e229]:
+                    - button "查看" [ref=f14e232] [cursor=pointer]
+            - list [ref=f14e234]:
+              - listitem "上一页" [ref=f14e235]:
+                - button [disabled] [ref=f14e236]:
+                  - img "left" [ref=f14e237]
+              - listitem "1" [ref=f14e240] [cursor=pointer]
+              - listitem "下一页" [ref=f14e242]:
+                - button [disabled] [ref=f14e243]:
+                  - img "right" [ref=f14e244]
+```

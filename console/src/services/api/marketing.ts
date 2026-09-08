@@ -156,10 +156,12 @@ export const audienceApi = {
 }
 
 export const importJobApi = {
-  upload: (workspaceId: string, file: File, listIds: string[] = []) => {
+  upload: async (workspaceId: string, file: File, listIds: string[] = []) => {
+    const { customerImportCSV } = await import('../../utils/contactImportFile')
+    const csv = await customerImportCSV(file)
     const params = new URLSearchParams({ workspace_id: workspaceId, filename: file.name })
     listIds.forEach((listId) => params.append('list_id', listId))
-    return api.postRaw<ImportJob>(`/api/imports.upload?${params}`, file, 'text/csv')
+    return api.postRaw<ImportJob>(`/api/imports.upload?${params}`, csv, 'text/csv')
   },
   get: (workspaceId: string, jobId: string) => {
     const params = new URLSearchParams({ workspace_id: workspaceId, job_id: jobId })

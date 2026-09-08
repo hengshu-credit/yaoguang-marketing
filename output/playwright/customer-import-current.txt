@@ -1,0 +1,166 @@
+### Page
+- Page URL: http://127.0.0.1:8081/console/workspace/import-review/contacts?limit=10
+- Page Title: 瑶光营销平台
+### Snapshot
+```yaml
+- generic [ref=f13e5]:
+  - complementary [ref=f13e6]:
+    - generic [ref=f13e7]:
+      - generic "瑶光营销平台, 观心知意，循光达客" [ref=f13e9]:
+        - img "衡枢真信" [ref=f13e10]
+        - generic [ref=f13e11]:
+          - generic [ref=f13e12]: 瑶光营销平台
+          - generic [ref=f13e13]: 观心知意，循光达客
+      - menu [ref=f13e15]:
+        - menuitem [ref=f13e16] [cursor=pointer]:
+          - img "team" [ref=f13e17]
+          - link "客户管理" [ref=f13e21]:
+            - /url: /console/workspace/import-review/contacts
+        - menuitem [ref=f13e22] [cursor=pointer]:
+          - img "usergroup-add" [ref=f13e23]
+          - link "客群划分" [ref=f13e27]:
+            - /url: /console/workspace/import-review/audiences
+        - menuitem [ref=f13e28] [cursor=pointer]:
+          - img "file-text" [ref=f13e29]
+          - link "素材模板" [ref=f13e33]:
+            - /url: /console/workspace/import-review/blog
+        - menuitem [ref=f13e34] [cursor=pointer]:
+          - img "setting" [ref=f13e35]
+          - link "设置" [ref=f13e39]:
+            - /url: /console/workspace/import-review/settings
+      - generic [ref=f13e40]:
+        - generic [ref=f13e41]: v57.0
+        - button "折叠" [ref=f13e42] [cursor=pointer]
+      - separator "调整侧边栏宽度" [ref=f13e47]
+  - banner [ref=f13e48]:
+    - generic [ref=f13e51] [cursor=pointer]:
+      - generic [ref=f13e52]:
+        - generic [ref=f13e53]: 客户导入验收
+        - combobox [ref=f13e55]
+      - img "down" [ref=f13e57]
+    - generic [ref=f13e60]:
+      - button "帮助" [ref=f13e62] [cursor=pointer]
+      - button "ZH-CN" [ref=f13e68] [cursor=pointer]
+      - button "review@example.com down" [ref=f13e71] [cursor=pointer]:
+        - generic [ref=f13e72]:
+          - generic [ref=f13e76]: review@example.com
+          - img "down" [ref=f13e78]
+  - main [ref=f13e82]:
+    - generic [ref=f13e84]:
+      - tablist [ref=f13e85]:
+        - generic [ref=f13e87]:
+          - tab "联系人" [ref=f13e89] [cursor=pointer]
+          - tab "导入客户" [selected] [ref=f13e91] [cursor=pointer]
+      - tabpanel "导入客户" [ref=f13e220]:
+        - generic [ref=f13e222]:
+          - alert [ref=f13e223]:
+            - img "info-circle" [ref=f13e225]
+            - generic [ref=f13e228]:
+              - generic [ref=f13e229]: 导入任务持久保存，关闭页面不受影响
+              - generic [ref=f13e230]: 每一行都会在处理前记录。导入客户添加到名单时，会保留已有的名单抑制状态。
+          - generic [ref=f13e231]:
+            - strong [ref=f13e233]: 将导入的客户添加到名单
+            - generic [ref=f13e234]: 可选。选择一个或多个名单；留空则只导入客户，不更改名单归属。
+            - generic [ref=f13e235]:
+              - generic [ref=f13e236]:
+                - generic: 选择列表( 可选)
+                - combobox "目标名单" [ref=f13e238]
+              - img "down" [ref=f13e240]
+          - generic [ref=f13e243]:
+            - generic [ref=f13e245]:
+              - img "check" [ref=f13e348]
+              - generic [ref=f13e248]:
+                - generic [ref=f13e249]: 上传
+                - generic [ref=f13e252]: 接收完整文件
+            - generic [ref=f13e254]:
+              - img "check" [ref=f13e351]
+              - generic [ref=f13e257]:
+                - generic [ref=f13e258]: 字段映射
+                - generic [ref=f13e261]: 读取客户标识
+            - generic [ref=f13e263]:
+              - img "check" [ref=f13e354]
+              - generic [ref=f13e266]:
+                - generic [ref=f13e267]: 校验
+                - generic [ref=f13e270]: 保留无效行
+            - generic [ref=f13e272]:
+              - img "check" [ref=f13e357]
+              - generic [ref=f13e275]:
+                - generic [ref=f13e276]: 处理
+                - generic [ref=f13e279]: 关闭此页面后继续处理
+            - generic [ref=f13e281]:
+              - generic [ref=f13e282]: "5"
+              - generic [ref=f13e284]:
+                - generic [ref=f13e285]: 完成
+                - generic [ref=f13e287]: 检查成功和失败记录
+          - generic [ref=f13e288]:
+            - button "下载 CSV 模板" [ref=f13e290] [cursor=pointer]
+            - button "下载 Excel 模板" [ref=f13e297] [cursor=pointer]
+          - button [ref=f13e305] [cursor=pointer]:
+            - generic [ref=f13e306]:
+              - paragraph [ref=f13e307]:
+                - img "inbox" [ref=f13e308]
+              - paragraph [ref=f13e311]: 点击或拖拽 CSV、Excel 文件到此处
+              - paragraph [ref=f13e312]: 请包含 external_user_id、email 或 phone；至少需要一个客户标识。
+              - paragraph [ref=f13e313]: Excel 仅读取第一个工作表。请将客户标识和手机号设为文本格式，保留前导零和长编号。
+          - generic [ref=f13e362]:
+            - generic [ref=f13e364]:
+              - strong [ref=f13e367]: customer-import-filled.csv
+              - generic [ref=f13e368]: completed
+              - generic [ref=f13e370]: 不绑定名单
+            - progressbar [ref=f13e372]:
+              - img "check-circle" [ref=f13e377]
+            - table [ref=f13e383]:
+              - rowgroup [ref=f13e384]:
+                - row [ref=f13e385]:
+                  - 'cell "共计 : 1" [ref=f13e386]':
+                    - generic [ref=f13e387]:
+                      - generic [ref=f13e388]: "共计 :"
+                      - generic [ref=f13e389]: "1"
+                  - 'cell "待确认 : 0" [ref=f13e390]':
+                    - generic [ref=f13e391]:
+                      - generic [ref=f13e392]: "待确认 :"
+                      - generic [ref=f13e393]: "0"
+                  - 'cell "处理中 : 0" [ref=f13e394]':
+                    - generic [ref=f13e395]:
+                      - generic [ref=f13e396]: "处理中 :"
+                      - generic [ref=f13e397]: "0"
+                  - 'cell "成功 : 1" [ref=f13e398]':
+                    - generic [ref=f13e399]:
+                      - generic [ref=f13e400]: "成功 :"
+                      - generic [ref=f13e401]: "1"
+                  - 'cell "失败 : 0" [ref=f13e402]':
+                    - generic [ref=f13e403]:
+                      - generic [ref=f13e404]: "失败 :"
+                      - generic [ref=f13e405]: "0"
+          - generic [ref=f13e314]:
+            - generic [ref=f13e315]: 最近导入
+            - table [ref=f13e325]:
+              - rowgroup [ref=f13e326]:
+                - row [ref=f13e327]:
+                  - columnheader "文件" [ref=f13e328]
+                  - columnheader "列表" [ref=f13e329]
+                  - columnheader "状态" [ref=f13e330]
+                  - columnheader "共计" [ref=f13e331]
+                  - columnheader "成功" [ref=f13e332]
+                  - columnheader "失败" [ref=f13e333]
+                  - columnheader "行动" [ref=f13e334]
+              - rowgroup [ref=f13e335]:
+                - row [ref=f13e427]:
+                  - cell "customer-import-filled.csv" [ref=f13e428]
+                  - cell "不绑定名单" [ref=f13e429]
+                  - cell "completed" [ref=f13e430]
+                  - cell "1" [ref=f13e432]
+                  - cell "1" [ref=f13e433]
+                  - cell "0" [ref=f13e434]
+                  - cell [ref=f13e435]:
+                    - button "查 看" [ref=f13e438] [cursor=pointer]
+                - row [ref=f13e407]:
+                  - cell "customer-import-filled.xlsx" [ref=f13e408]
+                  - cell "不绑定名单" [ref=f13e409]
+                  - cell "completed" [ref=f13e410]
+                  - cell "1" [ref=f13e412]
+                  - cell "1" [ref=f13e413]
+                  - cell "0" [ref=f13e414]
+                  - cell [ref=f13e415]:
+                    - button "查 看" [ref=f13e418] [cursor=pointer]
+```

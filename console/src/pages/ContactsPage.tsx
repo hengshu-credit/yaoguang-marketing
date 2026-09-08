@@ -7,6 +7,7 @@ import { contactsApi, type Contact } from '../services/api/contacts'
 import { listsApi } from '../services/api/list'
 import { listSegments } from '../services/api/segment'
 import React from 'react'
+import { createPortal } from 'react-dom'
 import { workspaceContactsRoute } from '../router'
 import { Filter } from '../components/filters/Filter'
 import { ContactUpsertDrawer } from '../components/contacts/ContactUpsertDrawer'
@@ -29,7 +30,6 @@ import { DeleteContactModal } from '../components/contacts/DeleteContactModal'
 import { SegmentsFilter } from '../components/contacts/SegmentsFilter'
 import { BulkActionsBar } from '../components/contacts/BulkActionsBar'
 import { BulkActionProgressModal } from '../components/contacts/BulkActionProgressModal'
-import { WorkspacePageTitle } from '../components/navigation/WorkspacePageTitle'
 import {
   useBulkContactAction,
   SkippedAction,
@@ -88,8 +88,14 @@ export function ContactsPage() {
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/contacts' })
   const { permissions, loading } = useWorkspacePermissions(workspaceId)
   const [selectedTab, setSelectedTab] = React.useState<string>()
+  const [actionsContainer, setActionsContainer] = React.useState<HTMLDivElement | null>(null)
   const canReadContacts = Boolean(permissions?.contacts?.read)
   const canReadCustomers = Boolean(permissions?.customers?.read)
+  const { data: totalContactsData } = useQuery({
+    queryKey: ['total-contacts', workspaceId],
+    queryFn: () => contactsApi.getTotalContacts({ workspace_id: workspaceId }),
+    enabled: canReadContacts
+  })
   if (loading) return <div className="p-6"><Spin /></div>
   if (!canReadContacts && !canReadCustomers) return <div className="p-6"><Alert type="error" title={t`No Access`} /></div>
   const activeTab = selectedTab === 'import' && canReadCustomers ? 'import' : canReadContacts ? 'contacts' : 'import'
@@ -98,8 +104,19 @@ export function ContactsPage() {
       <Tabs
         activeKey={activeTab}
         onChange={setSelectedTab}
+        tabBarExtraContent={<div ref={setActionsContainer} hidden={activeTab !== 'contacts'} />}
         items={[
-          { key: 'contacts', label: t`Contacts`, disabled: !canReadContacts, children: canReadContacts ? <ContactsDirectory /> : null },
+          {
+            key: 'contacts',
+            label: <Space size={6}>
+              {t`Contacts`}
+              {canReadContacts && totalContactsData?.total_contacts !== undefined && <Tag variant="filled" color="blue" style={{ marginInlineEnd: 0 }}>
+                {numbro(totalContactsData.total_contacts).format({ thousandSeparated: true, mantissa: 0 })}
+              </Tag>}
+            </Space>,
+            disabled: !canReadContacts,
+            children: canReadContacts ? <ContactsDirectory totalContacts={totalContactsData?.total_contacts} actionsContainer={actionsContainer} /> : null
+          },
           ...(permissions?.customers?.read ? [{
             key: 'import',
             label: t`Import customers`,
@@ -115,7 +132,7 @@ export function ContactsPage() {
   )
 }
 
-function ContactsDirectory() {
+function ContactsDirectory({ totalContacts, actionsContainer }: { totalContacts?: number; actionsContainer: HTMLDivElement | null }) {
   const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/contacts' })
   const search = useSearch({ from: workspaceContactsRoute.id })
@@ -197,12 +214,6 @@ function ContactsDirectory() {
       )
       return hasBuilding ? 15000 : false // 15 seconds if building, otherwise no interval
     }
-  })
-
-  // Fetch total contacts count
-  const { data: totalContactsData } = useQuery({
-    queryKey: ['total-contacts', workspaceId],
-    queryFn: () => contactsApi.getTotalContacts({ workspace_id: workspaceId })
   })
 
   // Delete contact mutation with optimistic update
@@ -1028,19 +1039,8 @@ function ContactsDirectory() {
 
   return (
     <div>
-      {/* Header with title and actions */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-3">
-          <WorkspacePageTitle>{t`Contacts`}</WorkspacePageTitle>
-          {totalContactsData?.total_contacts !== undefined && (
-            <Tag variant="filled" color="blue">
-              {numbro(totalContactsData.total_contacts).format({
-                thousandSeparated: true,
-                mantissa: 0
-              })}
-            </Tag>
-          )}
-        </div>
+      {/* Keep drawer state with the directory while displaying its actions in the tab bar. */}
+      {actionsContainer && createPortal(
         <Space>
           <Dropdown
             menu={{
@@ -1061,7 +1061,7 @@ function ContactsDirectory() {
               ]
             }}
           >
-            <Button type="text">CSV</Button>
+            <Button type="text">{t`Import / Export`}</Button>
           </Dropdown>
           <Tooltip
             title={
@@ -1104,8 +1104,9 @@ function ContactsDirectory() {
               />
             </div>
           </Tooltip>
-        </Space>
-      </div>
+        </Space>,
+        actionsContainer
+      )}
 
       {/* Filters */}
       <div className="flex items-center gap-2 mb-4">
@@ -1118,7 +1119,7 @@ function ContactsDirectory() {
         workspaceId={workspaceId}
         segments={segmentsData?.segments || []}
         selectedSegmentIds={search.segments}
-        totalContacts={totalContactsData?.total_contacts}
+        totalContacts={totalContacts}
         onSegmentToggle={(segmentId: string) => {
           const currentSegments = search.segments || []
           const newSegments = currentSegments.includes(segmentId)

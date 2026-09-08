@@ -70,9 +70,8 @@ type Contact struct {
 	CustomJSON5 *NullableJSON `json:"custom_json_5,omitempty" valid:"optional"`
 
 	// Profile contains application-owned audience data received through the
-	// high-throughput ingest API. It is read-only on legacy contact endpoints;
-	// external systems mutate it through ingest.batch so profile changes keep
-	// their transactional event semantics.
+	// high-throughput ingest API. Compatibility writes are translated through
+	// the customer authority so profile changes retain transactional semantics.
 	Profile *AudienceProfile `json:"profile,omitempty"`
 
 	// Timestamps
@@ -402,6 +401,7 @@ type GetContactsRequest struct {
 
 	// Join contact_lists
 	WithContactLists bool `json:"with_contact_lists,omitempty" valid:"optional"`
+	WithProfiles     bool `json:"with_profiles,omitempty" valid:"optional"`
 
 	// Pagination
 	Limit  int    `json:"limit,omitempty" valid:"optional,range(1|100)"`
@@ -446,6 +446,13 @@ func (r *GetContactsRequest) FromQueryParams(params url.Values) error {
 	}
 
 	// Parse with_contact_lists
+	if raw := params.Get("with_profiles"); raw != "" {
+		value, err := strconv.ParseBool(raw)
+		if err != nil {
+			return fmt.Errorf("invalid with_profiles: %w", err)
+		}
+		r.WithProfiles = value
+	}
 	if withContactListsStr := params.Get("with_contact_lists"); withContactListsStr != "" {
 		withContactLists, err := strconv.ParseBool(withContactListsStr)
 		if err != nil {

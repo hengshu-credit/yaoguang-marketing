@@ -1,0 +1,110 @@
+### Page
+- Page URL: http://127.0.0.1:8081/console/workspace/import-review/contacts?limit=10
+- Page Title: 瑶光营销平台
+### Snapshot
+```yaml
+- generic [ref=f16e5]:
+  - complementary [ref=f16e6]:
+    - generic [ref=f16e7]:
+      - generic "瑶光营销平台, 观心知意，循光达客" [ref=f16e9]:
+        - img "衡枢真信" [ref=f16e10]
+        - generic [ref=f16e11]:
+          - generic [ref=f16e12]: 瑶光营销平台
+          - generic [ref=f16e13]: 观心知意，循光达客
+      - menu [ref=f16e15]:
+        - menuitem [ref=f16e16] [cursor=pointer]:
+          - img "team" [ref=f16e17]
+          - link "客户管理" [ref=f16e21]:
+            - /url: /console/workspace/import-review/contacts
+        - menuitem [ref=f16e22] [cursor=pointer]:
+          - img "usergroup-add" [ref=f16e23]
+          - link "客群划分" [ref=f16e27]:
+            - /url: /console/workspace/import-review/audiences
+        - menuitem [ref=f16e28] [cursor=pointer]:
+          - img "file-text" [ref=f16e29]
+          - link "素材模板" [ref=f16e33]:
+            - /url: /console/workspace/import-review/blog
+        - menuitem [ref=f16e34] [cursor=pointer]:
+          - img "setting" [ref=f16e35]
+          - link "设置" [ref=f16e39]:
+            - /url: /console/workspace/import-review/settings
+      - generic [ref=f16e40]:
+        - generic [ref=f16e41]: v57.0
+        - button "折叠" [ref=f16e42] [cursor=pointer]
+      - separator "调整侧边栏宽度" [ref=f16e47]
+  - banner [ref=f16e48]:
+    - generic [ref=f16e51] [cursor=pointer]:
+      - generic [ref=f16e52]:
+        - generic [ref=f16e53]: 客户导入验收
+        - combobox [ref=f16e55]
+      - img "down" [ref=f16e57]
+    - generic [ref=f16e60]:
+      - button "帮助" [ref=f16e62] [cursor=pointer]
+      - button "ZH-CN" [ref=f16e68] [cursor=pointer]
+      - button "review@example.com down" [ref=f16e71] [cursor=pointer]:
+        - generic [ref=f16e72]:
+          - generic [ref=f16e76]: review@example.com
+          - img "down" [ref=f16e78]
+  - main [ref=f16e82]:
+    - generic [ref=f16e84]:
+      - tablist [ref=f16e85]:
+        - generic [ref=f16e87]:
+          - tab "联系人 0" [selected] [ref=f16e89] [cursor=pointer]:
+            - generic [ref=f16e90]:
+              - generic [ref=f16e91]: 联系人
+              - generic [ref=f16e92]: "0"
+          - tab "导入客户" [ref=f16e95] [cursor=pointer]
+        - generic [ref=f16e98]:
+          - button "导入 / 导出" [ref=f16e100] [cursor=pointer]
+          - button "批量更新" [ref=f16e104] [cursor=pointer]
+          - button [ref=f16e108] [cursor=pointer]:
+            - generic [ref=f16e109]:
+              - img "plus" [ref=f16e110]
+              - text: 添加
+      - tabpanel "联系人 0" [ref=f16e116]:
+        - generic [ref=f16e117]:
+          - generic [ref=f16e118]:
+            - generic [ref=f16e119]: "过滤器 :"
+            - generic [ref=f16e123]:
+              - button "邮 件" [ref=f16e125] [cursor=pointer]
+              - button "外部标识" [ref=f16e128] [cursor=pointer]
+              - button "名 称" [ref=f16e131] [cursor=pointer]
+              - button "姓" [ref=f16e134] [cursor=pointer]
+              - button "完整名称" [ref=f16e137] [cursor=pointer]
+              - button "电 话" [ref=f16e140] [cursor=pointer]
+              - button "语 言" [ref=f16e143] [cursor=pointer]
+              - button "国 家" [ref=f16e146] [cursor=pointer]
+              - button "列 表" [ref=f16e149] [cursor=pointer]
+              - button "列表状态" [ref=f16e152] [cursor=pointer]
+          - generic [ref=f16e154]:
+            - generic [ref=f16e155]: "细分群体:"
+            - button "细分群体" [ref=f16e158] [cursor=pointer]
+          - table [ref=f16e169]:
+            - rowgroup [ref=f16e181]:
+              - row [ref=f16e182]:
+                - columnheader [ref=f16e183]:
+                  - generic [ref=f16e185]:
+                    - generic:
+                      - checkbox "Select all" [disabled]
+                - columnheader "邮件" [ref=f16e186]
+                - columnheader "列表" [ref=f16e187]
+                - columnheader "细分群体" [ref=f16e188]
+                - columnheader "名称" [ref=f16e189]
+                - columnheader "姓" [ref=f16e190]
+                - columnheader "国家" [ref=f16e191]
+                - columnheader "语言" [ref=f16e192]
+                - columnheader "时区" [ref=f16e193]
+                - columnheader [ref=f16e194]:
+                  - generic [ref=f16e195]:
+                    - button [ref=f16e197] [cursor=pointer]
+                    - button [ref=f16e202] [cursor=pointer]
+            - rowgroup [ref=f16e206]:
+              - generic [ref=f16e208]:
+                - generic:
+                  - checkbox [disabled]
+              - generic [ref=f16e209]:
+                - button [ref=f16e211] [cursor=pointer]
+                - button [ref=f16e216] [cursor=pointer]
+              - row [ref=f16e220]:
+                - cell "未找到联系人 。 添加一些联系人开始 。" [ref=f16e221]
+```

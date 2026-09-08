@@ -767,9 +767,11 @@ func (a *App) InitServices() error {
 	if importMaxBytes <= 0 {
 		importMaxBytes = 1 << 30
 	}
+	contactFileRepo := repository.NewContactFileRepository(a.workspaceRepo)
 	a.importJobService, err = service.NewImportJobService(service.ImportJobServiceDependencies{
 		Repository: a.importJobRepo, Customers: a.customerService, Auth: a.authService,
-		MaxRows: importMaxRows, ChunkSize: importChunkSize, MaxFileBytes: importMaxBytes,
+		FileFields: contactFileRepo,
+		MaxRows:    importMaxRows, ChunkSize: importChunkSize, MaxFileBytes: importMaxBytes,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to initialize import job service: %w", err)
@@ -814,6 +816,7 @@ func (a *App) InitServices() error {
 		a.contactSegmentQueueRepo,
 		a.logger,
 	)
+	a.contactService.SetFileFields(contactFileRepo)
 	if err := a.contactService.SetCustomerAuthority(legacyContactAdapter); err != nil {
 		return fmt.Errorf("failed to configure contact customer authority: %w", err)
 	}

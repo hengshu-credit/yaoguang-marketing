@@ -104,7 +104,8 @@
     "tippy.js": "^6.3.7",
     "tiptap-extension-global-drag-handle": "^0.1.18",
     "use-debounce": "^10.0.6",
-    "uuid": "^14.0.0"
+    "uuid": "^14.0.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "overrides": {
     "esbuild": "^0.28.1",

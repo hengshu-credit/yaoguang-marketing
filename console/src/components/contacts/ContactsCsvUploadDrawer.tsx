@@ -21,13 +21,12 @@ import {
 } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 import type { UploadProps } from 'antd'
-import Papa from 'papaparse'
-import type { ParseResult } from 'papaparse'
+import { CONTACT_IMPORT_ACCEPT, readContactImportFile } from '../../utils/contactImportFile'
+import { ImportTemplateButtons } from './ImportTemplateButtons'
 import { Contact } from '../../services/api/contacts'
 import { contactsApi } from '../../services/api/contacts'
 import { List } from '../../services/api/types'
-import { useAuth } from '../../contexts/AuthContext'
-import { getCustomFieldLabel } from '../../hooks/useCustomFieldLabel'
+import { contactFileSchema, importContactField, matchContactFileField, type ContactFileField } from '../../utils/contactFileSchema'
 
 const { Text } = Typography
 const { Option } = Select
@@ -80,46 +79,9 @@ export function ContactsCsvUploadDrawer({
   onClose
 }: ContactsCsvUploadDrawerProps) {
   const { t } = useLingui()
-  // Get workspace for custom field labels
-  const { workspaces } = useAuth()
-  const currentWorkspace = workspaces.find((workspace) => workspace.id === workspaceId)
 
-  // Define contact fields for mapping with custom labels
-  const contactFields = [
-    { key: 'email', label: t`Email`, required: true },
-    { key: 'external_id', label: t`External ID` },
-    { key: 'first_name', label: t`First Name` },
-    { key: 'last_name', label: t`Last Name` },
-    { key: 'phone', label: t`Phone` },
-    { key: 'country', label: t`Country` },
-    { key: 'timezone', label: t`Timezone` },
-    { key: 'language', label: t`Language` },
-    { key: 'address_line_1', label: t`Address Line 1` },
-    { key: 'address_line_2', label: t`Address Line 2` },
-    { key: 'postcode', label: t`Postcode` },
-    { key: 'state', label: t`State` },
-    { key: 'job_title', label: t`Job Title` },
-    { key: 'custom_string_1', label: getCustomFieldLabel('custom_string_1', currentWorkspace) },
-    { key: 'custom_string_2', label: getCustomFieldLabel('custom_string_2', currentWorkspace) },
-    { key: 'custom_string_3', label: getCustomFieldLabel('custom_string_3', currentWorkspace) },
-    { key: 'custom_string_4', label: getCustomFieldLabel('custom_string_4', currentWorkspace) },
-    { key: 'custom_string_5', label: getCustomFieldLabel('custom_string_5', currentWorkspace) },
-    { key: 'custom_number_1', label: getCustomFieldLabel('custom_number_1', currentWorkspace) },
-    { key: 'custom_number_2', label: getCustomFieldLabel('custom_number_2', currentWorkspace) },
-    { key: 'custom_number_3', label: getCustomFieldLabel('custom_number_3', currentWorkspace) },
-    { key: 'custom_number_4', label: getCustomFieldLabel('custom_number_4', currentWorkspace) },
-    { key: 'custom_number_5', label: getCustomFieldLabel('custom_number_5', currentWorkspace) },
-    { key: 'custom_datetime_1', label: getCustomFieldLabel('custom_datetime_1', currentWorkspace) },
-    { key: 'custom_datetime_2', label: getCustomFieldLabel('custom_datetime_2', currentWorkspace) },
-    { key: 'custom_datetime_3', label: getCustomFieldLabel('custom_datetime_3', currentWorkspace) },
-    { key: 'custom_datetime_4', label: getCustomFieldLabel('custom_datetime_4', currentWorkspace) },
-    { key: 'custom_datetime_5', label: getCustomFieldLabel('custom_datetime_5', currentWorkspace) },
-    { key: 'custom_json_1', label: getCustomFieldLabel('custom_json_1', currentWorkspace) },
-    { key: 'custom_json_2', label: getCustomFieldLabel('custom_json_2', currentWorkspace) },
-    { key: 'custom_json_3', label: getCustomFieldLabel('custom_json_3', currentWorkspace) },
-    { key: 'custom_json_4', label: getCustomFieldLabel('custom_json_4', currentWorkspace) },
-    { key: 'custom_json_5', label: getCustomFieldLabel('custom_json_5', currentWorkspace) }
-  ]
+  const [fileFields, setFileFields] = useState<ContactFileField[]>([])
+  const contactFields = fileFields.filter(field => !field.read_only).map(field => ({ key: field.key, label: field.header, required: field.key === 'email' }))
   // Replace form with direct state management
   const [mappings, setMappings] = useState<Record<string, string>>({})
   const [selectedListIds, setSelectedListIds] = useState<string[]>(
@@ -316,89 +278,77 @@ export function ContactsCsvUploadDrawer({
     }
   }
 
-  const beforeUpload = (file: File) => {
-    const isCsv = file.type === 'text/csv' || file.name.endsWith('.csv')
-    if (!isCsv) {
-      message.error(t`You can only upload CSV files!`)
-      return Upload.LIST_IGNORE
-    }
+  const beforeUpload = async (file: File) => {
+    try {
+      const fields = await contactFileSchema.load(workspaceId)
+      const results = { data: await readContactImportFile(file) }
+      setFileFields(fields)
+      setFileName(file.name)
+      if (results.data && results.data.length > 0) {
+        const headers = results.data[0]
+        const rows = results.data.slice(1)
+        const preview = rows.slice(0, PREVIEW_ROWS)
 
-    setFileName(file.name)
+        const csvDataObj = {
+          headers,
+          rows,
+          preview
+        }
 
-    // Parse CSV file first
-    Papa.parse<string[]>(file, {
-      header: false,
-      complete: (results: ParseResult<string[]>) => {
-        if (results.data && results.data.length > 0) {
-          const headers = results.data[0]
-          const rows = results.data.slice(1)
-          const preview = rows.slice(0, PREVIEW_ROWS)
+        // Store data in both state and ref
+        setCsvData(csvDataObj)
+        parsedCsvDataRef.current = csvDataObj
 
-          const csvDataObj = {
-            headers,
-            rows,
-            preview
+        // Set total rows
+        setTotalRows(rows.length)
+
+        // Auto-map fields if column names match contact field names
+        const initialMappings: Record<string, string> = {}
+        headers.forEach((header) => {
+          const matchingField = matchContactFileField(fields.filter(field => !field.read_only), header)
+          if (matchingField) {
+            initialMappings[matchingField.key] = header
           }
+        })
 
-          // Store data in both state and ref
-          setCsvData(csvDataObj)
-          parsedCsvDataRef.current = csvDataObj
+        // Apply initial mappings first
+        setMappings(initialMappings)
 
-          // Set total rows
-          setTotalRows(rows.length)
+        // Now that CSV data is available in the ref, check for saved progress
+        const savedProgress = checkForSavedProgress(file.name)
+        // console.log('savedProgress', savedProgress)
 
-          // Auto-map fields if column names match contact field names
-          const initialMappings: Record<string, string> = {}
-          headers.forEach((header) => {
-            const matchingField = contactFields.find(
-              (field) =>
-                field.key.toLowerCase() === header.toLowerCase() ||
-                field.label.toLowerCase() === header.toLowerCase()
-            )
-            if (matchingField) {
-              initialMappings[matchingField.key] = header
+        // If there's saved progress, show modal to ask user
+        if (savedProgress && !savedProgressExists) {
+          Modal.confirm({
+            title: t`Resume Previous Upload`,
+            content: t`A previous upload for "${file.name}" was found (${new Date(savedProgress.timestamp).toLocaleString()}). Would you like to resume from where you left off?`,
+            okText: t`Resume`,
+            cancelText: t`Start New`,
+            onOk: () => {
+              if (savedProgress) {
+                handleRestoreProgress(savedProgress, csvDataObj)
+              }
+            },
+            onCancel: () => {
+              // Start fresh - clear saved progress
+              // console.log('Starting fresh, clearing progress for:', file.name)
+
+              // Use our improved clearSavedProgress function
+              clearSavedProgress(file.name)
+
+              // Set the initial mappings
+              setMappings(initialMappings)
             }
           })
-
-          // Apply initial mappings first
-          setMappings(initialMappings)
-
-          // Now that CSV data is available in the ref, check for saved progress
-          const savedProgress = checkForSavedProgress(file.name)
-          // console.log('savedProgress', savedProgress)
-
-          // If there's saved progress, show modal to ask user
-          if (savedProgress && !savedProgressExists) {
-            Modal.confirm({
-              title: t`Resume Previous Upload`,
-              content: t`A previous upload for "${file.name}" was found (${new Date(savedProgress.timestamp).toLocaleString()}). Would you like to resume from where you left off?`,
-              okText: t`Resume`,
-              cancelText: t`Start New`,
-              onOk: () => {
-                if (savedProgress) {
-                  handleRestoreProgress(savedProgress, csvDataObj)
-                }
-              },
-              onCancel: () => {
-                // Start fresh - clear saved progress
-                // console.log('Starting fresh, clearing progress for:', file.name)
-
-                // Use our improved clearSavedProgress function
-                clearSavedProgress(file.name)
-
-                // Set the initial mappings
-                setMappings(initialMappings)
-              }
-            })
-          }
-        } else {
-          message.error(t`The CSV file appears to be empty or invalid.`)
         }
-      },
-      error: (error: Error) => {
-        message.error(t`Error parsing CSV: ${error.message}`)
+      } else {
+        message.error(t`The import file must contain a header row and at least one customer.`)
       }
-    })
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : t`Unable to read the import file.`)
+      return Upload.LIST_IGNORE
+    }
 
     return false // Prevent default upload behavior
   }
@@ -406,7 +356,7 @@ export function ContactsCsvUploadDrawer({
   const uploadProps: UploadProps = {
     name: 'file',
     multiple: false,
-    accept: '.csv',
+    accept: CONTACT_IMPORT_ACCEPT,
     showUploadList: false,
     beforeUpload
   }
@@ -537,44 +487,27 @@ export function ContactsCsvUploadDrawer({
 
         const batchRows = dataToUse.rows.slice(rowIndex, end)
 
-        const contacts: Partial<Contact>[] = batchRows.map((row) => {
+        const validRowOffsets: number[] = []
+        const contacts = batchRows.map((row, rowOffset) => {
           const contact: Partial<Contact> = {}
-
-          // Map CSV columns to contact fields using validated mappings
-          Object.entries(validMappings).forEach(([contactField, csvColumn]) => {
-            if (csvColumn) {
-              const columnIndex = dataToUse.headers.indexOf(csvColumn)
-              if (columnIndex !== -1 && row[columnIndex] !== undefined) {
-                let value = row[columnIndex]
-
-                // Handle special field types
-                if (contactField.startsWith('custom_json_') && value) {
-                  try {
-                    value = JSON.parse(String(value))
-                  } catch {
-                    // Set to null if not valid JSON
-                    value = null
-                  }
-                } else if (contactField.startsWith('custom_number_')) {
-                  if (typeof value === 'string' && value.trim() !== '') {
-                    const numValue = Number(value)
-                    // Handle NaN values
-                    value = isNaN(numValue) ? null : numValue
-                  } else {
-                    value = null
-                  }
-                }
-
-                ;(contact as Record<string, unknown>)[contactField] = value !== '' ? value : null
-              }
-            }
-          })
-
-          return contact
+          try {
+            Object.entries(validMappings).forEach(([key, column]) => {
+              const field = fileFields.find(item => item.key === key)
+              const columnIndex = dataToUse.headers.indexOf(column)
+              if (field && columnIndex !== -1) importContactField(contact, field, row[columnIndex])
+            })
+            if (!contact.email) throw new Error(t`Email field mapping is required`)
+            validRowOffsets.push(rowOffset)
+            return contact
+          } catch (error) {
+            failureCount++
+            if (errors.length < 100) errors.push({ line: rowIndex + rowOffset + 2, email: contact.email || '', error: error instanceof Error ? error.message : String(error) })
+            return null
+          }
         })
-
-        // Filter out contacts without email
-        const validContacts = contacts.filter((contact) => contact.email)
+        setFailureCount(failureCount)
+        setErrorDetails([...errors])
+        const validContacts = contacts.filter((contact): contact is Partial<Contact> => contact !== null)
 
         // Check if paused before processing
         while (uploadRef.current.isPaused && !processingCancelled) {
@@ -589,12 +522,12 @@ export function ContactsCsvUploadDrawer({
 
         try {
           // Use batch import API for both cases (with or without lists)
-          const batchResult = await contactsApi.batchImport({
+          const batchResult = validContacts.length ? await contactsApi.batchImport({
             workspace_id: workspaceId,
             contacts: validContacts,
             subscribe_to_lists:
               selectedListIds && selectedListIds.length > 0 ? selectedListIds : undefined
-          })
+          }) : { operations: [] }
 
           // Process results from batch operation
           if (batchResult.error) {
@@ -605,7 +538,7 @@ export function ContactsCsvUploadDrawer({
             validContacts.forEach((contact, i) => {
               if (errors.length < 100) {
                 errors.push({
-                  line: rowIndex + i + 2,
+                    line: rowIndex + validRowOffsets[i] + 2,
                   email: contact.email || 'Unknown',
                   error: batchResult.error || 'Batch operation failed'
                 })
@@ -615,7 +548,7 @@ export function ContactsCsvUploadDrawer({
           } else {
             // Process per-contact results
             batchResult.operations.forEach((operation, i) => {
-              const csvLineNumber = rowIndex + i + 2
+              const csvLineNumber = rowIndex + validRowOffsets[i] + 2
 
               if (operation.action === 'error') {
                 failureCount++
@@ -779,7 +712,7 @@ export function ContactsCsvUploadDrawer({
 
   return (
     <Drawer
-      title={t`Import Contacts from CSV`}
+      title={t`Import Contacts from CSV or Excel`}
       placement="right"
       onClose={handleCloseDrawer}
       open={isVisible}
@@ -830,13 +763,17 @@ export function ContactsCsvUploadDrawer({
       footer={null}
     >
       {!csvData && !uploading && !uploadComplete && (
-        <Dragger {...uploadProps}>
-          <p className="ant-upload-drag-icon">
-            <UploadOutlined />
-          </p>
-          <p className="ant-upload-text">{t`Click or drag a CSV file to this area to upload`}</p>
-          <p className="ant-upload-hint">{t`The CSV file should have headers in the first row.`}</p>
-        </Dragger>
+        <>
+          <ImportTemplateButtons workspaceId={workspaceId} filename="contacts-import-template" />
+          <Dragger {...uploadProps}>
+            <p className="ant-upload-drag-icon">
+              <UploadOutlined />
+            </p>
+            <p className="ant-upload-text">{t`Click or drag a CSV or Excel file here`}</p>
+            <p className="ant-upload-hint">{t`The first row must contain column headers. Email is required.`}</p>
+            <p className="ant-upload-hint">{t`Excel imports the first worksheet. Keep identifiers and phone numbers as text to preserve leading zeros and long numbers.`}</p>
+          </Dragger>
+        </>
       )}
 
       {savedProgressExists && csvData && !uploading && !uploadComplete && (
@@ -1039,7 +976,7 @@ export function ContactsCsvUploadDrawer({
           >
             <p style={{ marginBottom: '16px' }}>
               <Text>
-                {t`Map your CSV columns to contact fields. The`} <Text strong>{t`Email`}</Text> {t`field is required.`}
+                {t`Map your file columns to contact fields. The`} <Text strong>{t`Email`}</Text> {t`field is required.`}
               </Text>
             </p>
 

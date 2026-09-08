@@ -1,6 +1,14 @@
 /api/imports.upload:
   post:
     summary: Stream and stage every customer CSV row
+    description: |
+      The console accepts CSV, XLSX and XLS files and converts the first Excel worksheet
+      to CSV before upload, preserving the original filename in import history.
+      API clients must send CSV bytes using fields from imports.fields. Templates and
+      contact exports share those columns, including current custom labels and dynamic
+      customer attributes. external_id (or legacy external_user_id), email or phone is
+      required per row. Optional empty values leave existing values unchanged. UTF-8 BOM
+      and quoted multiline records are supported. Read-only columns are ignored.
     operationId: uploadCustomerImport
     security: [{ BearerAuth: [] }]
     parameters:
@@ -24,6 +32,36 @@
           application/json:
             schema: { $ref: '../components/schemas/import_job.yaml#/ImportJob' }
       '400': { description: Invalid CSV or configured upload limit exceeded }
+
+/api/imports.fields:
+  get:
+    summary: Get the current shared customer export and import field schema
+    description: Requires contacts.read or customers.read. Evaluated on every request, including custom field labels, configured customer attributes and observed profile attribute keys. Profile columns require customers.read; contacts-only readers receive the base contact fields. Headers include stable keys where labels can change. Does not return customer values.
+    operationId: getCustomerFileFields
+    security: [{ BearerAuth: [] }]
+    parameters:
+      - { name: workspace_id, in: query, required: true, schema: { type: string } }
+    responses:
+      '200':
+        description: Current ordered columns; response is not cached.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fields]
+              properties:
+                fields:
+                  type: array
+                  items:
+                    type: object
+                    required: [key, header, type, read_only]
+                    properties:
+                      key: { type: string }
+                      header: { type: string }
+                      type: { type: string, enum: [string, number, integer, boolean, json, datetime, auto] }
+                      read_only: { type: boolean }
+      '400': { description: Invalid workspace }
+      '403': { description: Contact or customer read permission required }
 
 /api/imports.get:
   get:

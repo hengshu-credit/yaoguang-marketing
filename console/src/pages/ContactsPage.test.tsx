@@ -171,7 +171,7 @@ describe('ContactsPage row delete and bulk selection', () => {
     fireEvent.click(within(alice.closest('tr')!).getByRole('checkbox'))
     fireEvent.click(screen.getByRole('tab', { name: 'Import customers' }))
     expect(await screen.findByText('Customer CSV import')).toBeVisible()
-    fireEvent.click(screen.getByRole('tab', { name: 'Contacts' }))
+    fireEvent.click(screen.getByRole('tab', { name: /^Contacts/ }))
     expect(within(alice.closest('tr')!).getByRole('checkbox')).toBeChecked()
     expect(screen.queryByText(/email compatibility view/i)).not.toBeInTheDocument()
   })

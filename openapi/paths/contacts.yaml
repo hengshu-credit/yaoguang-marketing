@@ -119,6 +119,11 @@
           default: false
         description: Include contact list subscriptions in the response
         example: true
+      - name: with_profiles
+        in: query
+        required: false
+        schema: { type: boolean, default: false }
+        description: Include current customer profile status, tags and attributes for file export, loaded in one batch. Requires customers.read in addition to contacts.read. Customer authority values take precedence over legacy profile values.
       - name: limit
         in: query
         required: false

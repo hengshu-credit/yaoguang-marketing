@@ -8,7 +8,7 @@
 
 The HTML layout viewport is independent of the available panel width: desktop uses 1024px, Android 393px, and iOS/H5 375px, then scales to the device screen. This keeps desktop media queries from falling back to mobile layouts inside narrow drawers.
 
-The preview stage has an explicit width because `container-type: inline-size` suppresses intrinsic sizing inside a flex parent. Compact inbox previews are capped at 402px, including the canvas around the 360px phone. Keep their natural height; do not reintroduce a fixed-height scaled wrapper in translation forms.
+The preview stage has an explicit width because `container-type: inline-size` suppresses intrinsic sizing inside a flex parent. Compact inbox previews are capped at 402px, including the canvas around the 360px phone, and retain the standard 654px phone height. Compact mode only reduces the surrounding canvas, not the phone height. Do not reintroduce a fixed-height scaled wrapper in translation forms.
 
 The visual preview panel and MJML code editor share the `material-email-editor-split` layout. Below 768px it stacks the full-width preview above a scrollable details/code panel, overriding the splitter's inline flex sizes so a 300px minimum panel cannot collapse the phone. Desktop retains draggable columns. Keep the editor wrapper scrollable and the drawer's step tabs in normal flow on narrow screens.
 

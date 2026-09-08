@@ -254,10 +254,10 @@ export function WorkspaceSettingsPage() {
           isOwner={isOwner}
         />
       </Sider>
-      <Layout>
-        <Content>
+      <Layout style={{ minWidth: 0 }}>
+        <Content style={{ minWidth: 0 }}>
           <div
-            style={{ maxWidth: activeSection === 'languages' ? '100%' : '700px', padding: '24px' }}
+            style={{ width: '100%', minWidth: 0, padding: '24px' }}
           >
             {renderSection()}
           </div>

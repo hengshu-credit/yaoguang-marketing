@@ -25,11 +25,26 @@ func NewImportJobHandler(service *service.ImportJobService, getJWTSecret func() 
 func (h *ImportJobHandler) RegisterRoutes(mux *http.ServeMux) {
 	auth := middleware.NewAuthMiddleware(h.getJWTSecret)
 	mux.Handle("/api/imports.upload", auth.RequireAuth()(http.HandlerFunc(h.upload)))
+	mux.Handle("/api/imports.fields", auth.RequireAuth()(http.HandlerFunc(h.fields)))
 	mux.Handle("/api/imports.get", auth.RequireAuth()(http.HandlerFunc(h.get)))
 	mux.Handle("/api/imports.list", auth.RequireAuth()(http.HandlerFunc(h.list)))
 	mux.Handle("/api/imports.cancel", auth.RequireAuth()(http.HandlerFunc(h.cancel)))
 	mux.Handle("/api/imports.errors", auth.RequireAuth()(http.HandlerFunc(h.errors)))
 	mux.Handle("/api/imports.process", auth.RequireAuth()(http.HandlerFunc(h.process)))
+}
+
+func (h *ImportJobHandler) fields(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeAPIError(w, requestIDFor(r), "method_not_allowed", "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	fields, err := h.service.FileFields(r.Context(), r.URL.Query().Get("workspace_id"))
+	if err != nil {
+		h.error(w, r, err)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusOK, map[string]interface{}{"fields": fields})
 }
 
 func (h *ImportJobHandler) list(w http.ResponseWriter, r *http.Request) {

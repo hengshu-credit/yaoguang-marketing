@@ -19813,3 +19813,57 @@ msgstr "Zapier owns this webhook's endpoint URL, so it cannot be changed here. C
 #: src/components/file_manager/fileManager.tsx:784
 msgid "Zip"
 msgstr "Zip"
+
+msgid "Download CSV template"
+msgstr "Download CSV template"
+
+msgid "Download Excel template"
+msgstr "Download Excel template"
+
+msgid "Receive the complete file"
+msgstr "Receive the complete file"
+
+msgid "Click or drag a CSV or Excel file here"
+msgstr "Click or drag a CSV or Excel file here"
+
+msgid "Please upload a CSV, XLSX or XLS file."
+msgstr "Please upload a CSV, XLSX or XLS file."
+
+msgid "Excel imports the first worksheet. Keep identifiers and phone numbers as text to preserve leading zeros and long numbers."
+msgstr "Excel imports the first worksheet. Keep identifiers and phone numbers as text to preserve leading zeros and long numbers."
+
+msgid "Unable to read the import file."
+msgstr "Unable to read the import file."
+
+msgid "Unable to download the import template. Please try again."
+msgstr "Unable to download the import template. Please try again."
+
+msgid "The CSV file is malformed. Check quotes and delimiters."
+msgstr "The CSV file is malformed. Check quotes and delimiters."
+
+msgid "Unable to read the Excel file. Use an unencrypted XLSX or XLS workbook."
+msgstr "Unable to read the Excel file. Use an unencrypted XLSX or XLS workbook."
+
+msgid "The import file must contain a header row and at least one customer."
+msgstr "The import file must contain a header row and at least one customer."
+
+msgid "Column headers must be non-empty and unique."
+msgstr "Column headers must be non-empty and unique."
+
+msgid "Import Contacts from CSV or Excel"
+msgstr "Import Contacts from CSV or Excel"
+
+msgid "The first row must contain column headers. Email is required."
+msgstr "The first row must contain column headers. Email is required."
+
+msgid "Map your file columns to contact fields. The"
+msgstr "Map your file columns to contact fields. The"
+
+msgid "The import was rejected. Check the file format, headers and configured import limits."
+msgstr "The import was rejected. Check the file format, headers and configured import limits."
+
+msgid "Templates match customer exports and include the latest fields and attributes. System-managed columns are ignored during import."
+msgstr "Templates match customer exports and include the latest fields and attributes. System-managed columns are ignored during import."
+
+msgid "Include external_id, email or phone; at least one customer identifier is required."
+msgstr "Include external_id, email or phone; at least one customer identifier is required."

@@ -175,6 +175,38 @@ func TestImportJobPersistsMalformedRowsAsExplicitFailures(t *testing.T) {
 	require.NoError(t, job.Counters.Validate())
 }
 
+func TestImportJobTemplateAllowsOptionalIdentifiersAndUTF8BOM(t *testing.T) {
+	repository := &importJobRepositoryMemory{}
+	customers := &importCustomerServiceStub{}
+	service, err := NewImportJobService(ImportJobServiceDependencies{Repository: repository, Customers: customers, MaxRows: 100, ChunkSize: 20, MaxFileBytes: 1 << 20})
+	require.NoError(t, err)
+	job, err := service.StageCSV(context.Background(), "workspace1", "template.csv", nil, strings.NewReader("\uFEFFexternal_user_id,email,phone\r\n000123456789012345678,,\r\n,customer@example.com,\r\n,,+8613800000000\r\n"))
+	require.NoError(t, err)
+	require.Equal(t, int64(3), job.Counters.Pending)
+	processed, err := service.ProcessNextChunk(context.Background(), "workspace1", job.ID)
+	require.NoError(t, err)
+	require.Equal(t, 3, processed)
+	require.Len(t, customers.requests, 1)
+	items := customers.requests[0].Items
+	require.Len(t, items, 3)
+	assert.Equal(t, "000123456789012345678", *items[0].Customer.ExternalUserID)
+	assert.Equal(t, "customer@example.com", items[1].Customer.Identities[0].Value)
+	assert.Equal(t, "+8613800000000", items[2].Customer.Identities[0].Value)
+}
+
+func TestImportJobRejectsInvalidTemplateHeaders(t *testing.T) {
+	for _, header := range []string{"email,email", "email,", "first_name,last_name"} {
+		t.Run(header, func(t *testing.T) {
+			repository := &importJobRepositoryMemory{}
+			service, err := NewImportJobService(ImportJobServiceDependencies{Repository: repository, MaxRows: 100, ChunkSize: 20, MaxFileBytes: 1 << 20})
+			require.NoError(t, err)
+			job, err := service.StageCSV(context.Background(), "workspace1", "template.csv", nil, strings.NewReader(header+"\na,b\n"))
+			require.NoError(t, err)
+			assert.Equal(t, domain.ImportJobRejected, job.Status)
+		})
+	}
+}
+
 func TestImportJobCommitCreatesDurableBackgroundTask(t *testing.T) {
 	repository := &importJobRepositoryMemory{}
 	scheduler := &importTaskSchedulerMemory{}

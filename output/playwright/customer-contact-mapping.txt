@@ -1,0 +1,502 @@
+### Page
+- Page URL: http://127.0.0.1:8081/console/workspace/import-review/contacts?limit=10
+- Page Title: 瑶光营销平台
+### Snapshot
+```yaml
+- generic [active] [ref=f15e1]:
+  - generic [ref=f15e5]:
+    - complementary [ref=f15e6]:
+      - generic [ref=f15e7]:
+        - generic "瑶光营销平台, 观心知意，循光达客" [ref=f15e9]:
+          - img "衡枢真信" [ref=f15e10]
+          - generic [ref=f15e11]:
+            - generic [ref=f15e12]: 瑶光营销平台
+            - generic [ref=f15e13]: 观心知意，循光达客
+        - menu [ref=f15e15]:
+          - menuitem [ref=f15e16] [cursor=pointer]:
+            - img "team" [ref=f15e17]
+            - link "客户管理" [ref=f15e21]:
+              - /url: /console/workspace/import-review/contacts
+          - menuitem [ref=f15e22] [cursor=pointer]:
+            - img "usergroup-add" [ref=f15e23]
+            - link "客群划分" [ref=f15e27]:
+              - /url: /console/workspace/import-review/audiences
+          - menuitem [ref=f15e28] [cursor=pointer]:
+            - img "file-text" [ref=f15e29]
+            - link "素材模板" [ref=f15e33]:
+              - /url: /console/workspace/import-review/blog
+          - menuitem [ref=f15e34] [cursor=pointer]:
+            - img "setting" [ref=f15e35]
+            - link "设置" [ref=f15e39]:
+              - /url: /console/workspace/import-review/settings
+        - generic [ref=f15e40]:
+          - generic [ref=f15e41]: v57.0
+          - button "折叠" [ref=f15e42] [cursor=pointer]
+        - separator "调整侧边栏宽度" [ref=f15e47]
+    - banner [ref=f15e48]:
+      - generic [ref=f15e51] [cursor=pointer]:
+        - generic [ref=f15e52]:
+          - generic [ref=f15e53]: 客户导入验收
+          - combobox [ref=f15e55]
+        - img "down" [ref=f15e57]
+      - generic [ref=f15e60]:
+        - button "帮助" [ref=f15e62] [cursor=pointer]
+        - button "ZH-CN" [ref=f15e68] [cursor=pointer]
+        - button "review@example.com down" [ref=f15e71] [cursor=pointer]:
+          - generic [ref=f15e72]:
+            - generic [ref=f15e76]: review@example.com
+            - img "down" [ref=f15e78]
+    - main [ref=f15e82]:
+      - generic [ref=f15e84]:
+        - tablist [ref=f15e85]:
+          - generic [ref=f15e87]:
+            - tab "联系人 0" [selected] [ref=f15e89] [cursor=pointer]:
+              - generic [ref=f15e90]:
+                - generic [ref=f15e91]: 联系人
+                - generic [ref=f15e92]: "0"
+            - tab "导入客户" [ref=f15e95] [cursor=pointer]
+          - generic [ref=f15e98]:
+            - button "导入 / 导出" [ref=f15e100] [cursor=pointer]
+            - button "批量更新" [ref=f15e104] [cursor=pointer]
+            - button [ref=f15e108] [cursor=pointer]:
+              - generic [ref=f15e109]:
+                - img "plus" [ref=f15e110]
+                - text: 添加
+        - tabpanel "联系人 0" [ref=f15e116]:
+          - generic [ref=f15e117]:
+            - generic [ref=f15e118]:
+              - generic [ref=f15e119]: "过滤器 :"
+              - generic [ref=f15e123]:
+                - button "邮 件" [ref=f15e125] [cursor=pointer]
+                - button "外部标识" [ref=f15e128] [cursor=pointer]
+                - button "名 称" [ref=f15e131] [cursor=pointer]
+                - button "姓" [ref=f15e134] [cursor=pointer]
+                - button "完整名称" [ref=f15e137] [cursor=pointer]
+                - button "电 话" [ref=f15e140] [cursor=pointer]
+                - button "语 言" [ref=f15e143] [cursor=pointer]
+                - button "国 家" [ref=f15e146] [cursor=pointer]
+                - button "列 表" [ref=f15e149] [cursor=pointer]
+                - button "列表状态" [ref=f15e152] [cursor=pointer]
+            - generic [ref=f15e154]:
+              - generic [ref=f15e155]: "细分群体:"
+              - button "细分群体" [ref=f15e158] [cursor=pointer]
+            - table [ref=f15e169]:
+              - rowgroup [ref=f15e181]:
+                - row [ref=f15e182]:
+                  - columnheader [ref=f15e183]:
+                    - generic [ref=f15e185]:
+                      - generic:
+                        - checkbox "Select all" [disabled]
+                  - columnheader "邮件" [ref=f15e186]
+                  - columnheader "列表" [ref=f15e187]
+                  - columnheader "细分群体" [ref=f15e188]
+                  - columnheader "名称" [ref=f15e189]
+                  - columnheader "姓" [ref=f15e190]
+                  - columnheader "国家" [ref=f15e191]
+                  - columnheader "语言" [ref=f15e192]
+                  - columnheader "时区" [ref=f15e193]
+                  - columnheader [ref=f15e194]:
+                    - generic [ref=f15e195]:
+                      - button [ref=f15e197] [cursor=pointer]
+                      - button [ref=f15e202] [cursor=pointer]
+              - rowgroup [ref=f15e206]:
+                - generic [ref=f15e208]:
+                  - generic:
+                    - checkbox [disabled]
+                - generic [ref=f15e209]:
+                  - button [ref=f15e211] [cursor=pointer]
+                  - button [ref=f15e216] [cursor=pointer]
+                - row [ref=f15e220]:
+                  - cell "未找到联系人 。 添加一些联系人开始 。" [ref=f15e221]
+  - dialog "从 CSV 或 Excel 导入客户" [ref=f15e236]:
+    - generic [ref=f15e237]:
+      - generic [ref=f15e238]:
+        - button "关闭" [ref=f15e239] [cursor=pointer]:
+          - img "close" [ref=f15e240]
+        - generic [ref=f15e243]: 从 CSV 或 Excel 导入客户
+      - button "开始上传" [ref=f15e282] [cursor=pointer]
+    - generic [ref=f15e284]:
+      - generic [ref=f15e285]:
+        - strong [ref=f15e287]: "文件:"
+        - text: customer-contact-import-filled.xlsx
+        - generic [ref=f15e288]: (1 行数)
+      - generic [ref=f15e289]:
+        - paragraph [ref=f15e290]:
+          - generic [ref=f15e291]:
+            - text: 将文件列映射到客户字段。
+            - strong [ref=f15e293]: 邮件
+            - text: 字段。
+        - generic [ref=f15e295]:
+          - generic [ref=f15e296]:
+            - strong [ref=f15e298]: email
+            - generic [ref=f15e299]: 邮件( 需要)
+          - generic [ref=f15e300]:
+            - generic [ref=f15e301] [cursor=pointer]:
+              - generic "邮件" [ref=f15e302]:
+                - text: 邮件
+                - combobox [ref=f15e303]
+              - img "down" [ref=f15e305]
+              - button "Clear" [ref=f15e308]:
+                - img "close-circle" [ref=f15e309]
+            - generic [ref=f15e312]:
+              - generic [ref=f15e313]: "样本值:"
+              - generic [ref=f15e314]: import-review@example.com
+        - generic [ref=f15e316]:
+          - strong [ref=f15e319]: external_id
+          - generic [ref=f15e320]:
+            - generic [ref=f15e321] [cursor=pointer]:
+              - generic "外部标识" [ref=f15e322]:
+                - text: 外部标识
+                - combobox [ref=f15e323]
+              - img "down" [ref=f15e325]
+              - button "Clear" [ref=f15e328]:
+                - img "close-circle" [ref=f15e329]
+            - generic [ref=f15e332]:
+              - generic [ref=f15e333]: "样本值:"
+              - generic [ref=f15e334]: "000123456789012345678"
+        - generic [ref=f15e336]:
+          - strong [ref=f15e339]: first_name
+          - generic [ref=f15e340]:
+            - generic [ref=f15e341] [cursor=pointer]:
+              - generic "名称" [ref=f15e342]:
+                - text: 名称
+                - combobox [ref=f15e343]
+              - img "down" [ref=f15e345]
+              - button "Clear" [ref=f15e348]:
+                - img "close-circle" [ref=f15e349]
+            - generic [ref=f15e352]:
+              - generic [ref=f15e353]: "样本值:"
+              - generic [ref=f15e354]: 小明
+        - generic [ref=f15e356]:
+          - strong [ref=f15e359]: last_name
+          - generic [ref=f15e360]:
+            - generic [ref=f15e361] [cursor=pointer]:
+              - generic "姓" [ref=f15e362]:
+                - text: 姓
+                - combobox [ref=f15e363]
+              - img "down" [ref=f15e365]
+              - button "Clear" [ref=f15e368]:
+                - img "close-circle" [ref=f15e369]
+            - generic [ref=f15e372]: 没有可用的样本值
+        - generic [ref=f15e374]:
+          - strong [ref=f15e377]: phone
+          - generic [ref=f15e378]:
+            - generic [ref=f15e379] [cursor=pointer]:
+              - generic "电话" [ref=f15e380]:
+                - text: 电话
+                - combobox [ref=f15e381]
+              - img "down" [ref=f15e383]
+              - button "Clear" [ref=f15e386]:
+                - img "close-circle" [ref=f15e387]
+            - generic [ref=f15e390]:
+              - generic [ref=f15e391]: "样本值:"
+              - generic [ref=f15e392]: "0013800000000"
+        - generic [ref=f15e394]:
+          - strong [ref=f15e397]: country
+          - generic [ref=f15e398]:
+            - generic [ref=f15e399] [cursor=pointer]:
+              - generic "国家" [ref=f15e400]:
+                - text: 国家
+                - combobox [ref=f15e401]
+              - img "down" [ref=f15e403]
+              - button "Clear" [ref=f15e406]:
+                - img "close-circle" [ref=f15e407]
+            - generic [ref=f15e410]: 没有可用的样本值
+        - generic [ref=f15e412]:
+          - strong [ref=f15e415]: timezone
+          - generic [ref=f15e416]:
+            - generic [ref=f15e417] [cursor=pointer]:
+              - generic "时区" [ref=f15e418]:
+                - text: 时区
+                - combobox [ref=f15e419]
+              - img "down" [ref=f15e421]
+              - button "Clear" [ref=f15e424]:
+                - img "close-circle" [ref=f15e425]
+            - generic [ref=f15e428]: 没有可用的样本值
+        - generic [ref=f15e430]:
+          - strong [ref=f15e433]: language
+          - generic [ref=f15e434]:
+            - generic [ref=f15e435] [cursor=pointer]:
+              - generic "语言" [ref=f15e436]:
+                - text: 语言
+                - combobox [ref=f15e437]
+              - img "down" [ref=f15e439]
+              - button "Clear" [ref=f15e442]:
+                - img "close-circle" [ref=f15e443]
+            - generic [ref=f15e446]: 没有可用的样本值
+        - generic [ref=f15e448]:
+          - strong [ref=f15e451]: address_line_1
+          - generic [ref=f15e452]:
+            - generic [ref=f15e453] [cursor=pointer]:
+              - generic "地址行 1" [ref=f15e454]:
+                - text: 地址行 1
+                - combobox [ref=f15e455]
+              - img "down" [ref=f15e457]
+              - button "Clear" [ref=f15e460]:
+                - img "close-circle" [ref=f15e461]
+            - generic [ref=f15e464]: 没有可用的样本值
+        - generic [ref=f15e466]:
+          - strong [ref=f15e469]: address_line_2
+          - generic [ref=f15e470]:
+            - generic [ref=f15e471] [cursor=pointer]:
+              - generic "地址行 2" [ref=f15e472]:
+                - text: 地址行 2
+                - combobox [ref=f15e473]
+              - img "down" [ref=f15e475]
+              - button "Clear" [ref=f15e478]:
+                - img "close-circle" [ref=f15e479]
+            - generic [ref=f15e482]: 没有可用的样本值
+        - generic [ref=f15e484]:
+          - strong [ref=f15e487]: postcode
+          - generic [ref=f15e488]:
+            - generic [ref=f15e489] [cursor=pointer]:
+              - generic "邮政编码" [ref=f15e490]:
+                - text: 邮政编码
+                - combobox [ref=f15e491]
+              - img "down" [ref=f15e493]
+              - button "Clear" [ref=f15e496]:
+                - img "close-circle" [ref=f15e497]
+            - generic [ref=f15e500]: 没有可用的样本值
+        - generic [ref=f15e502]:
+          - strong [ref=f15e505]: state
+          - generic [ref=f15e506]:
+            - generic [ref=f15e507] [cursor=pointer]:
+              - generic "状态" [ref=f15e508]:
+                - text: 状态
+                - combobox [ref=f15e509]
+              - img "down" [ref=f15e511]
+              - button "Clear" [ref=f15e514]:
+                - img "close-circle" [ref=f15e515]
+            - generic [ref=f15e518]: 没有可用的样本值
+        - generic [ref=f15e520]:
+          - strong [ref=f15e523]: job_title
+          - generic [ref=f15e524]:
+            - generic [ref=f15e525] [cursor=pointer]:
+              - generic "职称" [ref=f15e526]:
+                - text: 职称
+                - combobox [ref=f15e527]
+              - img "down" [ref=f15e529]
+              - button "Clear" [ref=f15e532]:
+                - img "close-circle" [ref=f15e533]
+            - generic [ref=f15e536]: 没有可用的样本值
+        - generic [ref=f15e538]:
+          - strong [ref=f15e541]: custom_string_1
+          - generic [ref=f15e542]:
+            - generic [ref=f15e543] [cursor=pointer]:
+              - generic "Custom String 1" [ref=f15e544]:
+                - text: Custom String 1
+                - combobox [ref=f15e545]
+              - img "down" [ref=f15e547]
+              - button "Clear" [ref=f15e550]:
+                - img "close-circle" [ref=f15e551]
+            - generic [ref=f15e554]: 没有可用的样本值
+        - generic [ref=f15e556]:
+          - strong [ref=f15e559]: custom_string_2
+          - generic [ref=f15e560]:
+            - generic [ref=f15e561] [cursor=pointer]:
+              - generic "Custom String 2" [ref=f15e562]:
+                - text: Custom String 2
+                - combobox [ref=f15e563]
+              - img "down" [ref=f15e565]
+              - button "Clear" [ref=f15e568]:
+                - img "close-circle" [ref=f15e569]
+            - generic [ref=f15e572]: 没有可用的样本值
+        - generic [ref=f15e574]:
+          - strong [ref=f15e577]: custom_string_3
+          - generic [ref=f15e578]:
+            - generic [ref=f15e579] [cursor=pointer]:
+              - generic "Custom String 3" [ref=f15e580]:
+                - text: Custom String 3
+                - combobox [ref=f15e581]
+              - img "down" [ref=f15e583]
+              - button "Clear" [ref=f15e586]:
+                - img "close-circle" [ref=f15e587]
+            - generic [ref=f15e590]: 没有可用的样本值
+        - generic [ref=f15e592]:
+          - strong [ref=f15e595]: custom_string_4
+          - generic [ref=f15e596]:
+            - generic [ref=f15e597] [cursor=pointer]:
+              - generic "Custom String 4" [ref=f15e598]:
+                - text: Custom String 4
+                - combobox [ref=f15e599]
+              - img "down" [ref=f15e601]
+              - button "Clear" [ref=f15e604]:
+                - img "close-circle" [ref=f15e605]
+            - generic [ref=f15e608]: 没有可用的样本值
+        - generic [ref=f15e610]:
+          - strong [ref=f15e613]: custom_string_5
+          - generic [ref=f15e614]:
+            - generic [ref=f15e615] [cursor=pointer]:
+              - generic "Custom String 5" [ref=f15e616]:
+                - text: Custom String 5
+                - combobox [ref=f15e617]
+              - img "down" [ref=f15e619]
+              - button "Clear" [ref=f15e622]:
+                - img "close-circle" [ref=f15e623]
+            - generic [ref=f15e626]: 没有可用的样本值
+        - generic [ref=f15e628]:
+          - strong [ref=f15e631]: custom_number_1
+          - generic [ref=f15e632]:
+            - generic [ref=f15e633] [cursor=pointer]:
+              - generic "Custom Number 1" [ref=f15e634]:
+                - text: Custom Number 1
+                - combobox [ref=f15e635]
+              - img "down" [ref=f15e637]
+              - button "Clear" [ref=f15e640]:
+                - img "close-circle" [ref=f15e641]
+            - generic [ref=f15e644]: 没有可用的样本值
+        - generic [ref=f15e646]:
+          - strong [ref=f15e649]: custom_number_2
+          - generic [ref=f15e650]:
+            - generic [ref=f15e651] [cursor=pointer]:
+              - generic "Custom Number 2" [ref=f15e652]:
+                - text: Custom Number 2
+                - combobox [ref=f15e653]
+              - img "down" [ref=f15e655]
+              - button "Clear" [ref=f15e658]:
+                - img "close-circle" [ref=f15e659]
+            - generic [ref=f15e662]: 没有可用的样本值
+        - generic [ref=f15e664]:
+          - strong [ref=f15e667]: custom_number_3
+          - generic [ref=f15e668]:
+            - generic [ref=f15e669] [cursor=pointer]:
+              - generic "Custom Number 3" [ref=f15e670]:
+                - text: Custom Number 3
+                - combobox [ref=f15e671]
+              - img "down" [ref=f15e673]
+              - button "Clear" [ref=f15e676]:
+                - img "close-circle" [ref=f15e677]
+            - generic [ref=f15e680]: 没有可用的样本值
+        - generic [ref=f15e682]:
+          - strong [ref=f15e685]: custom_number_4
+          - generic [ref=f15e686]:
+            - generic [ref=f15e687] [cursor=pointer]:
+              - generic "Custom Number 4" [ref=f15e688]:
+                - text: Custom Number 4
+                - combobox [ref=f15e689]
+              - img "down" [ref=f15e691]
+              - button "Clear" [ref=f15e694]:
+                - img "close-circle" [ref=f15e695]
+            - generic [ref=f15e698]: 没有可用的样本值
+        - generic [ref=f15e700]:
+          - strong [ref=f15e703]: custom_number_5
+          - generic [ref=f15e704]:
+            - generic [ref=f15e705] [cursor=pointer]:
+              - generic "Custom Number 5" [ref=f15e706]:
+                - text: Custom Number 5
+                - combobox [ref=f15e707]
+              - img "down" [ref=f15e709]
+              - button "Clear" [ref=f15e712]:
+                - img "close-circle" [ref=f15e713]
+            - generic [ref=f15e716]: 没有可用的样本值
+        - generic [ref=f15e718]:
+          - strong [ref=f15e721]: custom_datetime_1
+          - generic [ref=f15e722]:
+            - generic [ref=f15e723] [cursor=pointer]:
+              - generic "Custom Datetime 1" [ref=f15e724]:
+                - text: Custom Datetime 1
+                - combobox [ref=f15e725]
+              - img "down" [ref=f15e727]
+              - button "Clear" [ref=f15e730]:
+                - img "close-circle" [ref=f15e731]
+            - generic [ref=f15e734]: 没有可用的样本值
+        - generic [ref=f15e736]:
+          - strong [ref=f15e739]: custom_datetime_2
+          - generic [ref=f15e740]:
+            - generic [ref=f15e741] [cursor=pointer]:
+              - generic "Custom Datetime 2" [ref=f15e742]:
+                - text: Custom Datetime 2
+                - combobox [ref=f15e743]
+              - img "down" [ref=f15e745]
+              - button "Clear" [ref=f15e748]:
+                - img "close-circle" [ref=f15e749]
+            - generic [ref=f15e752]: 没有可用的样本值
+        - generic [ref=f15e754]:
+          - strong [ref=f15e757]: custom_datetime_3
+          - generic [ref=f15e758]:
+            - generic [ref=f15e759] [cursor=pointer]:
+              - generic "Custom Datetime 3" [ref=f15e760]:
+                - text: Custom Datetime 3
+                - combobox [ref=f15e761]
+              - img "down" [ref=f15e763]
+              - button "Clear" [ref=f15e766]:
+                - img "close-circle" [ref=f15e767]
+            - generic [ref=f15e770]: 没有可用的样本值
+        - generic [ref=f15e772]:
+          - strong [ref=f15e775]: custom_datetime_4
+          - generic [ref=f15e776]:
+            - generic [ref=f15e777] [cursor=pointer]:
+              - generic "Custom Datetime 4" [ref=f15e778]:
+                - text: Custom Datetime 4
+                - combobox [ref=f15e779]
+              - img "down" [ref=f15e781]
+              - button "Clear" [ref=f15e784]:
+                - img "close-circle" [ref=f15e785]
+            - generic [ref=f15e788]: 没有可用的样本值
+        - generic [ref=f15e790]:
+          - strong [ref=f15e793]: custom_datetime_5
+          - generic [ref=f15e794]:
+            - generic [ref=f15e795] [cursor=pointer]:
+              - generic "Custom Datetime 5" [ref=f15e796]:
+                - text: Custom Datetime 5
+                - combobox [ref=f15e797]
+              - img "down" [ref=f15e799]
+              - button "Clear" [ref=f15e802]:
+                - img "close-circle" [ref=f15e803]
+            - generic [ref=f15e806]: 没有可用的样本值
+        - generic [ref=f15e808]:
+          - strong [ref=f15e811]: custom_json_1
+          - generic [ref=f15e812]:
+            - generic [ref=f15e813] [cursor=pointer]:
+              - generic "Custom Json 1" [ref=f15e814]:
+                - text: Custom Json 1
+                - combobox [ref=f15e815]
+              - img "down" [ref=f15e817]
+              - button "Clear" [ref=f15e820]:
+                - img "close-circle" [ref=f15e821]
+            - generic [ref=f15e824]: 没有可用的样本值
+        - generic [ref=f15e826]:
+          - strong [ref=f15e829]: custom_json_2
+          - generic [ref=f15e830]:
+            - generic [ref=f15e831] [cursor=pointer]:
+              - generic "Custom Json 2" [ref=f15e832]:
+                - text: Custom Json 2
+                - combobox [ref=f15e833]
+              - img "down" [ref=f15e835]
+              - button "Clear" [ref=f15e838]:
+                - img "close-circle" [ref=f15e839]
+            - generic [ref=f15e842]: 没有可用的样本值
+        - generic [ref=f15e844]:
+          - strong [ref=f15e847]: custom_json_3
+          - generic [ref=f15e848]:
+            - generic [ref=f15e849] [cursor=pointer]:
+              - generic "Custom Json 3" [ref=f15e850]:
+                - text: Custom Json 3
+                - combobox [ref=f15e851]
+              - img "down" [ref=f15e853]
+              - button "Clear" [ref=f15e856]:
+                - img "close-circle" [ref=f15e857]
+            - generic [ref=f15e860]: 没有可用的样本值
+        - generic [ref=f15e862]:
+          - strong [ref=f15e865]: custom_json_4
+          - generic [ref=f15e866]:
+            - generic [ref=f15e867] [cursor=pointer]:
+              - generic "Custom Json 4" [ref=f15e868]:
+                - text: Custom Json 4
+                - combobox [ref=f15e869]
+              - img "down" [ref=f15e871]
+              - button "Clear" [ref=f15e874]:
+                - img "close-circle" [ref=f15e875]
+            - generic [ref=f15e878]: 没有可用的样本值
+        - generic [ref=f15e880]:
+          - strong [ref=f15e883]: custom_json_5
+          - generic [ref=f15e884]:
+            - generic [ref=f15e885] [cursor=pointer]:
+              - generic "Custom Json 5" [ref=f15e886]:
+                - text: Custom Json 5
+                - combobox [ref=f15e887]
+              - img "down" [ref=f15e889]
+              - button "Clear" [ref=f15e892]:
+                - img "close-circle" [ref=f15e893]
+            - generic [ref=f15e896]: 没有可用的样本值
+```
