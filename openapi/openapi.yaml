@@ -18,6 +18,10 @@ servers:
         description: Your Yaoguang Marketing deployment domain
         default: marketing.example.com
 paths:
+  /api/businessDefinitions.extendEvents:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1businessDefinitions.extendEvents'
+  /api/subjectStates.inspect:
+    $ref: './paths/configurable-marketing.yaml#/~1api~1subjectStates.inspect'
   /api/subjectStates.coverage:
     $ref: './paths/configurable-marketing.yaml#/~1api~1subjectStates.coverage'
 

@@ -26,6 +26,9 @@ export interface BusinessPreviewResult {
 }
 
 export const businessApi = {
+  extendEvents(workspaceId: string, eventKeys: string[], schema: BusinessSchema) {
+    return api.post<{ definitions: BusinessDefinition[] }>('/api/businessDefinitions.extendEvents', { workspace_id: workspaceId, event_keys: eventKeys, schema })
+  },
   list(workspaceId: string, kind: BusinessDefinitionKind, options: { search?: string; limit?: number; offset?: number } = {}) {
     const query = new URLSearchParams({ workspace_id: workspaceId, kind, limit: String(options.limit ?? 100), offset: String(options.offset ?? 0) })
     if (options.search) query.set('search', options.search)

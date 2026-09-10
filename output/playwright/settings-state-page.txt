@@ -1,0 +1,201 @@
+### Page
+- Page URL: http://127.0.0.1:8081/console/workspace/config-review/settings/business-states
+- Page Title: 瑶光营销平台
+### Snapshot
+```yaml
+- generic [ref=f3e5]:
+  - complementary [ref=f3e6]:
+    - generic [ref=f3e7]:
+      - generic "瑶光营销平台, 观心知意，循光达客" [ref=f3e9]:
+        - img "衡枢真信" [ref=f3e10]
+        - generic [ref=f3e11]:
+          - generic [ref=f3e12]: 瑶光营销平台
+          - generic [ref=f3e13]: 观心知意，循光达客
+      - menu [ref=f3e15]:
+        - menuitem [ref=f3e16] [cursor=pointer]:
+          - img "team" [ref=f3e17]
+          - link "客户管理" [ref=f3e21]:
+            - /url: /console/workspace/config-review/contacts
+        - menuitem [ref=f3e22] [cursor=pointer]:
+          - img "usergroup-add" [ref=f3e23]
+          - link "客群划分" [ref=f3e27]:
+            - /url: /console/workspace/config-review/audiences
+        - menuitem [ref=f3e28] [cursor=pointer]:
+          - img "file-text" [ref=f3e29]
+          - link "素材模板" [ref=f3e33]:
+            - /url: /console/workspace/config-review/blog
+        - menuitem [ref=f3e34] [cursor=pointer]:
+          - img "setting" [ref=f3e35]
+          - link "设置" [ref=f3e39]:
+            - /url: /console/workspace/config-review/settings
+      - generic [ref=f3e40]:
+        - generic [ref=f3e41]: v57.0
+        - button "折叠" [ref=f3e42] [cursor=pointer]
+      - separator "调整侧边栏宽度" [ref=f3e47]
+  - banner [ref=f3e48]:
+    - generic [ref=f3e51] [cursor=pointer]:
+      - generic [ref=f3e52]:
+        - generic [ref=f3e53]: 配置验收
+        - combobox [ref=f3e55]
+      - img "down" [ref=f3e57]
+    - generic [ref=f3e60]:
+      - button "帮助" [ref=f3e62] [cursor=pointer]
+      - button "ZH-CN" [ref=f3e68] [cursor=pointer]
+      - button "review@example.com down" [ref=f3e71] [cursor=pointer]:
+        - generic [ref=f3e72]:
+          - generic [ref=f3e76]: review@example.com
+          - img "down" [ref=f3e78]
+  - main [ref=f3e82]:
+    - generic [ref=f3e83]:
+      - complementary [ref=f3e84]:
+        - generic [ref=f3e86]:
+          - generic [ref=f3e87]: 设置
+          - separator [ref=f3e88]
+          - menu [ref=f3e89]:
+            - menuitem "team 团队" [ref=f3e90] [cursor=pointer]:
+              - img "team" [ref=f3e91]
+              - generic [ref=f3e94]: 团队
+            - menuitem "集成" [ref=f3e95] [cursor=pointer]
+            - menuitem "field-time 触达频控" [ref=f3e100] [cursor=pointer]:
+              - img "field-time" [ref=f3e101]
+              - generic [ref=f3e105]: 触达频控
+            - menuitem "Webhook" [ref=f3e106] [cursor=pointer]
+            - menuitem "博客" [ref=f3e112] [cursor=pointer]
+            - menuitem "line-chart 网站分析" [ref=f3e116] [cursor=pointer]:
+              - img "line-chart" [ref=f3e117]
+              - generic [ref=f3e120]: 网站分析
+            - menuitem "tags 客户与事件配置" [ref=f3e121] [cursor=pointer]:
+              - img "tags" [ref=f3e122]
+              - generic [ref=f3e125]: 客户与事件配置
+            - menuitem "tags 客户与对象状态" [ref=f3e126] [cursor=pointer]:
+              - img "tags" [ref=f3e127]
+              - generic [ref=f3e130]: 客户与对象状态
+            - menuitem "mail SMTP 网关" [ref=f3e131] [cursor=pointer]:
+              - img "mail" [ref=f3e132]
+              - generic [ref=f3e135]: SMTP 网关
+            - menuitem "setting 常规" [ref=f3e136] [cursor=pointer]:
+              - img "setting" [ref=f3e137]
+              - generic [ref=f3e140]: 常规
+            - menuitem "translation 语言" [ref=f3e141] [cursor=pointer]:
+              - img "translation" [ref=f3e142]
+              - generic [ref=f3e146]: 语言
+            - menuitem "exclamation-circle 危险区域" [ref=f3e147] [cursor=pointer]:
+              - img "exclamation-circle" [ref=f3e148]
+              - generic [ref=f3e152]: 危险区域
+      - main [ref=f3e154]:
+        - generic [ref=f3e156]:
+          - generic [ref=f3e157]:
+            - heading "客户与对象状态" [level=3] [ref=f3e158]
+            - generic [ref=f3e159]: 状态是通过规则计算的标签，例如活跃客户、逾期合同，可用于客户详情、自动化条件和状态覆盖分析，不会替换客户档案中的状态字段。
+          - alert [ref=f3e160]:
+            - img "info-circle" [ref=f3e162]
+            - generic [ref=f3e165]:
+              - generic [ref=f3e166]: 状态规则如何生效
+              - generic [ref=f3e167]: 规则启用后，客户属性变更和事件上报会触发后台计算。满足表示命中，不满足表示未命中，未知表示证据不足。保存后可在下方检查真实客户或对象，检查操作不会发送营销消息。
+          - generic [ref=f3e168]:
+            - tablist [ref=f3e169]:
+              - generic [ref=f3e171]:
+                - tab "业务状态规则" [selected] [ref=f3e173] [cursor=pointer]
+                - tab "状态覆盖与交集" [ref=f3e175] [cursor=pointer]
+            - tabpanel "业务状态规则" [ref=f3e178]:
+              - generic [ref=f3e179]:
+                - generic [ref=f3e180]:
+                  - generic [ref=f3e182] [cursor=pointer]:
+                    - generic [ref=f3e183]:
+                      - generic: 已有状态
+                      - combobox "已有状态" [ref=f3e184]
+                    - img "down" [ref=f3e186]
+                  - button "新建状态" [ref=f3e190] [cursor=pointer]
+                - generic [ref=f3e192]:
+                  - generic [ref=f3e193]:
+                    - generic [ref=f3e195]:
+                      - generic "状态名称" [ref=f3e197]: "* 状态名称"
+                      - textbox "状态名称" [ref=f3e201]
+                    - generic [ref=f3e203]:
+                      - generic "状态编码" [ref=f3e205]: "* 状态编码"
+                      - generic [ref=f3e206]:
+                        - textbox "状态编码" [ref=f3e209]
+                        - generic [ref=f3e210]: 用于自动化规则引用的稳定编码。
+                    - generic [ref=f3e213]:
+                      - generic "状态所属对象" [ref=f3e215]
+                      - generic [ref=f3e219] [cursor=pointer]:
+                        - generic "客户" [ref=f3e220]:
+                          - text: 客户
+                          - combobox "状态所属对象" [ref=f3e221]
+                        - img "down" [ref=f3e223]
+                    - generic [ref=f3e227]:
+                      - generic "状态" [ref=f3e229]
+                      - generic [ref=f3e233] [cursor=pointer]:
+                        - generic "活跃" [ref=f3e234]:
+                          - text: 活跃
+                          - combobox "启用状态" [ref=f3e235]
+                        - img "down" [ref=f3e237]
+                  - button "collapsed 可选：设置互斥状态" [ref=f3e242] [cursor=pointer]:
+                    - img "collapsed" [ref=f3e244]
+                    - generic [ref=f3e247]: 可选：设置互斥状态
+                - generic [ref=f3e248]:
+                  - generic [ref=f3e249]:
+                    - strong [ref=f3e251]: 条件组
+                    - generic [ref=f3e252]:
+                      - button "且" [ref=f3e253] [cursor=pointer]
+                      - button "或" [ref=f3e255] [cursor=pointer]
+                    - generic [ref=f3e257]: 满足以下所有条件
+                  - generic [ref=f3e258]:
+                    - generic [ref=f3e259]:
+                      - generic [ref=f3e261]:
+                        - generic [ref=f3e263] [cursor=pointer]:
+                          - generic "事件发生" [ref=f3e264]:
+                            - text: 事件发生
+                            - combobox "规则类型" [ref=f3e265]
+                          - img "down" [ref=f3e267]
+                        - generic [ref=f3e270]:
+                          - generic [ref=f3e271]:
+                            - text: 事件
+                            - generic [ref=f3e272]:
+                              - combobox "事件" [ref=f3e274]
+                              - img "down" [ref=f3e276]
+                          - generic [ref=f3e279]:
+                            - text: 最少发生次数
+                            - generic [ref=f3e280]:
+                              - spinbutton "最少发生次数" [ref=f3e281]: "1"
+                              - generic:
+                                - button "Increase Value" [ref=f3e282] [cursor=pointer]:
+                                  - img "up" [ref=f3e283]
+                                - button "Decrease Value" [disabled] [ref=f3e286]:
+                                  - img "down" [ref=f3e287]
+                          - generic [ref=f3e290]:
+                            - text: 窗口（秒）
+                            - generic [ref=f3e291]:
+                              - spinbutton "窗口（秒）" [ref=f3e292]: "0"
+                              - generic:
+                                - button "Increase Value" [ref=f3e293] [cursor=pointer]:
+                                  - img "up" [ref=f3e294]
+                                - button "Decrease Value" [disabled] [ref=f3e297]:
+                                  - img "down" [ref=f3e298]
+                            - text: 0 表示不限回溯时间
+                          - generic [ref=f3e301]:
+                            - text: 撤销事件
+                            - generic [ref=f3e302] [cursor=pointer]:
+                              - combobox "撤销事件" [ref=f3e304]
+                              - img "down" [ref=f3e306]
+                      - button "delete 删除条件" [disabled] [ref=f3e309]:
+                        - generic:
+                          - img "delete"
+                        - generic: 删除条件
+                    - generic [ref=f3e310]:
+                      - button "plus 添加条件" [ref=f3e312] [cursor=pointer]:
+                        - img "plus" [ref=f3e314]
+                        - generic [ref=f3e318]: 添加条件
+                      - button "plus 添加条件组" [ref=f3e320] [cursor=pointer]:
+                        - img "plus" [ref=f3e322]
+                        - generic [ref=f3e326]: 添加条件组
+                - button "保存状态" [disabled] [ref=f3e327]
+                - generic [ref=f3e328]:
+                  - heading "用真实数据检查已保存状态" [level=5] [ref=f3e329]
+                  - generic [ref=f3e330]: 请先保存规则。客户可输入邮箱、外部用户 ID 或 UUID；业务对象请输入对象 UUID。检查结果来自已保存且启用的规则。
+                  - generic [ref=f3e331]:
+                    - textbox "客户或对象标识" [ref=f3e332]
+                    - button "检查状态" [disabled] [ref=f3e333]
+```
+### Events
+- New console entries: .playwright-cli\console-2026-09-09T08-15-01-161Z.log#L4-L6

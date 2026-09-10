@@ -1,0 +1,30 @@
+async (page) => {
+ await page.keyboard.press('Escape');
+ await page.getByRole('combobox', { name: '已有状态', exact: true }).click();
+ await page.getByText('授信客户 (eligible)', { exact: true }).last().click();
+ const value = page.getByRole('spinbutton', { name: '比较值', exact: true });
+ if (await value.inputValue() !== '600') throw new Error('Stored condition not loaded');
+ await value.fill('650');
+ await page.getByRole('textbox', { name: '客户或对象标识', exact: true }).fill('user@example.com');
+ if (!(await page.getByRole('button', { name: '检查状态', exact: true }).isDisabled())) throw new Error('Unsaved rule must not be inspected as saved');
+ const saved = page.waitForResponse(response => response.url().includes('/api/businessDefinitions.save'));
+ await page.getByRole('button', { name: '保存状态', exact: true }).click();
+ const response = await saved;
+ const request = response.request().postDataJSON();
+ if (request.definition.settings.rule.children[0].operand !== 650) throw new Error('Numeric comparison serialized incorrectly');
+ await page.getByRole('button', { name: '检查状态', exact: true }).click();
+ await page.getByRole('cell', { name: '信用评分 700，满足已保存条件', exact: true }).waitFor();
+ await page.setViewportSize({ width: 1440, height: 1700 });
+ await page.getByRole('heading', { name: '客户与对象状态', exact: true }).scrollIntoViewIfNeeded();
+ await page.waitForTimeout(400);
+ await page.screenshot({ path: 'output/playwright/settings-state-inspection.png', fullPage: true });
+ await page.setViewportSize({ width: 1024, height: 1000 });
+ const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
+ if (overflow) throw new Error('State page has horizontal page overflow');
+ await page.getByRole('cell', { name: '信用评分 700，满足已保存条件', exact: true }).scrollIntoViewIfNeeded();
+ await page.screenshot({ path: 'output/playwright/settings-state-1024.png', fullPage: true });
+ await page.setViewportSize({ width: 1440, height: 1100 });
+ await page.getByRole('button', { name: '新建状态', exact: true }).click();
+ if (await page.getByRole('textbox', { name: '状态编码', exact: true }).inputValue()) throw new Error('New state did not reset');
+ if (await page.getByRole('textbox', { name: '客户或对象标识', exact: true }).inputValue()) throw new Error('Inspection target did not reset');
+}

@@ -32,6 +32,7 @@ func (a *App) initConfigurableMarketingServices() error {
 	a.trackedEventService = service.NewTrackedEventService(a.trackedEventRepo, a.businessDefinitionRepo, a.authService, a.workspaceRepo)
 	a.browserEventService = service.NewBrowserEventService(a.trackedEventRepo, a.businessDefinitionRepo, a.authService, a.workspaceRepo, a.customerRepo)
 	a.subjectStateService = service.NewSubjectStateService(a.subjectStateRepo, a.funnelRepo, a.businessDefinitionRepo, a.authService)
+	a.subjectStateService.SetCustomerRepository(a.customerRepo)
 	a.subjectStateMaintenanceWorker = service.NewSubjectStateMaintenanceWorker(repository.NewWorkspaceCursorRepository(a.workspaceRepo), a.subjectStateService, a.logger)
 	a.funnelService = service.NewFunnelService(a.funnelRepo, a.businessDefinitionRepo, a.authService)
 	runtimeRepository := repository.NewRealtimeRepository(a.workspaceRepo)

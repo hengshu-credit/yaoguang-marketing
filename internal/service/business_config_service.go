@@ -56,6 +56,37 @@ func (s *BusinessConfigService) Get(ctx context.Context, w, kind, key string) (*
 	}
 	return s.repo.Get(ctx, w, kind, key)
 }
+func (s *BusinessConfigService) ExtendEvents(ctx context.Context, workspace string, keys []string, schema map[string]any) ([]domain.BusinessDefinition, error) {
+	ctx, err := s.authorize(ctx, workspace, true)
+	if err != nil {
+		return nil, err
+	}
+	if len(keys) == 0 || len(keys) > 1000 {
+		return nil, domain.NewValidationError("select between 1 and 1000 events")
+	}
+	if _, err := domain.ExtendEventSchema(map[string]any{"type": "object"}, schema); err != nil {
+		return nil, err
+	}
+	seen := map[string]bool{}
+	unique := []string{}
+	for _, key := range keys {
+		if key == "" {
+			return nil, domain.NewValidationError("event key is required")
+		}
+		if !seen[key] {
+			unique = append(unique, key)
+			seen[key] = true
+		}
+	}
+	repository, ok := s.repo.(interface {
+		ExtendEvents(context.Context, string, []string, map[string]any) ([]domain.BusinessDefinition, error)
+	})
+	if !ok {
+		return nil, fmt.Errorf("event field extension repository is unavailable")
+	}
+	return repository.ExtendEvents(ctx, workspace, unique, schema)
+}
+
 func (s *BusinessConfigService) Save(ctx context.Context, w string, d *domain.BusinessDefinition) (*domain.BusinessDefinition, error) {
 	ctx, err := s.authorize(ctx, w, true)
 	if err != nil {

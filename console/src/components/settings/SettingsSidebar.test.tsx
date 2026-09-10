@@ -44,6 +44,11 @@ describe('SettingsSidebar', () => {
 
     expect(onSectionChange).toHaveBeenCalledWith('integrations')
   })
+  it('has one attribute configuration entry instead of a separate custom fields page', () => {
+    renderSidebar()
+    expect(screen.queryByText('Custom Fields')).not.toBeInTheDocument()
+    expect(screen.getByText('Customer and event configuration')).toBeInTheDocument()
+  })
 
   it('routes owners to the Languages section', () => {
     const onSectionChange = renderSidebar()

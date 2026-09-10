@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"strings"
 	"time"
 )
 
@@ -13,6 +15,51 @@ type SubjectStateService struct {
 	events      domain.FunnelRepository
 	definitions domain.BusinessDefinitionRepository
 	auth        domain.AuthService
+	customers   domain.CustomerRepository
+}
+
+func (s *SubjectStateService) SetCustomerRepository(customers domain.CustomerRepository) {
+	s.customers = customers
+}
+
+type SubjectStateInspectRequest struct {
+	WorkspaceID string `json:"workspace_id"`
+	SubjectType string `json:"subject_type"`
+	SubjectID   string `json:"subject_id"`
+}
+
+func (s *SubjectStateService) Inspect(ctx context.Context, q SubjectStateInspectRequest) ([]domain.SubjectStateInterval, error) {
+	ctx, err := authorizeAnalysis(ctx, s.auth, q.WorkspaceID, domain.PermissionResourceCustomers, domain.PermissionTypeRead)
+	if err != nil {
+		return nil, err
+	}
+	q.SubjectID = strings.TrimSpace(q.SubjectID)
+	if q.SubjectType == "" || q.SubjectID == "" {
+		return nil, domain.NewValidationError("subject type and identifier are required")
+	}
+	if q.SubjectType == "customer" && uuid.Validate(q.SubjectID) != nil && s.customers != nil {
+		locator := domain.CustomerLocator{ExternalUserID: q.SubjectID}
+		if strings.Contains(q.SubjectID, "@") {
+			locator = domain.CustomerLocator{Identity: &domain.CustomerIdentityLocator{Type: domain.CustomerIdentityEmail, Value: q.SubjectID}}
+		}
+		customer, err := s.customers.Get(ctx, q.WorkspaceID, locator)
+		if err != nil {
+			return nil, err
+		}
+		q.SubjectID = customer.ID
+	}
+	if uuid.Validate(q.SubjectID) != nil {
+		return nil, domain.NewValidationError("use a customer email/external ID/UUID or a business object UUID")
+	}
+	if _, err := s.repository.Context(ctx, q.WorkspaceID, q.SubjectType, q.SubjectID); err != nil {
+		return nil, err
+	}
+	// Inspection refreshes derived state only; it must never emit marketing triggers.
+	ctx = domain.WithStateTransitionEmission(ctx, domain.StateTransitionEmission{Enabled: false})
+	if err := s.Recompute(ctx, q.WorkspaceID, q.SubjectType, q.SubjectID); err != nil {
+		return nil, err
+	}
+	return s.repository.List(ctx, q.WorkspaceID, q.SubjectType, q.SubjectID, false)
 }
 
 func NewSubjectStateService(r domain.SubjectStateRepository, e domain.FunnelRepository, d domain.BusinessDefinitionRepository, a domain.AuthService) *SubjectStateService {

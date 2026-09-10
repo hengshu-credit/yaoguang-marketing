@@ -4,7 +4,7 @@ import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 import { removeSchemaField, renameSchemaField, setSchemaField, setSchemaFieldRequired, type BusinessSchema } from './business-schema'
 
-interface Props { value: BusinessSchema; onChange: (value: BusinessSchema) => void; disabled?: boolean; depth?: number }
+interface Props { value: BusinessSchema; onChange: (value: BusinessSchema) => void; disabled?: boolean; depth?: number; optionalOnly?: boolean }
 
 function FieldKey({ value, disabled, onChange }: { value: string; disabled?: boolean; onChange: (key: string) => void }) {
   const { t } = useLingui()
@@ -13,7 +13,7 @@ function FieldKey({ value, disabled, onChange }: { value: string; disabled?: boo
   return <Input aria-label={t`Field key ${value}`} value={draft} disabled={disabled} onChange={(event) => setDraft(event.target.value)} onBlur={() => { if (draft !== value) onChange(draft.trim()) }} />
 }
 
-export function SchemaFieldsEditor({ value, onChange, disabled, depth = 0 }: Props) {
+export function SchemaFieldsEditor({ value, onChange, disabled, depth = 0, optionalOnly = false }: Props) {
   const { t } = useLingui()
   const [error, setError] = useState('')
   const types = [{ value: 'string', label: t`Text` }, { value: 'integer', label: t`Integer` }, { value: 'number', label: t`Number` }, { value: 'boolean', label: t`Boolean` }, { value: 'object', label: t`Object` }, { value: 'array', label: t`Array` }]
@@ -61,7 +61,7 @@ export function SchemaFieldsEditor({ value, onChange, disabled, depth = 0 }: Pro
             if (next !== type) delete updated.enum
             update(key, updated)
           }} /></label>
-          <Space align="end" className="pb-1"><Switch size="small" aria-label={t`Required ${key}`} checked={(value.required ?? []).includes(key)} disabled={disabled} onChange={(required) => onChange(setSchemaFieldRequired(value, key, required))} /><span className="text-xs">{t`Required`}</span><Button type="text" danger icon={<DeleteOutlined />} aria-label={t`Remove field ${key}`} disabled={disabled} onClick={() => onChange(removeSchemaField(value, key))} /></Space>
+          <Space align="end" className="pb-1"><Switch size="small" aria-label={t`Required ${key}`} checked={(value.required ?? []).includes(key)} disabled={disabled || (optionalOnly && depth === 0)} onChange={(required) => onChange(setSchemaFieldRequired(value, key, required))} /><span className="text-xs">{t`Required`}</span><Button type="text" danger icon={<DeleteOutlined />} aria-label={t`Remove field ${key}`} disabled={disabled} onClick={() => onChange(removeSchemaField(value, key))} /></Space>
         </div>
         <div className="mt-3"><Checkbox checked={nullable} disabled={disabled} onChange={(event) => update(key, { ...field, type: event.target.checked ? [type, 'null'] : type })}>{t`Allow an explicit null value`}</Checkbox></div>
         <Collapse ghost className="mt-2" items={[{ key: 'validation', label: t`Validation and description`, children: controls }]} />
@@ -69,6 +69,6 @@ export function SchemaFieldsEditor({ value, onChange, disabled, depth = 0 }: Pro
         {type === 'array' && <div className="mt-3 space-y-3"><label><span className="mr-3 text-xs text-gray-500">{t`Array item type`}</span><Select options={types} value={typeof field.items?.type === 'string' ? field.items.type : 'string'} disabled={disabled} onChange={(next) => update(key, { ...field, items: { type: next, ...(next === 'object' ? { properties: {} } : {}) } })} /></label>{field.items?.type === 'object' && depth < 8 && <SchemaFieldsEditor value={field.items} onChange={(next) => update(key, { ...field, items: next })} disabled={disabled} depth={depth + 1} />}</div>}
       </Card>
     })}
-    <div className="flex flex-wrap items-center gap-4"><Button aria-label={t`Add field`} icon={<PlusOutlined aria-hidden />} onClick={add} disabled={disabled}>{t`Add field`}</Button><Checkbox checked={value.additionalProperties !== false} disabled={disabled} onChange={(event) => onChange({ ...value, additionalProperties: event.target.checked })}>{t`Allow additional fields`}</Checkbox></div>
+    <div className="flex flex-wrap items-center gap-4"><Button aria-label={t`Add field`} icon={<PlusOutlined aria-hidden />} onClick={add} disabled={disabled}>{t`Add field`}</Button>{!optionalOnly && <Checkbox checked={value.additionalProperties !== false} disabled={disabled} onChange={(event) => onChange({ ...value, additionalProperties: event.target.checked })}>{t`Allow additional fields`}</Checkbox>}</div>
   </div>
 }

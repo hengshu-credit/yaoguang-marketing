@@ -19876,3 +19876,156 @@ msgstr "Swipe to explore"
 
 msgid "Show card {number}"
 msgstr "Show card {number}"
+
+msgid "Add report fields to existing events"
+msgstr "Add report fields to existing events"
+
+msgid "Add report fields"
+msgstr "Add report fields"
+
+msgid "Object types describe things a customer can have more than once"
+msgstr "Object types describe things a customer can have more than once"
+
+msgid "Object relations connect two business records"
+msgstr "Object relations connect two business records"
+
+msgid "Use customer attributes for information such as membership level. Use objects for orders, contracts or repayment plans: one customer can have several records, each with its own ID, fields, events and states."
+msgstr "Use customer attributes for information such as membership level. Use objects for orders, contracts or repayment plans: one customer can have several records, each with its own ID, fields, events and states."
+
+msgid "For example, one contract can have many repayment plans. Define contract and repayment_plan first, then create a one-to-many relation from contract to repayment_plan. Each repayment plan can then belong to one contract."
+msgstr "For example, one contract can have many repayment plans. Define contract and repayment_plan first, then create a one-to-many relation from contract to repayment_plan. Each repayment plan can then belong to one contract."
+
+msgid "Configure the record fields first (for example order_id and amount), select its identity fields, then activate it. Report events with this object type and its external ID to follow that individual record."
+msgstr "Configure the record fields first (for example order_id and amount), select its identity fields, then activate it. Report events with this object type and its external ID to follow that individual record."
+
+msgid "Creating a relation only defines the allowed connection. Link actual object records through the relation API; the records must belong to the same customer and source system. Customer ownership is automatic and does not need a separate relation."
+msgstr "Creating a relation only defines the allowed connection. Link actual object records through the relation API; the records must belong to the same customer and source system. Customer ownership is automatic and does not need a separate relation."
+
+msgid "Customer → multiple contracts → multiple repayment plans per contract"
+msgstr "Customer → multiple contracts → multiple repayment plans per contract"
+
+msgid "One place for customer attributes"
+msgstr "One place for customer attributes"
+
+msgid "Existing custom fields and new customer attributes are managed here. Renaming a predefined field keeps its key and historical data; new attributes are not limited to predefined slots. Import templates and exports follow this configuration."
+msgstr "Existing custom fields and new customer attributes are managed here. Renaming a predefined field keeps its key and historical data; new attributes are not limited to predefined slots. Import templates and exports follow this configuration."
+
+msgid "New customer attribute"
+msgstr "New customer attribute"
+
+msgid "Predefined field"
+msgstr "Predefined field"
+
+msgid "Edit display name"
+msgstr "Edit display name"
+
+msgid "Leave the name empty to restore its default label. The field and its data will not be deleted."
+msgstr "Leave the name empty to restore its default label. The field and its data will not be deleted."
+
+msgid "Apply to selected events"
+msgstr "Apply to selected events"
+
+msgid "Extend fields without changing event meaning"
+msgstr "Extend fields without changing event meaning"
+
+msgid "Add optional fields to one or many existing events. Existing fields cannot be replaced here. Reporters must supply the actual values in data; this does not collect device fingerprints or rewrite historical events. Built-in events still require their platform producer."
+msgstr "Add optional fields to one or many existing events. Existing fields cannot be replaced here. Reporters must supply the actual values in data; this does not collect device fingerprints or rewrite historical events. Built-in events still require their platform producer."
+
+msgid "Target events"
+msgstr "Target events"
+
+msgid "Device fingerprint"
+msgstr "Device fingerprint"
+
+msgid "Fingerprint supplied by the reporting application"
+msgstr "Fingerprint supplied by the reporting application"
+
+msgid "Add device fingerprint example"
+msgstr "Add device fingerprint example"
+
+msgid "Example report data: add device_fingerprint to the existing data object. Keep the original event code and report envelope."
+msgstr "Example report data: add device_fingerprint to the existing data object. Keep the original event code and report envelope."
+
+msgid "States are calculated labels, such as active customer or overdue contract. They are used in customer details, automation conditions and state coverage. They do not replace the customer profile status field."
+msgstr "States are calculated labels, such as active customer or overdue contract. They are used in customer details, automation conditions and state coverage. They do not replace the customer profile status field."
+
+msgid "How state rules take effect"
+msgstr "How state rules take effect"
+
+msgid "Activate a rule, then customer attribute changes and reported events trigger background calculation. True means matched, false means not matched, and unknown means evidence is missing. Check a real customer or object below after saving; the check does not send marketing messages."
+msgstr "Activate a rule, then customer attribute changes and reported events trigger background calculation. True means matched, false means not matched, and unknown means evidence is missing. Check a real customer or object below after saving; the check does not send marketing messages."
+
+msgid "State rule saved"
+msgstr "State rule saved"
+
+msgid "Active rules are queued for recalculation. Inspect a customer or object below to see the saved rule result now."
+msgstr "Active rules are queued for recalculation. Inspect a customer or object below to see the saved rule result now."
+
+msgid "A stable identifier used by automation rules."
+msgstr "A stable identifier used by automation rules."
+
+msgid "State status"
+msgstr "State status"
+
+msgid "Optional: mutually exclusive states"
+msgstr "Optional: mutually exclusive states"
+
+msgid "Leave this off for independent states. In the same exclusive group, only the highest-priority matched state remains true."
+msgstr "Leave this off for independent states. In the same exclusive group, only the highest-priority matched state remains true."
+
+msgid "Inspect a saved state on real data"
+msgstr "Inspect a saved state on real data"
+
+msgid "Save the rule first. For customers enter an email, external user ID or UUID; for business objects enter the object UUID. Results come from saved active rules."
+msgstr "Save the rule first. For customers enter an email, external user ID or UUID; for business objects enter the object UUID. Results come from saved active rules."
+
+msgid "Customer or object identifier"
+msgstr "Customer or object identifier"
+
+msgid "Inspect state"
+msgstr "Inspect state"
+
+msgid "Result"
+msgstr "Result"
+
+msgid "Computed at"
+msgstr "Computed at"
+
+msgid "Comparison value"
+msgstr "Comparison value"
+
+msgid "AND"
+msgstr "AND"
+
+msgid "OR"
+msgstr "OR"
+
+msgid "Every condition below must match"
+msgstr "Every condition below must match"
+
+msgid "At least one condition below must match"
+msgstr "At least one condition below must match"
+
+msgid "Zero means no lookback limit"
+msgstr "Zero means no lookback limit"
+
+msgid "Choose a field or enter its path"
+msgstr "Choose a field or enter its path"
+
+msgid "Add condition group"
+msgstr "Add condition group"
+
+msgid "Show unused predefined fields"
+msgstr "Show unused predefined fields"
+
+msgid "Objects are linked to customers by ownership."
+msgstr "Objects are linked to customers by ownership."
+
+msgid "Use customer ownership"
+msgstr "Use customer ownership"
+
+msgid "Condition group"
+msgstr "Condition group"
+
+msgid "Field"
+msgstr "Field"

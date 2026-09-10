@@ -1,0 +1,292 @@
+### Page
+- Page URL: http://127.0.0.1:8081/console/workspace/config-review/settings/business
+- Page Title: 瑶光营销平台
+### Snapshot
+```yaml
+- generic [ref=f1e5]:
+  - complementary [ref=f1e6]:
+    - generic [ref=f1e7]:
+      - generic "瑶光营销平台, 观心知意，循光达客" [ref=f1e9]:
+        - img "衡枢真信" [ref=f1e10]
+        - generic [ref=f1e11]:
+          - generic [ref=f1e12]: 瑶光营销平台
+          - generic [ref=f1e13]: 观心知意，循光达客
+      - menu [ref=f1e15]:
+        - menuitem [ref=f1e16] [cursor=pointer]:
+          - img "team" [ref=f1e17]
+          - link "客户管理" [ref=f1e21]:
+            - /url: /console/workspace/config-review/contacts
+        - menuitem [ref=f1e22] [cursor=pointer]:
+          - img "usergroup-add" [ref=f1e23]
+          - link "客群划分" [ref=f1e27]:
+            - /url: /console/workspace/config-review/audiences
+        - menuitem [ref=f1e28] [cursor=pointer]:
+          - img "file-text" [ref=f1e29]
+          - link "素材模板" [ref=f1e33]:
+            - /url: /console/workspace/config-review/blog
+        - menuitem [ref=f1e34] [cursor=pointer]:
+          - img "setting" [ref=f1e35]
+          - link "设置" [ref=f1e39]:
+            - /url: /console/workspace/config-review/settings
+      - generic [ref=f1e40]:
+        - generic [ref=f1e41]: v57.0
+        - button "折叠" [ref=f1e42] [cursor=pointer]
+      - separator "调整侧边栏宽度" [ref=f1e47]
+  - banner [ref=f1e48]:
+    - generic [ref=f1e51] [cursor=pointer]:
+      - generic [ref=f1e52]:
+        - generic [ref=f1e53]: 配置验收
+        - combobox [ref=f1e55]
+      - img "down" [ref=f1e57]
+    - generic [ref=f1e60]:
+      - button "帮助" [ref=f1e62] [cursor=pointer]
+      - button "ZH-CN" [ref=f1e68] [cursor=pointer]
+      - button "review@example.com down" [ref=f1e71] [cursor=pointer]:
+        - generic [ref=f1e72]:
+          - generic [ref=f1e76]: review@example.com
+          - img "down" [ref=f1e78]
+  - main [ref=f1e82]:
+    - generic [ref=f1e83]:
+      - complementary [ref=f1e84]:
+        - generic [ref=f1e86]:
+          - generic [ref=f1e87]: 设置
+          - separator [ref=f1e88]
+          - menu [ref=f1e89]:
+            - menuitem "team 团队" [ref=f1e90] [cursor=pointer]:
+              - img "team" [ref=f1e91]
+              - generic [ref=f1e94]: 团队
+            - menuitem "集成" [ref=f1e95] [cursor=pointer]
+            - menuitem "field-time 触达频控" [ref=f1e100] [cursor=pointer]:
+              - img "field-time" [ref=f1e101]
+              - generic [ref=f1e105]: 触达频控
+            - menuitem "Webhook" [ref=f1e106] [cursor=pointer]
+            - menuitem "博客" [ref=f1e112] [cursor=pointer]
+            - menuitem "line-chart 网站分析" [ref=f1e116] [cursor=pointer]:
+              - img "line-chart" [ref=f1e117]
+              - generic [ref=f1e120]: 网站分析
+            - menuitem "tags 客户与事件配置" [ref=f1e121] [cursor=pointer]:
+              - img "tags" [ref=f1e122]
+              - generic [ref=f1e125]: 客户与事件配置
+            - menuitem "tags 客户与对象状态" [ref=f1e126] [cursor=pointer]:
+              - img "tags" [ref=f1e127]
+              - generic [ref=f1e130]: 客户与对象状态
+            - menuitem "mail SMTP 网关" [ref=f1e131] [cursor=pointer]:
+              - img "mail" [ref=f1e132]
+              - generic [ref=f1e135]: SMTP 网关
+            - menuitem "setting 常规" [ref=f1e136] [cursor=pointer]:
+              - img "setting" [ref=f1e137]
+              - generic [ref=f1e140]: 常规
+            - menuitem "translation 语言" [ref=f1e141] [cursor=pointer]:
+              - img "translation" [ref=f1e142]
+              - generic [ref=f1e146]: 语言
+            - menuitem "exclamation-circle 危险区域" [ref=f1e147] [cursor=pointer]:
+              - img "exclamation-circle" [ref=f1e148]
+              - generic [ref=f1e152]: 危险区域
+      - main [ref=f1e154]:
+        - generic [ref=f1e156]:
+          - generic [ref=f1e157]:
+            - heading "客户与事件配置" [level=1] [ref=f1e158]
+            - generic [ref=f1e159]: 为当前工作空间定义客户属性、业务对象、事件数据和外部字段映射。
+          - generic [ref=f1e160]:
+            - tablist [ref=f1e161]:
+              - generic [ref=f1e163]:
+                - tab "事件管理" [ref=f1e165] [cursor=pointer]
+                - tab "客户属性" [active] [selected] [ref=f1e167] [cursor=pointer]
+                - tab "业务对象类型" [ref=f1e169] [cursor=pointer]
+                - tab "对象关系" [ref=f1e171] [cursor=pointer]
+                - tab "事件字段映射" [ref=f1e173] [cursor=pointer]
+            - generic:
+              - generic:
+                - tabpanel "客户属性"
+          - generic [ref=f1e268]:
+            - alert [ref=f1e269]:
+              - img "info-circle" [ref=f1e271]
+              - generic [ref=f1e274]:
+                - generic [ref=f1e275]: 统一管理客户属性
+                - generic [ref=f1e276]: 原自定义字段和新增客户属性统一在此管理。预置字段改名会保留原字段编码和历史数据；新增属性不受预置字段数量限制。导入模板和导出字段自动跟随配置。
+            - generic [ref=f1e277]:
+              - generic [ref=f1e278]:
+                - searchbox "按名称或编码搜索" [ref=f1e279]
+                - button [ref=f1e280] [cursor=pointer]:
+                  - img "search" [ref=f1e282]
+              - button "新增客户属性" [ref=f1e285] [cursor=pointer]
+            - generic [ref=f1e289]:
+              - table [ref=f1e293]:
+                - rowgroup [ref=f1e294]:
+                  - row [ref=f1e295]:
+                    - columnheader "名称" [ref=f1e296]
+                    - columnheader "编码" [ref=f1e297]
+                    - columnheader "字段类型" [ref=f1e298]
+                    - columnheader "来源" [ref=f1e299]
+                    - columnheader "行动" [ref=f1e300]
+                - rowgroup [ref=f1e301]:
+                  - row [ref=f1e302]:
+                    - cell "客户来源" [ref=f1e303]
+                    - cell [ref=f1e304]:
+                      - code [ref=f1e305]: custom_string_1
+                    - cell "string" [ref=f1e306]
+                    - cell "预置字段" [ref=f1e307]
+                    - cell [ref=f1e309]:
+                      - button "修改显示名称" [ref=f1e310] [cursor=pointer]
+                  - row [ref=f1e312]:
+                    - cell "Custom String 2" [ref=f1e313]
+                    - cell [ref=f1e314]:
+                      - code [ref=f1e315]: custom_string_2
+                    - cell "string" [ref=f1e316]
+                    - cell "预置字段" [ref=f1e317]
+                    - cell [ref=f1e319]:
+                      - button "修改显示名称" [ref=f1e320] [cursor=pointer]
+                  - row [ref=f1e322]:
+                    - cell "Custom String 3" [ref=f1e323]
+                    - cell [ref=f1e324]:
+                      - code [ref=f1e325]: custom_string_3
+                    - cell "string" [ref=f1e326]
+                    - cell "预置字段" [ref=f1e327]
+                    - cell [ref=f1e329]:
+                      - button "修改显示名称" [ref=f1e330] [cursor=pointer]
+                  - row [ref=f1e332]:
+                    - cell "Custom String 4" [ref=f1e333]
+                    - cell [ref=f1e334]:
+                      - code [ref=f1e335]: custom_string_4
+                    - cell "string" [ref=f1e336]
+                    - cell "预置字段" [ref=f1e337]
+                    - cell [ref=f1e339]:
+                      - button "修改显示名称" [ref=f1e340] [cursor=pointer]
+                  - row [ref=f1e342]:
+                    - cell "Custom String 5" [ref=f1e343]
+                    - cell [ref=f1e344]:
+                      - code [ref=f1e345]: custom_string_5
+                    - cell "string" [ref=f1e346]
+                    - cell "预置字段" [ref=f1e347]
+                    - cell [ref=f1e349]:
+                      - button "修改显示名称" [ref=f1e350] [cursor=pointer]
+                  - row [ref=f1e352]:
+                    - cell "授信额度" [ref=f1e353]
+                    - cell [ref=f1e354]:
+                      - code [ref=f1e355]: custom_number_1
+                    - cell "number" [ref=f1e356]
+                    - cell "预置字段" [ref=f1e357]
+                    - cell [ref=f1e359]:
+                      - button "修改显示名称" [ref=f1e360] [cursor=pointer]
+                  - row [ref=f1e362]:
+                    - cell "Custom Number 2" [ref=f1e363]
+                    - cell [ref=f1e364]:
+                      - code [ref=f1e365]: custom_number_2
+                    - cell "number" [ref=f1e366]
+                    - cell "预置字段" [ref=f1e367]
+                    - cell [ref=f1e369]:
+                      - button "修改显示名称" [ref=f1e370] [cursor=pointer]
+                  - row [ref=f1e372]:
+                    - cell "Custom Number 3" [ref=f1e373]
+                    - cell [ref=f1e374]:
+                      - code [ref=f1e375]: custom_number_3
+                    - cell "number" [ref=f1e376]
+                    - cell "预置字段" [ref=f1e377]
+                    - cell [ref=f1e379]:
+                      - button "修改显示名称" [ref=f1e380] [cursor=pointer]
+                  - row [ref=f1e382]:
+                    - cell "Custom Number 4" [ref=f1e383]
+                    - cell [ref=f1e384]:
+                      - code [ref=f1e385]: custom_number_4
+                    - cell "number" [ref=f1e386]
+                    - cell "预置字段" [ref=f1e387]
+                    - cell [ref=f1e389]:
+                      - button "修改显示名称" [ref=f1e390] [cursor=pointer]
+                  - row [ref=f1e392]:
+                    - cell "Custom Number 5" [ref=f1e393]
+                    - cell [ref=f1e394]:
+                      - code [ref=f1e395]: custom_number_5
+                    - cell "number" [ref=f1e396]
+                    - cell "预置字段" [ref=f1e397]
+                    - cell [ref=f1e399]:
+                      - button "修改显示名称" [ref=f1e400] [cursor=pointer]
+                  - row [ref=f1e402]:
+                    - cell "Custom Datetime 1" [ref=f1e403]
+                    - cell [ref=f1e404]:
+                      - code [ref=f1e405]: custom_datetime_1
+                    - cell "datetime" [ref=f1e406]
+                    - cell "预置字段" [ref=f1e407]
+                    - cell [ref=f1e409]:
+                      - button "修改显示名称" [ref=f1e410] [cursor=pointer]
+                  - row [ref=f1e412]:
+                    - cell "Custom Datetime 2" [ref=f1e413]
+                    - cell [ref=f1e414]:
+                      - code [ref=f1e415]: custom_datetime_2
+                    - cell "datetime" [ref=f1e416]
+                    - cell "预置字段" [ref=f1e417]
+                    - cell [ref=f1e419]:
+                      - button "修改显示名称" [ref=f1e420] [cursor=pointer]
+                  - row [ref=f1e422]:
+                    - cell "Custom Datetime 3" [ref=f1e423]
+                    - cell [ref=f1e424]:
+                      - code [ref=f1e425]: custom_datetime_3
+                    - cell "datetime" [ref=f1e426]
+                    - cell "预置字段" [ref=f1e427]
+                    - cell [ref=f1e429]:
+                      - button "修改显示名称" [ref=f1e430] [cursor=pointer]
+                  - row [ref=f1e432]:
+                    - cell "Custom Datetime 4" [ref=f1e433]
+                    - cell [ref=f1e434]:
+                      - code [ref=f1e435]: custom_datetime_4
+                    - cell "datetime" [ref=f1e436]
+                    - cell "预置字段" [ref=f1e437]
+                    - cell [ref=f1e439]:
+                      - button "修改显示名称" [ref=f1e440] [cursor=pointer]
+                  - row [ref=f1e442]:
+                    - cell "Custom Datetime 5" [ref=f1e443]
+                    - cell [ref=f1e444]:
+                      - code [ref=f1e445]: custom_datetime_5
+                    - cell "datetime" [ref=f1e446]
+                    - cell "预置字段" [ref=f1e447]
+                    - cell [ref=f1e449]:
+                      - button "修改显示名称" [ref=f1e450] [cursor=pointer]
+                  - row [ref=f1e452]:
+                    - cell "Custom Json 1" [ref=f1e453]
+                    - cell [ref=f1e454]:
+                      - code [ref=f1e455]: custom_json_1
+                    - cell "json" [ref=f1e456]
+                    - cell "预置字段" [ref=f1e457]
+                    - cell [ref=f1e459]:
+                      - button "修改显示名称" [ref=f1e460] [cursor=pointer]
+                  - row [ref=f1e462]:
+                    - cell "Custom Json 2" [ref=f1e463]
+                    - cell [ref=f1e464]:
+                      - code [ref=f1e465]: custom_json_2
+                    - cell "json" [ref=f1e466]
+                    - cell "预置字段" [ref=f1e467]
+                    - cell [ref=f1e469]:
+                      - button "修改显示名称" [ref=f1e470] [cursor=pointer]
+                  - row [ref=f1e472]:
+                    - cell "Custom Json 3" [ref=f1e473]
+                    - cell [ref=f1e474]:
+                      - code [ref=f1e475]: custom_json_3
+                    - cell "json" [ref=f1e476]
+                    - cell "预置字段" [ref=f1e477]
+                    - cell [ref=f1e479]:
+                      - button "修改显示名称" [ref=f1e480] [cursor=pointer]
+                  - row [ref=f1e482]:
+                    - cell "Custom Json 4" [ref=f1e483]
+                    - cell [ref=f1e484]:
+                      - code [ref=f1e485]: custom_json_4
+                    - cell "json" [ref=f1e486]
+                    - cell "预置字段" [ref=f1e487]
+                    - cell [ref=f1e489]:
+                      - button "修改显示名称" [ref=f1e490] [cursor=pointer]
+                  - row [ref=f1e492]:
+                    - cell "Custom Json 5" [ref=f1e493]
+                    - cell [ref=f1e494]:
+                      - code [ref=f1e495]: custom_json_5
+                    - cell "json" [ref=f1e496]
+                    - cell "预置字段" [ref=f1e497]
+                    - cell [ref=f1e499]:
+                      - button "修改显示名称" [ref=f1e500] [cursor=pointer]
+              - list [ref=f1e502]:
+                - listitem "上一页" [ref=f1e503]:
+                  - button [disabled] [ref=f1e504]:
+                    - img "left" [ref=f1e505]
+                - listitem "1" [ref=f1e508] [cursor=pointer]
+                - listitem "2" [ref=f1e510] [cursor=pointer]
+                - listitem "下一页" [ref=f1e512] [cursor=pointer]:
+                  - button [ref=f1e513]:
+                    - img "right" [ref=f1e514]
+```

@@ -47,7 +47,7 @@ export function BusinessDefinitionEditor({ workspaceId, definition, catalogue, r
         <Form.Item label={t`Description`}><Input.TextArea rows={2} value={draft.description} disabled={disabled} onChange={(event) => change({ ...draft, description: event.target.value })} /></Form.Item>
       </div>
     </Form>
-    <Tabs items={[
+    <Tabs defaultActiveKey={draft.kind === 'object_type' ? 'schema' : 'settings'} items={[
       { key: 'settings', label: t`Configuration`, children: <BusinessDefinitionSettings value={draft} catalogue={catalogue} onChange={change} disabled={disabled} /> },
       ...(draft.kind !== 'object_relation' && draft.kind !== 'event_mapping' ? [{ key: 'schema', label: draft.kind === 'event' ? t`Report data fields` : t`Fields and validation`, children: draft.kind === 'customer_attribute' ? <Form layout="vertical"><Form.Item label={t`Attribute value type`}><Select value={draft.schema.type} disabled={disabled} options={[{ value: 'string', label: t`Text` }, { value: 'number', label: t`Number` }, { value: 'integer', label: t`Integer` }, { value: 'boolean', label: t`Boolean` }, { value: 'array', label: t`Array` }, { value: 'object', label: t`Object` }]} onChange={(type) => change({ ...draft, schema: { type, ...(type === 'object' ? { properties: {} } : {}), ...(type === 'array' ? { items: { type: 'string' } } : {}) } })} /></Form.Item>{draft.schema.type === 'object' && <SchemaFieldsEditor value={draft.schema} disabled={disabled} onChange={(schema) => change({ ...draft, schema })} />}</Form> : <SchemaFieldsEditor value={draft.schema} disabled={disabled} onChange={(schema) => change({ ...draft, schema })} /> }] : []),
       { key: 'preview', label: t`Sample validation`, children: <div className="space-y-4">

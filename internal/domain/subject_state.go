@@ -466,6 +466,9 @@ func EvaluateStateRule(r StateRule, c StateEvaluationContext) StateEvaluation {
 	return result
 }
 func StateField(data map[string]interface{}, path string) (interface{}, bool) {
+	if value, ok := data[strings.TrimPrefix(path, "$.")]; ok {
+		return value, true
+	}
 	var v interface{} = data
 	for _, part := range strings.Split(strings.TrimPrefix(path, "$."), ".") {
 		m, ok := v.(map[string]interface{})

@@ -7674,6 +7674,207 @@
           }
         }
       }
+    },
+    "/api/businessDefinitions.extendEvents": {
+      "post": {
+        "summary": "Add optional report fields to existing events",
+        "operationId": "businessDefinitions_extendEvents",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Requires workspace-write. Applies additive optional fields to selected non-archived events in one transaction. Conflicts reject the whole operation. Built-in meanings and producer permissions remain protected. Reporters must supply actual data values; this does not collect fingerprints or rewrite historical events.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "event_keys",
+                  "schema"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "event_keys": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 1000,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated definitions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "definitions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "kind",
+                          "key",
+                          "name",
+                          "schema",
+                          "settings"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "customer_attribute",
+                              "object_type",
+                              "object_relation",
+                              "event",
+                              "event_mapping",
+                              "state",
+                              "funnel"
+                            ]
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "schema": {
+                            "type": "object",
+                            "additionalProperties": true,
+                            "description": "Configurable recursive validation schema. Supported types, object properties, required fields, array items, enum, nullable type, numeric and length bounds, UUID/email/date-time formats."
+                          },
+                          "settings": {
+                            "type": "object",
+                            "additionalProperties": true,
+                            "description": "Kind-specific configuration; see docs/guides/configurable-marketing.md."
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "draft",
+                              "active",
+                              "archived"
+                            ]
+                          },
+                          "revision": {
+                            "type": "integer",
+                            "description": "Optimistic concurrency token for definitions; this is not a campaign version."
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updated_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid",
+            "required or conflicting fields": null
+          },
+          "403": {
+            "description": "Workspace write permission required"
+          }
+        }
+      }
+    },
+    "/api/subjectStates.inspect": {
+      "post": {
+        "summary": "Inspect saved state rules on real customer or object data",
+        "operationId": "subjectStates_inspect",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Requires customers-read. Customers accept UUID, email or external user ID; objects require UUID. Refreshes derived state projections using saved active rules. Does not create manual overrides, send marketing messages or emit state transition events.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "subject_type",
+                  "subject_id"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "subject_type": {
+                    "type": "string"
+                  },
+                  "subject_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Calculated state results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "states": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid identifier",
+            "missing subject or invalid state rules": null
+          },
+          "403": {
+            "description": "Customer read permission required"
+          }
+        }
+      }
     }
   },
   "components": {

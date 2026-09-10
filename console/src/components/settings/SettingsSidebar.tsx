@@ -122,11 +122,6 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
       label: t`Web Analytics`
     },
     {
-      key: 'custom-fields',
-      icon: <TagsOutlined />,
-      label: t`Custom Fields`
-    },
-    {
       key: 'business',
       icon: <TagsOutlined />,
       label: t`Customer and event configuration`

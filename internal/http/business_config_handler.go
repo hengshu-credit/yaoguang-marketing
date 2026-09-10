@@ -21,7 +21,7 @@ func NewBusinessConfigHandler(s *service.BusinessConfigService, secret func() ([
 }
 func (h *BusinessConfigHandler) RegisterRoutes(mux *http.ServeMux) {
 	auth := middleware.NewAuthMiddleware(h.secret).RequireAuth()
-	for _, action := range []string{"list", "get", "save", "archive", "preview"} {
+	for _, action := range []string{"list", "get", "save", "archive", "preview", "extendEvents"} {
 		mux.Handle("/api/businessDefinitions."+action, auth(http.HandlerFunc(h.handle(action))))
 	}
 }
@@ -86,12 +86,18 @@ func (h *BusinessConfigHandler) handle(action string) http.HandlerFunc {
 				Key         string                    `json:"key"`
 				Revision    int                       `json:"revision"`
 				Sample      map[string]any            `json:"sample"`
+				EventKeys   []string                  `json:"event_keys"`
+				Schema      map[string]any            `json:"schema"`
 			}
 			if json.NewDecoder(http.MaxBytesReader(w, r.Body, 2<<20)).Decode(&req) != nil {
 				WriteJSONError(w, "Invalid request body", 400)
 				return
 			}
 			switch action {
+			case "extendEvents":
+				var definitions []domain.BusinessDefinition
+				definitions, err = h.service.ExtendEvents(r.Context(), req.WorkspaceID, req.EventKeys, req.Schema)
+				result = map[string]any{"definitions": definitions}
 			case "save":
 				var d *domain.BusinessDefinition
 				d, err = h.service.Save(r.Context(), req.WorkspaceID, &req.Definition)

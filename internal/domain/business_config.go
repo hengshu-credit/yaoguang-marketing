@@ -78,6 +78,9 @@ func (d *BusinessDefinition) Validate() error {
 		if from == "" || to == "" || from == to {
 			return fmt.Errorf("relation requires distinct from_type and to_type")
 		}
+		if from == "customer" || to == "customer" {
+			return fmt.Errorf("customer ownership is automatic; relations connect business object types")
+		}
 		if card != "one_to_one" && card != "one_to_many" && card != "many_to_many" {
 			return fmt.Errorf("invalid relation cardinality")
 		}

@@ -20,6 +20,24 @@ func (h *SubjectStateHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/subjectStates.list", auth.RequireAuth()(http.HandlerFunc(h.list)))
 	mux.Handle("/api/subjectStates.set", auth.RequireAuth()(http.HandlerFunc(h.set)))
 	mux.Handle("/api/subjectStates.coverage", auth.RequireAuth()(http.HandlerFunc(h.coverage)))
+	mux.Handle("/api/subjectStates.inspect", auth.RequireAuth()(http.HandlerFunc(h.inspect)))
+}
+
+func (h *SubjectStateHandler) inspect(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeAPIError(w, requestIDFor(r), "method_not_allowed", "Method not allowed", 405)
+		return
+	}
+	var q service.SubjectStateInspectRequest
+	if !decodeAnalysisRequest(w, r, &q) {
+		return
+	}
+	states, err := h.service.Inspect(r.Context(), q)
+	if err != nil {
+		writeAnalysisError(w, r, err)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"states": states})
 }
 func (h *SubjectStateHandler) coverage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

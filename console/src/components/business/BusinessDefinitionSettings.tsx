@@ -38,7 +38,7 @@ export function BusinessDefinitionSettings({ value, catalogue, onChange, disable
   </Form>
 
   if (value.kind === 'object_relation') return <Form layout="vertical">
-    <div className="grid grid-cols-1 gap-x-6 md:grid-cols-2">{select('from_type', t`Parent object type`, objects)}{select('to_type', t`Child object type`, objects)}</div>
+    <div className="grid grid-cols-1 gap-x-6 md:grid-cols-2">{select('from_type', t`Parent object type`, objects.filter(item => item.value !== 'customer'))}{select('to_type', t`Child object type`, objects.filter(item => item.value !== 'customer' && item.value !== settings.from_type))}</div>
     {select('cardinality', t`Relationship cardinality`, [{ value: 'one_to_one', label: t`One to one` }, { value: 'one_to_many', label: t`One to many` }, { value: 'many_to_many', label: t`Many to many` }], 'one_to_many')}
     <Alert type="info" showIcon title={t`Relations connect configured objects`} description={t`Use this relation when analyzing a parent process and its child processes. Counts keep the selected object as their unit.`} />
   </Form>

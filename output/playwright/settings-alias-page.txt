@@ -1,0 +1,28 @@
+### Page
+- Page URL: http://127.0.0.1:8081/console/signin
+- Page Title: 瑶光营销平台
+- Console: 1 errors, 0 warnings
+### Snapshot
+```yaml
+- generic [ref=e4]:
+  - main [ref=e5]:
+    - generic [ref=e6]:
+      - generic "瑶光营销平台, 观心知意，循光达客" [ref=e7]:
+        - img "衡枢真信" [ref=e8]
+        - generic [ref=e9]:
+          - generic [ref=e10]: 瑶光营销平台
+          - generic [ref=e11]: 观心知意，循光达客
+          - generic [ref=e12]: 面向金融科技及互联网业务的开源用户营销与客户触达平台。
+      - generic [ref=e13]:
+        - generic [ref=e14]: 登录
+        - generic [ref=e18]:
+          - generic [ref=e20]:
+            - generic "邮件" [ref=e22]: "* 邮件"
+            - textbox "* 邮件" [ref=e26]:
+              - /placeholder: 邮件
+          - button "发送验证码" [ref=e32] [cursor=pointer]
+  - link "照片来自Zetong Li" [ref=e35] [cursor=pointer]:
+    - /url: https://unsplash.com/fr/@zetong
+```
+### Events
+- New console entries: .playwright-cli\console-2026-09-09T13-20-32-784Z.log#L1-L3

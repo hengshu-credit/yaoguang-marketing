@@ -9,7 +9,6 @@ import { WorkspaceMembers } from '../components/settings/WorkspaceMembers'
 import { GeneralSettings } from '../components/settings/GeneralSettings'
 import { SMTPBridgeSettings } from '../components/settings/SMTPBridgeSettings'
 import { Integrations } from '../components/settings/Integrations'
-import { CustomFieldsConfiguration } from '../components/settings/CustomFieldsConfiguration'
 import { BusinessConfigurationSettings } from '../components/business/BusinessConfigurationSettings'
 import { BusinessStatesSettings } from '../components/business_states/BusinessStatesSettings'
 import { BlogSettings } from '../components/settings/BlogSettings'
@@ -163,7 +162,7 @@ export function WorkspaceSettingsPage() {
       case 'business-states':
         return <BusinessStatesSettings key={workspaceId} workspaceId={workspaceId} canManage={memberAccessResolved && canManageCustomFields} />
       case 'business':
-        return <BusinessConfigurationSettings workspaceId={workspaceId} canManage={memberAccessResolved && canManageCustomFields} />
+        return <BusinessConfigurationSettings workspaceId={workspaceId} canManage={memberAccessResolved && canManageCustomFields} onWorkspaceUpdate={handleWorkspaceUpdate} />
       case 'team':
         return (
           <WorkspaceMembers
@@ -188,13 +187,7 @@ export function WorkspaceSettingsPage() {
       case 'webhooks':
         return workspace ? <WebhooksSettings workspaceId={workspace.id} /> : null
       case 'custom-fields':
-        return (
-          <CustomFieldsConfiguration
-            workspace={workspace}
-            onWorkspaceUpdate={handleWorkspaceUpdate}
-            canManage={canManageCustomFields}
-          />
-        )
+        return <BusinessConfigurationSettings workspaceId={workspaceId} initialKind="customer_attribute" canManage={memberAccessResolved && canManageCustomFields} onWorkspaceUpdate={handleWorkspaceUpdate} />
       case 'smtp-bridge':
         return <SMTPBridgeSettings />
       case 'general':
@@ -249,7 +242,7 @@ export function WorkspaceSettingsPage() {
         }}
       >
         <SettingsSidebar
-          activeSection={activeSection}
+          activeSection={activeSection === 'custom-fields' ? 'business' : activeSection}
           onSectionChange={handleSectionChange}
           isOwner={isOwner}
         />

@@ -19972,3 +19972,156 @@ msgstr "左右滑动，查看更多"
 
 msgid "Show card {number}"
 msgstr "查看第 {number} 张卡片"
+
+msgid "Add report fields to existing events"
+msgstr "批量扩展已有事件字段"
+
+msgid "Add report fields"
+msgstr "扩展上报字段"
+
+msgid "Object types describe things a customer can have more than once"
+msgstr "对象类型：同一客户可以拥有多条独立业务记录"
+
+msgid "Object relations connect two business records"
+msgstr "对象关系：连接两条业务记录"
+
+msgid "Use customer attributes for information such as membership level. Use objects for orders, contracts or repayment plans: one customer can have several records, each with its own ID, fields, events and states."
+msgstr "会员等级等客户自身信息放在客户属性中；订单、合同、还款计划使用业务对象。同一客户可以拥有多条记录，每条记录都有独立编号、字段、事件和状态。"
+
+msgid "For example, one contract can have many repayment plans. Define contract and repayment_plan first, then create a one-to-many relation from contract to repayment_plan. Each repayment plan can then belong to one contract."
+msgstr "例如，一份合同可以对应多期还款计划。先定义 contract（合同）和 repayment_plan（还款计划），再建立从合同到还款计划的一对多关系，每期还款计划归属一份合同。"
+
+msgid "Configure the record fields first (for example order_id and amount), select its identity fields, then activate it. Report events with this object type and its external ID to follow that individual record."
+msgstr "先配置记录字段（例如 order_id、amount），再选择唯一标识字段并启用。上报事件时提供对象类型和外部对象编号，即可跟踪某一笔业务。"
+
+msgid "Creating a relation only defines the allowed connection. Link actual object records through the relation API; the records must belong to the same customer and source system. Customer ownership is automatic and does not need a separate relation."
+msgstr "关系配置仅定义允许的连接方式，具体记录需要通过关系 API 建立关联，且双方须属于同一客户、同一来源系统。对象归属客户是自动建立的，无须另配关系。"
+
+msgid "Customer → multiple contracts → multiple repayment plans per contract"
+msgstr "客户 → 多份合同 → 每份合同对应多期还款计划"
+
+msgid "One place for customer attributes"
+msgstr "统一管理客户属性"
+
+msgid "Existing custom fields and new customer attributes are managed here. Renaming a predefined field keeps its key and historical data; new attributes are not limited to predefined slots. Import templates and exports follow this configuration."
+msgstr "原自定义字段和新增客户属性统一在此管理。预置字段改名会保留原字段编码和历史数据；新增属性不受预置字段数量限制。导入模板和导出字段自动跟随配置。"
+
+msgid "New customer attribute"
+msgstr "新增客户属性"
+
+msgid "Predefined field"
+msgstr "预置字段"
+
+msgid "Edit display name"
+msgstr "修改显示名称"
+
+msgid "Leave the name empty to restore its default label. The field and its data will not be deleted."
+msgstr "名称留空可恢复默认显示名称，不会删除字段或历史数据。"
+
+msgid "Apply to selected events"
+msgstr "应用到所选事件"
+
+msgid "Extend fields without changing event meaning"
+msgstr "增加字段，保留事件原有含义"
+
+msgid "Add optional fields to one or many existing events. Existing fields cannot be replaced here. Reporters must supply the actual values in data; this does not collect device fingerprints or rewrite historical events. Built-in events still require their platform producer."
+msgstr "为一个或多个已有事件增加可选字段，不替换已有字段。实际值需要上报方放入 data 中；这里不会自动采集设备指纹，也不会改写历史事件。内置事件仍由平台产生。"
+
+msgid "Target events"
+msgstr "目标事件"
+
+msgid "Device fingerprint"
+msgstr "设备指纹"
+
+msgid "Fingerprint supplied by the reporting application"
+msgstr "由上报应用提供的设备指纹"
+
+msgid "Add device fingerprint example"
+msgstr "添加设备指纹示例字段"
+
+msgid "Example report data: add device_fingerprint to the existing data object. Keep the original event code and report envelope."
+msgstr "上报示例：在原 data 对象中增加 device_fingerprint，保留原有事件编码及其他上报信息。"
+
+msgid "States are calculated labels, such as active customer or overdue contract. They are used in customer details, automation conditions and state coverage. They do not replace the customer profile status field."
+msgstr "状态是通过规则计算的标签，例如活跃客户、逾期合同，可用于客户详情、自动化条件和状态覆盖分析，不会替换客户档案中的状态字段。"
+
+msgid "How state rules take effect"
+msgstr "状态规则如何生效"
+
+msgid "Activate a rule, then customer attribute changes and reported events trigger background calculation. True means matched, false means not matched, and unknown means evidence is missing. Check a real customer or object below after saving; the check does not send marketing messages."
+msgstr "规则启用后，客户属性变更和事件上报会触发后台计算。满足表示命中，不满足表示未命中，未知表示证据不足。保存后可在下方检查真实客户或对象，检查操作不会发送营销消息。"
+
+msgid "State rule saved"
+msgstr "状态规则已保存"
+
+msgid "Active rules are queued for recalculation. Inspect a customer or object below to see the saved rule result now."
+msgstr "已启用的规则进入重算队列，也可在下方立即检查某个客户或对象，查看已保存规则的计算结果。"
+
+msgid "A stable identifier used by automation rules."
+msgstr "用于自动化规则引用的稳定编码。"
+
+msgid "State status"
+msgstr "启用状态"
+
+msgid "Optional: mutually exclusive states"
+msgstr "可选：设置互斥状态"
+
+msgid "Leave this off for independent states. In the same exclusive group, only the highest-priority matched state remains true."
+msgstr "独立状态无须开启。相同互斥组中，仅保留优先级最高的已命中状态。"
+
+msgid "Inspect a saved state on real data"
+msgstr "用真实数据检查已保存状态"
+
+msgid "Save the rule first. For customers enter an email, external user ID or UUID; for business objects enter the object UUID. Results come from saved active rules."
+msgstr "请先保存规则。客户可输入邮箱、外部用户 ID 或 UUID；业务对象请输入对象 UUID。检查结果来自已保存且启用的规则。"
+
+msgid "Customer or object identifier"
+msgstr "客户或对象标识"
+
+msgid "Inspect state"
+msgstr "检查状态"
+
+msgid "Result"
+msgstr "计算结果"
+
+msgid "Computed at"
+msgstr "计算时间"
+
+msgid "Comparison value"
+msgstr "比较值"
+
+msgid "AND"
+msgstr "且"
+
+msgid "OR"
+msgstr "或"
+
+msgid "Every condition below must match"
+msgstr "满足以下所有条件"
+
+msgid "At least one condition below must match"
+msgstr "满足以下任一条件"
+
+msgid "Zero means no lookback limit"
+msgstr "0 表示不限回溯时间"
+
+msgid "Choose a field or enter its path"
+msgstr "选择字段或输入属性路径"
+
+msgid "Add condition group"
+msgstr "添加条件组"
+
+msgid "Show unused predefined fields"
+msgstr "显示未命名预置字段"
+
+msgid "Objects are linked to customers by ownership."
+msgstr "按对象所属客户自动关联，无须选择对象关系。"
+
+msgid "Use customer ownership"
+msgstr "改为按客户归属关联"
+
+msgid "Condition group"
+msgstr "条件组"
+
+msgid "Field"
+msgstr "字段"
