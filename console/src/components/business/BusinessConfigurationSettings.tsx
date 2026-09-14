@@ -11,6 +11,7 @@ import { CustomerAttributesSettings } from './CustomerAttributesSettings'
 import { BusinessConfigurationGuide } from './BusinessConfigurationGuide'
 import type { Workspace } from '../../services/api/types'
 import { EventFieldsExtensionDrawer } from './EventFieldsExtensionDrawer'
+import { builtinEventOriginLabel, getBuiltinEventReference } from './builtin-event-reference'
 
 interface Props { workspaceId: string; canManage: boolean; initialKind?: BusinessDefinitionKind; onWorkspaceUpdate?: (workspace: Workspace) => void }
 
@@ -73,7 +74,12 @@ function ConfigurationContent({ workspaceId, canManage, initialKind = 'event', o
       { title: t`Key`, dataIndex: 'key', render: (key: string) => <code>{key}</code> },
       ...(kind === 'object_type' ? [{ title: t`Object identity fields`, render: (_: unknown, definition: BusinessDefinition) => Array.isArray(definition.settings.identity_fields) ? definition.settings.identity_fields.join(', ') : '—' }] : kind === 'object_relation' ? [{ title: t`Object relations`, render: (_: unknown, definition: BusinessDefinition) => <div>{String(definition.settings.from_type ?? '')} → {String(definition.settings.to_type ?? '')}<div className="text-xs text-gray-500">{definition.settings.cardinality === 'one_to_one' ? t`One to one` : definition.settings.cardinality === 'one_to_many' ? t`One to many` : t`Many to many`}</div></div> }] : []),
       { title: t`Status`, dataIndex: 'status', render: (status: BusinessDefinition['status']) => <Tag color={status === 'active' ? 'green' : undefined}>{statuses[status]}</Tag> },
-      { title: t`Origin`, key: 'origin', render: (_, definition) => definition.builtin || definition.settings.builtin === true ? t`Built-in` : t`Custom` },
+      { title: t`Definition origin`, key: 'origin', render: (_, definition) => definition.builtin || definition.settings.builtin === true ? t`Built-in` : t`Custom` },
+      ...(kind === 'event' ? [{ title: t`Trigger source`, key: 'trigger_source', render: (_: unknown, definition: BusinessDefinition) => {
+        if (!definition.builtin && definition.settings.builtin !== true) return t`Business application report`
+        const reference = getBuiltinEventReference(definition.key, i18n)
+        return reference ? <Tag>{builtinEventOriginLabel(reference.origin, i18n)}</Tag> : t`Unknown producer`
+      } }] : []),
       ...(canManage ? [{ title: t`Actions`, key: 'actions', render: (_: unknown, definition: BusinessDefinition) => <Space><Button type="link" onClick={() => setEditor(definition)}>{t`View`}</Button>{kind === 'event' && definition.status !== 'archived' && <Button type="link" onClick={() => setExtending([definition.key])}>{t`Add report fields`}</Button>}{definition.status !== 'archived' && !definition.builtin && definition.settings.builtin !== true && <Popconfirm title={t`Archive this definition?`} description={t`Historical reports keep their recorded definition. Archived definitions cannot accept new use.`} onConfirm={() => archive(definition)} okText={t`Archive`} cancelText={t`Cancel`}><Button type="link" danger loading={archiving === definition.key}>{t`Archive`}</Button></Popconfirm>}</Space> }] : [])
     ]} />
     </>}

@@ -1,0 +1,55 @@
+async (page) => {
+ await page.goto('http://127.0.0.1:8081/console/workspace/builtin-review/settings/business');
+ await page.getByRole('button', { name: '邮件已退信', exact: true }).click();
+ const dialog = page.getByRole('dialog');
+ const check = (condition, message) => { if (!condition) throw new Error(message); };
+ const sample = async () => JSON.parse(await dialog.locator('pre[aria-label="内部事件示例"]:visible').innerText());
+ check((await sample()).type === 'email.bounced', 'Bounce example type');
+ await dialog.screenshot({ path: 'output/playwright/builtin-event-bounce-desktop.png' });
+ const receiptToggle = dialog.getByRole('button', { name: /统一回执 API 输入示例/ });
+ if (await receiptToggle.getAttribute('aria-expanded') !== 'true') await receiptToggle.click();
+ const receipt = JSON.parse(await dialog.getByLabel('统一回执请求').innerText());
+ check(receipt.receipts[0].event === 'bounced' && !!receipt.receipts[0].message_id, 'Receipt request');
+ await dialog.getByRole('tab', { name: '声明的扩展字段' }).click();
+ check(await dialog.getByRole('textbox', { name: '字段编码 device_fingerprint' }).isDisabled(), 'Extension must be read only');
+ await dialog.screenshot({ path: 'output/playwright/builtin-event-extensions.png' });
+ const close = async () => { await dialog.getByRole('button', { name: '关闭', exact: true }).click(); await dialog.waitFor({ state: 'hidden' }); await page.waitForTimeout(400); };
+ await close();
+ await page.getByRole('button', { name: '邮件已送达', exact: true }).click();
+ check((await sample()).type === 'email.updated', 'Actual delivery producer name');
+ check(await dialog.getByText(/当前链路存在命名差异/).isVisible(), 'Delivery warning');
+ await dialog.screenshot({ path: 'output/playwright/builtin-event-delivered.png' });
+ await close();
+ await page.getByRole('button', { name: '推送已送达', exact: true }).click();
+ await dialog.getByRole('tab', { name: '不含邮箱的客户消息', exact: true }).click();
+ check((await sample()).type === 'push.delivered' && !!(await sample()).data.changes.message_id, 'No email producer variant');
+ await close();
+ await page.getByRole('button', { name: '进入状态', exact: true }).click();
+ check((await sample()).source === 'platform.state_projector' && (await sample()).data.state_key === 'eligible', 'State flat payload');
+ await close();
+ await page.getByRole('button', { name: '登录', exact: true }).click();
+ check(await dialog.getByRole('button', { name: '保存定义' }).isVisible(), 'Custom editor intact');
+ await close();
+ await page.getByRole('button', { name: '邮件已退信', exact: true }).click();
+ const changes = dialog.getByRole('row').filter({ has: page.getByText('changes', { exact: true }) });
+ await changes.getByRole('button').click();
+ check(!await dialog.getByText('bounced_at', { exact: true }).isVisible(), 'Child fields collapse with their parent');
+ await changes.getByRole('button').click();
+ check(await dialog.getByText('old', { exact: true }).isVisible(), 'Nested old value visible');
+ for (const width of [1024, 768]) {
+  await page.setViewportSize({ width, height: 1000 });
+  await page.waitForTimeout(400);
+  const bounds = await dialog.boundingBox();
+  check(bounds.x >= 0 && bounds.x + bounds.width <= width + 1, 'Drawer within viewport at '+width);
+  const overflow = await dialog.evaluate(el => { const body = el.querySelector('.ant-drawer-body'); return body.scrollWidth - body.clientWidth; });
+  check(overflow <= 1, 'Drawer body horizontal overflow at '+width+': '+overflow);
+  await dialog.screenshot({ path: 'output/playwright/builtin-event-bounce-'+width+'.png' });
+ }
+ await close();
+ await page.setViewportSize({ width: 1440, height: 1100 });
+ await page.getByRole('searchbox', { name: '搜索定义' }).fill('no-such-event');
+ await page.getByRole('searchbox', { name: '搜索定义' }).press('Enter');
+ await page.getByRole('button', { name: '邮件已退信', exact: true }).waitFor({ state: 'hidden' });
+ await page.screenshot({ path: 'output/playwright/builtin-event-empty.png' });
+ console.log('PASS: bounce, receipt, extensions, delivery variants, state, custom editor, 1024/768 widths and filtered empty state');
+}

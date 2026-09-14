@@ -5,6 +5,7 @@ import { businessDefinitionDisplayName } from './builtin-event-labels'
 import { businessApi, type BusinessDefinition, type BusinessPreviewResult } from '../../services/api/business'
 import { SchemaFieldsEditor } from './SchemaFieldsEditor'
 import { BusinessDefinitionSettings } from './BusinessDefinitionSettings'
+import { BuiltinEventDetails } from './BuiltinEventDetails'
 
 interface Props { workspaceId: string; definition: BusinessDefinition; catalogue: BusinessDefinition[]; readOnly?: boolean; onSaved: (definition: BusinessDefinition) => void; onClose: () => void }
 
@@ -36,6 +37,7 @@ export function BusinessDefinitionEditor({ workspaceId, definition, catalogue, r
     catch (cause) { setError(cause instanceof Error ? cause.message : t`Failed to validate sample`) }
     finally { setPreviewing(false) }
   }
+  if (draft.kind === 'event' && (draft.builtin || draft.settings.builtin === true)) return <BuiltinEventDetails definition={draft} onClose={onClose} />
   return <Drawer open title={definition.id ? t`Definition details` : t`New definition`} size={920} onClose={onClose} maskClosable={!saving} extra={<Space><Button onClick={onClose}>{t`Close`}</Button>{!disabled && <Button type="primary" loading={saving} onClick={() => void save()}>{t`Save definition`}</Button>}</Space>}>
     {error && <Alert className="mb-4" type="error" showIcon title={error} />}
     {(draft.builtin || draft.settings.builtin === true) && <Alert className="mb-4" type="info" showIcon title={t`Built-in definition`} description={t`Built-in event meanings are protected. Create a custom event to define different behavior.`} />}

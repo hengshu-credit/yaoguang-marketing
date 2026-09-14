@@ -12,6 +12,30 @@ POST /api/events.track with the normal server-side bearer credential:
 
 The configured event controls data schema, expiry mode, unmatched customer behavior and optional object association. Platform-generated reported_at is immutable on retry. Event mappings use settings.fields paths such as $.request.id and settings.attribute_mappings actions lookup, bind, update and record. No plaintext email is required: the resolved Customer UUID remains authoritative.
 
+## Built-in event producers
+
+In Settings → Customer and event configuration → Event management, built-in event details open **Trigger and payload**. The page shows the producer, triggering operation, related entry points, actual internal fields and copyable examples. Object fields use expandable child rows, such as `data → changes → bounced_at → old / new`, rather than flattened paths. The list also distinguishes the definition origin from its trigger source.
+
+Built-in events are recorded by platform producers. Do not submit their internal envelopes to `events.track` or send them as provider webhook bodies. The main paths are:
+
+| Event family | Trigger and prerequisites |
+| --- | --- |
+| `contact.created`, `contact.updated` | Contact-record inserts or business-field changes from console, import or API operations. Creation has empty `changes`, not a customer snapshot. Profile and tag activity has separate timeline kinds. |
+| `email.sent` | Message-history creation in the send flow; some paths insert before calling the provider, so this is not delivery confirmation. |
+| `email.bounced`, `email.complained`, `email.delivered` | Provider callbacks through `/webhooks/email`, or authorized normalized receipts through `/api/deliveryReceipts.ingest`, update matched message history. The email callback classifies hard bounces; soft bounces do not automatically generate the same event. |
+| `email.opened`, `email.clicked` | Tracking image/link requests or authorized normalized receipts record the first timestamp. Tracking depends on client behavior and reachable URLs. |
+| `email.unsubscribed` | A subscription operation linked to a message updates its unsubscribe timestamp; removing list membership alone is insufficient. |
+| Channel events (`sms`, `push`, `whatsapp`, `webhook`) | Sending integrations and supported provider/client receipts. A default catalogue entry does not guarantee every integration emits that event. |
+| `state.entered`, `state.exited` | State projection after eligible changes; read-only inspection does not emit transitions. Emission has a five-minute deadline and recursion protection. |
+
+The email-associated timeline currently records delivery/failure changes as `channel.updated`; the no-email customer-message path uses `channel.delivered` / `channel.failed`. Detail examples show this naming difference explicitly. No-email message payloads currently contain only `data.changes.message_id`; the email-associated path contains changed fields with `old`/`new` values. Bounce diagnostics remain in the inbound callback record, rather than the `email.bounced` timeline payload.
+
+Timeline event-bus envelopes wrap the source operation, entity and changes under `data`. The event ledger exposes those changes as `properties`. State transitions instead have a flat `data` payload containing the state key, current/previous value, revision and trigger deadline. These formats must not be interchanged with public ingestion requests.
+
+**Declared extension fields** displays the stored schema separately. Adding an optional field such as a device fingerprint declares it, but does not collect its value or modify a built-in producer. The relevant SDK, provider adapter or internal producer must supply the value.
+
+Producer references: `internal/database/init.go` (`track_message_history_changes`), `internal/database/schema/customer_activity.go`, `customer_channels.go`, `realtime.go` (`TimelineEventBridgeFunction`), and `internal/repository/subject_state_transitions.go`. Keep `console/src/components/business/builtin-event-reference.ts` aligned when these contracts change.
+
 ## Browser SDK
 
 Publish the event with settings.browser_enabled=true, settings.authoritative=false and an explicit settings.allowed_browser_origins array. Builtin events always reject public browser reporting.

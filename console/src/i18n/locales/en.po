@@ -20029,3 +20029,345 @@ msgstr "Condition group"
 
 msgid "Field"
 msgstr "Field"
+
+msgid "Platform operation"
+msgstr "Platform operation"
+
+msgid "Provider feedback"
+msgstr "Provider feedback"
+
+msgid "Recipient interaction"
+msgstr "Recipient interaction"
+
+msgid "Channel or client receipt"
+msgstr "Channel or client receipt"
+
+msgid "State calculation"
+msgstr "State calculation"
+
+msgid "Message ID and stable event occurrence ID; retries retain the event occurrence."
+msgstr "Message ID and stable event occurrence ID; retries retain the event occurrence."
+
+msgid "Event code and internal envelope version."
+msgstr "Event code and internal envelope version."
+
+msgid "Workspace identifier used by the producer; timeline messages use the workspace database name."
+msgstr "Workspace identifier used by the producer; timeline messages use the workspace database name."
+
+msgid "Source record type and identifier. A timeline event can identify a message or contact record, not only a customer."
+msgstr "Source record type and identifier. A timeline event can identify a message or contact record, not only a customer."
+
+msgid "Associated customer UUID and email when available; they are not interchangeable with the source record ID."
+msgstr "Associated customer UUID and email when available; they are not interchangeable with the source record ID."
+
+msgid "Internal producer, such as contact_timeline or platform.state_projector."
+msgstr "Internal producer, such as contact_timeline or platform.state_projector."
+
+msgid "Business occurrence time and platform receipt time, in ISO 8601 format."
+msgstr "Business occurrence time and platform receipt time, in ISO 8601 format."
+
+msgid "Correlation and optional cause used to connect related events."
+msgstr "Correlation and optional cause used to connect related events."
+
+msgid "Producer-specific payload shown below. This is not the public events.track request envelope."
+msgstr "Producer-specific payload shown below. This is not the public events.track request envelope."
+
+msgid "Template identifier"
+msgstr "Template identifier"
+
+msgid "Template version"
+msgstr "Template version"
+
+msgid "Associated broadcast, if any"
+msgstr "Associated broadcast, if any"
+
+msgid "Recorded send time"
+msgstr "Recorded send time"
+
+msgid "Recorded delivery time"
+msgstr "Recorded delivery time"
+
+msgid "Recorded failure time"
+msgstr "Recorded failure time"
+
+msgid "First recorded open time"
+msgstr "First recorded open time"
+
+msgid "First recorded click time"
+msgstr "First recorded click time"
+
+msgid "Recorded hard-bounce time"
+msgstr "Recorded hard-bounce time"
+
+msgid "Recorded complaint time"
+msgstr "Recorded complaint time"
+
+msgid "Recorded unsubscribe time"
+msgstr "Recorded unsubscribe time"
+
+msgid "Provider or platform status detail"
+msgstr "Provider or platform status detail"
+
+msgid "Example changed contact field; actual changed fields vary by operation."
+msgstr "Example changed contact field; actual changed fields vary by operation."
+
+msgid "The source write operation: insert or update."
+msgstr "The source write operation: insert or update."
+
+msgid "Source record type and ID; entity_id can be null for a contact record."
+msgstr "Source record type and ID; entity_id can be null for a contact record."
+
+msgid "Changed values from the timeline. Updates use old/new; inserts generally use new only."
+msgstr "Changed values from the timeline. Updates use old/new; inserts generally use new only."
+
+msgid "Message history identifier; the no-email producer records only this field."
+msgstr "Message history identifier; the no-email producer records only this field."
+
+msgid "Contact timeline payload"
+msgstr "Contact timeline payload"
+
+msgid "Customer message without email"
+msgstr "Customer message without email"
+
+msgid "Message associated with an email"
+msgstr "Message associated with an email"
+
+msgid "Created when a contact record is inserted, including console, import or API writes that create the contact projection."
+msgstr "Created when a contact record is inserted, including console, import or API writes that create the contact projection."
+
+msgid "Created when business fields on a contact record change; timestamp/version-only maintenance does not count."
+msgstr "Created when business fields on a contact record change; timestamp/version-only maintenance does not count."
+
+msgid "Perform the customer/contact operation through the console or authorized API. Do not separately report this built-in event."
+msgstr "Perform the customer/contact operation through the console or authorized API. Do not separately report this built-in event."
+
+msgid "These events describe contact records. Customer profile and tag changes have their own timeline kinds; creating a customer without an email does not necessarily create contact.created."
+msgstr "These events describe contact records. Customer profile and tag changes have their own timeline kinds; creating a customer without an email does not necessarily create contact.created."
+
+msgid "A contact.created payload has empty changes rather than a full customer snapshot."
+msgstr "A contact.created payload has empty changes rather than a full customer snapshot."
+
+msgid "The state projector detects a transition into a satisfied state."
+msgstr "The state projector detects a transition into a satisfied state."
+
+msgid "The state projector detects a transition out of a satisfied state, to false or unknown."
+msgstr "The state projector detects a transition out of a satisfied state, to false or unknown."
+
+msgid "Activate a state rule and supply the customer attributes or business events it needs. The state projector produces transitions."
+msgstr "Activate a state rule and supply the customer attributes or business events it needs. The state projector produces transitions."
+
+msgid "Read-only state inspection does not emit transitions. Old changes outside the five-minute emission window are not re-emitted; replay and initial evaluation depend on the producer context."
+msgstr "Read-only state inspection does not emit transitions. Old changes outside the five-minute emission window are not re-emitted; replay and initial evaluation depend on the producer context."
+
+msgid "State transition payload"
+msgstr "State transition payload"
+
+msgid "Configured state key"
+msgstr "Configured state key"
+
+msgid "Current and previous result: true, false or unknown."
+msgstr "Current and previous result: true, false or unknown."
+
+msgid "State rule revision used for the calculation."
+msgstr "State rule revision used for the calculation."
+
+msgid "Processing status and the five-minute transition trigger deadline."
+msgstr "Processing status and the five-minute transition trigger deadline."
+
+msgid "Transition chain depth used to prevent recursive triggering."
+msgstr "Transition chain depth used to prevent recursive triggering."
+
+msgid "Created when the platform inserts message history for the send path."
+msgstr "Created when the platform inserts message history for the send path."
+
+msgid "An email provider bounce is matched to a message and classified as a hard bounce; the platform sets bounced_at and records the event."
+msgstr "An email provider bounce is matched to a message and classified as a hard bounce; the platform sets bounced_at and records the event."
+
+msgid "A provider complaint is matched to a message; the platform sets complained_at and records the event."
+msgstr "A provider complaint is matched to a message; the platform sets complained_at and records the event."
+
+msgid "The recipient email client loads the tracking image and the platform records the first open."
+msgstr "The recipient email client loads the tracking image and the platform records the first open."
+
+msgid "The recipient follows a tracked link and the platform records the first click timestamp."
+msgstr "The recipient follows a tracked link and the platform records the first click timestamp."
+
+msgid "A subscription operation linked to a message sets unsubscribed_at. Removing a list membership alone is not the same event."
+msgstr "A subscription operation linked to a message sets unsubscribed_at. Removing a list membership alone is not the same event."
+
+msgid "A message delivery time, failure time or status detail changes on the email-associated timeline path."
+msgstr "A message delivery time, failure time or status detail changes on the email-associated timeline path."
+
+msgid "A supported provider/client receipt or send result updates the corresponding message status. A catalogue entry alone does not produce a receipt."
+msgstr "A supported provider/client receipt or send result updates the corresponding message status. A catalogue entry alone does not produce a receipt."
+
+msgid "Sent is not delivery confirmation. Some email paths create message history before calling the provider, so later failure is possible."
+msgstr "Sent is not delivery confirmation. Some email paths create message history before calling the provider, so later failure is possible."
+
+msgid "Bounce type/category/diagnostic details belong to the inbound callback record. This timeline payload contains the bounced_at change; soft bounces do not automatically produce this hard-bounce event."
+msgstr "Bounce type/category/diagnostic details belong to the inbound callback record. This timeline payload contains the bounced_at change; soft bounces do not automatically produce this hard-bounce event."
+
+msgid "Tracking must be enabled and its URLs reachable. Image blocking, proxying or automated link checks can affect these signals; repeated activity may update counters without another timestamp event."
+msgstr "Tracking must be enabled and its URLs reachable. Image blocking, proxying or automated link checks can affect these signals; repeated activity may update counters without another timestamp event."
+
+msgid "Supported feedback varies by channel and integration. Open, click, complaint or unsubscribe events must not be inferred from a successful send."
+msgstr "Supported feedback varies by channel and integration. Open, click, complaint or unsubscribe events must not be inferred from a successful send."
+
+msgid "Current producer difference: messages associated with an email record delivered_at/failed_at as channel.updated. The no-email customer-message path emits channel.delivered/channel.failed. This default catalogue code is not emitted by every path."
+msgstr "Current producer difference: messages associated with an email record delivered_at/failed_at as channel.updated. The no-email customer-message path emits channel.delivered/channel.failed. This default catalogue code is not emitted by every path."
+
+msgid "The current no-email customer-message trigger does not emit this suffix. It requires an email-associated status-write path or an additional producer implementation."
+msgstr "The current no-email customer-message trigger does not emit this suffix. It requires an email-associated status-write path or an additional producer implementation."
+
+msgid "The normalized delivery receipt API does not accept unsubscribed as a receipt event."
+msgstr "The normalized delivery receipt API does not accept unsubscribed as a receipt event."
+
+msgid "Configure the email provider callback in Settings → Integrations. Provider-specific webhook bodies are normalized by the platform; use the callback URL supplied by the integration."
+msgstr "Configure the email provider callback in Settings → Integrations. Provider-specific webhook bodies are normalized by the platform; use the callback URL supplied by the integration."
+
+msgid "Configure the sending integration and its receipt/feedback path. Normalized receipt ingestion requires authorization and a real message identifier."
+msgstr "Configure the sending integration and its receipt/feedback path. Normalized receipt ingestion requires authorization and a real message identifier."
+
+msgid "Use the platform send, tracking or subscription flow. These internal events must not be posted to events.track."
+msgstr "Use the platform send, tracking or subscription flow. These internal events must not be posted to events.track."
+
+msgid "Meaning"
+msgstr "Meaning"
+
+msgid "Built-in event"
+msgstr "Built-in event"
+
+msgid "Produced through a platform-controlled flow"
+msgstr "Produced through a platform-controlled flow"
+
+msgid "These events are recorded by internal producers after a platform operation, tracking request or verified feedback. Do not post them to events.track. Adding an extension field does not automatically collect its value."
+msgstr "These events are recorded by internal producers after a platform operation, tracking request or verified feedback. Do not post them to events.track. Adding an extension field does not automatically collect its value."
+
+msgid "Trigger and payload"
+msgstr "Trigger and payload"
+
+msgid "When it happens"
+msgstr "When it happens"
+
+msgid "How it reaches the platform"
+msgstr "How it reaches the platform"
+
+msgid "Related entry points"
+msgstr "Related entry points"
+
+msgid "The examples show internal event-bus messages, not provider webhook bodies or a public events.track request. Timeline payload data.changes corresponds to the event ledger properties; actual fields depend on the producer path."
+msgstr "The examples show internal event-bus messages, not provider webhook bodies or a public events.track request. Timeline payload data.changes corresponds to the event ledger properties; actual fields depend on the producer path."
+
+msgid "Internal event example"
+msgstr "Internal event example"
+
+msgid "Common event envelope"
+msgstr "Common event envelope"
+
+msgid "Normalized receipt API example"
+msgstr "Normalized receipt API example"
+
+msgid "This is authorized deliveryReceipts.ingest input, not a provider's original webhook body. Replace the example identifiers with an actual sent message and a unique provider receipt ID."
+msgstr "This is authorized deliveryReceipts.ingest input, not a provider's original webhook body. Replace the example identifiers with an actual sent message and a unique provider receipt ID."
+
+msgid "Normalized receipt request"
+msgstr "Normalized receipt request"
+
+msgid "Producer documentation is not available for this built-in event yet."
+msgstr "Producer documentation is not available for this built-in event yet."
+
+msgid "Do not infer an upload format from an empty schema. Check the event's producer implementation or existing event records."
+msgstr "Do not infer an upload format from an empty schema. Check the event's producer implementation or existing event records."
+
+msgid "Declared extension fields"
+msgstr "Declared extension fields"
+
+msgid "Declared fields are separate from built-in producer fields"
+msgstr "Declared fields are separate from built-in producer fields"
+
+msgid "These are the fields recorded in the event definition, including optional additions. They do not replace the producer payload documented on the first tab. Use the event list to add fields; the producer must supply their values."
+msgstr "These are the fields recorded in the event definition, including optional additions. They do not replace the producer payload documented on the first tab. Use the event list to add fields; the producer must supply their values."
+
+msgid "Definition origin"
+msgstr "Definition origin"
+
+msgid "Trigger source"
+msgstr "Trigger source"
+
+msgid "Business application report"
+msgstr "Business application report"
+
+msgid "Unknown producer"
+msgstr "Unknown producer"
+
+msgid "These events are recorded by internal producers after a platform operation, tracking request or provider/client feedback. Do not post them to events.track. Adding an extension field does not automatically collect its value."
+msgstr "These events are recorded by internal producers after a platform operation, tracking request or provider/client feedback. Do not post them to events.track. Adding an extension field does not automatically collect its value."
+
+msgid "Loading the tracking image or ingesting an authorized open receipt sets the first open timestamp."
+msgstr "Loading the tracking image or ingesting an authorized open receipt sets the first open timestamp."
+
+msgid "Following a tracked link or ingesting an authorized click receipt sets the first click timestamp."
+msgstr "Following a tracked link or ingesting an authorized click receipt sets the first click timestamp."
+
+msgid "Internal message ID"
+msgstr "Internal message ID"
+
+msgid "Stable event occurrence ID retained on retries"
+msgstr "Stable event occurrence ID retained on retries"
+
+msgid "Event code"
+msgstr "Event code"
+
+msgid "Internal envelope version"
+msgstr "Internal envelope version"
+
+msgid "Event subject"
+msgstr "Event subject"
+
+msgid "Source record identifier"
+msgstr "Source record identifier"
+
+msgid "Associated customer identifier, when available"
+msgstr "Associated customer identifier, when available"
+
+msgid "Associated contact email, when available"
+msgstr "Associated contact email, when available"
+
+msgid "Business occurrence time in ISO 8601 format"
+msgstr "Business occurrence time in ISO 8601 format"
+
+msgid "Platform receipt time in ISO 8601 format"
+msgstr "Platform receipt time in ISO 8601 format"
+
+msgid "Correlation ID connecting related events"
+msgstr "Correlation ID connecting related events"
+
+msgid "Optional cause event ID"
+msgstr "Optional cause event ID"
+
+msgid "Previous value; null when no value was recorded"
+msgstr "Previous value; null when no value was recorded"
+
+msgid "New value recorded by this operation"
+msgstr "New value recorded by this operation"
+
+msgid "Event payload"
+msgstr "Event payload"
+
+msgid "Source record type"
+msgstr "Source record type"
+
+msgid "Source record identifier; null for a contact record"
+msgstr "Source record identifier; null for a contact record"
+
+msgid "Current result: true, false or unknown"
+msgstr "Current result: true, false or unknown"
+
+msgid "Previous result: true, false or unknown"
+msgstr "Previous result: true, false or unknown"
+
+msgid "Processing status"
+msgstr "Processing status"
+
+msgid "Five-minute transition trigger deadline"
+msgstr "Five-minute transition trigger deadline"

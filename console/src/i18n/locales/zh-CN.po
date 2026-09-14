@@ -20125,3 +20125,345 @@ msgstr "条件组"
 
 msgid "Field"
 msgstr "字段"
+
+msgid "Platform operation"
+msgstr "平台自动操作"
+
+msgid "Provider feedback"
+msgstr "服务商反馈"
+
+msgid "Recipient interaction"
+msgstr "用户交互触发"
+
+msgid "Channel or client receipt"
+msgstr "渠道／客户端回执"
+
+msgid "State calculation"
+msgstr "状态规则计算"
+
+msgid "Message ID and stable event occurrence ID; retries retain the event occurrence."
+msgstr "消息 ID 与事件实例 ID；重试保留相同的事件实例标识。"
+
+msgid "Event code and internal envelope version."
+msgstr "事件编码与内部消息结构版本。"
+
+msgid "Workspace identifier used by the producer; timeline messages use the workspace database name."
+msgstr "生产端使用的工作空间标识；时间线消息使用工作空间数据库名。"
+
+msgid "Source record type and identifier. A timeline event can identify a message or contact record, not only a customer."
+msgstr "来源记录的类型和标识。时间线事件可能关联消息或联系人记录，不一定直接以客户为主体。"
+
+msgid "Associated customer UUID and email when available; they are not interchangeable with the source record ID."
+msgstr "已关联的客户 UUID 与邮箱，可为空；它们与来源记录 ID 含义不同。"
+
+msgid "Internal producer, such as contact_timeline or platform.state_projector."
+msgstr "内部生产来源，例如 contact_timeline（时间线）或 platform.state_projector（状态计算）。"
+
+msgid "Business occurrence time and platform receipt time, in ISO 8601 format."
+msgstr "事件发生时间和平台接收时间，采用 ISO 8601 格式。"
+
+msgid "Correlation and optional cause used to connect related events."
+msgstr "关联 ID 与可选的原因事件 ID，用于串联相关事件。"
+
+msgid "Producer-specific payload shown below. This is not the public events.track request envelope."
+msgstr "由具体生产链路生成的载荷，见下方示例；它不是 events.track 的外部请求格式。"
+
+msgid "Template identifier"
+msgstr "素材模板 ID"
+
+msgid "Template version"
+msgstr "素材版本"
+
+msgid "Associated broadcast, if any"
+msgstr "关联的群发任务 ID，可为空"
+
+msgid "Recorded send time"
+msgstr "记录的发送时间"
+
+msgid "Recorded delivery time"
+msgstr "记录的送达时间"
+
+msgid "Recorded failure time"
+msgstr "记录的失败时间"
+
+msgid "First recorded open time"
+msgstr "首次记录的打开时间"
+
+msgid "First recorded click time"
+msgstr "首次记录的点击时间"
+
+msgid "Recorded hard-bounce time"
+msgstr "记录的退信时间"
+
+msgid "Recorded complaint time"
+msgstr "记录的投诉时间"
+
+msgid "Recorded unsubscribe time"
+msgstr "记录的退订时间"
+
+msgid "Provider or platform status detail"
+msgstr "服务商或平台的状态说明"
+
+msgid "Example changed contact field; actual changed fields vary by operation."
+msgstr "示例中的联系人变更字段；实际只包含本次操作修改的字段。"
+
+msgid "The source write operation: insert or update."
+msgstr "来源写入操作：insert 表示新增，update 表示更新。"
+
+msgid "Source record type and ID; entity_id can be null for a contact record."
+msgstr "来源记录类型和 ID；联系人记录的 entity_id 可能为空。"
+
+msgid "Changed values from the timeline. Updates use old/new; inserts generally use new only."
+msgstr "时间线记录的变更值：更新通常包含 old／new，新增通常只包含 new。"
+
+msgid "Message history identifier; the no-email producer records only this field."
+msgstr "消息记录 ID；无邮箱消息的生产链路在 changes 中只记录此字段。"
+
+msgid "Contact timeline payload"
+msgstr "联系人事件载荷"
+
+msgid "Customer message without email"
+msgstr "不含邮箱的客户消息"
+
+msgid "Message associated with an email"
+msgstr "关联邮箱的消息"
+
+msgid "Created when a contact record is inserted, including console, import or API writes that create the contact projection."
+msgstr "联系人记录新增时自动产生，包括控制台新增、导入或 API 写入形成联系人记录的情况。"
+
+msgid "Created when business fields on a contact record change; timestamp/version-only maintenance does not count."
+msgstr "联系人记录的业务字段发生变更时自动产生；仅维护时间戳或版本号不会触发。"
+
+msgid "Perform the customer/contact operation through the console or authorized API. Do not separately report this built-in event."
+msgstr "通过控制台或已授权 API 操作客户／联系人即可，不需要另行上报此内置事件。"
+
+msgid "These events describe contact records. Customer profile and tag changes have their own timeline kinds; creating a customer without an email does not necessarily create contact.created."
+msgstr "这两个事件描述联系人记录。客户档案、标签变更有独立的时间线事件；仅创建无邮箱客户不一定产生 contact.created。"
+
+msgid "A contact.created payload has empty changes rather than a full customer snapshot."
+msgstr "contact.created 的 changes 为空对象，不携带完整客户快照。"
+
+msgid "The state projector detects a transition into a satisfied state."
+msgstr "状态计算器检测到状态转为“满足”时产生。"
+
+msgid "The state projector detects a transition out of a satisfied state, to false or unknown."
+msgstr "状态计算器检测到状态从“满足”转为“不满足”或“未知”时产生。"
+
+msgid "Activate a state rule and supply the customer attributes or business events it needs. The state projector produces transitions."
+msgstr "启用状态规则，并提供规则所需的客户属性或业务事件，由状态计算器记录状态变化。"
+
+msgid "Read-only state inspection does not emit transitions. Old changes outside the five-minute emission window are not re-emitted; replay and initial evaluation depend on the producer context."
+msgstr "只读“检查状态”不产生状态变更事件。超过 5 分钟窗口的历史变化不会重新发送；历史回放及首次计算是否产生事件取决于计算上下文。"
+
+msgid "State transition payload"
+msgstr "状态变更载荷"
+
+msgid "Configured state key"
+msgstr "配置的状态编码"
+
+msgid "Current and previous result: true, false or unknown."
+msgstr "当前与之前的计算结果：true（满足）、false（不满足）、unknown（未知）。"
+
+msgid "State rule revision used for the calculation."
+msgstr "本次计算所使用的状态规则版本。"
+
+msgid "Processing status and the five-minute transition trigger deadline."
+msgstr "处理状态与状态变更事件的 5 分钟触发截止时间。"
+
+msgid "Transition chain depth used to prevent recursive triggering."
+msgstr "状态变更因果链深度，用于防止递归触发。"
+
+msgid "Created when the platform inserts message history for the send path."
+msgstr "平台在发送链路中创建消息记录时产生。"
+
+msgid "An email provider bounce is matched to a message and classified as a hard bounce; the platform sets bounced_at and records the event."
+msgstr "邮件服务商反馈退信，平台匹配到消息记录并判定为硬退信后，写入 bounced_at，再自动记录此事件。"
+
+msgid "A provider complaint is matched to a message; the platform sets complained_at and records the event."
+msgstr "服务商反馈投诉并匹配到消息记录后，平台写入 complained_at，再自动记录此事件。"
+
+msgid "The recipient email client loads the tracking image and the platform records the first open."
+msgstr "收件人的邮件客户端加载跟踪图片后，平台记录首次打开时间。"
+
+msgid "The recipient follows a tracked link and the platform records the first click timestamp."
+msgstr "收件人访问跟踪链接后，平台记录首次点击时间。"
+
+msgid "A subscription operation linked to a message sets unsubscribed_at. Removing a list membership alone is not the same event."
+msgstr "关联到具体消息的退订操作写入 unsubscribed_at 后产生。仅移除名单成员不等同于此事件。"
+
+msgid "A message delivery time, failure time or status detail changes on the email-associated timeline path."
+msgstr "关联邮箱的消息记录中，送达时间、失败时间或状态说明发生变更时产生。"
+
+msgid "A supported provider/client receipt or send result updates the corresponding message status. A catalogue entry alone does not produce a receipt."
+msgstr "服务商／客户端的受支持回执或发送结果更新对应消息状态后产生。目录里存在事件，不代表一定能收到对应回执。"
+
+msgid "Sent is not delivery confirmation. Some email paths create message history before calling the provider, so later failure is possible."
+msgstr "sent 不代表已送达。部分邮件链路在调用服务商前就创建消息记录，随后仍可能发送失败。"
+
+msgid "Bounce type/category/diagnostic details belong to the inbound callback record. This timeline payload contains the bounced_at change; soft bounces do not automatically produce this hard-bounce event."
+msgstr "退信类型、分类、诊断详情在入站回调记录中；本事件载荷记录 bounced_at 的变化。软退信不会自动产生这个硬退信事件。"
+
+msgid "Tracking must be enabled and its URLs reachable. Image blocking, proxying or automated link checks can affect these signals; repeated activity may update counters without another timestamp event."
+msgstr "需要开启跟踪且跟踪地址可访问。图片拦截、代理加载和自动链接检查可能影响信号；重复操作可能只更新计数，不再产生新的时间戳事件。"
+
+msgid "Supported feedback varies by channel and integration. Open, click, complaint or unsubscribe events must not be inferred from a successful send."
+msgstr "可用反馈取决于渠道与集成能力，不能根据发送成功推算打开、点击、投诉或退订事件。"
+
+msgid "Current producer difference: messages associated with an email record delivered_at/failed_at as channel.updated. The no-email customer-message path emits channel.delivered/channel.failed. This default catalogue code is not emitted by every path."
+msgstr "当前链路存在命名差异：关联邮箱的消息将 delivered_at／failed_at 变化记为 channel.updated（例如 email.updated）；无邮箱客户消息链路才直接产生 channel.delivered／channel.failed。当前目录编码并非每条链路都会产出。"
+
+msgid "The current no-email customer-message trigger does not emit this suffix. It requires an email-associated status-write path or an additional producer implementation."
+msgstr "当前无邮箱客户消息触发器不产生这种事件后缀，需要关联邮箱的状态写入路径，或另行实现对应生产链路。"
+
+msgid "The normalized delivery receipt API does not accept unsubscribed as a receipt event."
+msgstr "统一回执 API 不接受 unsubscribed 状态，退订需要通过订阅处理链路记录。"
+
+msgid "Configure the email provider callback in Settings → Integrations. Provider-specific webhook bodies are normalized by the platform; use the callback URL supplied by the integration."
+msgstr "在“设置 → 集成”配置邮件服务商回调，使用集成提供的回调地址。各服务商的原始请求体不同，由平台解析并转换。"
+
+msgid "Configure the sending integration and its receipt/feedback path. Normalized receipt ingestion requires authorization and a real message identifier."
+msgstr "配置发送集成及其回执／反馈链路。统一回执接口需要授权，并关联真实的消息标识。"
+
+msgid "Use the platform send, tracking or subscription flow. These internal events must not be posted to events.track."
+msgstr "通过平台发送、跟踪或订阅流程产生这些事件，不要向 events.track 手工提交内置事件。"
+
+msgid "Meaning"
+msgstr "字段含义"
+
+msgid "Built-in event"
+msgstr "内置事件"
+
+msgid "Produced through a platform-controlled flow"
+msgstr "由平台控制的链路产生"
+
+msgid "These events are recorded by internal producers after a platform operation, tracking request or verified feedback. Do not post them to events.track. Adding an extension field does not automatically collect its value."
+msgstr "平台操作、跟踪请求或已校验反馈进入系统后，由内部生产链路记录这些事件。不要提交到 events.track；增加扩展字段也不会自动采集对应值。"
+
+msgid "Trigger and payload"
+msgstr "触发与数据结构"
+
+msgid "When it happens"
+msgstr "何时触发"
+
+msgid "How it reaches the platform"
+msgstr "如何进入系统"
+
+msgid "Related entry points"
+msgstr "相关入口"
+
+msgid "The examples show internal event-bus messages, not provider webhook bodies or a public events.track request. Timeline payload data.changes corresponds to the event ledger properties; actual fields depend on the producer path."
+msgstr "下方展示平台内部事件总线消息，不是服务商原始 Webhook，也不是 events.track 请求。时间线载荷的 data.changes 对应事件账本中的 properties，实际字段取决于生产链路。"
+
+msgid "Internal event example"
+msgstr "内部事件示例"
+
+msgid "Common event envelope"
+msgstr "公共事件结构"
+
+msgid "Normalized receipt API example"
+msgstr "统一回执 API 输入示例"
+
+msgid "This is authorized deliveryReceipts.ingest input, not a provider's original webhook body. Replace the example identifiers with an actual sent message and a unique provider receipt ID."
+msgstr "这是需要授权的 deliveryReceipts.ingest 输入，不是服务商原始回调。请使用实际发送的消息标识、对应服务商及唯一回执 ID 替换示例值。"
+
+msgid "Normalized receipt request"
+msgstr "统一回执请求"
+
+msgid "Producer documentation is not available for this built-in event yet."
+msgstr "暂未提供此内置事件的生产链路说明。"
+
+msgid "Do not infer an upload format from an empty schema. Check the event's producer implementation or existing event records."
+msgstr "不要根据空字段定义推测上报格式，请核对生产链路实现或已有事件记录。"
+
+msgid "Declared extension fields"
+msgstr "声明的扩展字段"
+
+msgid "Declared fields are separate from built-in producer fields"
+msgstr "字段声明与内置生产字段分别展示"
+
+msgid "These are the fields recorded in the event definition, including optional additions. They do not replace the producer payload documented on the first tab. Use the event list to add fields; the producer must supply their values."
+msgstr "这里展示事件定义中声明的字段，包括追加的可选字段，不替代首页说明的实际生产载荷。可在事件列表扩展字段，但实际值仍需生产端提供。"
+
+msgid "Definition origin"
+msgstr "定义来源"
+
+msgid "Trigger source"
+msgstr "触发来源"
+
+msgid "Business application report"
+msgstr "业务应用上报"
+
+msgid "Unknown producer"
+msgstr "待核实的生产来源"
+
+msgid "These events are recorded by internal producers after a platform operation, tracking request or provider/client feedback. Do not post them to events.track. Adding an extension field does not automatically collect its value."
+msgstr "平台操作、跟踪请求或服务商／客户端反馈进入系统后，由内部生产链路记录这些事件。不要提交到 events.track；增加扩展字段也不会自动采集对应值。"
+
+msgid "Loading the tracking image or ingesting an authorized open receipt sets the first open timestamp."
+msgstr "加载跟踪图片，或通过授权接口接收打开回执后，平台记录首次打开时间。"
+
+msgid "Following a tracked link or ingesting an authorized click receipt sets the first click timestamp."
+msgstr "访问跟踪链接，或通过授权接口接收点击回执后，平台记录首次点击时间。"
+
+msgid "Internal message ID"
+msgstr "内部消息 ID"
+
+msgid "Stable event occurrence ID retained on retries"
+msgstr "事件实例 ID，重试时保持不变"
+
+msgid "Event code"
+msgstr "事件编码"
+
+msgid "Internal envelope version"
+msgstr "内部消息结构版本"
+
+msgid "Event subject"
+msgstr "事件关联的主体"
+
+msgid "Source record identifier"
+msgstr "来源记录标识"
+
+msgid "Associated customer identifier, when available"
+msgstr "已关联的客户标识，没有时为空"
+
+msgid "Associated contact email, when available"
+msgstr "已关联的联系人邮箱，没有时为空"
+
+msgid "Business occurrence time in ISO 8601 format"
+msgstr "业务发生时间，采用 ISO 8601 格式"
+
+msgid "Platform receipt time in ISO 8601 format"
+msgstr "平台接收时间，采用 ISO 8601 格式"
+
+msgid "Correlation ID connecting related events"
+msgstr "用于串联相关事件的关联 ID"
+
+msgid "Optional cause event ID"
+msgstr "可选的原因事件 ID"
+
+msgid "Previous value; null when no value was recorded"
+msgstr "变更前的值，原来没有记录时为 null"
+
+msgid "New value recorded by this operation"
+msgstr "本次操作写入的新值"
+
+msgid "Event payload"
+msgstr "事件业务数据"
+
+msgid "Source record type"
+msgstr "来源记录类型"
+
+msgid "Source record identifier; null for a contact record"
+msgstr "来源记录标识，联系人记录中为 null"
+
+msgid "Current result: true, false or unknown"
+msgstr "当前结果：true、false 或 unknown"
+
+msgid "Previous result: true, false or unknown"
+msgstr "之前的结果：true、false 或 unknown"
+
+msgid "Processing status"
+msgstr "处理状态"
+
+msgid "Five-minute transition trigger deadline"
+msgstr "状态变化触发截止时间，发生后五分钟"
