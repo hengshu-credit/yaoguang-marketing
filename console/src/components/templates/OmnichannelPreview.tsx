@@ -22,7 +22,7 @@ const OmnichannelPreview: React.FC<OmnichannelPreviewProps> = ({ definition, pre
   const common = { brand: definition.label_key, content: preview.message, direction: preview.direction, device: previewDevice(preview.profile) }
 
   return (
-    <div className="space-y-4">
+    <div data-console-preview className="space-y-4">
       <PreviewToolbar>
         <label className="flex items-center gap-2">
           <span>{t`Client preview`}</span>

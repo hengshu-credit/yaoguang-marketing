@@ -322,7 +322,9 @@ func (r *workspaceRepository) Update(ctx context.Context, workspace *domain.Work
 
 	query := `
 		UPDATE workspaces
-		SET name = $1, settings = $2, integrations = $3, updated_at = $4
+		SET name = $1, settings = ($2::jsonb - 'console_theme') ||
+			CASE WHEN settings ? 'console_theme' THEN jsonb_build_object('console_theme', settings->'console_theme') ELSE '{}'::jsonb END,
+			integrations = $3, updated_at = $4
 		WHERE id = $5
 	`
 	result, err := r.systemDB.ExecContext(ctx, query,

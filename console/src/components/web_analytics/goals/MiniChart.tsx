@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import ReactECharts from 'echarts-for-react'
+import { ThemedChart as ReactECharts } from '../../../theme/ThemedChart'
 import { ChartDataPoint, COMPARISON_COLOR, PRIMARY_COLOR } from '../lib/types'
 
 interface MiniChartProps {

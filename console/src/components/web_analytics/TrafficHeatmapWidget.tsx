@@ -1,5 +1,5 @@
 import { ReactNode, useCallback, useMemo, useState } from 'react'
-import ReactECharts from 'echarts-for-react'
+import { ThemedChart as ReactECharts } from '../../theme/ThemedChart'
 import { Empty, Spin } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { useWebAnalytics } from './useWebAnalytics'

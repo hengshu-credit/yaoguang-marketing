@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useLingui } from '@lingui/react/macro'
 import { DataAnalyticsTabs, type DataAnalyticsTabKey } from './WorkspaceSectionTabs'
+import { WorkspacePageHeader } from './WorkspacePageHeader'
 
 interface DataAnalyticsPageShellProps {
   workspaceId: string
@@ -17,7 +18,7 @@ export function DataAnalyticsPageShell({
   actions,
   toolbar,
   children,
-  className = 'p-4 md:p-6'
+  className = ''
 }: DataAnalyticsPageShellProps) {
   const { t } = useLingui()
   const descriptions: Record<DataAnalyticsTabKey, string> = {
@@ -31,18 +32,11 @@ export function DataAnalyticsPageShell({
     annotations: t`Record launches, campaigns and incidents so changes in charts retain their business context.`
   }
   const description = descriptions[activeKey]
+  const titles: Record<DataAnalyticsTabKey,string> = {funnels:t`Conversion funnels`,marketing:t`Marketing Overview`,dashboard:t`Website Overview`,live:t`Live Visitors`,explore:t`Multidimensional Analysis`,goals:t`Conversion Goals`,filters:t`Attribution Rules`,annotations:t`Analytics Annotations`}
 
   return (
     <div className={className}>
-      <header
-        data-testid="analytics-header"
-        className="mb-5 flex flex-wrap items-start justify-between gap-3"
-      >
-        <div className="min-w-0">
-          <p className="m-0 max-w-3xl text-sm text-gray-500">{description}</p>
-        </div>
-        {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
-      </header>
+      <WorkspacePageHeader testId="analytics-header" title={titles[activeKey]} description={description} actions={actions} />
 
       <div data-testid="analytics-tabs">
         <DataAnalyticsTabs workspaceId={workspaceId} activeKey={activeKey} />

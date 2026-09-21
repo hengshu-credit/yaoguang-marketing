@@ -24,7 +24,7 @@ export function LogsPage() {
   }
 
   return (
-    <div className="p-6">
+    <div>
       <div className="mb-6">
         <WorkspacePageTitle>{t`Logs`}</WorkspacePageTitle>
         <Text type="secondary">{t`Monitor message delivery status and webhook events`}</Text>

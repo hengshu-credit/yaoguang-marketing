@@ -3,6 +3,8 @@ import zhCatalogSource from './locales/zh-CN.po?raw'
 import { parsePOCatalog } from './po'
 
 const priorityTranslations: Record<string, string> = {
+  'National ID': '身份证件号码',
+  'Identity document uploaded': '上传身份证件',
   Customer: '客户',
   Customers: '客户管理',
   Audience: '客群',
@@ -366,9 +368,25 @@ describe('Simplified Chinese priority catalog', () => {
     '发送者'
   ])('does not contain the machine-translation artifact %s', (artifact) => {
     const offenders = entries
-      .filter(({ msgstr }) => msgstr.includes(artifact))
+      .filter(({ msgid, msgstr }) => isTranslationArtifact(msgid, msgstr, artifact))
       .map(({ msgid, msgstr }) => `${msgid} => ${msgstr}`)
 
     expect(offenders).toEqual([])
   })
+
+  it('allows national-identity wording only in the explicit identity-document messages', () => {
+    expect(isTranslationArtifact('National ID', '身份证件号码', '身份证')).toBe(false)
+    expect(isTranslationArtifact('Identity document uploaded', '上传身份证件', '身份证')).toBe(false)
+    expect(isTranslationArtifact('Message ID', '消息身份证', '身份证')).toBe(true)
+    expect(isTranslationArtifact('Session ID', '会话身份证件号码', '身份证')).toBe(true)
+    expect(isTranslationArtifact('National ID', '托肯', '托肯')).toBe(true)
+  })
 })
+
+function isTranslationArtifact(msgid: string, msgstr: string, artifact: string): boolean {
+  // National identity documents are real business concepts; they are not a
+  // translation of a generic database/message ID. The exact approved wording
+  // remains pinned in priorityTranslations above.
+  const identityDocument = msgid === 'National ID' || msgid === 'Identity document uploaded'
+  return msgstr.includes(artifact) && !(artifact === '身份证' && identityDocument)
+}

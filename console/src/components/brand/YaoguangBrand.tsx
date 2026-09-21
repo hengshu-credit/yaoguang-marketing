@@ -139,7 +139,7 @@ export function YaoguangBrand({
           <FittedBrandLine
             text={productName}
             vertical={vertical}
-            color="#182230"
+            color="var(--console-brand-text, #182230)"
             fontSize={vertical ? 22 : 13}
             fontWeight={700}
             lineHeight={1.25}
@@ -148,7 +148,7 @@ export function YaoguangBrand({
           <FittedBrandLine
             text={tagline}
             vertical={vertical}
-            color="#667085"
+            color="var(--console-brand-secondary, #667085)"
             fontSize={vertical ? 13 : 9}
             lineHeight={vertical ? 1.45 : 1.25}
             marginTop={2}

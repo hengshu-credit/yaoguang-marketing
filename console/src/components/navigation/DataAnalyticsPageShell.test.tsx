@@ -16,7 +16,7 @@ describe('DataAnalyticsPageShell', () => {
     ['goals', 'Conversion Goals', 'Measure the actions that matter and compare conversion performance across segments.'],
     ['filters', 'Attribution Rules', 'Map incoming traffic to channels and normalize source dimensions as sessions arrive.'],
     ['annotations', 'Analytics Annotations', 'Record launches, campaigns and incidents so changes in charts retain their business context.']
-  ] as const)('keeps only the description above the %s tab', (activeKey, title, description) => {
+  ] as const)('shows the shared page heading above the %s tab', (activeKey, title, description) => {
     render(
       <DataAnalyticsPageShell workspaceId="ws1" activeKey={activeKey}>
         content
@@ -24,8 +24,7 @@ describe('DataAnalyticsPageShell', () => {
     )
 
     const header = screen.getByTestId('analytics-header')
-    expect(within(header).queryByRole('heading')).not.toBeInTheDocument()
-    expect(header).not.toHaveTextContent(title)
+    expect(within(header).getByRole('heading', { level: 1, name: title })).toHaveClass('workspace-page-title')
     expect(within(header).getByText(description)).toBeInTheDocument()
   })
 

@@ -235,9 +235,11 @@ export function WorkspaceSettingsPage() {
   return (
     <Layout style={{ minHeight: 'calc(100vh - 48px)' }}>
       <Sider
+        theme="light"
         width={250}
         style={{
-          borderRight: '1px solid #f0f0f0',
+          borderRight: '1px solid var(--console-border, #f0f0f0)',
+          backgroundColor: 'var(--console-surface, #F9F9F9)',
           overflow: 'auto'
         }}
       >

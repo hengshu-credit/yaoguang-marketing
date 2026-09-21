@@ -10,7 +10,7 @@ import {
   LegendComponent
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import ReactEChartsCore from 'echarts-for-react/lib/core'
+import { ThemedChartCore as ReactEChartsCore } from '../../theme/ThemedChart'
 import { AnalyticsQuery, AnalyticsResponse } from '../../services/api/analytics'
 
 // Register the required components

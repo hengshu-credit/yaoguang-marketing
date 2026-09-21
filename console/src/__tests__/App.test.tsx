@@ -41,11 +41,11 @@ describe('App', () => {
     expect(document.body).toBeDefined()
   })
 
-  it('uses the Tianshu font in the shared Ant Design theme', () => {
+  it('preserves the workspace font token in the shared Ant Design theme', () => {
     render(<App />)
 
     expect(screen.getByTestId('antd-font-family')).toHaveTextContent(
-      'AlimamaFangYuanTiVF, "PingFang SC", "Microsoft YaHei", sans-serif'
+      'var(--console-font-family)'
     )
   })
 

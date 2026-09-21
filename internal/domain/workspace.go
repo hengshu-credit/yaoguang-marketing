@@ -561,6 +561,7 @@ type WorkspaceSettings struct {
 	CustomFieldLabels map[string]string            `json:"custom_field_labels,omitempty"`
 	UITranslations    map[string]map[string]string `json:"ui_translations,omitempty"`
 	ConsoleFont       *ConsoleFontSettings         `json:"console_font,omitempty"`
+	ConsoleTheme      *ConsoleThemeSettings        `json:"console_theme,omitempty"`
 	BlogEnabled       bool                         `json:"blog_enabled"`            // Enable blog feature at workspace level
 	BlogSettings      *BlogSettings                `json:"blog_settings,omitempty"` // Blog styling and SEO settings
 	WebAnalytics      *WebAnalyticsSettings        `json:"web_analytics,omitempty"` // Web analytics configuration
@@ -604,6 +605,9 @@ func (ws *WorkspaceSettings) Validate(passphrase string) error {
 	}
 
 	if err := ws.ConsoleFont.Validate(); err != nil {
+		return err
+	}
+	if err := ws.ConsoleTheme.Validate(); err != nil {
 		return err
 	}
 

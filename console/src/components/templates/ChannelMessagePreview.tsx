@@ -29,7 +29,7 @@ const ChannelMessagePreview: React.FC<ChannelMessagePreviewProps> = ({
       { label: 'Xiaomi', value: 'xiaomi' as const }, { label: 'OPPO', value: 'oppo' as const }, { label: 'vivo', value: 'vivo' as const }
     ] : [])
   ]
-  return <div className="min-w-0 space-y-4">
+  return <div data-console-preview className="min-w-0 space-y-4">
     <PreviewToolbar>
       <div className="material-preview-platforms" role="group" aria-label={t`Client preview`}>
         {platforms.map((option) => <button key={option.value} type="button" aria-pressed={platform === option.value} onClick={() => onPlatformChange(option.value)}>{option.label}</button>)}

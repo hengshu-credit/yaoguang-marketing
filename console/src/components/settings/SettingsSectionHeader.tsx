@@ -1,5 +1,5 @@
 import { Divider } from 'antd'
-import { WorkspacePageTitle } from '../navigation/WorkspacePageTitle'
+import { WorkspacePageHeader } from '../navigation/WorkspacePageHeader'
 
 interface SettingsSectionHeaderProps {
   title: string
@@ -19,13 +19,13 @@ export function SettingsSectionHeader({
   return (
     <>
       {primary ? (
-        <WorkspacePageTitle style={{ marginBottom: 8 }}>{title}</WorkspacePageTitle>
+        <WorkspacePageHeader title={title} description={description} />
       ) : (
         <div className="mb-2 text-2xl font-medium">{title}</div>
       )}
-      <div className="text-gray-500">{description}</div>
+      {!primary && <div className="workspace-page-description">{description}</div>}
 
-      <Divider className={className ? `mb-12 ${className}` : 'mb-12'} />
+      <Divider className={className} style={{ margin: '0 0 20px' }} />
     </>
   )
 }

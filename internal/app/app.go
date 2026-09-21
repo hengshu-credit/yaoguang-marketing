@@ -1679,6 +1679,7 @@ func (a *App) InitHandlers() error {
 	transactionalHandler := httpHandler.NewTransactionalNotificationHandler(a.transactionalNotificationService, getJWTSecret, a.logger, a.config.IsDemo())
 	inboundWebhookEventHandler := httpHandler.NewInboundWebhookEventHandler(a.inboundWebhookEventService, getJWTSecret, a.rateLimiter, a.logger)
 	webhookRegistrationHandler := httpHandler.NewWebhookRegistrationHandler(a.webhookRegistrationService, getJWTSecret, a.logger)
+	httpHandler.NewConsoleThemeHandler(service.NewConsoleThemeService(repository.NewConsoleThemeRepository(a.db), a.authService)).RegisterRoutes(a.mux, getJWTSecret, a.config.IsDemo())
 	sesHandler := httpHandler.NewSESHandler(a.sesDiscoveryService, getJWTSecret, a.logger)
 	supabaseWebhookHandler := httpHandler.NewSupabaseWebhookHandler(a.supabaseService, a.logger)
 	messageHistoryHandler := httpHandler.NewMessageHistoryHandler(

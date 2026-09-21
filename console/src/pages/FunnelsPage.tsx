@@ -9,6 +9,7 @@ import { FunnelPathOverview } from '../components/funnels/FunnelPathOverview'
 import { useBusinessCatalogue } from '../components/business/useBusinessCatalogue'
 import { buildCreditFunnelTemplates } from '../components/funnels/funnel-templates'
 import { StateCoveragePanel } from '../components/business_states/StateCoveragePanel'
+import { WorkspacePageHeader } from '../components/navigation/WorkspacePageHeader'
 
 export function FunnelsPage(props: { workspaceId: string; canManage?: boolean }) {
  const { t } = useLingui(); const [mode, setMode] = useState('funnel')
@@ -51,7 +52,7 @@ function ConversionFunnels({ workspaceId, canManage = false }: { workspaceId: st
   finally { removeAbortListener(); if (generation.current === id) setBusy(false) }
  }
  const rate = (v: number | null) => v === null ? '—' : `${(v * 100).toFixed(1)}%`
- return <div className="p-4 md:p-6"><Typography.Title level={3}>{t`Conversion funnels`}</Typography.Title><Typography.Paragraph type="secondary">{t`Measure ordered events for the same customer or business object. Pending objects remain separate from final drop-off.`}</Typography.Paragraph>
+ return <div><WorkspacePageHeader title={t`Conversion funnels`} description={t`Measure ordered events for the same customer or business object. Pending objects remain separate from final drop-off.`} />
   {error && <Alert type="error" showIcon title={error} closable onClose={() => setError('')} />}
   <Space wrap style={{ marginBottom: 16 }}><Select aria-label={t`Saved funnels`} placeholder={t`Saved funnels`} style={{ minWidth: 200 }} value={record?.key} options={saved.map(d => ({ value: d.key, label: d.name }))} onChange={selected => { const d = saved.find(s => s.key === selected); if (d) { setRecord(d); setName(d.name); setKey(d.key); update(d.settings as unknown as FunnelDefinition) } }} /><Input aria-label={t`Funnel key`} placeholder={t`Funnel key`} value={key} disabled={!!record} onChange={e => setKey(e.target.value)} /><Input aria-label={t`Funnel name`} placeholder={t`Funnel name`} value={name} onChange={e => setName(e.target.value)} /><Button onClick={save} disabled={!canManage || !key || !name || !definition.steps.length || busy}>{t`Save funnel`}</Button><Button onClick={() => { setRecord(null); setKey(''); setName(''); update({ subject_type: 'customer', window_seconds: 86400, steps: [] }) }}>{t`New funnel`}</Button></Space>
   <FunnelEditor value={definition} onChange={update} objects={objects} events={events.map(item => ({ key: item.key, name: catalogue.displayName(item) }))} states={states} relations={relations} />

@@ -1,4 +1,6 @@
 import type { CSSProperties, HTMLAttributes, ReactNode } from 'react'
+import { useLayoutEffect, useRef } from 'react'
+import { useConsoleTheme } from '../../theme/ConsoleThemeProvider'
 
 interface WorkspacePageTitleProps extends Omit<HTMLAttributes<HTMLHeadingElement>, 'children'> {
   children: ReactNode
@@ -6,18 +8,29 @@ interface WorkspacePageTitleProps extends Omit<HTMLAttributes<HTMLHeadingElement
 
 const baseStyle: CSSProperties = {
   margin: 0,
-  fontSize: '24px',
-  fontWeight: 500,
-  lineHeight: 1.3
+  fontSize: 'var(--console-title-size, 22px)',
+  fontWeight: 600,
+  lineHeight: 1.4,
+  color: 'var(--console-text, #172033)'
 }
 
 export function WorkspacePageTitle({
   children,
   style,
+  className,
   ...props
 }: WorkspacePageTitleProps) {
+  const node = useRef<HTMLHeadingElement>(null)
+  const lastTitle = useRef('')
+  const release = useRef<(() => void)>()
+  const register = useConsoleTheme()?.title
+  useLayoutEffect(() => {
+    const text = node.current?.textContent?.trim() ?? ''
+    if (text !== lastTitle.current) { lastTitle.current = text; release.current?.(); release.current = register?.(text) }
+  }, [children, register])
+  useLayoutEffect(() => () => { release.current?.(); lastTitle.current = '' }, [])
   return (
-    <h1 {...props} style={{ ...baseStyle, ...style }}>
+    <h1 {...props} ref={node} className={`workspace-page-title${className ? ` ${className}` : ''}`} style={{ ...baseStyle, ...style }}>
       {children}
     </h1>
   )

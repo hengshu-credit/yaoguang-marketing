@@ -1,0 +1,52 @@
+/api/workspaces.setConsoleTheme:
+  post:
+    operationId: setConsoleTheme
+    summary: Save the workspace console appearance
+    description: Owner-only. Atomically replaces only console_theme. Empty object resets to defaults; null or an omitted object is rejected. Message templates, fonts, integrations and customer-facing content are unchanged. Themes are read through existing workspace responses.
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [workspace_id, console_theme]
+            additionalProperties: false
+            properties:
+              workspace_id: { type: string }
+              console_theme:
+                $ref: '#/ConsoleTheme'
+    responses:
+      '200':
+        description: Validated and persisted theme
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                console_theme: { $ref: '#/ConsoleTheme' }
+      '400': { description: Invalid theme, unknown fields or malformed input }
+      '401': { description: Authentication required }
+      '403': { description: Workspace owner permission required }
+      '404': { description: Workspace not found }
+ConsoleTheme:
+  type: object
+  additionalProperties: false
+  properties:
+    version: { type: integer, enum: [1], default: 1 }
+    color_scheme: { type: string, enum: [light, dark, system], default: light }
+    accent_mode: { type: string, enum: [preset, solid, gradient], default: preset }
+    accent_preset: { type: string, enum: [yaoguang, blue, purple, teal, rose, indigo, nebula, dusk], default: yaoguang }
+    primary_color: { type: string, pattern: '^#[0-9a-fA-F]{6}$', default: '#7763F1' }
+    gradient_colors:
+      type: array
+      minItems: 2
+      maxItems: 3
+      items: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+    gradient_type: { type: string, enum: [linear, radial], default: linear }
+    gradient_angle: { type: integer, minimum: 0, maximum: 360, default: 135 }
+    sidebar_style: { type: string, enum: [light, dark], default: light }
+    content_width: { type: string, enum: [fluid, fixed], default: fluid }
+    density: { type: string, enum: [comfortable, compact], default: comfortable }
+    title_style: { type: string, enum: [accent, plain, compact], default: accent }

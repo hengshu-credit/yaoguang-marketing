@@ -1783,7 +1783,7 @@ msgstr "您确定要使用这个文件吗 ?"
 
 #: src/components/settings/ConsoleFontSettings.tsx:40
 msgid "Arial"
-msgstr ""
+msgstr "Arial"
 
 #: src/components/business/BusinessDefinitionEditor.tsx:52
 #: src/components/business/SchemaFieldsEditor.tsx:19
@@ -4697,7 +4697,7 @@ msgstr "自定义事件 : {0}"
 
 #: src/components/segment/labels.ts:45
 msgid "Custom Events Goal"
-msgstr ""
+msgstr "自定义事件目标"
 
 #: src/components/settings/CustomFieldsConfiguration.tsx:146
 msgid "Custom field label removed successfully"
@@ -5810,11 +5810,11 @@ msgstr "不等于"
 
 #: src/components/segment/labels.ts:125
 msgid "doesn't contain"
-msgstr ""
+msgstr "不包含"
 
 #: src/components/segment/labels.ts:123
 msgid "doesn't equal"
-msgstr ""
+msgstr "不等于"
 
 #: src/components/segment/labels.ts:97
 #: src/components/settings/Integrations.tsx:2152
@@ -6184,7 +6184,7 @@ msgstr "编辑自定义字段标签"
 
 #: src/components/audiences/AudienceDrawer.tsx:172
 msgid "Edit dynamic audience"
-msgstr ""
+msgstr "编辑动态客群"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:791
 msgid "Edit email template"
@@ -6699,7 +6699,7 @@ msgstr "请输入有效的 JSON 对象作为样例。"
 
 #: src/components/segment/labels.ts:150
 msgid "enter a value"
-msgstr ""
+msgstr "输入值"
 
 #: src/components/integrations/ChannelWebhookIntegration.tsx:98
 msgid "Enter an absolute HTTPS URL"
@@ -6940,7 +6940,7 @@ msgstr "条目页面"
 
 #: src/components/segment/labels.ts:98
 msgid "Entry page"
-msgstr ""
+msgstr "入口页面"
 
 #: src/components/automations/JourneyCreateWizard.tsx:355
 msgid "Entry protection"
@@ -6960,7 +6960,7 @@ msgstr "进入保护：开启"
 
 #: src/components/segment/labels.ts:95
 msgid "Entry type"
-msgstr ""
+msgstr "入口类型"
 
 #: src/components/timeline/ContactTimeline.tsx:898
 msgid "Entry:"
@@ -7665,7 +7665,7 @@ msgstr "邀请成员失败"
 
 #: src/components/audiences/AudienceDrawer.tsx:89
 msgid "Failed to load audience"
-msgstr ""
+msgstr "客群加载失败"
 
 #: src/components/segment/BroadcastSelectorInput.tsx:71
 msgid "Failed to load broadcasts"
@@ -8587,7 +8587,7 @@ msgstr "目标类型"
 
 #: src/components/segment/labels.ts:102
 msgid "Goal value"
-msgstr ""
+msgstr "目标值"
 
 #: src/components/timeline/ContactTimeline.tsx:811
 msgid "Goal:"
@@ -8607,7 +8607,7 @@ msgstr "日时目标"
 
 #: src/components/segment/labels.ts:101
 msgid "Goals reached"
-msgstr ""
+msgstr "已达成目标数"
 
 #: src/components/settings/Integrations.tsx:1942
 msgid "Google Workspace / Gmail"
@@ -8623,7 +8623,7 @@ msgstr "全部给付"
 
 #: src/components/segment/labels.ts:126
 msgid "greater than"
-msgstr ""
+msgstr "大于"
 
 #: src/components/business_states/StateRuleEditor.tsx:12
 msgid "Greater than"
@@ -8631,7 +8631,7 @@ msgstr "大于"
 
 #: src/components/segment/labels.ts:128
 msgid "greater than or equal"
-msgstr ""
+msgstr "大于或等于"
 
 #: src/components/email_builder/ui/BorderInput.tsx:60
 msgid "Groove"
@@ -8744,7 +8744,7 @@ msgstr "帮助屏幕阅读器描述图像"
 
 #: src/components/settings/ConsoleFontSettings.tsx:41
 msgid "Helvetica"
-msgstr ""
+msgstr "Helvetica"
 
 #: src/components/settings/WebhookCard.tsx:351
 msgid "Hide"
@@ -9178,7 +9178,7 @@ msgstr "输入 {0}"
 
 #: src/components/segment/labels.ts:136
 msgid "in array"
-msgstr ""
+msgstr "属于数组"
 
 #: src/components/segment/form_leaf.tsx:517
 #: src/components/segment/form_leaf.tsx:892
@@ -9502,11 +9502,11 @@ msgstr "没有在"
 
 #: src/components/segment/labels.ts:121
 msgid "is not set"
-msgstr ""
+msgstr "未设置"
 
 #: src/components/segment/labels.ts:120
 msgid "is set"
-msgstr ""
+msgstr "已设置"
 
 #: src/components/settings/Integrations.tsx:2469
 msgid "isolated"
@@ -9815,7 +9815,7 @@ msgstr "历史投递"
 
 #: src/components/segment/labels.ts:127
 msgid "less than"
-msgstr ""
+msgstr "小于"
 
 #: src/components/business_states/StateRuleEditor.tsx:12
 msgid "Less than"
@@ -9823,7 +9823,7 @@ msgstr "小于"
 
 #: src/components/segment/labels.ts:129
 msgid "less than or equal"
-msgstr ""
+msgstr "小于或等于"
 
 #: src/pages/SetupWizard.tsx:649
 msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
@@ -10542,7 +10542,7 @@ msgstr "最大范围为2年. 日期在 {timezone}."
 
 #: src/components/segment/labels.ts:93
 msgid "Maximum scroll depth"
-msgstr ""
+msgstr "最大滚动深度"
 
 #: src/components/business/SchemaFieldsEditor.tsx:45
 msgid "Maximum value"
@@ -11716,7 +11716,7 @@ msgstr "没有在"
 
 #: src/components/segment/labels.ts:133
 msgid "not in date range"
-msgstr ""
+msgstr "不在日期范围内"
 
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:45
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:59
@@ -11726,7 +11726,7 @@ msgstr "未在列表中"
 
 #: src/components/segment/labels.ts:135
 msgid "not in the last"
-msgstr ""
+msgstr "不在最近"
 
 #: src/components/settings/Integrations.tsx:1085
 msgid "Not now"
@@ -11805,7 +11805,7 @@ msgstr "客户每次加入所选客群时向其发送通知。"
 
 #: src/components/settings/ConsoleFontSettings.tsx:38
 msgid "Noto Sans"
-msgstr ""
+msgstr "Noto Sans"
 
 #: src/components/settings/ConsoleFontSettings.tsx:39
 msgid "Noto Sans SC"
@@ -12069,7 +12069,7 @@ msgstr "打开"
 
 #: src/components/segment/labels.ts:112
 msgid "Operating system"
-msgstr ""
+msgstr "操作系统"
 
 #: src/components/customers/CustomerListMembershipModal.tsx:127
 msgid "Operation"
@@ -12283,7 +12283,7 @@ msgstr "页次"
 
 #: src/components/segment/labels.ts:94
 msgid "Page number"
-msgstr ""
+msgstr "页码"
 
 #: src/components/timeline/ContactTimeline.tsx:944
 msgid "Page view"
@@ -12297,7 +12297,7 @@ msgstr "页 次"
 
 #: src/components/segment/labels.ts:100
 msgid "Pages viewed"
-msgstr ""
+msgstr "浏览页面数"
 
 #: src/components/web_analytics/CountryMapView.tsx:67
 msgid "Pageviews"
@@ -12346,7 +12346,7 @@ msgstr "粘贴 YouTube URL..."
 
 #: src/components/segment/labels.ts:91
 msgid "Path"
-msgstr ""
+msgstr "路径"
 
 #: src/components/file_manager/buttonSettings.tsx:276
 msgid "Path-style access"
@@ -13160,7 +13160,7 @@ msgstr "在完成之前,处理工作已停止。"
 
 #: src/components/segment/labels.ts:68
 msgid "Profile Attribute"
-msgstr ""
+msgstr "画像属性"
 
 #: src/components/customers/CustomerProfilePanel.tsx:167
 msgid "Profile attributes"
@@ -13172,11 +13172,11 @@ msgstr "配置文件创建"
 
 #: src/components/segment/labels.ts:66
 msgid "Profile Status"
-msgstr ""
+msgstr "画像状态"
 
 #: src/components/segment/labels.ts:67
 msgid "Profile Tag"
-msgstr ""
+msgstr "画像标签"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:89
 msgid "Profile Updated"
@@ -15059,7 +15059,7 @@ msgstr "选择时区"
 
 #: src/components/segment/labels.ts:149
 msgid "select a value"
-msgstr ""
+msgstr "选择值"
 
 #: src/components/delivery/DeliveryFiltersBar.tsx:140
 msgid "Select a value"
@@ -17630,7 +17630,7 @@ msgstr "需要时间"
 
 #: src/components/segment/labels.ts:92
 msgid "Time on page (ms)"
-msgstr ""
+msgstr "页面停留时间（毫秒）"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:79
 msgid "Time patterns"
@@ -19015,7 +19015,7 @@ msgstr "可见度"
 
 #: src/components/segment/labels.ts:96
 msgid "Visit ID"
-msgstr ""
+msgstr "访问 ID"
 
 #: src/components/segment/form_leaf.tsx:389
 #: src/components/segment/input.tsx:802
@@ -20840,3 +20840,214 @@ msgstr "关闭后允许任意受认证来源。浏览器访问由网站来源列
 #: src/components/business/BusinessDefinitionEditor.tsx:134
 msgid "Your configuration edits and sample input will be lost."
 msgstr "尚未保存的配置修改和样例输入将丢失。"
+
+
+#: src/theme/ConsoleThemeDrawer.tsx:51
+#: src/theme/ConsoleThemeDrawer.tsx:51
+msgid "Accent color source"
+msgstr "主题色来源"
+
+#: src/theme/ConsoleThemeDrawer.tsx:67
+msgid "Accent title"
+msgstr "强调标题"
+
+#: src/layouts/WorkspaceLayout.tsx:730
+msgid "Account menu"
+msgstr "账户菜单"
+
+#: src/theme/ConsoleThemeDrawer.tsx:44
+msgid "Cancel preview"
+msgstr "取消预览"
+
+#: src/theme/ConsoleThemeDrawer.tsx:65
+msgid "Centered width"
+msgstr "居中定宽"
+
+#: src/theme/ConsoleThemeDrawer.tsx:46
+msgid "Changes preview immediately. Save shares the theme with this workspace; closing restores the saved appearance. Message templates and customer pages are unchanged."
+msgstr "修改会立即预览；保存后应用到整个工作空间，关闭则恢复已保存外观。不会改变消息模板和客户侧页面。"
+
+#: src/theme/ConsoleThemeDrawer.tsx:51
+msgid "Color presets"
+msgstr "主题色预设"
+
+#: src/theme/ConsoleThemeDrawer.tsx:50
+#: src/theme/ConsoleThemeDrawer.tsx:50
+msgid "Color scheme"
+msgstr "明暗风格"
+
+#: src/theme/ConsoleThemeDrawer.tsx:66
+msgid "Comfortable"
+msgstr "舒适"
+
+#: src/theme/ConsoleThemeDrawer.tsx:66
+msgid "Compact"
+msgstr "紧凑"
+
+#: src/theme/ConsoleThemeDrawer.tsx:67
+msgid "Compact title"
+msgstr "紧凑标题"
+
+#: src/theme/ConsoleThemeDrawer.tsx:69
+msgid "Console fonts remain managed in Workspace settings → General."
+msgstr "控制台字体仍在“工作空间设置 → 常规”中管理。"
+
+#: src/theme/ConsoleThemeDrawer.tsx:65
+msgid "Content width"
+msgstr "内容区宽度"
+
+#: src/theme/ConsoleThemeDrawer.tsx:56
+msgid "Custom accent color"
+msgstr "自定义主题色"
+
+#: src/theme/ConsoleThemeDrawer.tsx:51
+msgid "Custom gradient"
+msgstr "自定义渐变"
+
+#: src/theme/ConsoleThemeDrawer.tsx:51
+msgid "Custom solid color"
+msgstr "自定义纯色"
+
+#: src/theme/ConsoleThemeDrawer.tsx:50
+msgid "Dark"
+msgstr "深色"
+
+#: src/theme/ConsoleThemeDrawer.tsx:64
+msgid "Dark navigation"
+msgstr "深色导航"
+
+#: src/theme/ConsoleThemeDrawer.tsx:40
+msgid "Dusk gradient"
+msgstr "暮色渐变"
+
+#: src/theme/ConsoleThemeDrawer.tsx:37
+msgid "Failed to save theme settings"
+msgstr "主题设置保存失败"
+
+#: src/theme/ConsoleThemeDrawer.tsx:65
+msgid "Fluid width"
+msgstr "自适应宽度"
+
+#: src/theme/ConsoleThemeDrawer.tsx:50
+msgid "Follow system"
+msgstr "跟随系统"
+
+#: src/theme/ConsoleThemeDrawer.tsx:61
+msgid "Gradient angle"
+msgstr "渐变角度"
+
+#. placeholder {0}: index+1
+#: src/theme/ConsoleThemeDrawer.tsx:59
+msgid "Gradient color {0}"
+msgstr "渐变颜色 {0}"
+
+#: src/theme/ConsoleThemeDrawer.tsx:58
+msgid "Gradient colors"
+msgstr "渐变颜色"
+
+#: src/theme/ConsoleThemeDrawer.tsx:60
+msgid "Gradient type"
+msgstr "渐变方式"
+
+#: src/theme/ConsoleThemeDrawer.tsx:40
+msgid "Indigo"
+msgstr "靛青"
+
+#: src/theme/ConsoleThemeDrawer.tsx:66
+msgid "Interface density"
+msgstr "界面密度"
+
+#: src/theme/ConsoleThemeDrawer.tsx:50
+msgid "Light"
+msgstr "浅色"
+
+#: src/theme/ConsoleThemeDrawer.tsx:64
+msgid "Light navigation"
+msgstr "浅色导航"
+
+#: src/theme/ConsoleThemeDrawer.tsx:60
+msgid "Linear gradient"
+msgstr "线性渐变"
+
+#: src/theme/ConsoleThemeDrawer.tsx:40
+msgid "Liquid purple"
+msgstr "凝液紫"
+
+#: src/theme/ConsoleThemeDrawer.tsx:63
+msgid "Live theme preview"
+msgstr "实时主题预览"
+
+#: src/theme/ConsoleThemeDrawer.tsx:64
+msgid "Navigation appearance"
+msgstr "导航栏风格"
+
+#: src/theme/ConsoleThemeDrawer.tsx:40
+msgid "Nebula gradient"
+msgstr "星云渐变"
+
+#: src/theme/ConsoleThemeDrawer.tsx:47
+msgid "Only workspace owners can change the shared theme."
+msgstr "仅工作空间所有者可以修改共享主题。"
+
+#: src/components/settings/GeneralSettings.tsx:246
+msgid "Open Theme settings from the account menu to preview and save this workspace's colors, navigation and page titles. Fonts are configured here."
+msgstr "在账户菜单打开“主题设置”，可预览并保存当前工作空间的配色、导航和页面标题；字体在此处配置。"
+
+#: src/theme/ConsoleThemeDrawer.tsx:67
+#: src/theme/ConsoleThemeDrawer.tsx:67
+msgid "Page title style"
+msgstr "页面标题风格"
+
+#: src/theme/ConsoleThemeDrawer.tsx:67
+msgid "Plain title"
+msgstr "简洁标题"
+
+#: src/theme/ConsoleThemeDrawer.tsx:60
+msgid "Radial gradient"
+msgstr "径向渐变"
+
+#: src/theme/ConsoleThemeDrawer.tsx:70
+msgid "Restore default theme"
+msgstr "恢复默认主题"
+
+#: src/theme/ConsoleThemeDrawer.tsx:40
+msgid "Rose"
+msgstr "玫瑰红"
+
+#: src/theme/ConsoleThemeDrawer.tsx:44
+msgid "Save theme"
+msgstr "保存主题"
+
+#: src/theme/ConsoleThemeDrawer.tsx:40
+msgid "Teal"
+msgstr "青碧"
+
+#: src/theme/ConsoleThemeDrawer.tsx:40
+msgid "Theme blue"
+msgstr "主题蓝"
+
+#: src/components/settings/GeneralSettings.tsx:246
+#: src/layouts/WorkspaceLayout.tsx:714
+#: src/theme/ConsoleThemeDrawer.tsx:44
+msgid "Theme settings"
+msgstr "主题设置"
+
+#: src/theme/ConsoleThemeDrawer.tsx:58
+msgid "Three colors"
+msgstr "三色"
+
+#: src/theme/ConsoleThemeDrawer.tsx:68
+msgid "Title, description and actions follow the same hierarchy."
+msgstr "标题、说明与操作保持一致的层级。"
+
+#: src/theme/ConsoleThemeDrawer.tsx:58
+msgid "Two colors"
+msgstr "双色"
+
+#: src/theme/ConsoleThemeDrawer.tsx:46
+msgid "Workspace appearance"
+msgstr "工作空间外观"
+
+#: src/theme/ConsoleThemeDrawer.tsx:40
+msgid "Yaoguang purple"
+msgstr "瑶光紫"

@@ -20744,3 +20744,214 @@ msgstr "When disabled, any authenticated source is allowed. Browser access is co
 #: src/components/business/BusinessDefinitionEditor.tsx:134
 msgid "Your configuration edits and sample input will be lost."
 msgstr "Your configuration edits and sample input will be lost."
+
+
+#: src/theme/ConsoleThemeDrawer.tsx:51
+#: src/theme/ConsoleThemeDrawer.tsx:51
+msgid "Accent color source"
+msgstr "Accent color source"
+
+#: src/theme/ConsoleThemeDrawer.tsx:67
+msgid "Accent title"
+msgstr "Accent title"
+
+#: src/layouts/WorkspaceLayout.tsx:730
+msgid "Account menu"
+msgstr "Account menu"
+
+#: src/theme/ConsoleThemeDrawer.tsx:44
+msgid "Cancel preview"
+msgstr "Cancel preview"
+
+#: src/theme/ConsoleThemeDrawer.tsx:65
+msgid "Centered width"
+msgstr "Centered width"
+
+#: src/theme/ConsoleThemeDrawer.tsx:46
+msgid "Changes preview immediately. Save shares the theme with this workspace; closing restores the saved appearance. Message templates and customer pages are unchanged."
+msgstr "Changes preview immediately. Save shares the theme with this workspace; closing restores the saved appearance. Message templates and customer pages are unchanged."
+
+#: src/theme/ConsoleThemeDrawer.tsx:51
+msgid "Color presets"
+msgstr "Color presets"
+
+#: src/theme/ConsoleThemeDrawer.tsx:50
+#: src/theme/ConsoleThemeDrawer.tsx:50
+msgid "Color scheme"
+msgstr "Color scheme"
+
+#: src/theme/ConsoleThemeDrawer.tsx:66
+msgid "Comfortable"
+msgstr "Comfortable"
+
+#: src/theme/ConsoleThemeDrawer.tsx:66
+msgid "Compact"
+msgstr "Compact"
+
+#: src/theme/ConsoleThemeDrawer.tsx:67
+msgid "Compact title"
+msgstr "Compact title"
+
+#: src/theme/ConsoleThemeDrawer.tsx:69
+msgid "Console fonts remain managed in Workspace settings → General."
+msgstr "Console fonts remain managed in Workspace settings → General."
+
+#: src/theme/ConsoleThemeDrawer.tsx:65
+msgid "Content width"
+msgstr "Content width"
+
+#: src/theme/ConsoleThemeDrawer.tsx:56
+msgid "Custom accent color"
+msgstr "Custom accent color"
+
+#: src/theme/ConsoleThemeDrawer.tsx:51
+msgid "Custom gradient"
+msgstr "Custom gradient"
+
+#: src/theme/ConsoleThemeDrawer.tsx:51
+msgid "Custom solid color"
+msgstr "Custom solid color"
+
+#: src/theme/ConsoleThemeDrawer.tsx:50
+msgid "Dark"
+msgstr "Dark"
+
+#: src/theme/ConsoleThemeDrawer.tsx:64
+msgid "Dark navigation"
+msgstr "Dark navigation"
+
+#: src/theme/ConsoleThemeDrawer.tsx:40
+msgid "Dusk gradient"
+msgstr "Dusk gradient"
+
+#: src/theme/ConsoleThemeDrawer.tsx:37
+msgid "Failed to save theme settings"
+msgstr "Failed to save theme settings"
+
+#: src/theme/ConsoleThemeDrawer.tsx:65
+msgid "Fluid width"
+msgstr "Fluid width"
+
+#: src/theme/ConsoleThemeDrawer.tsx:50
+msgid "Follow system"
+msgstr "Follow system"
+
+#: src/theme/ConsoleThemeDrawer.tsx:61
+msgid "Gradient angle"
+msgstr "Gradient angle"
+
+#. placeholder {0}: index+1
+#: src/theme/ConsoleThemeDrawer.tsx:59
+msgid "Gradient color {0}"
+msgstr "Gradient color {0}"
+
+#: src/theme/ConsoleThemeDrawer.tsx:58
+msgid "Gradient colors"
+msgstr "Gradient colors"
+
+#: src/theme/ConsoleThemeDrawer.tsx:60
+msgid "Gradient type"
+msgstr "Gradient type"
+
+#: src/theme/ConsoleThemeDrawer.tsx:40
+msgid "Indigo"
+msgstr "Indigo"
+
+#: src/theme/ConsoleThemeDrawer.tsx:66
+msgid "Interface density"
+msgstr "Interface density"
+
+#: src/theme/ConsoleThemeDrawer.tsx:50
+msgid "Light"
+msgstr "Light"
+
+#: src/theme/ConsoleThemeDrawer.tsx:64
+msgid "Light navigation"
+msgstr "Light navigation"
+
+#: src/theme/ConsoleThemeDrawer.tsx:60
+msgid "Linear gradient"
+msgstr "Linear gradient"
+
+#: src/theme/ConsoleThemeDrawer.tsx:40
+msgid "Liquid purple"
+msgstr "Liquid purple"
+
+#: src/theme/ConsoleThemeDrawer.tsx:63
+msgid "Live theme preview"
+msgstr "Live theme preview"
+
+#: src/theme/ConsoleThemeDrawer.tsx:64
+msgid "Navigation appearance"
+msgstr "Navigation appearance"
+
+#: src/theme/ConsoleThemeDrawer.tsx:40
+msgid "Nebula gradient"
+msgstr "Nebula gradient"
+
+#: src/theme/ConsoleThemeDrawer.tsx:47
+msgid "Only workspace owners can change the shared theme."
+msgstr "Only workspace owners can change the shared theme."
+
+#: src/components/settings/GeneralSettings.tsx:246
+msgid "Open Theme settings from the account menu to preview and save this workspace's colors, navigation and page titles. Fonts are configured here."
+msgstr "Open Theme settings from the account menu to preview and save this workspace's colors, navigation and page titles. Fonts are configured here."
+
+#: src/theme/ConsoleThemeDrawer.tsx:67
+#: src/theme/ConsoleThemeDrawer.tsx:67
+msgid "Page title style"
+msgstr "Page title style"
+
+#: src/theme/ConsoleThemeDrawer.tsx:67
+msgid "Plain title"
+msgstr "Plain title"
+
+#: src/theme/ConsoleThemeDrawer.tsx:60
+msgid "Radial gradient"
+msgstr "Radial gradient"
+
+#: src/theme/ConsoleThemeDrawer.tsx:70
+msgid "Restore default theme"
+msgstr "Restore default theme"
+
+#: src/theme/ConsoleThemeDrawer.tsx:40
+msgid "Rose"
+msgstr "Rose"
+
+#: src/theme/ConsoleThemeDrawer.tsx:44
+msgid "Save theme"
+msgstr "Save theme"
+
+#: src/theme/ConsoleThemeDrawer.tsx:40
+msgid "Teal"
+msgstr "Teal"
+
+#: src/theme/ConsoleThemeDrawer.tsx:40
+msgid "Theme blue"
+msgstr "Theme blue"
+
+#: src/components/settings/GeneralSettings.tsx:246
+#: src/layouts/WorkspaceLayout.tsx:714
+#: src/theme/ConsoleThemeDrawer.tsx:44
+msgid "Theme settings"
+msgstr "Theme settings"
+
+#: src/theme/ConsoleThemeDrawer.tsx:58
+msgid "Three colors"
+msgstr "Three colors"
+
+#: src/theme/ConsoleThemeDrawer.tsx:68
+msgid "Title, description and actions follow the same hierarchy."
+msgstr "Title, description and actions follow the same hierarchy."
+
+#: src/theme/ConsoleThemeDrawer.tsx:58
+msgid "Two colors"
+msgstr "Two colors"
+
+#: src/theme/ConsoleThemeDrawer.tsx:46
+msgid "Workspace appearance"
+msgstr "Workspace appearance"
+
+#: src/theme/ConsoleThemeDrawer.tsx:40
+msgid "Yaoguang purple"
+msgstr "Yaoguang purple"

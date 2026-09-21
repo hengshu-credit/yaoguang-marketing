@@ -1,4 +1,4 @@
-import { ConfigProvider, App as AntApp, ThemeConfig } from 'antd'
+import { ConfigProvider, App as AntApp } from 'antd'
 import { useEffect } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from '@tanstack/react-router'
@@ -20,6 +20,8 @@ import itIT from 'antd/locale/it_IT'
 import zhCN from 'antd/locale/zh_CN'
 import type { Locale as AntdLocale } from 'antd/es/locale'
 import type { Locale } from './i18n'
+import { ConsoleThemeProvider, useConsoleTheme } from './theme/ConsoleThemeProvider'
+import { antdConsoleTheme, DEFAULT_CONSOLE_THEME, type ConsoleTheme } from './theme/consoleTheme'
 
 // Every locale in the app's supported set needs an entry: a missing key leaves
 // ConfigProvider without a locale and antd's own strings fall back to English.
@@ -44,68 +46,6 @@ const queryClient = new QueryClient({
   }
 })
 
-const theme: ThemeConfig = {
-  token: {
-    colorPrimary: '#7763F1',
-    colorLink: '#7763F1',
-    fontFamily: 'var(--console-font-family)'
-  },
-  components: {
-    Layout: {
-      // bodyBg: 'rgb(243, 246, 252)'
-      bodyBg: '#F9F9F9',
-      lightSiderBg: '#F9F9F9',
-      siderBg: '#F9F9F9'
-    },
-    Button: {
-      // primaryColor: '#212121',
-      // colorTextLightSolid: '#616161'
-    },
-    Card: {
-      //   headerBg: '#f0f0f0',
-      headerFontSize: 16,
-      // Card sizes every corner from borderRadiusLG alone. The other radius tokens never
-      // reached the card, and overriding a global token per component now emits a scoped
-      // CSS variable, so they would only reround the buttons, inputs and popups nested
-      // inside cards.
-      borderRadiusLG: 4,
-      colorBorderSecondary: 'var(--color-gray-200)',
-      colorBgContainer: '#F9F9F9'
-    },
-    Table: {
-      headerBg: 'transparent',
-      // Sized and coloured through the cell/header tokens instead of the global fontSize
-      // and colorTextHeading: those cascade out of the table wrapper as CSS variables and
-      // would shrink and recolour every antd component rendered inside a cell.
-      cellFontSize: 12,
-      cellFontSizeMD: 12,
-      cellFontSizeSM: 12,
-      headerColor: 'rgb(51 65 85)',
-      footerColor: 'rgb(51 65 85)',
-      colorBgContainer: 'transparent',
-      rowHoverBg: 'transparent',
-      // The container is transparent, so antd's default sort-highlight fills resolve to
-      // opaque black on the sorted column and hovered sortable headers. Keep them
-      // transparent to match the flat table style; the sort arrow still signals order.
-      headerSortActiveBg: 'transparent',
-      headerSortHoverBg: 'transparent',
-      bodySortBg: 'transparent'
-    },
-    Drawer: {
-      // Drawer paints its panel straight from colorBgElevated and exposes no background
-      // token of its own, so this override has to stay on the global token.
-      colorBgElevated: '#F9F9F9'
-    },
-    Modal: {
-      // contentBg is the only thing Modal derived from colorBgElevated, and setting it
-      // directly keeps the override from cascading into the dialog's popups and sliders.
-      contentBg: '#F9F9F9'
-    },
-    Timeline: {
-      dotBg: '#F9F9F9'
-    }
-  }
-}
 
 // Initialize analytics service
 initializeAnalytics()
@@ -113,6 +53,8 @@ initializeAnalytics()
 // Inner component that uses LocaleContext
 function AppContent() {
   const { locale } = useLocale()
+  const appearance = useConsoleTheme()
+  const theme = antdConsoleTheme(appearance?.value ?? DEFAULT_CONSOLE_THEME as ConsoleTheme, appearance?.dark ?? false)
 
   return (
     // key={locale} forces I18nProvider and all children to remount when locale changes,
@@ -130,7 +72,8 @@ function AppContent() {
 
 function BrowserTitle() {
   const { t } = useLingui()
-  const title = t`Alkaid Marketing Platform`
+  const appearance = useConsoleTheme()
+  const title = [appearance?.pageTitle,appearance?.workspaceName,t`Alkaid Marketing Platform`].filter(Boolean).join(' · ')
 
   useEffect(() => {
     document.title = title
@@ -143,9 +86,11 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <ConsoleThemeProvider>
         <LocaleProvider>
           <AppContent />
         </LocaleProvider>
+        </ConsoleThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
   )

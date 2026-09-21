@@ -45,6 +45,7 @@ import { useContactsCsvUpload } from '../components/contacts/ContactsCsvUploadPr
 import { getCustomFieldLabel } from '../hooks/useCustomFieldLabel'
 import { useLingui } from '@lingui/react/macro'
 import { CustomerImportPanel } from '../components/customers/CustomerImportPanel'
+import { WorkspacePageHeader } from '../components/navigation/WorkspacePageHeader'
 
 const STORAGE_KEY = 'contact_columns_visibility'
 
@@ -100,7 +101,8 @@ export function ContactsPage() {
   if (!canReadContacts && !canReadCustomers) return <div className="p-6"><Alert type="error" title={t`No Access`} /></div>
   const activeTab = selectedTab === 'import' && canReadCustomers ? 'import' : canReadContacts ? 'contacts' : 'import'
   return (
-    <div className="p-6">
+    <div>
+      <WorkspacePageHeader title={t`Customers`} />
       <Tabs
         activeKey={activeTab}
         onChange={setSelectedTab}

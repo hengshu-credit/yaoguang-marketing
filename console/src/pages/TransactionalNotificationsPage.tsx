@@ -385,7 +385,7 @@ export function TransactionalNotificationsPage() {
   }
 
   return (
-    <div className="p-6">
+    <div>
       <div className="flex justify-between items-center mb-6">
         <WorkspacePageTitle>{t`Transactional Notifications`}</WorkspacePageTitle>
         {currentWorkspace && hasNotifications && (

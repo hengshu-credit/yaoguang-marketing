@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Form, Input, Select, App, Switch, Descriptions } from 'antd'
+import { Form, Input, Select, App, Switch, Descriptions, Alert } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 import { Workspace } from '../../services/api/types'
@@ -243,6 +243,7 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
         <LogoInput />
 
         <ConsoleFontSettings onChange={handleFormChange} />
+        <Alert className="mb-4" type="info" showIcon title={t`Theme settings`} description={t`Open Theme settings from the account menu to preview and save this workspace's colors, navigation and page titles. Fonts are configured here.`} />
 
         <Form.Item
           name="timezone"

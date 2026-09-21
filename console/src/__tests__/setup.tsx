@@ -42,8 +42,8 @@ vi.mock('@lingui/react/macro', () => ({
 // pipeline runs the Babel plugin, so the package resolves to its runtime stub, which throws on
 // any call. The real macro turns msg`…` into a message descriptor, naming each placeholder after
 // the label in `${{ name: value }}`; reproduce enough of one that i18n._() renders it.
-vi.mock('@lingui/core/macro', () => ({
-  msg: (strings: TemplateStringsArray, ...placeholders: unknown[]) => {
+vi.mock('@lingui/core/macro', () => {
+  const msg = (strings: TemplateStringsArray, ...placeholders: unknown[]) => {
     const names = placeholders.map((placeholder, idx) =>
       placeholder && typeof placeholder === 'object'
         ? Object.keys(placeholder)[0]
@@ -61,8 +61,17 @@ vi.mock('@lingui/core/macro', () => ({
       return acc
     }, {})
     return { id: message, message, values }
-  },
-}))
+  }
+  return {
+    msg,
+    t: (stringsOrDescriptor: TemplateStringsArray | { id: string; message?: string; values?: Record<string, unknown> }, ...values: unknown[]) => {
+      const descriptor = Array.isArray(stringsOrDescriptor)
+        ? msg(stringsOrDescriptor as unknown as TemplateStringsArray, ...values)
+        : stringsOrDescriptor as { id: string; message?: string; values?: Record<string, unknown> }
+      return i18n._(descriptor)
+    }
+  }
+})
 
 // Test wrapper with i18n support
 export function TestI18nWrapper({ children }: { children: ReactNode }) {

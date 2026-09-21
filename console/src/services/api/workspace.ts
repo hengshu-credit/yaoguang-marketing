@@ -56,6 +56,7 @@ export interface WorkspaceSettings {
   custom_field_labels?: Record<string, string>
   ui_translations?: UITranslations
   console_font?: ConsoleFontSettings
+  console_theme?: import('../../theme/consoleTheme').ConsoleTheme
   blog_enabled?: boolean
   blog_settings?: BlogSettings
   web_analytics?: import('./web_analytics').WebAnalyticsSettings

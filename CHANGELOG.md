@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **Feature**: Added workspace console themes with light/dark/system appearance, safe preset/custom/gradient accents, navigation and density preferences, live preview/cancel, and atomic owner-only persistence. Unified page headings and browser titles while preserving console fonts and customer-facing content. See [theme and title guide](docs/operations/console-theme-and-titles-2026-09-21.md).
+
 - **Improvement**: Adapted selected Notifuse follow-ups to Yaoguang: optional multi-channel message metadata, actual provider failure details, transactional scopes for new Zapier connections, magic-code autofill, shared request IDs, and purpose-aware AI editor completion with a bounded read-only explanation.
 - **Security**: Protected subscription, Journey and signed-channel webhook requests against private-network access by default, with an explicit self-hosted opt-in; refreshed affected frontend/Go dependencies and the production Alpine base. See [upstream review and compatibility notes](docs/operations/notifuse-upstream-2026-09-21.md).
 

@@ -19,7 +19,7 @@ import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { BrandLockup } from '../components/BrandLockup'
 import { Workspace, UserPermissions } from '../services/api/types'
 import { ContactsCsvUploadProvider } from '../components/contacts/ContactsCsvUploadProvider'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from 'react'
 import { FileManagerProvider } from '../components/file_manager/context'
 import { FileManagerSettings } from '../components/file_manager/interfaces'
@@ -28,6 +28,8 @@ import { clearWorkspaceCatalog, setWorkspaceCatalog } from '../i18n/workspaceCat
 import { createEmptyPermissions, createFullPermissions } from '../services/api/permissions'
 import { isRootUser } from '../services/api/auth'
 import { applyConsoleFont } from '../lib/consoleFont'
+import { useConsoleTheme } from '../theme/ConsoleThemeProvider'
+import { ConsoleThemeDrawer } from '../theme/ConsoleThemeDrawer'
 import {
   SIDEBAR_COMPACT_THRESHOLD,
   SIDEBAR_MAX_WIDTH,
@@ -73,6 +75,14 @@ export function WorkspaceLayout() {
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   const { signout, workspaces, user, refreshWorkspaces } = useAuth()
   const currentWorkspace = workspaces.find((workspace) => workspace.id === workspaceId)
+  const appearance = useConsoleTheme()
+  const [themeWorkspace, setThemeWorkspace] = useState<string>()
+  const [themeOwner, setThemeOwner] = useState<{id:string;userId:string;allowed:boolean}>()
+  const bindTheme = appearance?.bind
+  const savedTheme = currentWorkspace?.settings.console_theme
+  const workspaceName = currentWorkspace?.name ?? ''
+  useLayoutEffect(() => bindTheme?.(workspaceId,workspaceName,savedTheme),[bindTheme,workspaceId,workspaceName,savedTheme])
+  useEffect(() => setThemeWorkspace(undefined),[workspaceId])
   const workspaceTranslations = currentWorkspace?.settings.ui_translations
   const navigate = useNavigate()
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth)
@@ -250,6 +260,7 @@ export function WorkspaceLayout() {
 
       // If user is root, they have full permissions
       if (isRootUser(user.email)) {
+        setThemeOwner({id:workspaceId,userId:user.id,allowed:true})
         setUserPermissions(createFullPermissions())
         setLoadingPermissions(false)
         return
@@ -258,6 +269,7 @@ export function WorkspaceLayout() {
       try {
         const response = await workspaceService.getMembers(workspaceId)
         const currentUserMember = response.members.find((member) => member.user_id === user.id)
+        setThemeOwner({id:workspaceId,userId:user.id,allowed:currentUserMember?.role === 'owner'})
 
         if (currentUserMember) {
           // The stored map may be partial or null; a resource it does not mention is denied,
@@ -463,7 +475,7 @@ export function WorkspaceLayout() {
 
   return (
     <ContactsCsvUploadProvider>
-      <Layout style={{ minHeight: '100vh', backgroundColor: '#F9F9F9' }}>
+      <Layout className="console-workspace" style={{ minHeight: '100vh', backgroundColor: 'var(--console-bg, #F9F9F9)' }}>
         <Layout>
           {narrow && !collapsed && (
             <button
@@ -478,7 +490,7 @@ export function WorkspaceLayout() {
           <Sider
             width={sidebarWidth}
             collapsedWidth={narrow ? 0 : sidebarState.width}
-            theme="light"
+            theme={appearance?.value.sidebar_style ?? 'light'}
             style={{
               position: 'fixed',
               height: '100vh',
@@ -488,7 +500,7 @@ export function WorkspaceLayout() {
               // scroll, or the logo and the collapse button travel with it.
               overflow: 'visible',
               zIndex: 12,
-              backgroundColor: '#F9F9F9',
+              backgroundColor: 'var(--console-sidebar, #F9F9F9)',
               transition: resizingSidebar ? 'none' : undefined
             }}
             collapsible
@@ -502,7 +514,7 @@ export function WorkspaceLayout() {
               style={{
                 flex: '0 0 auto',
                 padding: sidebarCompact ? '14px 0' : '12px 16px',
-                borderBottom: '1px solid #f0f0f0'
+                borderBottom: '1px solid var(--console-border, #f0f0f0)'
               }}
             >
               <BrandLockup compact={sidebarCompact} style={{ justifyContent: 'center' }} />
@@ -514,7 +526,7 @@ export function WorkspaceLayout() {
                 selectedKeys={[selectedKey]}
                 style={{
                   borderRight: 0,
-                  backgroundColor: '#F9F9F9',
+                  backgroundColor: 'var(--console-sidebar, #F9F9F9)',
                   fontSize: '13px',
                   // Item labels are <Link> anchors, which index.css pins to 500.
                   // Submenu titles are plain text and inherit this instead, so it
@@ -522,15 +534,15 @@ export function WorkspaceLayout() {
                   fontWeight: 500
                 }}
                 items={loadingPermissions ? [] : menuItems}
-                theme="light"
+                theme={appearance?.value.sidebar_style ?? 'light'}
               />
             </div>
             <div
               style={{
                 flex: '0 0 auto',
                 padding: sidebarCompact ? '8px 10px' : '16px',
-                borderTop: '1px solid #f0f0f0',
-                backgroundColor: '#F9F9F9'
+                borderTop: '1px solid var(--console-border, #f0f0f0)',
+                backgroundColor: 'var(--console-sidebar, #F9F9F9)'
               }}
             >
               {!sidebarCompact && (
@@ -538,7 +550,7 @@ export function WorkspaceLayout() {
                   style={{
                     textAlign: 'center',
                     fontSize: '9px',
-                    color: '#000',
+                    color: 'var(--console-sidebar-text, #000)',
                     opacity: 0.7,
                     marginBottom: '8px'
                   }}
@@ -586,8 +598,8 @@ export function WorkspaceLayout() {
               right: 0,
               width: narrow ? '100%' : `calc(100% - ${sidebarState.width}px)`,
               height: '64px',
-              backgroundColor: '#F9F9F9',
-              borderBottom: '1px solid #f0f0f0',
+              backgroundColor: 'var(--console-surface, #F9F9F9)',
+              borderBottom: '1px solid var(--console-border, #f0f0f0)',
               padding: narrow ? '0 12px' : '0 24px',
               display: 'flex',
               alignItems: 'center',
@@ -700,6 +712,7 @@ export function WorkspaceLayout() {
               <Dropdown
                 menu={{
                   items: [
+                    { key: 'theme', label: t`Theme settings`, icon: <SettingOutlined />, onClick: () => setThemeWorkspace(workspaceId) },
                     {
                       key: 'logout',
                       label: (
@@ -715,7 +728,7 @@ export function WorkspaceLayout() {
                 trigger={['click']}
                 placement="bottomRight"
               >
-                <Button type="text">
+                <Button type="text" aria-label={t`Account menu`}>
                   <Space size="small">
                     <Avatar src={getGravatarUrl(user?.email)} size={24} />
                     {!compactHeader && user?.email}
@@ -730,13 +743,13 @@ export function WorkspaceLayout() {
             style={{
               marginLeft: narrow ? '0px' : `${sidebarState.width}px`,
               marginTop: '64px',
-              padding: isSettingsPage ? '0' : narrow ? '16px' : '24px',
+              padding: isSettingsPage ? '0' : narrow ? '16px' : 'var(--console-page-padding, 24px)',
               transition: resizingSidebar ? 'none' : 'margin-left 0.2s',
-              backgroundColor: '#F9F9F9',
+              backgroundColor: 'var(--console-bg, #F9F9F9)',
               minWidth: 0
             }}
           >
-            <Content style={{ backgroundColor: '#F9F9F9', minWidth: 0 }}>
+            <Content className="workspace-page-content" style={{ backgroundColor: 'var(--console-bg, #F9F9F9)', minWidth: 0 }}>
               <FileManagerProvider
                 key={`fm-${workspaceId}-${!userPermissions?.templates?.write}`}
                 settings={currentWorkspace?.settings.file_manager}
@@ -744,6 +757,7 @@ export function WorkspaceLayout() {
                 readOnly={!userPermissions?.templates?.write}
               >
                 <Outlet />
+                {themeWorkspace === workspaceId && currentWorkspace && <ConsoleThemeDrawer key={workspaceId} workspace={currentWorkspace} canManage={themeOwner?.id === workspaceId && themeOwner.userId === user?.id && themeOwner.allowed} onClose={() => setThemeWorkspace(undefined)} onSaved={refreshWorkspaces} />}
               </FileManagerProvider>
             </Content>
           </Layout>

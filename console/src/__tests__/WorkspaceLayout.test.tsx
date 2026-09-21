@@ -10,6 +10,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { isRootUser } from '../services/api/auth'
 import { workspaceService } from '../services/api/workspace'
 import { applyConsoleFont } from '../lib/consoleFont'
+vi.mock('../theme/consoleThemeApi', () => ({ saveConsoleTheme: vi.fn() }))
 
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: vi.fn()

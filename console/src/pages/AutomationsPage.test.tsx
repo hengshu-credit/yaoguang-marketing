@@ -109,8 +109,8 @@ describe('AutomationsPage template reference query', () => {
     renderPage()
 
     const heading = await screen.findByRole('heading', { level: 1, name: 'Automations' })
-    expect(heading.style.fontSize).toBe('24px')
-    expect(heading.style.fontWeight).toBe('500')
+    expect(heading.style.fontSize).toBe('var(--console-title-size, 22px)')
+    expect(heading.style.fontWeight).toBe('600')
   })
 
   it('fetches all email templates (no category filter) so email nodes resolve any selected template', async () => {

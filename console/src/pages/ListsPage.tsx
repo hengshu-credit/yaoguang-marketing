@@ -152,7 +152,7 @@ export function ListsPage() {
   }
 
   return (
-    <div className="p-6">
+    <div>
       <div className="flex justify-between items-center mb-6">
         <div>
           <WorkspacePageTitle>{t`Lists`}</WorkspacePageTitle>

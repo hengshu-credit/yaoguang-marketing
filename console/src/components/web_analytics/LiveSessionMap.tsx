@@ -1,6 +1,6 @@
 import { ReactNode, useMemo } from 'react'
 import * as echarts from 'echarts'
-import ReactECharts from 'echarts-for-react'
+import { ThemedChart as ReactECharts } from '../../theme/ThemedChart'
 import { Spin } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { PRIMARY_COLOR } from './lib/types'

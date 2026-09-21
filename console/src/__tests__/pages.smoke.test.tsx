@@ -400,7 +400,7 @@ describe('Page Smoke Tests', () => {
         'aria-selected',
         'true'
       )
-      expect(screen.queryByRole('heading', { name: 'Marketing Overview' })).not.toBeInTheDocument()
+      expect(screen.getByRole('heading', { level: 1, name: 'Marketing Overview' })).toHaveClass('workspace-page-title')
       expect(
         screen.getByText('Track message performance, engagement and delivery trends across marketing channels.')
       ).toBeInTheDocument()
@@ -524,7 +524,7 @@ describe('Page Smoke Tests', () => {
         'true'
       )
       expect(screen.getByRole('link', { name: 'Website Overview' })).toBeInTheDocument()
-      expect(screen.queryByRole('heading', { name: 'Live Visitors' })).not.toBeInTheDocument()
+      expect(screen.getByRole('heading', { level: 1, name: 'Live Visitors' })).toHaveClass('workspace-page-title')
       expect(
         screen.getByText('Monitor active sessions, locations, pages and acquisition sources in near real time.')
       ).toBeInTheDocument()
@@ -556,11 +556,11 @@ describe('Page Smoke Tests', () => {
       })
     })
 
-    it('ContactsPage shows contacts title', async () => {
+    it('ContactsPage shows the customer-management page title', async () => {
       const Wrapper = createWrapper()
       render(<ContactsPage />, { wrapper: Wrapper })
       await waitFor(() => {
-        expect(screen.getByRole('heading', { name: 'Contacts' })).toBeTruthy()
+        expect(screen.getByRole('heading', { level: 1, name: 'Customers' })).toHaveClass('workspace-page-title')
       })
     })
   })

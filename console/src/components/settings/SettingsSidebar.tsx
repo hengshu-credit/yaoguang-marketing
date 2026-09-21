@@ -166,7 +166,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
         selectedKeys={[activeSection]}
         items={menuItems}
         onClick={({ key }) => onSectionChange(key as SettingsSection)}
-        style={{ borderRight: 0, backgroundColor: '#F9F9F9' }}
+        style={{ borderRight: 0, backgroundColor: 'var(--console-surface, #F9F9F9)' }}
       />
     </div>
   )

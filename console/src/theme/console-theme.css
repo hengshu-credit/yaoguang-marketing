@@ -1,0 +1,57 @@
+/* Semantic console tokens; authored messages are isolated below and in iframes. */
+[data-console-theme] { color-scheme: light; color: var(--console-text); background: var(--console-bg); }
+html[data-console-theme='dark'] { color-scheme: dark; }
+[data-console-preview] { color: #172033; color-scheme: light; }
+[data-console-theme] body, [data-console-theme] #root { color: var(--console-text); background: var(--console-bg); }
+[data-console-theme] a { color: var(--console-link); }
+[data-console-theme] .workspace-sider { --console-brand-text: var(--console-sidebar-text); --console-brand-secondary: var(--console-sidebar-text); color: var(--console-sidebar-text); }
+[data-console-theme] .workspace-sider .ant-btn-text, [data-console-theme] .workspace-sider a { color: var(--console-sidebar-text); }
+[data-console-theme] .workspace-sider .ant-menu-item-selected a { color: var(--console-link); }
+[data-console-sidebar='dark'] .workspace-sider .ant-menu-item-selected a { color: var(--console-button-text); }
+[data-console-theme] .workspace-sider-resizer:hover::after, [data-console-theme] .workspace-sider-resizer:focus-visible::after { background: var(--console-primary); }
+[data-console-theme] .ant-btn-primary:not(.ant-btn-dangerous):not(:disabled) { background: var(--console-button-bg); color: var(--console-button-text); border-color: var(--console-primary); }
+[data-console-theme] .ant-btn-primary:not(.ant-btn-dangerous):not(:disabled):hover { filter: brightness(1.08); }
+[data-console-theme] .ant-alert-info { border-left-color: var(--console-primary) !important; }
+[data-console-theme] .ant-table-tbody > tr:hover > td { border-bottom-color: var(--console-primary) !important; }
+[data-console-theme] td.ant-table-cell.contacts-fixed-col, [data-console-theme] th.ant-table-cell.contacts-fixed-col { background-color: var(--console-surface); }
+[data-console-theme] .ant-table-tbody > tr:hover > td.ant-table-cell.contacts-fixed-col { background-color: var(--console-selected); }
+[data-console-theme] .ant-table-placeholder, [data-console-theme] .ant-empty-description { color: var(--console-text-secondary); }
+[data-console-width='fixed'] .workspace-page-content { width: 100%; max-width: 1440px; margin-inline: auto; }
+.workspace-page-content { min-width: 0; }
+.workspace-page-title { position: relative; overflow-wrap: anywhere; letter-spacing: -.02em; }
+[data-console-title='accent'] .workspace-page-title { padding-inline-start: 14px; }
+[data-console-title='accent'] .workspace-page-title::before { content: ''; position: absolute; inset-inline-start: 0; top: .2em; width: 4px; height: 1em; border-radius: 3px; background: var(--console-accent); }
+.workspace-page-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
+.workspace-page-heading { min-width: 0; flex: 1 1 260px; }
+.workspace-page-description { color: var(--console-text-secondary, #56647a); font-size: 13px; line-height: 1.65; margin-top: 6px; max-width: 76ch; }
+.workspace-page-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* Compatibility for legacy utility-colored chrome, not authored message previews. */
+[data-console-theme] :where(.console-workspace, .ant-drawer, .ant-modal) :is(.text-gray-400, .text-gray-500, .text-gray-600, .text-slate-400, .text-slate-500, .text-slate-600):not([data-console-preview] *) { color: var(--console-text-secondary); }
+[data-console-theme] :where(.console-workspace, .ant-drawer, .ant-modal) :is(.border-gray-200, .border-gray-300, .border-slate-200):not([data-console-preview] *) { border-color: var(--console-border); }
+[data-console-theme='dark'] :where(.console-workspace, .ant-drawer, .ant-modal) :is(.bg-white, .bg-gray-50, .bg-slate-50):not([data-console-preview] *) { background-color: var(--console-surface); }
+[data-console-theme='dark'] :where(.console-workspace, .ant-drawer, .ant-modal) :is(.bg-gray-100, .bg-gray-200, .bg-slate-100):not([data-console-preview] *) { background-color: var(--console-muted); }
+[data-console-theme='dark'] :where(.console-workspace, .ant-drawer, .ant-modal) :is(.text-black, .text-gray-700, .text-gray-800, .text-gray-900, .text-slate-700, .text-slate-800):not([data-console-preview] *) { color: var(--console-text); }
+[data-console-theme='dark'] .automation-keyboard-node-list { background: var(--console-surface); border-color: var(--console-border); }
+
+.console-theme-presets { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-bottom: 18px; }
+.console-theme-swatch { display: flex; align-items: center; gap: 8px; padding: 9px; border: 1px solid var(--console-border,#ddd); border-radius: 8px; background: var(--console-surface,#fff); color: var(--console-text,#172033); text-align: start; font: inherit; font-size: 13px; cursor: pointer; }
+.console-theme-swatch > span:first-child { width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0; }
+.console-theme-swatch[aria-pressed='true'] { border-color: var(--console-primary,#7763f1); box-shadow: 0 0 0 1px var(--console-primary,#7763f1); }
+.console-theme-swatch:focus-visible { outline: 2px solid var(--console-primary); outline-offset: 2px; }
+.console-theme-swatch:disabled { cursor: default; opacity: .7; }
+.console-theme-preview { padding: 20px; border-radius: 8px; margin-block: 16px 24px; text-align: center; }
+.console-theme-preview span { display: inline-block; padding: 8px 12px; border-radius: 6px; font-weight: 600; }
+.console-theme-color { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; width: 100%; margin-bottom: 12px; }
+.console-theme-color > span { flex: 1; }
+.console-theme-color input { width: 44px; height: 34px; border: 1px solid var(--console-border); border-radius: 4px; padding: 2px; cursor: pointer; }
+.console-theme-color code { font-size: 12px; }
+.console-theme-footer { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+.console-theme-title-example { padding: 14px; margin-bottom: 16px; border: 1px solid var(--console-border,#ddd); border-radius: 8px; }
+.console-theme-title-example h2 { margin: 0 0 6px; font-size: var(--console-title-size,22px); color: var(--console-text); }
+@media (max-width: 767px) {
+  .workspace-page-title { font-size: min(var(--console-title-size,22px),22px); }
+  .workspace-page-header { gap: 12px; margin-bottom: 16px; }
+  .workspace-page-actions { width: 100%; }
+  .console-theme-drawer .ant-drawer-body { padding: 18px; }
+}

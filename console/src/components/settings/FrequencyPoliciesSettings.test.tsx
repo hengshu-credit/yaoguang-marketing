@@ -29,8 +29,8 @@ describe('FrequencyPoliciesSettings', () => {
 
     const heading = await screen.findByRole('heading', { level: 1, name: 'Message frequency control' })
     expect(heading).toBeInTheDocument()
-    expect(heading.style.fontSize).toBe('24px')
-    expect(heading.style.fontWeight).toBe('500')
+    expect(heading.style.fontSize).toBe('var(--console-title-size, 22px)')
+    expect(heading.style.fontWeight).toBe('600')
     expect(heading.nextElementSibling).toHaveTextContent('Limit marketing messages per customer and channel.')
     expect(screen.getByText('The three levels are independent')).toBeInTheDocument()
   })

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "./components/email_builder/editor.css";
 @import "./styles/reactflow.css";
+@import "./theme/console-theme.css";
 
 @font-face {
   font-family: "AlimamaFangYuanTiVF";
@@ -24,9 +25,9 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: var(--background);
+  color-scheme: light;
+  color: var(--console-text, #171717);
+  background-color: var(--console-bg, var(--background));
 
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
