@@ -17,6 +17,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/safehttpclient"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/webhookclient"
 )
 
 type channelWebhookEnvelope struct {
@@ -67,10 +69,12 @@ func NewSignedWebhookChannelProvider(
 		return nil, fmt.Errorf("channel Webhook integration does not allow channel %s", channel)
 	}
 	if client == nil {
-		client = &http.Client{}
+		client = webhookclient.New()
 	}
 	clientCopy := *client
-	clientCopy.Timeout = time.Duration(settings.TimeoutSeconds) * time.Second
+	if settings.TimeoutSeconds > 0 {
+		clientCopy.Timeout = time.Duration(settings.TimeoutSeconds) * time.Second
+	}
 	clientCopy.CheckRedirect = func(*http.Request, []*http.Request) error {
 		return errors.New("channel Webhook redirects are not allowed")
 	}
@@ -137,6 +141,10 @@ func (p *SignedWebhookChannelProvider) Send(ctx context.Context, delivery domain
 
 	response, err := p.client.Do(request)
 	if err != nil {
+		if errors.Is(err, safehttpclient.ErrPrivateIP) || errors.Is(err, safehttpclient.ErrBlockedScheme) {
+			// No connection was made: do not manufacture an ambiguous external effect.
+			return nil, fmt.Errorf("channel Webhook network policy: %w", err)
+		}
 		if strings.Contains(err.Error(), "redirects are not allowed") {
 			return nil, err
 		}

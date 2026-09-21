@@ -45,7 +45,7 @@ func TestZapierKeyPermissions(t *testing.T) {
 		PermissionResourceTemplates:            {Read: false, Write: false},
 		PermissionResourceBlog:                 {Read: false, Write: false},
 		PermissionResourceBroadcasts:           {Read: false, Write: false},
-		PermissionResourceTransactional:        {Read: false, Write: false},
+		PermissionResourceTransactional:        {Read: true, Write: true},
 		PermissionResourceAutomations:          {Read: false, Write: false},
 		PermissionResourceMessageHistory:       {Read: false, Write: true},
 		PermissionResourceWebAnalytics:         {Read: false, Write: false},
@@ -65,6 +65,7 @@ func TestZapierKeyPermissions(t *testing.T) {
 			PermissionResourceContacts,
 			PermissionResourceLists,
 			PermissionResourceSegments,
+			PermissionResourceTransactional,
 		}
 		permissions := ZapierKeyPermissions()
 

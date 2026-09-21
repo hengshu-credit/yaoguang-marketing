@@ -14,6 +14,7 @@ import (
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/webhookclient"
 )
 
 // NodeExecutionResult contains the outcome of executing a node
@@ -1120,7 +1121,7 @@ type WebhookNodeExecutor struct {
 // NewWebhookNodeExecutor creates a new webhook node executor
 func NewWebhookNodeExecutor(log logger.Logger) *WebhookNodeExecutor {
 	return &WebhookNodeExecutor{
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		httpClient: webhookclient.New(),
 		logger:     log,
 	}
 }

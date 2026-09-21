@@ -27,7 +27,11 @@ describe('Consolidated business configuration', () => {
  it('adds a fingerprint to selected built-in and custom events as optional fields', async () => {
   render(<EventFieldsExtensionDrawer workspaceId="ws" events={[event, { ...event, id: 'two', key: 'login', settings: {} }]} onClose={vi.fn()} onSaved={vi.fn()} />)
   fireEvent.click(screen.getByRole('button', { name: 'Add device fingerprint example' }))
+  expect(screen.getByRole('button', { name: 'Apply to selected events' })).toBeDisabled()
+  fireEvent.click(screen.getByRole('button', { name: 'Select all events' }))
   expect(screen.getByRole('switch', { name: 'Required device_fingerprint' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Add device fingerprint example' })).toBeDisabled()
+  expect(screen.getByLabelText('Report data example')).toHaveTextContent('device_fingerprint')
   fireEvent.click(screen.getByRole('button', { name: 'Apply to selected events' }))
   await waitFor(() => expect(businessApi.extendEvents).toHaveBeenCalledWith('ws', ['contact.created', 'login'], expect.objectContaining({ properties: { device_fingerprint: expect.objectContaining({ type: 'string' }) } })))
  })

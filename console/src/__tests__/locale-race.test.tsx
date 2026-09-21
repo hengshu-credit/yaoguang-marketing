@@ -33,10 +33,11 @@ async function withCatalogs(
     return { messages }
   }
 
-  vi.doMock('../i18n/locales/en.po', catalog('en', { Hello: 'Hello' }))
-  vi.doMock('../i18n/locales/es.po', catalog('es', { Hello: 'Hola' }))
-  vi.doMock('../i18n/locales/fr.po', catalog('fr', { Hello: 'Bonjour' }))
-  vi.doMock('../i18n/locales/ja.po', catalog('ja', { Hello: 'こんにちは' }))
+  // Match the dynamic-import ID produced by Vite under Vitest 4.
+  vi.doMock('../i18n/locales/en.po?import', catalog('en', { Hello: 'Hello' }))
+  vi.doMock('../i18n/locales/es.po?import', catalog('es', { Hello: 'Hola' }))
+  vi.doMock('../i18n/locales/fr.po?import', catalog('fr', { Hello: 'Bonjour' }))
+  vi.doMock('../i18n/locales/ja.po?import', catalog('ja', { Hello: 'こんにちは' }))
 
   return await import('../i18n')
 }

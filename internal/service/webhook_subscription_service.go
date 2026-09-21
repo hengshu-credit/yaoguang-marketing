@@ -5,12 +5,12 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"net/url"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
-	"github.com/google/uuid"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/webhookclient"
 )
 
 // webhookSecretPrefix is the Standard Webhooks symmetric-key prefix.
@@ -161,24 +161,7 @@ func generateWebhookID() string {
 
 // validateURL validates the webhook URL
 func validateURL(rawURL string) error {
-	if rawURL == "" {
-		return fmt.Errorf("URL is required")
-	}
-
-	parsed, err := url.Parse(rawURL)
-	if err != nil {
-		return fmt.Errorf("invalid URL: %w", err)
-	}
-
-	if parsed.Scheme != "http" && parsed.Scheme != "https" {
-		return fmt.Errorf("URL must use http or https scheme")
-	}
-
-	if parsed.Host == "" {
-		return fmt.Errorf("URL must have a host")
-	}
-
-	return nil
+	return webhookclient.ValidateURL(rawURL)
 }
 
 // normalizeIDFilter collapses an empty list_ids / segment_ids filter to nil so that

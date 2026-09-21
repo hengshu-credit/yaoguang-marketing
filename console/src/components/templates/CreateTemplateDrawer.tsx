@@ -1467,6 +1467,9 @@ function EmailTemplateDrawer({
             workspace={workspace}
             currentSubject={emailSubject}
             currentPreviewText={emailPreview}
+            category={categoryValue}
+            categoryPurpose={templateCategoryCatalog?.categories.find((category) => category.id === categoryValue)?.purpose
+              ?? ((template || fromTemplate)?.category === categoryValue ? (template || fromTemplate)?.category_purpose : undefined)}
             onUpdateSubject={(subject) => form.setFieldValue(['email', 'subject'], subject)}
             onUpdatePreviewText={(preview) =>
               form.setFieldValue(['email', 'subject_preview'], preview)

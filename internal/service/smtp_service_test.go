@@ -517,7 +517,7 @@ func TestSendRawEmail_AuthLogin_Failure(t *testing.T) {
 
 	err := sendRawEmail("127.0.0.1", port, "acsuser", "wrongpass", false, "sender@example.com", []string{"recipient@example.com"}, msg)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "authentication failed with code: 535")
+	assert.Contains(t, err.Error(), "AUTH rejected: 535 Authentication failed")
 }
 
 func TestSendRawEmail_PlainPreferredWhenBothAdvertised(t *testing.T) {

@@ -95,16 +95,16 @@ const simplifiedChineseMessages = {
   'Welcome {name}': '欢迎 {name}',
 }
 
-// Mock the dynamic imports for locale files
-vi.mock('../i18n/locales/en.po', () => ({ messages: englishMessages }))
-vi.mock('../i18n/locales/fr.po', () => ({ messages: frenchMessages }))
-vi.mock('../i18n/locales/es.po', () => ({ messages: spanishMessages }))
-vi.mock('../i18n/locales/de.po', () => ({ messages: germanMessages }))
-vi.mock('../i18n/locales/ca.po', () => ({ messages: catalanMessages }))
-vi.mock('../i18n/locales/pt-BR.po', () => ({ messages: portugueseBRMessages }))
-vi.mock('../i18n/locales/ja.po', () => ({ messages: japaneseMessages }))
-vi.mock('../i18n/locales/it.po', () => ({ messages: italianMessages }))
-vi.mock('../i18n/locales/zh-CN.po', () => ({ messages: simplifiedChineseMessages }))
+// Vitest 4 keeps Vite's ?import suffix on dynamically imported PO catalogs.
+vi.mock('../i18n/locales/en.po?import', () => ({ messages: englishMessages }))
+vi.mock('../i18n/locales/fr.po?import', () => ({ messages: frenchMessages }))
+vi.mock('../i18n/locales/es.po?import', () => ({ messages: spanishMessages }))
+vi.mock('../i18n/locales/de.po?import', () => ({ messages: germanMessages }))
+vi.mock('../i18n/locales/ca.po?import', () => ({ messages: catalanMessages }))
+vi.mock('../i18n/locales/pt-BR.po?import', () => ({ messages: portugueseBRMessages }))
+vi.mock('../i18n/locales/ja.po?import', () => ({ messages: japaneseMessages }))
+vi.mock('../i18n/locales/it.po?import', () => ({ messages: italianMessages }))
+vi.mock('../i18n/locales/zh-CN.po?import', () => ({ messages: simplifiedChineseMessages }))
 
 describe('i18n utility functions', () => {
   beforeEach(() => {

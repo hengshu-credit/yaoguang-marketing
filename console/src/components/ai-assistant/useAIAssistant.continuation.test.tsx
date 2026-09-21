@@ -118,6 +118,31 @@ beforeEach(() => {
 })
 
 describe('useAIAssistant continuation loop', () => {
+  it('explains editor tool-only results once without re-running an editing tool', async () => {
+    const { calls, messagesAt } = scriptRounds([
+      [toolUse('edit', { title: 'new' }), done()],
+      [toolUse('edit', { title: 'duplicate' }), text('The edit was applied.'), done()]
+    ])
+    const edit = vi.fn((_event, insert: (text: string, tool: string) => void) => { insert('Applied title', 'edit') })
+    const { result } = renderAssistant({ toolHandlers: new Map([['edit', edit]]), explainToolOnlyResults: true })
+    await send(result, 'change title')
+    expect(calls).toHaveLength(2)
+    expect(calls[1].tools).toEqual([])
+    expect(messagesAt(2).at(-1)?.content).toContain('Applied title')
+    expect(edit).toHaveBeenCalledTimes(1)
+    expect(result.current.messages.some((m) => m.content === 'The edit was applied.')).toBe(true)
+  })
+
+  it.each([false, true])('does not bill an editor explanation after prose or truncation (%s)', async (truncated) => {
+    const { calls } = scriptRounds([[toolUse('edit'), ...(truncated ? [] : [text('Done.')]), done({ truncated })]])
+    const { result } = renderAssistant({
+      toolHandlers: new Map([['edit', (_event, insert) => { insert('Applied', 'edit') }]]),
+      explainToolOnlyResults: true
+    })
+    await send(result, 'edit')
+    expect(calls).toHaveLength(1)
+  })
+
   it('answers using the rows a tool returned instead of stopping at the tool call', async () => {
     const { calls, messagesAt } = scriptRounds([
       [toolUse('query_web_analytics', { measures: ['sessions'] }), done()],
@@ -1245,7 +1270,7 @@ describe('useAIAssistant turn identity and streaming state', () => {
     expect(calls).toHaveLength(1)
     expect(JSON.stringify(result.current.messages)).toBe(lastRender)
     expect(
-      consoleError.mock.calls.some((args) => String(args[0]).includes('unmounted component'))
+      consoleError.mock.calls.some((args: unknown[]) => String(args[0]).includes('unmounted component'))
     ).toBe(false)
   })
 

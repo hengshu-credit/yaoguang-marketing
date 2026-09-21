@@ -92,7 +92,7 @@ ENV GOOS=linux
 RUN go build -ldflags="-s -w" -o /tmp/server ./cmd/api
 
 # Stage 4: Create the runtime container (Alpine for smaller image)
-FROM alpine:3.19
+FROM alpine:3.24
 
 # Add necessary runtime packages
 RUN apk add --no-cache \
@@ -127,4 +127,4 @@ EXPOSE 8080
 EXPOSE 587
 
 # Run the application
-CMD ["/app/server"] 
+CMD ["/app/server"]

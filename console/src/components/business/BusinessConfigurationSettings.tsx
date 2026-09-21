@@ -46,7 +46,7 @@ function ConfigurationContent({ workspaceId, canManage, initialKind = 'event', o
   }, [workspaceId, kind, page, search, refresh])
 
   const create = () => {
-    const settings: Record<string, unknown> = kind === 'event' ? { subject_type: 'customer', expiry_mode: 'never', unmatched_customer: 'pending', browser_enabled: false } : kind === 'object_relation' ? { cardinality: 'one_to_many' } : kind === 'event_mapping' ? { fields: { report_id: '$.report_id', customer_attributes: '$.customer_attributes', event_code: '$.event_code', event_name: '$.event_name', data: '$.data', triggered_at: '$.triggered_at', expires_at: '$.expires_at' }, attribute_mappings: [] } : kind === 'customer_attribute' ? { identity: false, sensitive: false, writable: true, normalization: 'trim' } : { identity_fields: [] }
+    const settings: Record<string, unknown> = kind === 'event' ? { subject_type: 'customer', expiry_mode: 'never', unmatched_customer: 'pending', browser_enabled: false, authoritative: true } : kind === 'object_relation' ? { cardinality: 'one_to_many' } : kind === 'event_mapping' ? { fields: { report_id: '$.report_id', customer_attributes: '$.customer_attributes', event_code: '$.event_code', data: '$.data', triggered_at: '$.triggered_at', expires_at: '$.expires_at' }, attribute_mappings: [] } : kind === 'customer_attribute' ? { identity: false, sensitive: false, writable: true, normalization: 'trim' } : { identity_fields: [] }
     setEditor({ kind, key: '', name: '', schema: kind === 'customer_attribute' ? { type: 'string' } : { type: 'object', properties: {}, required: [] }, settings, status: 'draft' })
   }
   const archive = async (definition: BusinessDefinition) => {
@@ -63,7 +63,7 @@ function ConfigurationContent({ workspaceId, canManage, initialKind = 'event', o
     {catalogue.error && <Alert type="error" showIcon title={t`Failed to load related definitions`} description={catalogue.error.message} />}
     <Tabs activeKey={kind} onChange={(next) => { setKind(next as BusinessDefinitionKind); setPage(1); setSearch('') }} items={Object.entries(labels).map(([key, label]) => ({ key, label }))} />
     <BusinessConfigurationGuide kind={kind} />
-    {kind === 'event' && canManage && <Button disabled={catalogue.loading || !!catalogue.error} onClick={() => setExtending(catalogue.definitions.filter(item => item.kind === 'event' && item.status !== 'archived').map(item => item.key))}>{t`Add report fields to existing events`}</Button>}
+    {kind === 'event' && canManage && <Button disabled={catalogue.loading || !!catalogue.error} onClick={() => setExtending([])}>{t`Add report fields to existing events`}</Button>}
     {kind === 'customer_attribute' ? <CustomerAttributesSettings workspaceId={workspaceId} definitions={catalogue.definitions} canManage={canManage} onEdit={setEditor} onCreate={create} onWorkspaceUpdate={onWorkspaceUpdate} /> : <>
     <div className="flex flex-wrap items-center justify-between gap-3">
       <Input.Search key={kind} aria-label={t`Search definitions`} placeholder={t`Search by name or key`} allowClear style={{ maxWidth: 360 }} onSearch={(value) => { setSearch(value); setPage(1) }} />

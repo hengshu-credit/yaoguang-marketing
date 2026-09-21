@@ -35,7 +35,10 @@ func (z *ZapierSettings) Validate() error {
 //     triggers. Read is the whole of it — nothing in the app writes a segment — and the two
 //     segment triggers are unusable without it.
 //
-// Nothing else is granted, so a leaked Zapier token cannot read message history or send.
+//   - transactional read and write: select a saved notification and send through the
+//     existing transactional service, including its identity and idempotency checks.
+//
+// Nothing else is granted; existing keys are not widened automatically.
 //
 // This is the key's *initial* grant, not an invariant: /api/workspaces.setUserPermissions is a
 // live endpoint and Settings → Team edits the row freely, so an owner may widen or narrow the
@@ -49,8 +52,9 @@ func ZapierKeyPermissions() UserPermissions {
 	permissions[PermissionResourceContacts] = ResourcePermissions{Read: true, Write: true}
 	permissions[PermissionResourceLists] = ResourcePermissions{Read: true, Write: true}
 	permissions[PermissionResourceSegments] = ResourcePermissions{Read: true, Write: false}
+	permissions[PermissionResourceTransactional] = ResourcePermissions{Read: true, Write: true}
 	// Layered last because each grant above replaces a whole ResourcePermissions value: were an
-	// unenforced verb ever to land on one of these four resources, granting first would drop it.
+	// unenforced verb ever to land on one of these resources, granting first would drop it.
 	return GrantUnenforcedPermissions(permissions)
 }
 

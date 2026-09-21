@@ -29,6 +29,11 @@ func writeBusinessError(w http.ResponseWriter, err error) {
 	if writePermissionError(w, err) {
 		return
 	}
+	var configError *domain.BusinessConfigurationError
+	if errors.As(err, &configError) {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": configError.Error(), "field": configError.Field})
+		return
+	}
 	status := http.StatusInternalServerError
 	var validation domain.ValidationError
 	if errors.As(err, &validation) {

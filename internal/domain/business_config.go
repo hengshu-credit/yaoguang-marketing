@@ -71,6 +71,9 @@ func (d *BusinessDefinition) Validate() error {
 	if err := validateBusinessSchema(d.Schema, 0); err != nil {
 		return err
 	}
+	if err := d.ValidateReportingConfiguration(d.Status == "active"); err != nil {
+		return err
+	}
 	if d.Kind == "object_relation" {
 		from, _ := d.Settings["from_type"].(string)
 		to, _ := d.Settings["to_type"].(string)
@@ -108,7 +111,7 @@ func (d *BusinessDefinition) Validate() error {
 				return fmt.Errorf("attribute_mappings must be an array")
 			}
 			for _, m := range mappings {
-				if m.Attribute == "" || !strings.HasPrefix(m.Path, "$.") {
+				if m.Attribute == "" || !isNormalizedAttributePath(m.Path) {
 					return fmt.Errorf("attribute mappings require attribute and path")
 				}
 				switch m.Action {

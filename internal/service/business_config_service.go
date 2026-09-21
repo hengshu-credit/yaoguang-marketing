@@ -93,6 +93,10 @@ func (s *BusinessConfigService) Save(ctx context.Context, w string, d *domain.Bu
 		return nil, err
 	}
 	if err = d.Validate(); err != nil {
+		var fieldError *domain.BusinessConfigurationError
+		if errors.As(err, &fieldError) {
+			return nil, err
+		}
 		return nil, domain.NewValidationError(err.Error())
 	}
 	if d.Kind == "event" && domain.IsNativeBusinessEvent(d.Key) {
@@ -110,6 +114,10 @@ func (s *BusinessConfigService) Save(ctx context.Context, w string, d *domain.Bu
 	}
 	if d.Status == "active" {
 		if err = s.validateReferences(ctx, w, d); err != nil {
+			var fieldError *domain.BusinessConfigurationError
+			if errors.As(err, &fieldError) {
+				return nil, err
+			}
 			return nil, domain.NewValidationError(err.Error())
 		}
 	}
@@ -129,6 +137,24 @@ func (s *BusinessConfigService) validateReferences(ctx context.Context, w string
 	if d.Kind == "event" {
 		subject, _ := d.Settings["subject_type"].(string)
 		return check(subject)
+	}
+	if d.Kind == "event_mapping" {
+		if key, _ := d.Settings["event_code"].(string); key != "" {
+			ref, err := s.repo.Get(ctx, w, "event", key)
+			if err != nil || ref == nil || ref.Status != "active" {
+				return &domain.BusinessConfigurationError{Field: "settings.event_code", Message: "the selected event must be active"}
+			}
+			if ref.Settings["builtin"] == true || domain.IsNativeBusinessEvent(key) {
+				return &domain.BusinessConfigurationError{Field: "settings.event_code", Message: "built-in events require a platform producer"}
+			}
+			mode, _ := ref.Settings["expiry_mode"].(string)
+			if mode == "" || mode == "required" {
+				fields, _ := d.Settings["fields"].(map[string]any)
+				if _, exists := fields["expires_at"]; !exists {
+					return &domain.BusinessConfigurationError{Field: "settings.fields.expires_at", Message: "the selected event requires an expiration mapping"}
+				}
+			}
+		}
 	}
 	if d.Kind == "funnel" {
 		var definition domain.FunnelDefinition
@@ -244,6 +270,7 @@ type BusinessPreviewResult struct {
 	NormalizedEvent    any                    `json:"normalized_event,omitempty"`
 	ResolvedCustomerID string                 `json:"resolved_customer_id,omitempty"`
 	AttributeChanges   []map[string]any       `json:"attribute_changes,omitempty"`
+	Warnings           []BusinessPreviewError `json:"warnings,omitempty"`
 }
 
 func (s *BusinessConfigService) Preview(ctx context.Context, w string, d *domain.BusinessDefinition, sample map[string]any) (*BusinessPreviewResult, error) {
@@ -252,7 +279,14 @@ func (s *BusinessConfigService) Preview(ctx context.Context, w string, d *domain
 		return nil, err
 	}
 	result := &BusinessPreviewResult{Valid: true, Errors: []BusinessPreviewError{}}
-	if err = d.Validate(); err == nil {
+	err = d.Validate()
+	if err == nil {
+		err = d.ValidateReportingConfiguration(true)
+	}
+	if err == nil && (d.Kind == "event" || d.Kind == "event_mapping") {
+		err = s.validateReferences(ctx, w, d)
+	}
+	if err == nil {
 		switch d.Kind {
 		case "customer_attribute":
 			err = domain.ValidateBusinessValue(d.Schema, sample["value"], "sample.value")
@@ -273,6 +307,10 @@ func (s *BusinessConfigService) Preview(ctx context.Context, w string, d *domain
 				event, err = domain.NormalizeTrackedEvent(sample, definition, mapping, time.Now().UTC())
 				if err == nil {
 					result.NormalizedEvent = event
+					err = s.validatePreviewSubject(ctx, w, definition, event)
+					if event.ProcessingStatus == "expired" || event.ProcessingStatus == "backfill" {
+						result.Warnings = append(result.Warnings, BusinessPreviewError{Field: "expires_at", Message: "This event is historical; it will not start new real-time marketing actions."})
+					}
 					if mapping != nil {
 						var rules []domain.AttributeMapping
 						bytes, _ := json.Marshal(mapping.Settings["attribute_mappings"])
@@ -284,7 +322,7 @@ func (s *BusinessConfigService) Preview(ctx context.Context, w string, d *domain
 							}
 						}
 					}
-					if s.customers != nil {
+					if err == nil && s.customers != nil {
 						for key, value := range event.CustomerAttributes {
 							text, ok := value.(string)
 							if !ok {
@@ -358,7 +396,45 @@ func (s *BusinessConfigService) Preview(ctx context.Context, w string, d *domain
 	}
 	if err != nil {
 		result.Valid = false
-		result.Errors = append(result.Errors, BusinessPreviewError{Field: "sample", Message: err.Error()})
+		field := "sample"
+		message := err.Error()
+		var configError *domain.BusinessConfigurationError
+		if errors.As(err, &configError) {
+			field, message = configError.Field, configError.Message
+		} else {
+			first, _, _ := strings.Cut(message, " ")
+			if strings.HasPrefix(first, "data.") || strings.HasPrefix(first, "customer_attributes.") || first == "data" || first == "report_id" || first == "event_code" || first == "triggered_at" || first == "expires_at" {
+				field = first
+			}
+		}
+		result.Errors = append(result.Errors, BusinessPreviewError{Field: field, Message: message})
 	}
 	return result, nil
+}
+
+func (s *BusinessConfigService) validatePreviewSubject(ctx context.Context, w string, d *domain.BusinessDefinition, event *domain.TrackedEvent) error {
+	objectType, _ := d.Settings["subject_type"].(string)
+	if objectType == "" || objectType == "customer" {
+		return nil
+	}
+	input := map[string]any{"data": event.Data, "customer_attributes": event.CustomerAttributes}
+	path, _ := d.Settings["subject_id_path"].(string)
+	value, exists := domain.BusinessJSONPath(input, path)
+	key, ok := value.(string)
+	if !exists || !ok || key == "" {
+		return &domain.BusinessConfigurationError{Field: path, Message: "object ID must resolve to a nonempty string"}
+	}
+	if path, ok := d.Settings["subject_attributes_path"].(string); ok {
+		value, exists := domain.BusinessJSONPath(input, path)
+		attributes, valid := value.(map[string]any)
+		if !exists || !valid {
+			return &domain.BusinessConfigurationError{Field: path, Message: "object attributes must resolve to an object"}
+		}
+		object, err := s.repo.Get(ctx, w, "object_type", objectType)
+		if err != nil {
+			return err
+		}
+		return domain.ValidateBusinessValue(object.Schema, attributes, path)
+	}
+	return nil
 }

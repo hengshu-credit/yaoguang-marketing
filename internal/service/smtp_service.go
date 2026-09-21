@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/emailerror"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
 	"github.com/wneessen/go-mail"
 )
@@ -64,21 +65,8 @@ func newSMTPConnection(conn net.Conn) *smtpConnection {
 }
 
 func (c *smtpConnection) readResponse() (int, string, error) {
-	line, err := c.reader.ReadString('\n')
-	if err != nil {
-		return 0, "", err
-	}
-
-	if len(line) < 4 {
-		return 0, "", fmt.Errorf("short response: %s", line)
-	}
-
-	code := 0
-	if _, err := fmt.Sscanf(line[:3], "%d", &code); err != nil {
-		return 0, "", fmt.Errorf("invalid response code: %s", line)
-	}
-
-	return code, strings.TrimSpace(line[4:]), nil
+	code, lines, err := c.readMultilineResponseWithLines()
+	return code, strings.Join(lines, "\n"), err
 }
 
 func (c *smtpConnection) readMultilineResponse() (int, error) {
@@ -218,12 +206,12 @@ func sortedKeys(m map[string]bool) []string {
 func smtpAuthPlain(c *smtpConnection, username, password string) error {
 	authString := fmt.Sprintf("\x00%s\x00%s", username, password)
 	encoded := base64.StdEncoding.EncodeToString([]byte(authString))
-	code, _, err := c.sendCommand("AUTH PLAIN " + encoded)
+	code, response, err := c.sendCommand("AUTH PLAIN " + encoded)
 	if err != nil {
 		return fmt.Errorf("AUTH failed: %w", err)
 	}
 	if code != 235 {
-		return fmt.Errorf("authentication failed with code: %d", code)
+		return &emailerror.SMTPReplyError{Stage: "AUTH", Code: code, Message: response}
 	}
 	return nil
 }
@@ -233,26 +221,26 @@ func smtpAuthPlain(c *smtpConnection, username, password string) error {
 // (which are server-specific and may be localized). This is required for servers
 // that advertise only AUTH LOGIN, such as Azure Communication Services.
 func smtpAuthLogin(c *smtpConnection, username, password string) error {
-	code, _, err := c.sendCommand("AUTH LOGIN")
+	code, response, err := c.sendCommand("AUTH LOGIN")
 	if err != nil {
 		return fmt.Errorf("AUTH LOGIN failed: %w", err)
 	}
 	if code != 334 {
-		return fmt.Errorf("authentication failed with code: %d", code)
+		return &emailerror.SMTPReplyError{Stage: "AUTH", Code: code, Message: response}
 	}
-	code, _, err = c.sendCommand(base64.StdEncoding.EncodeToString([]byte(username)))
+	code, response, err = c.sendCommand(base64.StdEncoding.EncodeToString([]byte(username)))
 	if err != nil {
 		return fmt.Errorf("AUTH LOGIN username failed: %w", err)
 	}
 	if code != 334 {
-		return fmt.Errorf("authentication failed (username) with code: %d", code)
+		return &emailerror.SMTPReplyError{Stage: "AUTH", Code: code, Message: response}
 	}
-	code, _, err = c.sendCommand(base64.StdEncoding.EncodeToString([]byte(password)))
+	code, response, err = c.sendCommand(base64.StdEncoding.EncodeToString([]byte(password)))
 	if err != nil {
 		return fmt.Errorf("AUTH LOGIN password failed: %w", err)
 	}
 	if code != 235 {
-		return fmt.Errorf("authentication failed with code: %d", code)
+		return &emailerror.SMTPReplyError{Stage: "AUTH", Code: code, Message: response}
 	}
 	return nil
 }
@@ -431,12 +419,12 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 	}
 
 	// MAIL FROM - without any extensions (this is the key fix for issue #172)
-	code, _, err = smtpConn.sendCommand(fmt.Sprintf("MAIL FROM:<%s>", from))
+	code, response, err := smtpConn.sendCommand(fmt.Sprintf("MAIL FROM:<%s>", from))
 	if err != nil {
 		return fmt.Errorf("MAIL FROM failed: %w", err)
 	}
 	if code != 250 {
-		return fmt.Errorf("MAIL FROM rejected with code: %d", code)
+		return &emailerror.SMTPReplyError{Stage: "MAIL FROM", Code: code, Message: response}
 	}
 
 	// RCPT TO for each recipient
@@ -444,22 +432,22 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 		if recipient == "" {
 			continue
 		}
-		code, _, err = smtpConn.sendCommand(fmt.Sprintf("RCPT TO:<%s>", recipient))
+		code, response, err = smtpConn.sendCommand(fmt.Sprintf("RCPT TO:<%s>", recipient))
 		if err != nil {
 			return fmt.Errorf("RCPT TO failed for %s: %w", recipient, err)
 		}
 		if code != 250 && code != 251 {
-			return fmt.Errorf("RCPT TO rejected for %s with code: %d", recipient, code)
+			return &emailerror.SMTPReplyError{Stage: "RCPT TO", Code: code, Message: response}
 		}
 	}
 
 	// DATA
-	code, _, err = smtpConn.sendCommand("DATA")
+	code, response, err = smtpConn.sendCommand("DATA")
 	if err != nil {
 		return fmt.Errorf("DATA command failed: %w", err)
 	}
 	if code != 354 {
-		return fmt.Errorf("DATA rejected with code: %d", code)
+		return &emailerror.SMTPReplyError{Stage: "DATA", Code: code, Message: response}
 	}
 
 	// Send message body using textproto.DotWriter for automatic dot-stuffing
@@ -480,12 +468,12 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 	}
 
 	// Read response after DATA
-	code, _, err = smtpConn.readResponse()
+	code, response, err = smtpConn.readResponse()
 	if err != nil {
 		return fmt.Errorf("failed to read DATA response: %w", err)
 	}
 	if code != 250 {
-		return fmt.Errorf("message rejected with code: %d", code)
+		return &emailerror.SMTPReplyError{Stage: "DATA", Code: code, Message: response}
 	}
 
 	// QUIT

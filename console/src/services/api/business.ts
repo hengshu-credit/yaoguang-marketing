@@ -20,9 +20,10 @@ export interface BusinessDefinition {
 export interface BusinessPreviewResult {
   valid: boolean
   errors: Array<{ field: string; message: string }>
+  warnings?: Array<{ field: string; message: string }>
   normalized_event?: Record<string, unknown>
   resolved_customer_id?: string
-  attribute_changes?: Record<string, unknown>
+  attribute_changes?: Array<Record<string, unknown>>
 }
 
 export const businessApi = {

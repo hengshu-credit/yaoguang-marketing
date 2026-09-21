@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TemplatePreviewDrawer from './TemplatePreviewDrawer'
@@ -13,6 +13,7 @@ vi.mock('./EmailClientFrame', () => ({
 }))
 
 describe('TemplatePreviewDrawer', () => {
+  beforeEach(() => vi.clearAllMocks())
   const workspace = {
     id: 'workspace-1', name: 'Workspace',
     settings: { timezone: 'UTC', email_tracking_enabled: false, default_language: 'en', languages: ['en'] },

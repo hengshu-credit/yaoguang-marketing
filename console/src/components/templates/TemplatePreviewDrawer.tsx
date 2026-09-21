@@ -328,6 +328,15 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     children: <JsonDataViewer data={testData} />
   })
 
+  const messageMetadata = messageHistory?.message_data?.metadata
+  if (messageMetadata && Object.keys(messageMetadata).length > 0) {
+    items.push({
+      key: 'metadata',
+      label: t`Metadata`,
+      children: <JsonDataViewer data={messageMetadata} />
+    })
+  }
+
   const drawerContent = (
     <div>
       {/* Header details */}

@@ -3268,6 +3268,7 @@ func TestABTestNodeExecutor_Execute_DifferentNodeID(t *testing.T) {
 // WebhookNodeExecutor tests
 
 func TestWebhookNodeExecutor_NodeType(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -3277,6 +3278,7 @@ func TestWebhookNodeExecutor_NodeType(t *testing.T) {
 }
 
 func TestParseWebhookNodeConfig(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	t.Run("valid config with URL only", func(t *testing.T) {
 		config := map[string]interface{}{
 			"url": "https://example.com/webhook",
@@ -3323,6 +3325,7 @@ func TestParseWebhookNodeConfig(t *testing.T) {
 }
 
 func TestBuildWebhookPayload(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	t.Run("builds payload with contact and automation", func(t *testing.T) {
 		firstName := &domain.NullableString{String: "John", IsNull: false}
 		contact := &domain.Contact{
@@ -3371,6 +3374,7 @@ func TestBuildWebhookPayload(t *testing.T) {
 }
 
 func TestWebhookNodeExecutor_Execute_Success(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -3429,6 +3433,7 @@ func TestWebhookNodeExecutor_Execute_Success(t *testing.T) {
 }
 
 func TestWebhookNodeExecutor_Execute_WithSecret(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -3477,6 +3482,7 @@ func TestWebhookNodeExecutor_Execute_WithSecret(t *testing.T) {
 }
 
 func TestWebhookNodeExecutor_Execute_4xxError(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -3521,6 +3527,7 @@ func TestWebhookNodeExecutor_Execute_4xxError(t *testing.T) {
 }
 
 func TestWebhookNodeExecutor_Execute_5xxError(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -3565,6 +3572,7 @@ func TestWebhookNodeExecutor_Execute_5xxError(t *testing.T) {
 }
 
 func TestWebhookNodeExecutor_Execute_NonJSONResponse(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -3612,6 +3620,7 @@ func TestWebhookNodeExecutor_Execute_NonJSONResponse(t *testing.T) {
 }
 
 func TestWebhookNodeExecutor_Execute_InvalidConfig(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -3647,6 +3656,7 @@ func TestWebhookNodeExecutor_Execute_InvalidConfig(t *testing.T) {
 }
 
 func TestWebhookNodeExecutor_Execute_EmptyResponse(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 

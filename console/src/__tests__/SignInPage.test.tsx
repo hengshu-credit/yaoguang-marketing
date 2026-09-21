@@ -111,6 +111,8 @@ describe('SignInPage', () => {
 
     // Verify code form is shown
     expect(screen.getByPlaceholderText('000000')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('000000')).toHaveAttribute('autocomplete', 'one-time-code')
+    expect(screen.getByPlaceholderText('000000')).toHaveAttribute('inputmode', 'numeric')
     expect(screen.getByText(/verify code/i)).toBeInTheDocument()
   })
 

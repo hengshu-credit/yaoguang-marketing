@@ -28,6 +28,7 @@ const STORAGE_KEY = 'message_columns_visibility'
 const DEFAULT_VISIBLE_COLUMNS = {
   id: true,
   external_id: false,
+  metadata: false,
   contact_email: true,
   template_id: true,
   broadcast_id: true,

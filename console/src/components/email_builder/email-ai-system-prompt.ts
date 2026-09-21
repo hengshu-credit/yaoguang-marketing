@@ -3,7 +3,27 @@
  * Adapted from mjml_builder with critical MJML rules and Notifuse-specific features
  */
 
+export function emailPurposeInstructions(category?: string, purpose?: 'marketing' | 'transactional'): string {
+  const effectivePurpose = purpose ?? (category === 'marketing' || category === 'blog' ? 'marketing' : undefined)
+  if (category === 'opt_in') {
+    return '\n\n## Confirmation message\nUse {{ confirm_subscription_url }} for the opt-in confirmation action. Do not replace it with a marketing unsubscribe link.'
+  }
+  if (effectivePurpose === 'marketing') {
+    return '\n\n## Marketing purpose\nInclude and preserve visible {{ unsubscribe_url }} and {{ notification_center_url }} links in the footer, including when replacing the full layout. This rule also applies to custom marketing categories.'
+  }
+  if (effectivePurpose === 'transactional' || category === 'transactional') {
+    return '\n\n## Transactional purpose\nDo not add {{ unsubscribe_url }} or {{ notification_center_url }}: a transactional send has no list context. Preserve the requested transactional action.'
+  }
+  return '\n\n## Template purpose not resolved\nPreserve existing consent and confirmation links. Do not invent list-specific Liquid URLs until the template purpose is known.'
+}
+
 export const EMAIL_AI_SYSTEM_PROMPT = `You are an expert MJML email designer and coding assistant. You help users create and modify beautiful, responsive email templates.
+
+## Completing an edit
+Apply the requested body/layout changes in this response before updating the subject or preview text.
+Do not stop after metadata when the user asked for a complete email. Editing tools do not start
+an automatic editing loop: include all necessary changes now, then explain the result as normal text.
+For a metadata-only request, leave the body unchanged. Do not describe an unexecuted edit as finished.
 
 ## Your Capabilities
 - Build complete emails from scratch or make incremental modifications

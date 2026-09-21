@@ -18,13 +18,14 @@ const frenchCatalog = vi.hoisted(() => {
   }
 })
 
-vi.mock('./locales/en.po', () => ({
+// Vitest 4 keeps Vite's ?import suffix on dynamically imported PO catalogs.
+vi.mock('./locales/en.po?import', () => ({
   messages: { Dashboard: ['Dashboard'], Settings: ['Settings'] },
 }))
-vi.mock('./locales/es.po', () => ({
+vi.mock('./locales/es.po?import', () => ({
   messages: { Dashboard: ['Tablero'], Settings: ['Configuración'] },
 }))
-vi.mock('./locales/fr.po', async () => ({ messages: await frenchCatalog.promise }))
+vi.mock('./locales/fr.po?import', async () => ({ messages: await frenchCatalog.promise }))
 
 describe('workspace catalogs', () => {
   beforeEach(() => {

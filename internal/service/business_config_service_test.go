@@ -76,7 +76,7 @@ func TestBusinessConfigContactWriteCannotEditSchema(t *testing.T) {
 	}
 }
 func TestBusinessConfigPreviewAttributeAndMappedEvent(t *testing.T) {
-	s := NewBusinessConfigService(&businessTestDefinitions{defs: map[string]*domain.BusinessDefinition{"event:signed": {Kind: "event", Key: "signed", Name: "Signed", Settings: map[string]any{"expiry_mode": "never"}}}}, businessTestAuth{member: &domain.UserWorkspace{Role: "owner"}})
+	s := NewBusinessConfigService(&businessTestDefinitions{defs: map[string]*domain.BusinessDefinition{"event:signed": {Kind: "event", Key: "signed", Name: "Signed", Status: "active", Settings: map[string]any{"expiry_mode": "never"}}}}, businessTestAuth{member: &domain.UserWorkspace{Role: "owner"}})
 	result, err := s.Preview(context.Background(), "w", &domain.BusinessDefinition{Kind: "customer_attribute", Key: "age", Name: "Age", Schema: map[string]any{"type": "integer", "minimum": float64(18)}}, map[string]any{"value": float64(17)})
 	if err != nil || result.Valid {
 		t.Fatalf("preview ignored scalar validation %v", err)

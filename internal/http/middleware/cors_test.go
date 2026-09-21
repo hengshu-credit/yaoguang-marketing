@@ -39,7 +39,7 @@ func TestCORSMiddleware(t *testing.T) {
 		// Assert CORS headers
 		assert.Equal(t, "*", w.Header().Get("Access-Control-Allow-Origin"))
 		assert.Equal(t, "GET, POST, PUT, DELETE, OPTIONS", w.Header().Get("Access-Control-Allow-Methods"))
-		assert.Equal(t, "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization", w.Header().Get("Access-Control-Allow-Headers"))
+		assert.Equal(t, "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization, X-Request-ID", w.Header().Get("Access-Control-Allow-Headers"))
 		assert.Equal(t, "true", w.Header().Get("Access-Control-Allow-Credentials"))
 	})
 
@@ -64,7 +64,7 @@ func TestCORSMiddleware(t *testing.T) {
 		// Assert CORS headers
 		assert.Equal(t, "https://example.com", w.Header().Get("Access-Control-Allow-Origin"))
 		assert.Equal(t, "GET, POST, PUT, DELETE, OPTIONS", w.Header().Get("Access-Control-Allow-Methods"))
-		assert.Equal(t, "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization", w.Header().Get("Access-Control-Allow-Headers"))
+		assert.Equal(t, "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization, X-Request-ID", w.Header().Get("Access-Control-Allow-Headers"))
 		assert.Equal(t, "true", w.Header().Get("Access-Control-Allow-Credentials"))
 	})
 
@@ -81,7 +81,7 @@ func TestCORSMiddleware(t *testing.T) {
 
 		// Assert CORS headers
 		assert.Equal(t, "GET, POST, PUT, DELETE, OPTIONS", w.Header().Get("Access-Control-Allow-Methods"))
-		assert.Equal(t, "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization", w.Header().Get("Access-Control-Allow-Headers"))
+		assert.Equal(t, "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization, X-Request-ID", w.Header().Get("Access-Control-Allow-Headers"))
 		assert.Equal(t, "true", w.Header().Get("Access-Control-Allow-Credentials"))
 	})
 }

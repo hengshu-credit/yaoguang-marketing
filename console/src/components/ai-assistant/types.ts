@@ -93,6 +93,9 @@ export interface UseAIAssistantOptions {
   // a non-silent ToolResult is followed by another request carrying that output, up to
   // this many rounds. Clamped to 1..5 by the hook.
   maxToolRounds?: number
+  // Editors may make one read-only round to explain tool-only completions.
+  // It never repeats editing tools and does not affect the analytics query loop.
+  explainToolOnlyResults?: boolean
   // Icon per tool name, for the step line a tool posts while it runs.
   //
   // The hook knows only the two tools the SERVER runs (scrape_url, search_web) and

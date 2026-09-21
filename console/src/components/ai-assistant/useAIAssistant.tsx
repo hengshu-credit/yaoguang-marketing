@@ -110,6 +110,7 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     buildSystemPrompt,
     validateOnComplete,
     maxToolRounds,
+    explainToolOnlyResults = false,
     toolIcons
   } = options
   const { t } = useLingui()
@@ -446,11 +447,13 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     // stale line into a conversation that has just been cleared.
     const writable = () => turnIdRef.current === turn && !call.signal.aborted
 
+    const notes: string[] = []
     let returned: void | ToolResult | Promise<ToolResult | void>
     try {
       returned = handler(
         event,
         (content, toolName) => {
+          notes.push(content)
           if (writable()) insertToolMessage(assistantKey, content, toolName)
         },
         {
@@ -471,7 +474,9 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     // timer, no listener, no behaviour change.
     if (!returned || typeof (returned as Promise<unknown>).then !== 'function') {
       releaseTurnListener()
-      return Promise.resolve(returned as ToolResult | void)
+      return Promise.resolve((returned as ToolResult | void) ?? (explainToolOnlyResults
+        ? { content: notes.join('\n') || 'The tool did not report an applied change.', isError: notes.length === 0 }
+        : undefined))
     }
 
     // addEventListener('abort', …) never fires on a signal that is ALREADY aborted, so
@@ -518,6 +523,7 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     budget: { left: number }
     integrationId: string
     alive: () => boolean // false once this turn has been stopped, reset or superseded
+    readOnly?: boolean
   }): Promise<RoundOutcome> => {
     const { transcript, assistantKey, controller, round, looping, alreadyRun, budget, alive } = args
     let text = ''
@@ -546,7 +552,7 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
         system_prompt: buildSystemPromptRef.current(),
         max_tokens: config.maxTokens,
         // Re-sent verbatim every round: the model must retain the ability to call again.
-        tools: toolsRef.current
+        tools: args.readOnly ? [] : toolsRef.current
       },
       (event: LLMChatEvent) => {
         switch (event.type) {
@@ -558,6 +564,7 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
             handleThinkingEvent(event, assistantKey)
             break
           case 'tool_use': {
+            if (args.readOnly) break
             const name = event.tool_name || ''
             const input = event.tool_input || {}
             const id = `c${pending.length + 1}`
@@ -821,6 +828,19 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
         if (outcome.terminated) break
 
         if (!looping) {
+          if (explainToolOnlyResults && !outcome.text.trim() && outcome.ranHandler && outcome.settled.length) {
+            transcript.push({ role: 'assistant', content: describeCalls(outcome.settled) })
+            transcript.push({
+              role: 'user',
+              content: `${encodeToolResults(outcome.settled)}\nExplain these results briefly in the user's language. No more edits or tool calls. Do not claim a change succeeded unless its result confirms it.`
+            })
+            const replyKey = nextKey('assistant')
+            setMessages((prev) => [...prev, { key: replyKey, role: 'assistant', content: '', loading: true }])
+            await runRound({ transcript, assistantKey: replyKey, controller, round: round + 1,
+              looping: false, alreadyRun, budget, integrationId: integration.id, alive, readOnly: true })
+            if (!alive()) return
+            break
+          }
           if (import.meta.env.DEV && outcome.settled.some((c) => !c.result.isError)) {
             console.warn(
               '[useAIAssistant] a tool returned a ToolResult but maxToolRounds is 1; the result was discarded'

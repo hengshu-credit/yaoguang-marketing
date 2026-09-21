@@ -18,6 +18,8 @@ import (
 
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/logger"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/safehttpclient"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/webhookclient"
 )
 
 const (
@@ -245,9 +247,7 @@ func NewWebhookDeliveryWorker(
 	opts ...WebhookDeliveryWorkerOption,
 ) *WebhookDeliveryWorker {
 	if httpClient == nil {
-		httpClient = &http.Client{
-			Timeout: 30 * time.Second,
-		}
+		httpClient = webhookclient.New()
 	}
 
 	worker := &WebhookDeliveryWorker{
@@ -879,6 +879,12 @@ func (w *WebhookDeliveryWorker) processDelivery(ctx context.Context, workspaceID
 	// Send the request
 	resp, err := w.httpClient.Do(req)
 	if err != nil {
+		if errors.Is(err, safehttpclient.ErrPrivateIP) || errors.Is(err, safehttpclient.ErrBlockedScheme) {
+			// This is our network policy, not evidence of an unhealthy receiver.
+			// Preserve normal bounded retries without retiring the subscription.
+			w.handleDeliveryFailure(ctx, workspaceID, delivery, sub, nil, "", err.Error())
+			return
+		}
 		w.failDelivery(ctx, workspaceID, delivery, sub, nil, "", err.Error(),
 			fmt.Sprintf("automatically disabled after repeated delivery failures (last error: %s)", err.Error()))
 		return

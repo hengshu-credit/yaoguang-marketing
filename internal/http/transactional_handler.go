@@ -263,7 +263,8 @@ func (h *TransactionalNotificationHandler) handleSend(w http.ResponseWriter, r *
 
 		if strings.Contains(err.Error(), "not found") ||
 			strings.Contains(err.Error(), "not active") ||
-			strings.Contains(err.Error(), "no valid channels") {
+			strings.Contains(err.Error(), "no valid channels") ||
+			strings.Contains(err.Error(), "no email provider configured") {
 			WriteJSONError(w, err.Error(), http.StatusBadRequest)
 			return
 		}

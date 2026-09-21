@@ -228,6 +228,10 @@ export function ZapierSettings({
         </a>
       </div>
 
+      <div className="text-gray-600 mb-4">
+        {t`New connections can read and send transactional notifications. Existing API keys keep their permissions.`}
+      </div>
+
       {connected ? (
         // The panel replaces the form and stays until it is dismissed. Every sibling drawer
         // closes itself on success; this one cannot, because closing discards the only copy of

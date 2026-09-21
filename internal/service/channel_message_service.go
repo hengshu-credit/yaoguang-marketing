@@ -12,16 +12,20 @@ import (
 	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/pkg/notifuse_mjml"
+	"github.com/hengshu-credit/yaoguang-marketing/pkg/webhookclient"
 )
 
 type ChannelProviderResolver interface {
 	Resolve(*domain.Workspace, string, string) (domain.ChannelProvider, error)
 }
 
-type WorkspaceChannelProviderResolver struct{ client *http.Client }
+type WorkspaceChannelProviderResolver struct {
+	client        *http.Client
+	webhookClient *http.Client
+}
 
 func NewWorkspaceChannelProviderResolver(client *http.Client) *WorkspaceChannelProviderResolver {
-	return &WorkspaceChannelProviderResolver{client: client}
+	return &WorkspaceChannelProviderResolver{client: client, webhookClient: webhookclient.New()}
 }
 
 func (r *WorkspaceChannelProviderResolver) Resolve(workspace *domain.Workspace, integrationID, channel string) (domain.ChannelProvider, error) {
@@ -47,7 +51,7 @@ func (r *WorkspaceChannelProviderResolver) Resolve(workspace *domain.Workspace, 
 		if integration.Type != domain.IntegrationTypeChannelWebhook || integration.ChannelWebhookSettings == nil {
 			return nil, fmt.Errorf("integration %s is not a signed channel Webhook provider", integrationID)
 		}
-		return NewSignedWebhookChannelProvider(*integration.ChannelWebhookSettings, channel, r.client, nil, nil)
+		return NewSignedWebhookChannelProvider(*integration.ChannelWebhookSettings, channel, r.webhookClient, nil, nil)
 	}
 }
 

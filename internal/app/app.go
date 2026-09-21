@@ -1440,7 +1440,7 @@ func (a *App) InitServices() error {
 		a.webhookDeliveryRepo,
 		a.workspaceRepo,
 		a.logger,
-		httpClient,
+		nil, // Use the dedicated webhook network policy, not the provider HTTP client.
 	)
 
 	// Initialize email queue worker for processing marketing emails (broadcasts & automations)
@@ -1857,6 +1857,7 @@ func (a *App) Start() error {
 
 	// Apply CORS middleware
 	handler = middleware.CORSMiddleware(handler)
+	handler = middleware.RequestIDMiddleware(handler, a.logger)
 
 	addr := fmt.Sprintf("%s:%d", a.config.Server.Host, a.config.Server.Port)
 	a.logger.WithField("address", addr).

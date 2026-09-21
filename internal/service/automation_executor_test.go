@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
 	pkgmocks "github.com/hengshu-credit/yaoguang-marketing/pkg/mocks"
-	"github.com/golang/mock/gomock"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1197,6 +1197,7 @@ func (e *testNodeExecutor) Execute(ctx context.Context, params NodeExecutionPara
 // Webhook Node Integration Tests
 
 func TestAutomationExecutor_Execute_WebhookNode_Success(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1303,6 +1304,7 @@ func TestAutomationExecutor_Execute_WebhookNode_Success(t *testing.T) {
 }
 
 func TestAutomationExecutor_Execute_WebhookNode_WithSecret(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1378,6 +1380,7 @@ func TestAutomationExecutor_Execute_WebhookNode_WithSecret(t *testing.T) {
 }
 
 func TestAutomationExecutor_Execute_WebhookNode_ServerError_TriggersRetry(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1453,6 +1456,7 @@ func TestAutomationExecutor_Execute_WebhookNode_ServerError_TriggersRetry(t *tes
 }
 
 func TestAutomationExecutor_Execute_WebhookNode_ClientError_TriggersRetry(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1527,6 +1531,7 @@ func TestAutomationExecutor_Execute_WebhookNode_ClientError_TriggersRetry(t *tes
 }
 
 func TestAutomationExecutor_Execute_WebhookNode_TerminalNode(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1600,6 +1605,7 @@ func TestAutomationExecutor_Execute_WebhookNode_TerminalNode(t *testing.T) {
 }
 
 func TestAutomationExecutor_Execute_WebhookNode_ResponseStoredInContext(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 

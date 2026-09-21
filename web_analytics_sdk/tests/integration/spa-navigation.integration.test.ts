@@ -12,7 +12,7 @@ import { ScrollTracker } from '../../src/events/scroll';
 describe('SPA Navigation Integration', () => {
   let navigationTracker: NavigationTracker;
   let scrollTracker: ScrollTracker;
-  let navigationCallback: ReturnType<typeof vi.fn>;
+  let navigationCallback: ReturnType<typeof vi.fn<(newUrl: string) => void>>;
   let originalPushState: typeof history.pushState;
   let originalReplaceState: typeof history.replaceState;
 

@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
 	pkgmocks "github.com/hengshu-credit/yaoguang-marketing/pkg/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1554,7 +1554,7 @@ func TestWebhookSubscriptionSecretIsOwnerOnly(t *testing.T) {
 	}
 
 	stored := func() *domain.WebhookSubscription {
-		return &domain.WebhookSubscription{ID: "sub-1", Name: "crm", URL: "https://x/h", Secret: secret}
+		return &domain.WebhookSubscription{ID: "sub-1", Name: "crm", URL: "https://x.example.com/h", Secret: secret}
 	}
 
 	t.Run("an owner reading a list still gets the secret", func(t *testing.T) {
@@ -1576,7 +1576,7 @@ func TestWebhookSubscriptionSecretIsOwnerOnly(t *testing.T) {
 		require.Len(t, subs, 1)
 		assert.Empty(t, subs[0].Secret)
 		assert.Equal(t, "crm", subs[0].Name, "everything else is still readable")
-		assert.Equal(t, "https://x/h", subs[0].URL)
+		assert.Equal(t, "https://x.example.com/h", subs[0].URL)
 	})
 
 	t.Run("a member reading one subscription does not", func(t *testing.T) {
@@ -1626,7 +1626,7 @@ func TestWebhookSubscriptionSecretIsOwnerOnly(t *testing.T) {
 		svc, repo := newService(t, "member")
 		repo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
-		sub, err := svc.Create(context.Background(), workspaceID, "mine", "https://mine/h",
+		sub, err := svc.Create(context.Background(), workspaceID, "mine", "https://mine.example.com/h",
 			[]string{"contact.created"}, nil, domain.WebhookSubscriptionSourceUser, nil, nil)
 		require.NoError(t, err)
 		assert.NotEmpty(t, sub.Secret)
@@ -1693,7 +1693,7 @@ func TestWebhookSubscriptionService_PermissionEnforcement(t *testing.T) {
 		call func(context.Context, *WebhookSubscriptionService) error
 	}{
 		{"Create", domain.PermissionTypeWrite, func(ctx context.Context, s *WebhookSubscriptionService) error {
-			_, err := s.Create(ctx, workspaceID, "crm", "https://x/h", []string{"contact.created"}, nil, domain.WebhookSubscriptionSourceUser, nil, nil)
+			_, err := s.Create(ctx, workspaceID, "crm", "https://x.example.com/h", []string{"contact.created"}, nil, domain.WebhookSubscriptionSourceUser, nil, nil)
 			return err
 		}},
 		{"GetByID", domain.PermissionTypeRead, func(ctx context.Context, s *WebhookSubscriptionService) error {
@@ -1705,7 +1705,7 @@ func TestWebhookSubscriptionService_PermissionEnforcement(t *testing.T) {
 			return err
 		}},
 		{"Update", domain.PermissionTypeWrite, func(ctx context.Context, s *WebhookSubscriptionService) error {
-			_, err := s.Update(ctx, workspaceID, "sub-1", "crm", "https://x/h", []string{"contact.created"}, nil, boolPtr(true), nil, nil)
+			_, err := s.Update(ctx, workspaceID, "sub-1", "crm", "https://x.example.com/h", []string{"contact.created"}, nil, boolPtr(true), nil, nil)
 			return err
 		}},
 		{"Delete", domain.PermissionTypeWrite, func(ctx context.Context, s *WebhookSubscriptionService) error {
@@ -1759,7 +1759,7 @@ func TestWebhookSubscriptionService_ReadGrantDoesNotRevealSecret(t *testing.T) {
 		domain.PermissionResourceWebhookSubscriptions: {Read: true},
 	}
 	stored := func() *domain.WebhookSubscription {
-		return &domain.WebhookSubscription{ID: "sub-1", Name: "crm", URL: "https://x/h", Secret: secret}
+		return &domain.WebhookSubscription{ID: "sub-1", Name: "crm", URL: "https://x.example.com/h", Secret: secret}
 	}
 
 	t.Run("GetByID", func(t *testing.T) {
@@ -1823,7 +1823,7 @@ func TestWebhookSubscriptionService_TestDeliveryRequiresWrite(t *testing.T) {
 			domain.PermissionResourceWebhookSubscriptions: {Write: true},
 		})
 		repo.EXPECT().GetByID(gomock.Any(), workspaceID, "sub-1").
-			Return(&domain.WebhookSubscription{ID: "sub-1", URL: "https://x/h", Secret: secret}, nil)
+			Return(&domain.WebhookSubscription{ID: "sub-1", URL: "https://x.example.com/h", Secret: secret}, nil)
 
 		sub, err := svc.GetForTestDelivery(context.Background(), workspaceID, "sub-1")
 		require.NoError(t, err)
@@ -1846,7 +1846,7 @@ func TestWebhookSubscriptionService_SecretRedactionPerMethod(t *testing.T) {
 	const storedSecret = "whsec_SENTINEL"
 
 	stored := func() *domain.WebhookSubscription {
-		return &domain.WebhookSubscription{ID: "sub-1", Name: "crm", URL: "https://x/h", Secret: storedSecret}
+		return &domain.WebhookSubscription{ID: "sub-1", Name: "crm", URL: "https://x.example.com/h", Secret: storedSecret}
 	}
 
 	newService := func(t *testing.T, role string) (*WebhookSubscriptionService, *mocks.MockWebhookSubscriptionRepository) {
@@ -1899,7 +1899,7 @@ func TestWebhookSubscriptionService_SecretRedactionPerMethod(t *testing.T) {
 				repo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 			},
 			call: func(ctx context.Context, s *WebhookSubscriptionService) (*domain.WebhookSubscription, error) {
-				return s.Create(ctx, workspaceID, "crm", "https://x/h", []string{"contact.created"}, nil, domain.WebhookSubscriptionSourceUser, nil, nil)
+				return s.Create(ctx, workspaceID, "crm", "https://x.example.com/h", []string{"contact.created"}, nil, domain.WebhookSubscriptionSourceUser, nil, nil)
 			},
 		},
 		"GetByID": {
@@ -1934,7 +1934,7 @@ func TestWebhookSubscriptionService_SecretRedactionPerMethod(t *testing.T) {
 				repo.EXPECT().Update(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 			},
 			call: func(ctx context.Context, s *WebhookSubscriptionService) (*domain.WebhookSubscription, error) {
-				return s.Update(ctx, workspaceID, "sub-1", "crm", "https://x/h", []string{"contact.created"}, nil, boolPtr(true), nil, nil)
+				return s.Update(ctx, workspaceID, "sub-1", "crm", "https://x.example.com/h", []string{"contact.created"}, nil, boolPtr(true), nil, nil)
 			},
 		},
 		"Toggle": {

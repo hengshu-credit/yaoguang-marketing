@@ -27,6 +27,7 @@ export interface MessageHistory {
   template_version: number
   channel: string
   error?: string
+  status_info?: string
   message_data: MessageData
   channel_options?: ChannelOptions
 

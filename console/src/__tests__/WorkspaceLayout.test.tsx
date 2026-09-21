@@ -15,11 +15,12 @@ vi.mock('../contexts/AuthContext', () => ({
   useAuth: vi.fn()
 }))
 
-vi.mock('../i18n/locales/zh-CN.po', () => ({
+// Vitest 4 keeps Vite's ?import suffix on dynamically imported PO catalogs.
+vi.mock('../i18n/locales/zh-CN.po?import', () => ({
   messages: { 'Data Analytics': ['数据分析'] }
 }))
 
-vi.mock('../i18n/locales/en.po', () => ({
+vi.mock('../i18n/locales/en.po?import', () => ({
   messages: {}
 }))
 

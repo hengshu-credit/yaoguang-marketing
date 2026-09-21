@@ -16,15 +16,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain"
 	"github.com/hengshu-credit/yaoguang-marketing/internal/domain/mocks"
 	pkgmocks "github.com/hengshu-credit/yaoguang-marketing/pkg/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewWebhookDeliveryWorker(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -129,6 +130,7 @@ func TestNewWebhookDeliveryWorker(t *testing.T) {
 // single attempt, because MarkDelivered's UPDATE carries no claim predicate.
 // Nothing in the delivery log records the duplicate.
 func TestWebhookDeliveryWorker_theRequestNeverOutlivesTheClaim(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -174,6 +176,7 @@ func TestWebhookDeliveryWorker_theRequestNeverOutlivesTheClaim(t *testing.T) {
 }
 
 func TestWebhookDeliveryWorker_Start(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -220,6 +223,7 @@ func TestWebhookDeliveryWorker_Start(t *testing.T) {
 }
 
 func TestWebhookDeliveryWorker_processDeliveries(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -285,6 +289,7 @@ func TestWebhookDeliveryWorker_processDeliveries(t *testing.T) {
 }
 
 func TestWebhookDeliveryWorker_processWorkspaceDeliveries(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -496,6 +501,7 @@ func TestWebhookDeliveryWorker_processWorkspaceDeliveries(t *testing.T) {
 }
 
 func TestWebhookDeliveryWorker_deliverWebhook(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -696,6 +702,7 @@ func TestWebhookDeliveryWorker_deliverWebhook(t *testing.T) {
 }
 
 func TestWebhookDeliveryWorker_signPayload(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	t.Run("generates valid signature", func(t *testing.T) {
 		msgID := "msg123"
 		timestamp := int64(1234567890)
@@ -839,6 +846,7 @@ func TestWebhookDeliveryWorker_signPayload(t *testing.T) {
 }
 
 func TestWebhookDeliveryWorker_retryScheduling(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -933,6 +941,7 @@ func TestWebhookDeliveryWorker_retryScheduling(t *testing.T) {
 }
 
 func TestWebhookDeliveryWorker_handleDeliverySuccess(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -984,6 +993,7 @@ func TestWebhookDeliveryWorker_handleDeliverySuccess(t *testing.T) {
 }
 
 func TestWebhookDeliveryWorker_handleDeliveryFailure(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1089,6 +1099,7 @@ func TestWebhookDeliveryWorker_handleDeliveryFailure(t *testing.T) {
 }
 
 func TestWebhookDeliveryWorker_SendTestWebhook(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1271,6 +1282,7 @@ func TestWebhookDeliveryWorker_SendTestWebhook(t *testing.T) {
 }
 
 func TestWebhookDeliveryWorker_cleanupOldDeliveries(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1647,6 +1659,7 @@ const testWebhookSecret = "whsec_YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU="
 // turns integrations on and off normally accumulates enough of them to stop
 // delivering anything at all.
 func TestWebhookDeliveryWorker_everySkipPathDrainsTheRow(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	const workspaceID = "ws-1"
 
 	newDelivery := func(payload map[string]interface{}) *domain.WebhookDelivery {
@@ -1749,6 +1762,7 @@ func TestWebhookDeliveryWorker_everySkipPathDrainsTheRow(t *testing.T) {
 // the difference between dropping one row and destroying every in-flight
 // delivery in every workspace during a five-second blip.
 func TestWebhookDeliveryWorker_transientLookupErrorLeavesTheRowPending(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	const workspaceID = "ws-1"
 
 	ctrl := gomock.NewController(t)
@@ -1785,6 +1799,7 @@ func TestWebhookDeliveryWorker_transientLookupErrorLeavesTheRowPending(t *testin
 }
 
 func TestWebhookDeliveryWorker_reclaimStale(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	const workspaceID = "ws-1"
 
 	strandedRow := func(id string, claimedAgo time.Duration, now time.Time) *domain.WebhookDelivery {
@@ -1877,6 +1892,7 @@ func TestClaimLeaseFor(t *testing.T) {
 
 // TestWebhookDeliveryWorker_responsePolicy pins the table in handleResponseStatus.
 func TestWebhookDeliveryWorker_responsePolicy(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	const workspaceID = "ws-1"
 
 	newDelivery := func() *domain.WebhookDelivery {
@@ -2149,6 +2165,7 @@ func TestWebhookDeliveryWorker_responsePolicy(t *testing.T) {
 // TestWebhookDeliveryWorker_drainsResponseBody covers both halves of the limited
 // read: what is stored, and what happens to the bytes that are not.
 func TestWebhookDeliveryWorker_drainsResponseBody(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	const workspaceID = "ws-1"
 
 	ctrl := gomock.NewController(t)
@@ -2207,6 +2224,7 @@ func TestWebhookDeliveryWorker_drainsResponseBody(t *testing.T) {
 // last entry is reachable only for a row carrying a larger per-row ceiling,
 // which is why it is still in the table.
 func TestWebhookRetryLadder(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	reachable := []time.Duration{
 		30 * time.Second,
 		1 * time.Minute,
@@ -2382,6 +2400,7 @@ func TestBuildTestPayload(t *testing.T) {
 // to its new owner. This drives exactly that: the receiver reclaims the second
 // row while the first is being delivered.
 func TestWebhookDeliveryWorker_neverDeliversARowItNoLongerHolds(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	const workspaceID = "ws-1"
 
 	ctrl := gomock.NewController(t)
@@ -2455,6 +2474,7 @@ func TestWebhookDeliveryWorker_neverDeliversARowItNoLongerHolds(t *testing.T) {
 // delivery is marked terminally failed and never retried, for an endpoint that
 // is healthy again a minute later.
 func TestWebhookDeliveryWorker_aBurstDoesNotRetireAHealthyEndpoint(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	const workspaceID = "ws-1"
 
 	ctrl := gomock.NewController(t)
@@ -2520,6 +2540,7 @@ func TestWebhookDeliveryWorker_aBurstDoesNotRetireAHealthyEndpoint(t *testing.T)
 // The window is the only thing between the two outcomes: identical counts,
 // identical responses, different answers.
 func TestWebhookDeliveryWorker_retiresAnEndpointOnlyOnceTheFailuresPersist(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	const workspaceID = "ws-1"
 
 	run := func(t *testing.T, failingFor time.Duration) (*domain.WebhookSubscription, bool) {
@@ -2581,6 +2602,7 @@ func TestWebhookDeliveryWorker_retiresAnEndpointOnlyOnceTheFailuresPersist(t *te
 // retired by nineteen 500s as a 404 problem, pointing the user at a URL that was
 // never wrong.
 func TestWebhookDeliveryWorker_disableReasonDoesNotBlameTheLastStatus(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	const workspaceID = "ws-1"
 
 	reasonFor := func(t *testing.T, status int) string {
@@ -2649,6 +2671,7 @@ func TestWebhookDeliveryWorker_disableReasonDoesNotBlameTheLastStatus(t *testing
 // genuine outage's run mid-ladder and restart the count from one while the
 // endpoint was still dead.
 func TestWebhookAutoDisableNumbersBracketTheRetryLadder(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	// What the PL/pgSQL webhook triggers insert into max_attempts.
 	const maxAttempts = 10
 
@@ -2678,6 +2701,7 @@ func TestWebhookAutoDisableNumbersBracketTheRetryLadder(t *testing.T) {
 // retired by twenty seconds of a transient blip, and the disabled branch drained
 // everything it still had queued.
 func TestWebhookDeliveryWorker_aSuccessEndsTheRunForTheCachedSubscription(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	const workspaceID = "ws-1"
 
 	ctrl := gomock.NewController(t)
@@ -2759,6 +2783,7 @@ func TestWebhookDeliveryWorker_aSuccessEndsTheRunForTheCachedSubscription(t *tes
 // window at once and retired the subscription, under a reason describing a
 // sustained outage that was three days of silence.
 func TestWebhookDeliveryWorker_aFailureLongAfterTheLastOneStartsANewRun(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	const workspaceID = "ws-1"
 
 	ctrl := gomock.NewController(t)
@@ -2818,6 +2843,7 @@ func TestWebhookDeliveryWorker_aFailureLongAfterTheLastOneStartsANewRun(t *testi
 // the rule above: the expiry must not become a way for a genuinely dead endpoint
 // to dodge retirement forever.
 func TestWebhookDeliveryWorker_aRunInsideItsMaximumAgeStillRetires(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	const workspaceID = "ws-1"
 
 	ctrl := gomock.NewController(t)
@@ -2859,6 +2885,7 @@ func TestWebhookDeliveryWorker_aRunInsideItsMaximumAgeStillRetires(t *testing.T)
 // second time: a duplicate side effect in whatever consumes the webhook,
 // manufactured by the guard that exists to prevent duplicates.
 func TestWebhookDeliveryWorker_aPanicAfterDeliveryDoesNotSendItTwice(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	const workspaceID = "ws-1"
 
 	ctrl := gomock.NewController(t)
@@ -2913,6 +2940,7 @@ func TestWebhookDeliveryWorker_aPanicAfterDeliveryDoesNotSendItTwice(t *testing.
 // the sweep hands the row to another, and the late release must not yank it back
 // out from under a POST already in flight.
 func TestWebhookDeliveryWorker_aLateReleaseDoesNotStealBackAReclaimedRow(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	const workspaceID = "ws-1"
 
 	ctrl := gomock.NewController(t)
@@ -2963,6 +2991,7 @@ func TestWebhookDeliveryWorker_aLateReleaseDoesNotStealBackAReclaimedRow(t *test
 // call inside the batch loop and nothing else — listing workspaces, the loop
 // itself, the reclaim sweep and the retention cleanup all ran bare.
 func TestWebhookDeliveryWorker_aPanicAnywhereInThePollIsContained(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	ctx := context.Background()
 
 	cases := map[string]func(t *testing.T) *WebhookDeliveryWorker{
@@ -3054,6 +3083,7 @@ func (s *webhookPanickyReleaseStore) ReleaseClaim(context.Context, string, strin
 // Both callers of the release are driven, because they fail the same way for the
 // same reason and only one of them is a deferred call.
 func TestWebhookDeliveryWorker_aPanicInTheReleasePathCostsOneDelivery(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	const workspaceID = "ws-1"
 
 	newBatch := func() *webhookPanickyReleaseStore {
@@ -3170,6 +3200,7 @@ func TestWebhookDeliveryWorker_aPanicInTheReleasePathCostsOneDelivery(t *testing
 // the sweep has already handed it to whoever polls next. With it, the attempt is
 // abandoned inside the claim and the ladder schedules another.
 func TestWebhookDeliveryWorker_aShortLeaseCutsTheRequestNotTheOtherWayRound(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	const workspaceID = "ws-1"
 
 	ctrl := gomock.NewController(t)
@@ -3252,6 +3283,7 @@ func TestWebhookDeliveryWorker_aShortLeaseCutsTheRequestNotTheOtherWayRound(t *t
 // to a second worker while the first one's request is still open, both POST it,
 // and the delivery log still says one attempt.
 func TestWebhookDeliveryWorker_theRequestBudgetIsSpentFromTheClaim(t *testing.T) {
+	t.Setenv("YAOGUANG_WEBHOOK_ALLOW_PRIVATE_HOSTS", "true") // Explicit opt-in for loopback fixtures.
 	const workspaceID = "ws-1"
 
 	newRow := func() *domain.WebhookDelivery {

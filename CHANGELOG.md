@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **Improvement**: Adapted selected Notifuse follow-ups to Yaoguang: optional multi-channel message metadata, actual provider failure details, transactional scopes for new Zapier connections, magic-code autofill, shared request IDs, and purpose-aware AI editor completion with a bounded read-only explanation.
+- **Security**: Protected subscription, Journey and signed-channel webhook requests against private-network access by default, with an explicit self-hosted opt-in; refreshed affected frontend/Go dependencies and the production Alpine base. See [upstream review and compatibility notes](docs/operations/notifuse-upstream-2026-09-21.md).
+
 - **Improvement**: Added workspace-level marketing-console font configuration with editable preset names, uploaded `.ttf`/`.otf`/`.woff`/`.woff2` files through the existing file manager, a multilingual system fallback, and consistent page-header alignment across Audiences, Broadcasts, Templates and File Manager.
 
 ## [55.0] - 2026-09-01

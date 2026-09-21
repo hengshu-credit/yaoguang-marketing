@@ -19886,3 +19886,376 @@ msgstr "L'URL endpoint di questo webhook appartiene a Zapier, quindi non può es
 #: src/components/file_manager/fileManager.tsx:784
 msgid "Zip"
 msgstr "Zip"
+
+
+#: src/components/messages/MessageHistoryTable.tsx
+#: src/components/templates/TemplatePreviewDrawer.tsx
+msgid "Metadata"
+msgstr "Metadati"
+
+#: src/components/settings/ZapierSettings.tsx
+msgid "New connections can read and send transactional notifications. Existing API keys keep their permissions."
+msgstr "Le nuove connessioni possono leggere e inviare notifiche transazionali. Le chiavi API esistenti mantengono le proprie autorizzazioni."
+
+
+#. placeholder {0}: keys.length
+#: src/components/business/EventFieldsExtensionDrawer.tsx:35
+msgid "{0} events selected"
+msgstr "{0} events selected"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:92
+msgid "A sample could not be generated because configured paths overlap or are unsupported. Check the paths or paste your own payload."
+msgstr "A sample could not be generated because configured paths overlap or are unsupported. Check the paths or paste your own payload."
+
+#: src/components/business/EventReportingSettings.tsx:60
+msgid "Activate the referenced object type before activating this event."
+msgstr "Activate the referenced object type before activating this event."
+
+#: src/components/business/reporting-messages.ts:11
+msgid "Add at least one exact HTTP origin, without a path, wildcard, credentials or query string."
+msgstr "Add at least one exact HTTP origin, without a path, wildcard, credentials or query string."
+
+#: src/components/business/BusinessDefinitionSettings.tsx:78
+msgid "After the envelope is mapped, use $.data or $.customer_attributes here. These paths do not read the original external payload."
+msgstr "After the envelope is mapped, use $.data or $.customer_attributes here. These paths do not read the original external payload."
+
+#: src/components/business/BusinessConfigurationGuide.tsx:7
+msgid "An event code describes an action; a report ID identifies one occurrence"
+msgstr "An event code describes an action; a report ID identifies one occurrence"
+
+#: src/components/business/BusinessDefinitionSettings.tsx:78
+msgid "Attribute paths read the normalized event"
+msgstr "Attribute paths read the normalized event"
+
+#: src/components/business/EventReportingSettings.tsx:34
+msgid "Authenticated backend only"
+msgstr "Authenticated backend only"
+
+#: src/components/business/EventReportingGuide.tsx:22
+msgid "Backend endpoint"
+msgstr "Backend endpoint"
+
+#: src/components/business/EventReportingGuide.tsx:29
+msgid "Backend request JSON"
+msgstr "Backend request JSON"
+
+#: src/components/business/EventReportingSettings.tsx:38
+msgid "Backend requests use a workspace API credential. Browser requests use the SDK and a short-lived identity credential, never an API key."
+msgstr "Backend requests use a workspace API credential. Browser requests use the SDK and a short-lived identity credential, never an API key."
+
+#: src/components/business/EventReportingSettings.tsx:35
+msgid "Browser behavior and authenticated backend"
+msgstr "Browser behavior and authenticated backend"
+
+#: src/components/business/reporting-messages.ts:10
+msgid "Browser reporting supports customer events only. Use backend reporting for business objects."
+msgstr "Browser reporting supports customer events only. Use backend reporting for business objects."
+
+#: src/components/business/EventReportingGuide.tsx:32
+msgid "Browser SDK example"
+msgstr "Browser SDK example"
+
+#: src/components/business/EventReportingGuide.tsx:31
+msgid "Browser SDK reporting"
+msgstr "Browser SDK reporting"
+
+#: src/components/business/reporting-messages.ts:8
+msgid "Choose an expiration policy."
+msgstr "Choose an expiration policy."
+
+#: src/components/business/EventReportingSettings.tsx:53
+msgid "Choose Customer for a user action, or a business object for one specific order, contract or application."
+msgstr "Choose Customer for a user action, or a business object for one specific order, contract or application."
+
+#: src/components/business/BusinessDefinitionSettings.tsx:66
+msgid "Choose one event for this mapping, or leave it empty and map event_code from each report."
+msgstr "Choose one event for this mapping, or leave it empty and map event_code from each report."
+
+#: src/components/business/reporting-messages.ts:9
+msgid "Choose one reporting mode. Browser reporting cannot require a trusted backend at the same time."
+msgstr "Choose one reporting mode. Browser reporting cannot require a trusted backend at the same time."
+
+#: src/components/business/EventFieldsExtensionDrawer.tsx:35
+msgid "Clear selection"
+msgstr "Clear selection"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:106
+msgid "Configure → validate a sample → activate → integrate"
+msgstr "Configure → validate a sample → activate → integrate"
+
+#: src/components/business/EventReportingSettings.tsx:52
+msgid "Customer and business object"
+msgstr "Customer and business object"
+
+#: src/components/business/EventReportingSettings.tsx:74
+msgid "Default duration after occurrence"
+msgstr "Default duration after occurrence"
+
+#: src/components/business/EventReportingSettings.tsx:77
+#: src/components/business/EventReportingSettings.tsx:79
+msgid "Default validity duration"
+msgstr "Default validity duration"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:106
+msgid "Drafts do not accept reports. Activation uses the current configuration; sample validation never writes customer data or triggers marketing."
+msgstr "Drafts do not accept reports. Activation uses the current configuration; sample validation never writes customer data or triggers marketing."
+
+#: src/components/business/EventReportingSettings.tsx:80
+msgid "Duration unit"
+msgstr "Duration unit"
+
+#: src/components/business/EventReportingSettings.tsx:85
+msgid "Each report must provide expires_at, no earlier than triggered_at."
+msgstr "Each report must provide expires_at, no earlier than triggered_at."
+
+#: src/components/business/reporting-messages.ts:7
+msgid "Enter a duration that is a whole number of seconds, between 1 second and 10 years."
+msgstr "Enter a duration that is a whole number of seconds, between 1 second and 10 years."
+
+#: src/components/business/EventReportingSettings.tsx:40
+msgid "Enter a website origin such as https://app.example.com. A trailing slash or default port is normalized; a page path is not accepted."
+msgstr "Enter a website origin such as https://app.example.com. A trailing slash or default port is normalized; a page path is not accepted."
+
+#: src/components/business/BusinessDefinitionSettings.tsx:65
+msgid "Envelope paths below read the external JSON inside the request's event field, not the whole HTTP request. Optional paths can be cleared."
+msgstr "Envelope paths below read the external JSON inside the request's event field, not the whole HTTP request. Optional paths can be cleared."
+
+#: src/components/business/EventReportingSettings.tsx:71
+msgid "Event validity"
+msgstr "Event validity"
+
+#: src/components/business/EventReportingGuide.tsx:27
+#: src/components/business/EventReportingGuide.tsx:27
+msgid "Example source system"
+msgstr "Example source system"
+
+#: src/components/business/EventReportingSettings.tsx:86
+msgid "Expiration prevents new real-time marketing actions; it does not delete the event or erase historical analysis."
+msgstr "Expiration prevents new real-time marketing actions; it does not delete the event or erase historical analysis."
+
+#: src/components/business/EventReportingSettings.tsx:86
+msgid "Expired events remain historical facts"
+msgstr "Expired events remain historical facts"
+
+#: src/components/business/EventReportingSettings.tsx:85
+msgid "expires_at may be omitted. An explicitly reported expiration still takes effect."
+msgstr "expires_at may be omitted. An explicitly reported expiration still takes effect."
+
+#: src/components/business/BusinessConfigurationGuide.tsx:7
+msgid "Field mappings adapt an external payload, without creating a second event protocol"
+msgstr "Field mappings adapt an external payload, without creating a second event protocol"
+
+#: src/components/business/BusinessConfigurationGuide.tsx:7
+msgid "For your own events, configure reporting access and data fields, validate an example, then activate and copy the integration instructions. Built-in events are produced by the platform and remain read-only."
+msgstr "For your own events, configure reporting access and data fields, validate an example, then activate and copy the integration instructions. Built-in events are produced by the platform and remain read-only."
+
+#: src/components/business/EventReportingGuide.tsx:29
+msgid "Generate or paste a valid sample JSON object on the sample tab first."
+msgstr "Generate or paste a valid sample JSON object on the sample tab first."
+
+#: src/components/business/BusinessDefinitionEditor.tsx:135
+msgid "Generate sample"
+msgstr "Generate sample"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:122
+msgid "Generate sample from configuration"
+msgstr "Generate sample from configuration"
+
+#: src/components/business/BusinessDefinitionSettings.tsx:62
+msgid "Historical backfill flag path"
+msgstr "Historical backfill flag path"
+
+#: src/components/business/EventFieldsExtensionDrawer.tsx:36
+msgid "Identical definitions can be applied again; conflicting definitions reject the whole batch without changing any event."
+msgstr "Identical definitions can be applied again; conflicting definitions reject the whole batch without changing any event."
+
+#: src/components/business/EventReportingGuide.tsx:31
+msgid "Initialize the SDK for this workspace on an allowed origin. Your backend issues a browserEvents.issueCredential credential for the verified customer and session; call identifyCustomer before identifying reports. Anonymous events remain pending. The SDK generates the occurrence ID and time once and preserves them on retry."
+msgstr "Initialize the SDK for this workspace on an allowed origin. Your backend issues a browserEvents.issueCredential credential for the verified customer and session; call identifyCustomer before identifying reports. Anonymous events remain pending. The SDK generates the occurrence ID and time once and preserves them on retry."
+
+#: src/components/business/BusinessDefinitionEditor.tsx:131
+msgid "Integration instructions"
+msgstr "Integration instructions"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:135
+msgid "Keep sample"
+msgstr "Keep sample"
+
+#: src/components/business/BusinessDefinitionSettings.tsx:65
+msgid "Map the external payload to the event protocol"
+msgstr "Map the external payload to the event protocol"
+
+#: src/components/business/EventReportingSettings.tsx:69
+msgid "New identities can create customers. Use stable identifiers and check the source before enabling this behavior."
+msgstr "New identities can create customers. Use stable identifiers and check the source before enabling this behavior."
+
+#: src/components/business/EventReportingSettings.tsx:74
+msgid "No expiration required"
+msgstr "No expiration required"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:99
+msgid "No unsaved configuration changes"
+msgstr "No unsaved configuration changes"
+
+#: src/components/business/EventReportingGuide.tsx:24
+msgid "Occurrence and receipt time"
+msgstr "Occurrence and receipt time"
+
+#: src/components/business/EventReportingSettings.tsx:62
+msgid "Optional: an object in the normalized event used to update the business record."
+msgstr "Optional: an object in the normalized event used to update the business record."
+
+#: src/components/business/BusinessDefinitionEditor.tsx:120
+msgid "Paste only the event object, not the workspace_id/source/event request wrapper."
+msgstr "Paste only the event object, not the workspace_id/source/event request wrapper."
+
+#: src/components/business/BusinessDefinitionEditor.tsx:120
+msgid "Paste the external JSON, before field mapping."
+msgstr "Paste the external JSON, before field mapping."
+
+#: src/components/business/EventReportingSettings.tsx:61
+msgid "Path in the normalized event. The value must be the external ID of this particular business record."
+msgstr "Path in the normalized event. The value must be the external ID of this particular business record."
+
+#: src/components/business/BusinessDefinitionEditor.tsx:135
+msgid "Replace the edited sample?"
+msgstr "Replace the edited sample?"
+
+#: src/components/business/EventFieldsExtensionDrawer.tsx:40
+#: src/components/business/EventFieldsExtensionDrawer.tsx:41
+msgid "Report data example"
+msgstr "Report data example"
+
+#: src/components/business/EventReportingSettings.tsx:31
+msgid "Reporting access"
+msgstr "Reporting access"
+
+#: src/components/business/EventReportingSettings.tsx:32
+#: src/components/business/EventReportingSettings.tsx:33
+msgid "Reporting mode"
+msgstr "Reporting mode"
+
+#: src/components/business/EventReportingSettings.tsx:45
+#: src/components/business/EventReportingSettings.tsx:46
+msgid "Restrict backend source systems"
+msgstr "Restrict backend source systems"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:102
+msgid "Save and activate"
+msgstr "Save and activate"
+
+#: src/components/business/EventReportingGuide.tsx:20
+msgid "Save and activate the event and any field mapping before sending. Examples use the current unsaved configuration and sample."
+msgstr "Save and activate the event and any field mapping before sending. Examples use the current unsaved configuration and sample."
+
+#: src/components/business/BusinessDefinitionEditor.tsx:101
+msgid "Save draft"
+msgstr "Save draft"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:99
+msgid "Saving..."
+msgstr "Saving..."
+
+#: src/components/business/EventReportingSettings.tsx:81
+msgid "Seconds"
+msgstr "Seconds"
+
+#: src/components/business/reporting-messages.ts:15
+msgid "Select a customer attribute and a path under the normalized $.data or $.customer_attributes object."
+msgstr "Select a customer attribute and a path under the normalized $.data or $.customer_attributes object."
+
+#: src/components/business/reporting-messages.ts:13
+msgid "Select a fixed event or map its stable event code."
+msgstr "Select a fixed event or map its stable event code."
+
+#: src/components/business/EventFieldsExtensionDrawer.tsx:35
+msgid "Select all events"
+msgstr "Select all events"
+
+#: src/components/business/reporting-messages.ts:12
+msgid "Select at least one source or explicitly turn off the source restriction."
+msgstr "Select at least one source or explicitly turn off the source restriction."
+
+#: src/components/business/EventFieldsExtensionDrawer.tsx:34
+msgid "Select the events to extend"
+msgstr "Select the events to extend"
+
+#: src/components/business/EventReportingGuide.tsx:23
+msgid "Server-side Bearer API credential with Contacts write permission. Never put it in browser code."
+msgstr "Server-side Bearer API credential with Contacts write permission. Never put it in browser code."
+
+#: src/components/business/EventFieldsExtensionDrawer.tsx:36
+msgid "Some selected events already declare these fields"
+msgstr "Some selected events already declare these fields"
+
+#: src/components/business/EventReportingSettings.tsx:85
+msgid "The default starts at triggered_at, not receipt time. A supplied expires_at takes precedence."
+msgstr "The default starts at triggered_at, not receipt time. A supplied expires_at takes precedence."
+
+#: src/components/business/EventFieldsExtensionDrawer.tsx:39
+msgid "The example below follows the fields currently configured. Merge data into your existing report; it is not a complete event request."
+msgstr "The example below follows the fields currently configured. Merge data into your existing report; it is not a complete event request."
+
+#: src/components/business/EventReportingGuide.tsx:28
+msgid "The example source is not in the allowed source list."
+msgstr "The example source is not in the allowed source list."
+
+#: src/components/business/EventReportingGuide.tsx:34
+msgid "The external JSON belongs inside event; mapping_key selects this mapping. Do not apply the mapping twice."
+msgstr "The external JSON belongs inside event; mapping_key selects this mapping. Do not apply the mapping twice."
+
+#: src/components/business/BusinessDefinitionEditor.tsx:135
+msgid "The new sample uses the current fields and mapping. Your pasted payload will be replaced."
+msgstr "The new sample uses the current fields and mapping. Your pasted payload will be replaced."
+
+#: src/components/business/EventReportingSettings.tsx:48
+msgid "These values match the source field of events.track exactly. An empty restricted list accepts no backend reports."
+msgstr "These values match the source field of events.track exactly. An empty restricted list accepts no backend reports."
+
+#: src/components/business/EventReportingSettings.tsx:64
+msgid "This applies to backend reporting. Anonymous browser events always remain pending until a verified identity is linked."
+msgstr "This applies to backend reporting. Anonymous browser events always remain pending until a verified identity is linked."
+
+#: src/components/business/EventReportingGuide.tsx:27
+msgid "This changes the copied request only, not the saved source restriction."
+msgstr "This changes the copied request only, not the saved source restriction."
+
+#: src/components/business/EventReportingGuide.tsx:20
+msgid "This is a configuration example, not a live endpoint test"
+msgstr "This is a configuration example, not a live endpoint test"
+
+#: src/components/business/reporting-messages.ts:14
+msgid "This mapping is required for activation and sample validation."
+msgstr "This mapping is required for activation and sample validation."
+
+#: src/components/business/EventReportingGuide.tsx:24
+msgid "triggered_at is when the action happened. reported_at is assigned by the server and must not be mapped."
+msgstr "triggered_at is when the action happened. reported_at is assigned by the server and must not be mapped."
+
+#: src/components/business/EventReportingSettings.tsx:56
+msgid "Unavailable"
+msgstr "Unavailable"
+
+#: src/components/business/reporting-messages.ts:16
+msgid "Use a literal object path such as $.data.order_id. Arrays and wildcards are not supported."
+msgstr "Use a literal object path such as $.data.order_id. Arrays and wildcards are not supported."
+
+#: src/components/business/BusinessConfigurationGuide.tsx:7
+msgid "Use a mapping only when your application cannot send the standard event object. Define and activate the target event first, then map the external JSON and validate a sample."
+msgstr "Use a mapping only when your application cannot send the standard event object. Define and activate the target event first, then map the external JSON and validate a sample."
+
+#: src/components/business/EventReportingGuide.tsx:25
+msgid "Use a new report_id for each real occurrence. Retry the same occurrence with exactly the same ID, source and payload."
+msgstr "Use a new report_id for each real occurrence. Retry the same occurrence with exactly the same ID, source and payload."
+
+#: src/components/business/BusinessDefinitionEditor.tsx:125
+msgid "Validation passed for this configuration and sample only. Source permissions, browser credentials and live ingestion still apply."
+msgstr "Validation passed for this configuration and sample only. Source permissions, browser credentials and live ingestion still apply."
+
+#: src/components/business/EventReportingSettings.tsx:45
+msgid "When disabled, any authenticated source is allowed. Browser access is controlled separately by the origin list."
+msgstr "When disabled, any authenticated source is allowed. Browser access is controlled separately by the origin list."
+
+#: src/components/business/BusinessDefinitionEditor.tsx:134
+msgid "Your configuration edits and sample input will be lost."
+msgstr "Your configuration edits and sample input will be lost."

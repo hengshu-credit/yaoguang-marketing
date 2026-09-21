@@ -1,6 +1,13 @@
 package emailerror
 
+import (
+	"errors"
+	"regexp"
+)
+
 // SMTP error classification
+var smtpPolicyStatus = regexp.MustCompile(`\b5\.7\.\d+\b`)
+
 //
 // RECIPIENT ERRORS (5xx permanent failures - should NOT trigger circuit breaker):
 // - 550: Mailbox unavailable (recipient doesn't exist)
@@ -76,6 +83,17 @@ func (c *Classifier) classifySMTPError(err error, errStr string, httpStatus int)
 		Provider:   "smtp",
 		HTTPStatus: httpStatus,
 		Retryable:  true,
+	}
+
+	var reply *SMTPReplyError
+	if errors.As(err, &reply) {
+		result.Type = ErrorTypeProvider
+		result.Retryable = reply.Code >= 400 && reply.Code < 500
+		if reply.Stage == "RCPT TO" && reply.Code >= 550 && reply.Code <= 553 &&
+			!smtpPolicyStatus.MatchString(reply.Message) {
+			result.Type = ErrorTypeRecipient
+		}
+		return result
 	}
 
 	// Check for recipient-specific errors (5xx permanent failures)

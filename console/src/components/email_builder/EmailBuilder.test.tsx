@@ -38,7 +38,7 @@ const makeTree = (marker: string): EmailBlock =>
 
 const props = (
   tree: EmailBlock,
-  onCompile: ReturnType<typeof vi.fn>,
+  onCompile: ReturnType<typeof vi.fn<React.ComponentProps<typeof EmailBuilder>['onCompile']>>,
   forcedViewMode: 'edit' | 'preview' | null
 ) => ({
   tree,
@@ -51,7 +51,7 @@ const props = (
 })
 
 describe('EmailBuilder preview auto-recompile', () => {
-  let onCompile: ReturnType<typeof vi.fn>
+  let onCompile: ReturnType<typeof vi.fn<React.ComponentProps<typeof EmailBuilder>['onCompile']>>
 
   beforeEach(() => {
     onCompile = vi.fn().mockResolvedValue({ html: '<html></html>', mjml: '<mjml></mjml>' })

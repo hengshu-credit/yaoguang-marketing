@@ -150,6 +150,7 @@ export function BlogAIAssistant({
     config,
     tools: BLOG_AI_TOOLS,
     toolHandlers,
+    explainToolOnlyResults: true,
     buildSystemPrompt
   })
 

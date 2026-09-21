@@ -11,13 +11,15 @@ import {
   serializeEmailTree,
   type EmailAIAgentCallbacks
 } from './email-ai-tools'
-import { EMAIL_AI_SYSTEM_PROMPT } from './email-ai-system-prompt'
+import { EMAIL_AI_SYSTEM_PROMPT, emailPurposeInstructions } from './email-ai-system-prompt'
 
 interface EmailAIAssistantProps {
   workspace: Workspace
   callbacks: EmailAIAgentCallbacks
   currentSubject?: string
   currentPreviewText?: string
+  category?: string
+  categoryPurpose?: 'marketing' | 'transactional'
   onUpdateSubject?: (subject: string) => void
   onUpdatePreviewText?: (preview: string) => void
   // Validates the current email after the assistant edits it (e.g. compiles MJML)
@@ -47,13 +49,15 @@ export function EmailAIAssistant({
   callbacks,
   currentSubject,
   currentPreviewText,
+  category,
+  categoryPurpose,
   onUpdateSubject,
   onUpdatePreviewText,
   validateOnComplete,
   hidden = false
 }: EmailAIAssistantProps) {
   const buildSystemPrompt = () => {
-    let systemPrompt = EMAIL_AI_SYSTEM_PROMPT
+    let systemPrompt = EMAIL_AI_SYSTEM_PROMPT + emailPurposeInstructions(category, categoryPurpose)
 
     const currentTree = callbacks.getEmailTree()
     if (currentTree) {
@@ -190,6 +194,7 @@ export function EmailAIAssistant({
     tools: EMAIL_AI_TOOLS,
     toolHandlers,
     buildSystemPrompt,
+    explainToolOnlyResults: true,
     validateOnComplete
   })
 

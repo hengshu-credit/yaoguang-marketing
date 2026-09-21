@@ -20467,3 +20467,376 @@ msgstr "处理状态"
 
 msgid "Five-minute transition trigger deadline"
 msgstr "状态变化触发截止时间，发生后五分钟"
+
+
+#: src/components/messages/MessageHistoryTable.tsx
+#: src/components/templates/TemplatePreviewDrawer.tsx
+msgid "Metadata"
+msgstr "元数据"
+
+#: src/components/settings/ZapierSettings.tsx
+msgid "New connections can read and send transactional notifications. Existing API keys keep their permissions."
+msgstr "新建连接可读取和发送事务通知；已有 API 密钥保持原有权限。"
+
+
+#. placeholder {0}: keys.length
+#: src/components/business/EventFieldsExtensionDrawer.tsx:35
+msgid "{0} events selected"
+msgstr "已选择 {0} 个事件"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:92
+msgid "A sample could not be generated because configured paths overlap or are unsupported. Check the paths or paste your own payload."
+msgstr "配置的路径重叠或不受支持，无法生成样例。请检查路径，或粘贴应用的实际载荷。"
+
+#: src/components/business/EventReportingSettings.tsx:60
+msgid "Activate the referenced object type before activating this event."
+msgstr "请先启用所引用的业务对象类型，再启用此事件。"
+
+#: src/components/business/reporting-messages.ts:11
+msgid "Add at least one exact HTTP origin, without a path, wildcard, credentials or query string."
+msgstr "请添加至少一个精确的 HTTP 来源地址，不包含路径、通配符、凭据或查询参数。"
+
+#: src/components/business/BusinessDefinitionSettings.tsx:78
+msgid "After the envelope is mapped, use $.data or $.customer_attributes here. These paths do not read the original external payload."
+msgstr "完成协议字段映射后，此处从 $.data 或 $.customer_attributes 读取，不再读取外部原始载荷。"
+
+#: src/components/business/BusinessConfigurationGuide.tsx:7
+msgid "An event code describes an action; a report ID identifies one occurrence"
+msgstr "事件编码描述行为，上报 ID 标识一次真实发生"
+
+#: src/components/business/BusinessDefinitionSettings.tsx:78
+msgid "Attribute paths read the normalized event"
+msgstr "属性路径读取规范化后的事件"
+
+#: src/components/business/EventReportingSettings.tsx:34
+msgid "Authenticated backend only"
+msgstr "仅允许受认证后端上报"
+
+#: src/components/business/EventReportingGuide.tsx:22
+msgid "Backend endpoint"
+msgstr "后端接入地址"
+
+#: src/components/business/EventReportingGuide.tsx:29
+msgid "Backend request JSON"
+msgstr "后端请求 JSON"
+
+#: src/components/business/EventReportingSettings.tsx:38
+msgid "Backend requests use a workspace API credential. Browser requests use the SDK and a short-lived identity credential, never an API key."
+msgstr "后端使用工作空间 API 凭据；浏览器使用 SDK 和短期身份凭证，切勿使用 API 密钥。"
+
+#: src/components/business/EventReportingSettings.tsx:35
+msgid "Browser behavior and authenticated backend"
+msgstr "允许浏览器行为与受认证后端上报"
+
+#: src/components/business/reporting-messages.ts:10
+msgid "Browser reporting supports customer events only. Use backend reporting for business objects."
+msgstr "浏览器仅支持客户级事件，业务对象事件请由后端上报。"
+
+#: src/components/business/EventReportingGuide.tsx:32
+msgid "Browser SDK example"
+msgstr "浏览器 SDK 示例"
+
+#: src/components/business/EventReportingGuide.tsx:31
+msgid "Browser SDK reporting"
+msgstr "浏览器 SDK 上报"
+
+#: src/components/business/reporting-messages.ts:8
+msgid "Choose an expiration policy."
+msgstr "请选择事件有效期策略。"
+
+#: src/components/business/EventReportingSettings.tsx:53
+msgid "Choose Customer for a user action, or a business object for one specific order, contract or application."
+msgstr "用户行为选择“客户”；某一笔订单、合同或申请的行为选择对应业务对象。"
+
+#: src/components/business/BusinessDefinitionSettings.tsx:66
+msgid "Choose one event for this mapping, or leave it empty and map event_code from each report."
+msgstr "可固定映射到一个事件；留空时从每条上报中映射 event_code。"
+
+#: src/components/business/reporting-messages.ts:9
+msgid "Choose one reporting mode. Browser reporting cannot require a trusted backend at the same time."
+msgstr "请选择一种上报方式，不能同时允许浏览器上报并要求仅可信后端。"
+
+#: src/components/business/EventFieldsExtensionDrawer.tsx:35
+msgid "Clear selection"
+msgstr "清空选择"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:106
+msgid "Configure → validate a sample → activate → integrate"
+msgstr "配置 → 校验样例 → 启用 → 接入"
+
+#: src/components/business/EventReportingSettings.tsx:52
+msgid "Customer and business object"
+msgstr "客户与业务对象"
+
+#: src/components/business/EventReportingSettings.tsx:74
+msgid "Default duration after occurrence"
+msgstr "按发生时间计算默认有效时长"
+
+#: src/components/business/EventReportingSettings.tsx:77
+#: src/components/business/EventReportingSettings.tsx:79
+msgid "Default validity duration"
+msgstr "默认有效时长"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:106
+msgid "Drafts do not accept reports. Activation uses the current configuration; sample validation never writes customer data or triggers marketing."
+msgstr "草稿不接收上报。启用时使用当前配置；样例校验不会写入客户数据或触发营销。"
+
+#: src/components/business/EventReportingSettings.tsx:80
+msgid "Duration unit"
+msgstr "时长单位"
+
+#: src/components/business/EventReportingSettings.tsx:85
+msgid "Each report must provide expires_at, no earlier than triggered_at."
+msgstr "每条上报必须提供 expires_at，且不得早于 triggered_at。"
+
+#: src/components/business/reporting-messages.ts:7
+msgid "Enter a duration that is a whole number of seconds, between 1 second and 10 years."
+msgstr "时长须可换算为整数秒，范围为 1 秒至 10 年。"
+
+#: src/components/business/EventReportingSettings.tsx:40
+msgid "Enter a website origin such as https://app.example.com. A trailing slash or default port is normalized; a page path is not accepted."
+msgstr "请输入网站来源，如 https://app.example.com。末尾斜杠和默认端口会规范化，不接受具体页面路径。"
+
+#: src/components/business/BusinessDefinitionSettings.tsx:65
+msgid "Envelope paths below read the external JSON inside the request's event field, not the whole HTTP request. Optional paths can be cleared."
+msgstr "以下路径读取请求 event 字段中的外部 JSON，不读取整个 HTTP 请求。可选路径可以清空。"
+
+#: src/components/business/EventReportingSettings.tsx:71
+msgid "Event validity"
+msgstr "事件有效期"
+
+#: src/components/business/EventReportingGuide.tsx:27
+#: src/components/business/EventReportingGuide.tsx:27
+msgid "Example source system"
+msgstr "示例来源系统"
+
+#: src/components/business/EventReportingSettings.tsx:86
+msgid "Expiration prevents new real-time marketing actions; it does not delete the event or erase historical analysis."
+msgstr "过期后不再启动新的实时营销动作，但不会删除事件或清除历史分析。"
+
+#: src/components/business/EventReportingSettings.tsx:86
+msgid "Expired events remain historical facts"
+msgstr "过期事件仍保留为历史事实"
+
+#: src/components/business/EventReportingSettings.tsx:85
+msgid "expires_at may be omitted. An explicitly reported expiration still takes effect."
+msgstr "可以省略 expires_at；若上报方明确提供到期时间，该时间仍会生效。"
+
+#: src/components/business/BusinessConfigurationGuide.tsx:7
+msgid "Field mappings adapt an external payload, without creating a second event protocol"
+msgstr "字段映射用于适配外部载荷，不另建一套事件协议"
+
+#: src/components/business/BusinessConfigurationGuide.tsx:7
+msgid "For your own events, configure reporting access and data fields, validate an example, then activate and copy the integration instructions. Built-in events are produced by the platform and remain read-only."
+msgstr "自定义事件先配置上报权限和数据字段，再校验样例、启用并复制接入说明。内置事件由平台产生，保持只读。"
+
+#: src/components/business/EventReportingGuide.tsx:29
+msgid "Generate or paste a valid sample JSON object on the sample tab first."
+msgstr "请先在样例页生成或粘贴合法的 JSON 对象。"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:135
+msgid "Generate sample"
+msgstr "生成样例"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:122
+msgid "Generate sample from configuration"
+msgstr "按当前配置生成样例"
+
+#: src/components/business/BusinessDefinitionSettings.tsx:62
+msgid "Historical backfill flag path"
+msgstr "历史回补标记路径"
+
+#: src/components/business/EventFieldsExtensionDrawer.tsx:36
+msgid "Identical definitions can be applied again; conflicting definitions reject the whole batch without changing any event."
+msgstr "完全相同的定义可重复应用；任一字段定义冲突会拒绝整批操作，不修改任何事件。"
+
+#: src/components/business/EventReportingGuide.tsx:31
+msgid "Initialize the SDK for this workspace on an allowed origin. Your backend issues a browserEvents.issueCredential credential for the verified customer and session; call identifyCustomer before identifying reports. Anonymous events remain pending. The SDK generates the occurrence ID and time once and preserves them on retry."
+msgstr "在允许的网站来源初始化当前工作空间的 SDK。后端通过 browserEvents.issueCredential 为已验证客户和会话签发凭证，再调用 identifyCustomer 关联上报身份。匿名事件保持待关联；SDK 首次生成上报 ID 和发生时间，重试时原样保留。"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:131
+msgid "Integration instructions"
+msgstr "接入说明"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:135
+msgid "Keep sample"
+msgstr "保留当前样例"
+
+#: src/components/business/BusinessDefinitionSettings.tsx:65
+msgid "Map the external payload to the event protocol"
+msgstr "将外部载荷映射为标准事件"
+
+#: src/components/business/EventReportingSettings.tsx:69
+msgid "New identities can create customers. Use stable identifiers and check the source before enabling this behavior."
+msgstr "新身份可自动创建客户。启用前请确认来源可信，并使用稳定的客户标识。"
+
+#: src/components/business/EventReportingSettings.tsx:74
+msgid "No expiration required"
+msgstr "不要求上报到期时间"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:99
+msgid "No unsaved configuration changes"
+msgstr "配置无未保存修改"
+
+#: src/components/business/EventReportingGuide.tsx:24
+msgid "Occurrence and receipt time"
+msgstr "发生时间与接收时间"
+
+#: src/components/business/EventReportingSettings.tsx:62
+msgid "Optional: an object in the normalized event used to update the business record."
+msgstr "可选：规范化事件中的对象，用于更新该业务记录的属性。"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:120
+msgid "Paste only the event object, not the workspace_id/source/event request wrapper."
+msgstr "仅粘贴 event 对象，不要包含 workspace_id、source、event 组成的请求外壳。"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:120
+msgid "Paste the external JSON, before field mapping."
+msgstr "请粘贴字段映射前的外部原始 JSON。"
+
+#: src/components/business/EventReportingSettings.tsx:61
+msgid "Path in the normalized event. The value must be the external ID of this particular business record."
+msgstr "填写规范化事件中的路径，值必须是这一笔业务记录的外部编号。"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:135
+msgid "Replace the edited sample?"
+msgstr "替换已编辑的样例？"
+
+#: src/components/business/EventFieldsExtensionDrawer.tsx:40
+#: src/components/business/EventFieldsExtensionDrawer.tsx:41
+msgid "Report data example"
+msgstr "上报数据示例"
+
+#: src/components/business/EventReportingSettings.tsx:31
+msgid "Reporting access"
+msgstr "上报权限"
+
+#: src/components/business/EventReportingSettings.tsx:32
+#: src/components/business/EventReportingSettings.tsx:33
+msgid "Reporting mode"
+msgstr "上报方式"
+
+#: src/components/business/EventReportingSettings.tsx:45
+#: src/components/business/EventReportingSettings.tsx:46
+msgid "Restrict backend source systems"
+msgstr "限制后端来源系统"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:102
+msgid "Save and activate"
+msgstr "保存并启用"
+
+#: src/components/business/EventReportingGuide.tsx:20
+msgid "Save and activate the event and any field mapping before sending. Examples use the current unsaved configuration and sample."
+msgstr "真实上报前请保存并启用事件及相关字段映射。以下示例使用当前配置和样例，可能包含未保存修改。"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:101
+msgid "Save draft"
+msgstr "保存草稿"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:99
+msgid "Saving..."
+msgstr "保存中…"
+
+#: src/components/business/EventReportingSettings.tsx:81
+msgid "Seconds"
+msgstr "秒"
+
+#: src/components/business/reporting-messages.ts:15
+msgid "Select a customer attribute and a path under the normalized $.data or $.customer_attributes object."
+msgstr "请选择客户属性，并填写规范化后 $.data 或 $.customer_attributes 下的路径。"
+
+#: src/components/business/reporting-messages.ts:13
+msgid "Select a fixed event or map its stable event code."
+msgstr "请选择固定事件，或映射稳定的事件编码。"
+
+#: src/components/business/EventFieldsExtensionDrawer.tsx:35
+msgid "Select all events"
+msgstr "选择全部事件"
+
+#: src/components/business/reporting-messages.ts:12
+msgid "Select at least one source or explicitly turn off the source restriction."
+msgstr "请至少选择一个来源，或明确关闭来源限制。"
+
+#: src/components/business/EventFieldsExtensionDrawer.tsx:34
+msgid "Select the events to extend"
+msgstr "请选择要扩展字段的事件"
+
+#: src/components/business/EventReportingGuide.tsx:23
+msgid "Server-side Bearer API credential with Contacts write permission. Never put it in browser code."
+msgstr "使用具备联系人写权限的服务端 Bearer API 凭据，切勿放入浏览器代码。"
+
+#: src/components/business/EventFieldsExtensionDrawer.tsx:36
+msgid "Some selected events already declare these fields"
+msgstr "部分所选事件已声明这些字段"
+
+#: src/components/business/EventReportingSettings.tsx:85
+msgid "The default starts at triggered_at, not receipt time. A supplied expires_at takes precedence."
+msgstr "默认时长从 triggered_at 开始计算，而非接收时间；若明确上报 expires_at，则以该时间为准。"
+
+#: src/components/business/EventFieldsExtensionDrawer.tsx:39
+msgid "The example below follows the fields currently configured. Merge data into your existing report; it is not a complete event request."
+msgstr "下方示例随当前字段配置更新。请将 data 合入现有上报，它不是完整的事件请求。"
+
+#: src/components/business/EventReportingGuide.tsx:28
+msgid "The example source is not in the allowed source list."
+msgstr "示例来源不在允许来源列表中。"
+
+#: src/components/business/EventReportingGuide.tsx:34
+msgid "The external JSON belongs inside event; mapping_key selects this mapping. Do not apply the mapping twice."
+msgstr "外部 JSON 放入 event 字段，mapping_key 指定此映射。不要重复映射载荷。"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:135
+msgid "The new sample uses the current fields and mapping. Your pasted payload will be replaced."
+msgstr "新样例将使用当前字段及映射，替换您粘贴的载荷。"
+
+#: src/components/business/EventReportingSettings.tsx:48
+msgid "These values match the source field of events.track exactly. An empty restricted list accepts no backend reports."
+msgstr "这些值与 events.track 的 source 字段精确匹配。开启限制却未选择来源时，不接收任何后端上报。"
+
+#: src/components/business/EventReportingSettings.tsx:64
+msgid "This applies to backend reporting. Anonymous browser events always remain pending until a verified identity is linked."
+msgstr "此策略用于后端上报。匿名浏览器事件始终待关联，直至绑定已验证身份。"
+
+#: src/components/business/EventReportingGuide.tsx:27
+msgid "This changes the copied request only, not the saved source restriction."
+msgstr "仅修改复制的示例请求，不会修改已保存的来源限制。"
+
+#: src/components/business/EventReportingGuide.tsx:20
+msgid "This is a configuration example, not a live endpoint test"
+msgstr "这是配置示例，不是接口实发测试"
+
+#: src/components/business/reporting-messages.ts:14
+msgid "This mapping is required for activation and sample validation."
+msgstr "启用和校验样例前必须配置此映射。"
+
+#: src/components/business/EventReportingGuide.tsx:24
+msgid "triggered_at is when the action happened. reported_at is assigned by the server and must not be mapped."
+msgstr "triggered_at 是行为实际发生时间；reported_at 由服务端生成，不应映射。"
+
+#: src/components/business/EventReportingSettings.tsx:56
+msgid "Unavailable"
+msgstr "不可用"
+
+#: src/components/business/reporting-messages.ts:16
+msgid "Use a literal object path such as $.data.order_id. Arrays and wildcards are not supported."
+msgstr "请使用 $.data.order_id 这样的对象字段路径，不支持数组索引和通配符。"
+
+#: src/components/business/BusinessConfigurationGuide.tsx:7
+msgid "Use a mapping only when your application cannot send the standard event object. Define and activate the target event first, then map the external JSON and validate a sample."
+msgstr "应用无法直接发送标准事件对象时才需要映射。先定义并启用目标事件，再映射外部 JSON 并校验样例。"
+
+#: src/components/business/EventReportingGuide.tsx:25
+msgid "Use a new report_id for each real occurrence. Retry the same occurrence with exactly the same ID, source and payload."
+msgstr "每次真实行为使用新的 report_id；同一次行为重试时，ID、source 和载荷必须保持一致。"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:125
+msgid "Validation passed for this configuration and sample only. Source permissions, browser credentials and live ingestion still apply."
+msgstr "仅当前配置与样例通过校验。真实接入仍需满足来源权限、浏览器凭证和写入规则。"
+
+#: src/components/business/EventReportingSettings.tsx:45
+msgid "When disabled, any authenticated source is allowed. Browser access is controlled separately by the origin list."
+msgstr "关闭后允许任意受认证来源。浏览器访问由网站来源列表单独控制。"
+
+#: src/components/business/BusinessDefinitionEditor.tsx:134
+msgid "Your configuration edits and sample input will be lost."
+msgstr "尚未保存的配置修改和样例输入将丢失。"

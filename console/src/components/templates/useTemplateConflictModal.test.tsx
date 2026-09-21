@@ -14,8 +14,8 @@ function Harness({ info }: { info: ConflictInfo }) {
 }
 
 describe('useTemplateConflictModal', () => {
-  let onOverwrite: ReturnType<typeof vi.fn>
-  let onReload: ReturnType<typeof vi.fn>
+  let onOverwrite: ReturnType<typeof vi.fn<() => void>>
+  let onReload: ReturnType<typeof vi.fn<() => void>>
 
   beforeEach(() => {
     onOverwrite = vi.fn()
