@@ -343,7 +343,8 @@ func (s *ImportJobService) Get(ctx context.Context, workspaceID, jobID string) (
 	if err != nil {
 		return nil, err
 	}
-	return s.repository.GetImportJob(authorized, workspaceID, jobID)
+	job, err := s.repository.GetImportJob(authorized, workspaceID, jobID)
+	return normalizeImportJobStatus(job), err
 }
 
 func (s *ImportJobService) GetInternal(ctx context.Context, workspaceID, jobID string) (*domain.ImportJob, error) {
@@ -358,6 +359,9 @@ func (s *ImportJobService) List(ctx context.Context, workspaceID string, limit, 
 	items, total, err := s.repository.ListImportJobs(authorized, workspaceID, limit, offset)
 	if err != nil {
 		return nil, err
+	}
+	for index := range items {
+		items[index] = *normalizeImportJobStatus(&items[index])
 	}
 	return &domain.ImportJobList{Items: items, Total: total, Limit: normalizedImportLimit(limit), Offset: max(offset, 0)}, nil
 }
@@ -375,6 +379,38 @@ func (s *ImportJobService) Cancel(ctx context.Context, workspaceID, jobID string
 		return err
 	}
 	return s.repository.CancelImportJob(authorized, workspaceID, jobID, "用户取消导入；未完成行已记录为明确失败")
+}
+
+func normalizeImportJobStatus(job *domain.ImportJob) *domain.ImportJob {
+	if job == nil {
+		return nil
+	}
+	copy := *job
+	if copy.Status == domain.ImportJobCompleted && copy.Counters.Failed > 0 {
+		copy.Status = domain.ImportJobNeedsAttention
+	}
+	return &copy
+}
+
+// Retry requeues only failed rows and creates a fresh durable task. The
+// repository keeps successful rows terminal, so a retry cannot duplicate them.
+func (s *ImportJobService) Retry(ctx context.Context, workspaceID, jobID string) error {
+	authorized, err := s.authorize(ctx, workspaceID, domain.PermissionTypeWrite)
+	if err != nil {
+		return err
+	}
+	if err := s.repository.RetryImportJob(authorized, workspaceID, jobID); err != nil {
+		return err
+	}
+	if s.tasks != nil {
+		task := &domain.Task{ID: uuid.New().String(), WorkspaceID: workspaceID, Type: domain.ImportCustomersTaskType,
+			Status: domain.TaskStatusPending, MaxRuntime: 50, MaxRetries: 20, RetryInterval: 15,
+			State: &domain.TaskState{ImportCustomers: &domain.ImportCustomersState{JobID: jobID}}}
+		if err := s.tasks.CreateTask(authorized, workspaceID, task); err != nil {
+			return fmt.Errorf("create import retry task: %w", err)
+		}
+	}
+	return nil
 }
 
 func (s *ImportJobService) Errors(ctx context.Context, workspaceID, jobID string, limit, offset int) ([]domain.ImportJobError, int, error) {

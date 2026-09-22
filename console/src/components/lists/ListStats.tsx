@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Row, Col, Statistic, Space, Spin } from 'antd'
+import { Alert, Button, Row, Col, Statistic, Space, Spin } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCircleCheck, faFaceFrown, faHourglass } from '@fortawesome/free-regular-svg-icons'
 import { faBan, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons'
@@ -18,7 +18,7 @@ export function ListStats({ workspaceId, listId }: ListStatsProps) {
   // Use workspaceId from params if available, otherwise use the prop
   const currentWorkspaceId = paramWorkspaceId || workspaceId
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['list-stats', workspaceId, listId],
     queryFn: async () => {
       return listsApi.stats({
@@ -29,6 +29,15 @@ export function ListStats({ workspaceId, listId }: ListStatsProps) {
     refetchInterval: 10000,
     refetchOnWindowFocus: true
   })
+
+  if (isError) {
+    return <Alert
+      type="warning"
+      showIcon
+      title={t`List counts are temporarily unavailable`}
+      action={<Button size="small" loading={isFetching} onClick={() => void refetch()}>{t`Retry`}</Button>}
+    />
+  }
 
   const stats = data?.stats || {
     total_active: 0,

@@ -16,13 +16,13 @@ export function renderWithProviders(
  */
 export function mockURLSearchParams(params: Record<string, string>) {
   const searchParams = new URLSearchParams(params)
-  delete (window as any).location
-  ;(window as any).location = {
+  const location = {
     search: `?${searchParams.toString()}`,
     href: `http://localhost:3001/?${searchParams.toString()}`,
     origin: 'http://localhost:3001',
     pathname: '/',
-  }
+  } as unknown as Location
+  Object.defineProperty(window, 'location', { configurable: true, value: location })
 }
 
 /**

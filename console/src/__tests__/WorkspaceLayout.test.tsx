@@ -210,7 +210,7 @@ describe('WorkspaceLayout product navigation', () => {
     render(<WorkspaceLayout />)
 
     expect(screen.getByRole('img', { name: '衡枢真信' })).toBeInTheDocument()
-    expect(screen.getByText('Alkaid Marketing Platform')).toBeInTheDocument()
+    expect(screen.getByText('Yaoguang Marketing Platform')).toBeInTheDocument()
     expect(screen.getByText('Understanding Intent. Reaching Customers')).toBeInTheDocument()
   })
 
@@ -220,7 +220,7 @@ describe('WorkspaceLayout product navigation', () => {
     const expectedEntries = [
       'Data Analytics',
       'Customers',
-      'Audiences',
+      'Audiences & Lists',
       'Marketing Campaigns',
       'Automation Journeys',
       'Content Center',
@@ -237,13 +237,13 @@ describe('WorkspaceLayout product navigation', () => {
     expect(document.querySelector('.workspace-sider-nav .ant-menu-item')?.textContent).toBe('Data Analytics')
   })
 
-  it('links the audiences navigation item to the condition audience workspace', async () => {
+  it('links the audiences and lists navigation item to the canonical lists workspace', async () => {
     render(<WorkspaceLayout />)
 
-    const audienceEntry = await screen.findByText('Audiences')
+    const audienceEntry = await screen.findByText('Audiences & Lists')
     expect(audienceEntry.closest('a')).toHaveAttribute(
       'data-to',
-      '/console/workspace/$workspaceId/audiences'
+      '/console/workspace/$workspaceId/lists'
     )
   })
 
@@ -259,8 +259,8 @@ describe('WorkspaceLayout product navigation', () => {
     ['', 'Data Analytics'],
     ['/customers', 'Customers'],
     ['/contacts', 'Customers'],
-    ['/audiences', 'Audiences'],
-    ['/lists', 'Audiences'],
+    ['/audiences', 'Audiences & Lists'],
+    ['/lists', 'Audiences & Lists'],
     ['/broadcasts', 'Marketing Campaigns'],
     ['/automations', 'Automation Journeys'],
     ['/templates', 'Content Center'],
@@ -348,7 +348,7 @@ describe('WorkspaceLayout product navigation', () => {
       expect(document.querySelector('.workspace-sider-nav .ant-menu')).toHaveClass(
         'ant-menu-inline-collapsed'
       )
-      expect(screen.queryByText('Alkaid Marketing Platform')).not.toBeInTheDocument()
+      expect(screen.queryByText('Yaoguang Marketing Platform')).not.toBeInTheDocument()
     })
     expect(screen.getByRole('img', { name: '衡枢真信' })).toBeInTheDocument()
 

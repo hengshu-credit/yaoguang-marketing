@@ -99,7 +99,7 @@ func (r *TrackedEventPostgresRepository) ResolvePending(ctx context.Context, w, 
 	if _, err = tx.ExecContext(ctx, `UPDATE event_ledger SET customer_id=$2::uuid,subject_type=$3,subject_id=$4,properties=$5 WHERE id=$1 AND received_at=$6`, id, customer, subject.Type, subject.ID, normalized, event.ReportedAt); err != nil {
 		return nil, err
 	}
-	result := &domain.TrackedEventResult{ReportID: event.ReportID, EventID: eventID, CustomerID: customer, ReportedAt: event.ReportedAt, ProcessingStatus: event.ProcessingStatus, Event: &event}
+	result := &domain.TrackedEventResult{Source: source, ReportID: event.ReportID, EventID: eventID, CustomerID: customer, ReportedAt: event.ReportedAt, ProcessingStatus: event.ProcessingStatus, Event: &event}
 	response, _ = json.Marshal(result)
 	if _, err = tx.ExecContext(ctx, `UPDATE event_report_receipts SET customer_id=$3::uuid,processing_status=$4,normalized_event=$5,response=$6,resolved_at=$7,resolution_reason=$8 WHERE source=$1 AND report_id=$2`, source, report, customer, event.ProcessingStatus, normalized, response, now, reason); err != nil {
 		return nil, err

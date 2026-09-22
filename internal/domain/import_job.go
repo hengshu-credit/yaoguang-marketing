@@ -11,16 +11,18 @@ type ImportJobStatus string
 type ImportRowStatus string
 
 const (
-	ImportJobUploading  ImportJobStatus = "uploading"
-	ImportJobStaged     ImportJobStatus = "staged"
-	ImportJobProcessing ImportJobStatus = "processing"
-	ImportJobCompleted  ImportJobStatus = "completed"
-	ImportJobRejected   ImportJobStatus = "rejected"
-	ImportJobCancelled  ImportJobStatus = "cancelled"
-	ImportRowPending    ImportRowStatus = "pending"
-	ImportRowProcessing ImportRowStatus = "processing"
-	ImportRowSucceeded  ImportRowStatus = "succeeded"
-	ImportRowFailed     ImportRowStatus = "failed"
+	ImportJobUploading      ImportJobStatus = "uploading"
+	ImportJobStaged         ImportJobStatus = "staged"
+	ImportJobProcessing     ImportJobStatus = "processing"
+	ImportJobCompleted      ImportJobStatus = "completed"
+	ImportJobNeedsAttention ImportJobStatus = "needs_attention"
+	ImportJobRetrying       ImportJobStatus = "retrying"
+	ImportJobRejected       ImportJobStatus = "rejected"
+	ImportJobCancelled      ImportJobStatus = "cancelled"
+	ImportRowPending        ImportRowStatus = "pending"
+	ImportRowProcessing     ImportRowStatus = "processing"
+	ImportRowSucceeded      ImportRowStatus = "succeeded"
+	ImportRowFailed         ImportRowStatus = "failed"
 )
 
 type ImportCounters struct {
@@ -121,5 +123,6 @@ type ImportJobRepository interface {
 	GetImportJob(context.Context, string, string) (*ImportJob, error)
 	ListImportJobs(context.Context, string, int, int) ([]ImportJob, int, error)
 	CancelImportJob(context.Context, string, string, string) error
+	RetryImportJob(context.Context, string, string) error
 	ListImportJobErrors(context.Context, string, string, int, int) ([]ImportJobRow, int, error)
 }

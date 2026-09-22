@@ -110,6 +110,22 @@ export interface CustomerMutationResult {
   version?: number
 }
 
+export interface CustomerMergeRequest {
+  workspace_id: string
+  idempotency_key: string
+  source: { customer_id: string }
+  target: { customer_id: string }
+  reason?: string
+}
+
+export interface CustomerMergeResult {
+  source_customer_id: string
+  target_customer_id: string
+  target_customer_no: string
+  target_version: number
+  replayed: boolean
+}
+
 export type CustomerListMembershipAction = 'add' | 'remove' | 'set_status'
 export type CustomerListMembershipStatus = 'active' | 'pending' | 'unsubscribed' | 'bounced' | 'complained'
 
@@ -180,6 +196,13 @@ export const customerApi = {
       customer: { locator: { customer_id: customerId }, ...patch }
     })
     return response.customer
+  },
+
+  merge: async (
+    request: CustomerMergeRequest
+  ): Promise<CustomerMergeResult> => {
+    const response = await api.post<{ merge: CustomerMergeResult }>('/api/customers.merge', request)
+    return response.merge
   },
 
   updateListMemberships: async (

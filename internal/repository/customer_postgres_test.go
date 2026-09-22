@@ -194,13 +194,23 @@ func TestCustomerRepositoryListFindsExactEmailByWorkspaceFingerprint(t *testing.
 	ctrl := gomock.NewController(t)
 	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	workspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace1").Return(db, nil)
-	normalized, err := domain.NormalizeCustomerIdentity(domain.CustomerIdentityInput{Type: domain.CustomerIdentityEmail, Value: "alice@example.com"})
-	require.NoError(t, err)
-	fingerprint, err := domain.CustomerIdentityFingerprintForWorkspace("secret", "workspace1", normalized)
-	require.NoError(t, err)
+	fingerprints := make([]driver.Value, 0, 5)
+	for _, identityType := range []domain.CustomerIdentityType{
+		domain.CustomerIdentityEmail,
+		domain.CustomerIdentityAnonymousID,
+		domain.CustomerIdentityDeviceID,
+		domain.CustomerIdentityTelegram,
+		domain.CustomerIdentityCustom,
+	} {
+		normalized, normalizeErr := domain.NormalizeCustomerIdentity(domain.CustomerIdentityInput{Type: identityType, Value: "alice@example.com"})
+		require.NoError(t, normalizeErr)
+		fingerprint, fingerprintErr := domain.CustomerIdentityFingerprintForWorkspace("secret", "workspace1", normalized)
+		require.NoError(t, fingerprintErr)
+		fingerprints = append(fingerprints, fingerprint)
+	}
 
 	mock.ExpectQuery(`ci.identity_type = 'email' AND ci.lookup_fingerprint = \$2`).
-		WithArgs("%alice@example.com%", fingerprint, 2).
+		WithArgs(append([]driver.Value{"%alice@example.com%"}, append(fingerprints, 2)...)...).
 		WillReturnRows(sqlmock.NewRows(customerListColumns()).AddRow(
 			"11111111-1111-4111-8111-111111111111", "U0001202608301600000811111111111141118111111111111111", "crm-1", nil, 3,
 			"active", nil, nil, []byte(`{"name":"Alice"}`), 2, now, now, now, now,

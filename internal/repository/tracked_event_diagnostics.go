@@ -28,6 +28,7 @@ func (r *TrackedEventPostgresRepository) FindReceiptByPayload(ctx context.Contex
 	if err = json.Unmarshal(raw, &result); err != nil {
 		return nil, err
 	}
+	result.Source = source
 	result.Duplicate = true
 	return &result, nil
 }

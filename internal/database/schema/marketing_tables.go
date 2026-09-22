@@ -96,7 +96,7 @@ func MarketingTableDefinitions() []string {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_frequency_decisions_customer ON frequency_decisions(customer_id, channel, decided_at DESC)`,
 		`CREATE TABLE IF NOT EXISTS import_jobs (
-			id UUID PRIMARY KEY, status VARCHAR(20) NOT NULL CHECK (status IN ('uploading', 'staged', 'processing', 'completed', 'rejected', 'cancelled')),
+			id UUID PRIMARY KEY, status VARCHAR(20) NOT NULL CHECK (status IN ('uploading', 'staged', 'processing', 'completed', 'needs_attention', 'retrying', 'rejected', 'cancelled')),
 			filename VARCHAR(512) NOT NULL, object_key VARCHAR(1024), file_checksum CHAR(64), list_ids TEXT[] NOT NULL DEFAULT '{}'::text[],
 			total_count BIGINT NOT NULL DEFAULT 0, pending_count BIGINT NOT NULL DEFAULT 0, processing_count BIGINT NOT NULL DEFAULT 0,
 			succeeded_count BIGINT NOT NULL DEFAULT 0, failed_count BIGINT NOT NULL DEFAULT 0, rejection_reason TEXT, created_by VARCHAR(255),

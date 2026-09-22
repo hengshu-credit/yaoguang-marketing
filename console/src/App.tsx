@@ -73,7 +73,7 @@ function AppContent() {
 function BrowserTitle() {
   const { t } = useLingui()
   const appearance = useConsoleTheme()
-  const title = [appearance?.pageTitle,appearance?.workspaceName,t`Alkaid Marketing Platform`].filter(Boolean).join(' · ')
+  const title = [appearance?.pageTitle,appearance?.workspaceName,t`Yaoguang Marketing Platform`].filter(Boolean).join(' · ')
 
   useEffect(() => {
     document.title = title

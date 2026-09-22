@@ -9,6 +9,7 @@ import { CreateWorkspacePage } from './pages/CreateWorkspacePage'
 import { DashboardPage } from './pages/DashboardPage'
 import { WorkspaceSettingsPage } from './pages/WorkspaceSettingsPage'
 import { ContactsPage } from './pages/ContactsPage'
+import { ListsPage } from './pages/ListsPage'
 import { AudiencesPage } from './pages/AudiencesPage'
 import { AudienceMembersPage } from './pages/AudienceMembersPage'
 import { FileManagerPage } from './pages/FileManagerPage'
@@ -34,6 +35,7 @@ import SetupWizard from './pages/SetupWizard'
 import { createRouter } from '@tanstack/react-router'
 
 export interface ContactsSearch {
+  tab?: 'contacts' | 'customers' | 'import'
   email?: string
   external_id?: string
   first_name?: string
@@ -184,13 +186,7 @@ const workspaceAutomationsRoute = createRoute({
 const workspaceListsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: '/lists',
-  beforeLoad: ({ params }) => {
-    throw redirect({
-      to: '/console/workspace/$workspaceId/audiences',
-      params: { workspaceId: params.workspaceId },
-      replace: true
-    })
-  }
+  component: ListsPage
 })
 
 export const workspaceFileManagerRoute = createRoute({
@@ -219,6 +215,7 @@ export const workspaceContactsRoute = createRoute({
   path: '/contacts',
   component: ContactsPage,
   validateSearch: (search: Record<string, unknown>): ContactsSearch => ({
+    tab: search.tab === 'customers' || search.tab === 'import' ? search.tab : search.tab === 'contacts' ? 'contacts' : undefined,
     email: search.email as string | undefined,
     external_id: search.external_id as string | undefined,
     first_name: search.first_name as string | undefined,
@@ -273,7 +270,7 @@ export const workspaceCustomersRoute = createRoute({
     throw redirect({
       to: '/console/workspace/$workspaceId/contacts',
       params,
-      search,
+      search: { ...search, tab: 'customers' },
       replace: true
     })
   }

@@ -92,6 +92,2052 @@
         }
       }
     },
+    "/api/businessDefinitions.extendEvents": {
+      "post": {
+        "summary": "Add optional report fields to existing events",
+        "operationId": "businessDefinitions_extendEvents",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Requires workspace-write. Applies additive optional fields to selected non-archived events in one transaction. Conflicts reject the whole operation. Built-in meanings and producer permissions remain protected. Reporters must supply actual data values; this does not collect fingerprints or rewrite historical events.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "event_keys",
+                  "schema"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "event_keys": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 1000,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated definitions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "definitions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BusinessDefinition"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid",
+            "required or conflicting fields": null
+          },
+          "403": {
+            "description": "Workspace write permission required"
+          }
+        }
+      }
+    },
+    "/api/subjectStates.inspect": {
+      "post": {
+        "summary": "Inspect saved state rules on real customer or object data",
+        "operationId": "subjectStates_inspect",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Requires customers-read. Customers accept UUID, email or external user ID; objects require UUID. Refreshes derived state projections using saved active rules. Does not create manual overrides, send marketing messages or emit state transition events.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "subject_type",
+                  "subject_id"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "subject_type": {
+                    "type": "string"
+                  },
+                  "subject_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Calculated state results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "states": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid identifier",
+            "missing subject or invalid state rules": null
+          },
+          "403": {
+            "description": "Customer read permission required"
+          }
+        }
+      }
+    },
+    "/api/subjectStates.coverage": {
+      "post": {
+        "summary": "Count independent states and their intersection and union",
+        "operationId": "subjectStates_coverage",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Requires customers-read. Uses as_of <= watermark <= current time. Subjects without state evidence count as unknown. Overlapping states do not form mutually exclusive percentages.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StateCoverageQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StateCoverageResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or inactive/incompatible definitions"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          }
+        }
+      }
+    },
+    "/api/contactEndpoints.list": {
+      "get": {
+        "operationId": "listContactEndpoints",
+        "summary": "List endpoint metadata by canonical Customer ID or legacy email",
+        "tags": [
+          "Customers"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "customer_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "email",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "channel",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Endpoint metadata without decrypted provider addresses"
+          },
+          "403": {
+            "description": "Contact read permission required"
+          }
+        }
+      }
+    },
+    "/api/contactEndpoints.upsert": {
+      "post": {
+        "operationId": "upsertCustomerEndpoint",
+        "summary": "Register or disable a customer endpoint with explicit audited marketing consent",
+        "tags": [
+          "Customers"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "customer_id",
+                  "endpoint"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "customer_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "endpoint": {
+                    "type": "object",
+                    "required": [
+                      "operation",
+                      "endpoint_id"
+                    ],
+                    "properties": {
+                      "operation": {
+                        "type": "string",
+                        "enum": [
+                          "upsert",
+                          "disable"
+                        ]
+                      },
+                      "endpoint_id": {
+                        "type": "string"
+                      },
+                      "channel": {
+                        "type": "string"
+                      },
+                      "provider": {
+                        "type": "string"
+                      },
+                      "platform": {
+                        "type": "string"
+                      },
+                      "address": {
+                        "type": "string",
+                        "writeOnly": true
+                      }
+                    }
+                  },
+                  "marketing_consent": {
+                    "type": "boolean",
+                    "description": "Explicit grant or revoke; omitted leaves consent unchanged"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved in one transaction with consent audit"
+          },
+          "403": {
+            "description": "Contact write permission required"
+          }
+        }
+      }
+    },
+    "/api/businessDefinitions.list": {
+      "get": {
+        "summary": "List configurable business definitions",
+        "operationId": "businessDefinitions_list",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "definitions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BusinessDefinition"
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or inactive/incompatible definitions"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          }
+        }
+      }
+    },
+    "/api/businessDefinitions.get": {
+      "get": {
+        "summary": "Read one definition",
+        "operationId": "businessDefinitions_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "definition": {
+                      "$ref": "#/components/schemas/BusinessDefinition"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or inactive/incompatible definitions"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          }
+        }
+      }
+    },
+    "/api/businessDefinitions.save": {
+      "post": {
+        "summary": "Create or update one definition",
+        "operationId": "businessDefinitions_save",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Requires workspace-write. Send the last revision when editing. Built-in meanings are protected; archived definitions remain available to historical evidence.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "definition"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "definition": {
+                    "$ref": "#/components/schemas/BusinessDefinition"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "definition": {
+                      "$ref": "#/components/schemas/BusinessDefinition"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or inactive/incompatible definitions"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          },
+          "409": {
+            "description": "Key or revision conflict"
+          }
+        }
+      }
+    },
+    "/api/businessDefinitions.archive": {
+      "post": {
+        "summary": "Archive a definition without deleting its history",
+        "operationId": "businessDefinitions_archive",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "kind",
+                  "key",
+                  "revision"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "key": {
+                    "type": "string"
+                  },
+                  "revision": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid fields or inactive/incompatible definitions"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          }
+        }
+      }
+    },
+    "/api/businessDefinitions.preview": {
+      "post": {
+        "summary": "Validate a sample without writing events or attributes",
+        "operationId": "businessDefinitions_preview",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "definition",
+                  "sample"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "definition": {
+                    "$ref": "#/components/schemas/BusinessDefinition"
+                  },
+                  "sample": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "valid": {
+                      "type": "boolean"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    },
+                    "normalized_event": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "resolved_customer_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "attribute_changes": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or inactive/incompatible definitions"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          }
+        }
+      }
+    },
+    "/api/businessObjects.upsert": {
+      "post": {
+        "summary": "Upsert a configured object under its canonical Customer UUID",
+        "operationId": "businessObjects_upsert",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "object"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "object": {
+                    "$ref": "#/components/schemas/BusinessObject"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "$ref": "#/components/schemas/BusinessObject"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or inactive/incompatible definitions"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          }
+        }
+      }
+    },
+    "/api/businessObjects.get": {
+      "get": {
+        "summary": "Read an object by its source key",
+        "operationId": "businessObjects_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "object_type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "external_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "$ref": "#/components/schemas/BusinessObject"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or inactive/incompatible definitions"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          }
+        }
+      }
+    },
+    "/api/businessObjects.list": {
+      "get": {
+        "summary": "List objects for a customer",
+        "operationId": "businessObjects_list",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customer_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "object_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "objects": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BusinessObject"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or inactive/incompatible definitions"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          }
+        }
+      }
+    },
+    "/api/businessObjects.relate": {
+      "post": {
+        "summary": "Connect two existing objects using a configured relation",
+        "operationId": "businessObjects_relate",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "relation_key",
+                  "from_id",
+                  "to_id"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "relation_key": {
+                    "type": "string"
+                  },
+                  "from_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "to_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid fields or inactive/incompatible definitions"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          }
+        }
+      }
+    },
+    "/api/subjectStates.list": {
+      "get": {
+        "summary": "Read independent states and optional temporal history",
+        "operationId": "subjectStates_list",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subject_type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subject_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "history",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "states": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or inactive/incompatible definitions"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          }
+        }
+      }
+    },
+    "/api/subjectStates.set": {
+      "post": {
+        "summary": "Set an audited manual state override",
+        "operationId": "subjectStates_set",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Requires customers-write and an active state for this subject type. States are independent true/false/unknown values, not an exclusive lifecycle enum.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "subject_type",
+                  "subject_id",
+                  "override"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "subject_type": {
+                    "type": "string"
+                  },
+                  "subject_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "override": {
+                    "$ref": "#/components/schemas/StateOverride"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid fields or inactive/incompatible definitions"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          }
+        }
+      }
+    },
+    "/api/funnels.query": {
+      "post": {
+        "summary": "Calculate an event-time funnel synchronously",
+        "operationId": "funnels_query",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FunnelQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunnelResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or inactive/incompatible definitions"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          }
+        }
+      }
+    },
+    "/api/funnels.start": {
+      "post": {
+        "summary": "Persist and start a cancellable funnel query",
+        "operationId": "funnels_start",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Saves the definition and watermark with the job. Repeated report IDs are deduplicated, distinct occurrences remain. Counts root subjects through relation-bound child steps; never combines siblings.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FunnelQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Query accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunnelQueryJob"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or inactive/incompatible definitions"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          }
+        }
+      }
+    },
+    "/api/funnels.get": {
+      "get": {
+        "summary": "Read saved query status and immutable completed result",
+        "operationId": "funnels_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunnelQueryJob"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or inactive/incompatible definitions"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          }
+        }
+      }
+    },
+    "/api/funnels.cancel": {
+      "post": {
+        "summary": "Cancel a saved query",
+        "operationId": "funnels_cancel",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "id"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid fields or inactive/incompatible definitions"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          }
+        }
+      }
+    },
+    "/api/campaigns.configuration": {
+      "get": {
+        "summary": "Read the current editable campaign configuration",
+        "operationId": "campaigns_configuration",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "campaign_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or inactive/incompatible definitions"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          }
+        }
+      }
+    },
+    "/api/campaigns.update": {
+      "post": {
+        "summary": "Update campaign configuration for subsequent runs",
+        "operationId": "campaigns_update",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Does not create a campaign version. Each actual run retains its own immutable configuration and materials in executions.get.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "campaign_id",
+                  "name",
+                  "configuration"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "campaign_id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "configuration": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid fields or inactive/incompatible definitions"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          }
+        }
+      }
+    },
+    "/api/events.track": {
+      "post": {
+        "summary": "Record one business event occurrence",
+        "description": "Every report ID records a distinct occurrence, including repeated event codes for one customer or object. Identical source/report ID retries return the first event UUID and reported_at; changed payload returns 409. No email is required.",
+        "operationId": "trackBusinessEvent",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackEventRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted or duplicate occurrence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackedEventResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid event fields or identity conflict"
+          },
+          "403": {
+            "description": "Workspace permission denied"
+          },
+          "409": {
+            "description": "Same report ID with different payload"
+          }
+        }
+      }
+    },
+    "/api/events.batch": {
+      "post": {
+        "summary": "Record up to 100 independent occurrences",
+        "operationId": "batchTrackBusinessEvents",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "events"
+                ],
+                "properties": {
+                  "events": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "items": {
+                      "$ref": "#/components/schemas/TrackEventRequest"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Results contains one index and result or error per input event."
+          }
+        }
+      }
+    },
+    "/api/events.get": {
+      "get": {
+        "summary": "Read a report receipt",
+        "operationId": "getBusinessEvent",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "report_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Original normalized receipt with sensitive attribute values redacted unless workspace-write permission is granted."
+          }
+        }
+      }
+    },
+    "/api/events.list": {
+      "get": {
+        "summary": "List the latest customer event occurrences",
+        "operationId": "listBusinessEvents",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customer_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "An events array; repeated names/codes remain separate rows."
+          }
+        }
+      }
+    },
+    "/api/browserEvents.issueCredential": {
+      "post": {
+        "summary": "Issue a limited browser identity credential",
+        "description": "Call from an authenticated application backend after verifying the logged-in customer. Binds existing Customer UUID, session ID, exact Origin and explicitly browser-enabled event codes for 15 minutes. Never expose the backend API credential to JavaScript.",
+        "operationId": "issueBrowserEventCredential",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "customer_id",
+                  "session_id",
+                  "origin",
+                  "event_codes"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "customer_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "session_id": {
+                    "type": "string"
+                  },
+                  "origin": {
+                    "type": "string",
+                    "example": "https://shop.example"
+                  },
+                  "event_codes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "credential and expires_in 900"
+          }
+        }
+      }
+    },
+    "/api/events.resolvePending": {
+      "post": {
+        "summary": "Resolve one pending occurrence using its original definitions",
+        "operationId": "resolvePendingBusinessEvent",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Requires contacts-write and customers-write. Preserves event UUID, report ID, mapping revision and original timestamps. Expiry is checked now; only an eligible occurrence is released downstream once.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "source",
+                  "report_id",
+                  "reason"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "report_id": {
+                    "type": "string"
+                  },
+                  "customer_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Original occurrence with resolved customer and current processing status."
+          },
+          "400": {
+            "description": "Missing resolution reason, invalid customer, expired occurrence, or already-resolved occurrence."
+          },
+          "403": {
+            "description": "Contacts-write and customers-write permission required."
+          }
+        }
+      }
+    },
+    "/api/events.diagnostics": {
+      "get": {
+        "summary": "List recent ingestion diagnostics",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Diagnostic metadata without raw request bodies."
+          }
+        }
+      }
+    },
+    "/api/events.pending": {
+      "get": {
+        "summary": "List accepted events waiting for Customer identity resolution",
+        "operationId": "listPendingBusinessEvents",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pending event receipts that can be resolved once with events.resolvePending."
+          },
+          "400": {
+            "description": "Invalid workspace or limit"
+          }
+        }
+      }
+    },
+    "/track/events": {
+      "post": {
+        "summary": "Collect an explicitly allowed browser event",
+        "security": [],
+        "description": "Requires Origin allowed by the event definition. Without a signed credential, the event remains pending for its anonymous session. Browser identity, source, business-object association, authoritative events and backfill cannot be supplied. A verified touchpoint_token is attribution evidence only.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "session_id",
+                  "event"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "session_id": {
+                    "type": "string"
+                  },
+                  "credential": {
+                    "type": "string"
+                  },
+                  "touchpoint_token": {
+                    "type": "string"
+                  },
+                  "event": {
+                    "type": "object",
+                    "required": [
+                      "report_id",
+                      "event_code",
+                      "data",
+                      "triggered_at"
+                    ],
+                    "properties": {
+                      "report_id": {
+                        "type": "string"
+                      },
+                      "event_code": {
+                        "type": "string"
+                      },
+                      "event_name": {
+                        "type": "string"
+                      },
+                      "data": {
+                        "type": "object",
+                        "additionalProperties": true
+                      },
+                      "triggered_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "expires_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Public acknowledgement containing report ID",
+            "event UUID": null,
+            "reported time": null,
+            "duplicate flag and processing status.": null
+          }
+        }
+      }
+    },
+    "/track/identify": {
+      "post": {
+        "summary": "Associate anonymous occurrences with a verified session customer",
+        "security": [],
+        "description": "workspace_id, session_id and credential are required. The signed credential must match Origin and session. Only permitted event codes are linked. Historical association never emits another marketing event.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workspace_id",
+                  "session_id",
+                  "credential"
+                ],
+                "properties": {
+                  "workspace_id": {
+                    "type": "string"
+                  },
+                  "session_id": {
+                    "type": "string"
+                  },
+                  "credential": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Number of associated historical occurrences."
+          }
+        }
+      }
+    },
+    "/api/executions.get": {
+      "get": {
+        "operationId": "getExecutionSnapshot",
+        "summary": "Read the immutable configuration, materials, and evidence for an execution",
+        "tags": [
+          "Executions"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "execution_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Snapshot and up to 100 append-only evidence items; next is the evidence cursor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "snapshot",
+                    "evidence"
+                  ],
+                  "properties": {
+                    "snapshot": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "evidence": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    },
+                    "next": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Broadcast or automation read and contact read permission required"
+          },
+          "404": {
+            "description": "No historical snapshot was captured; current configuration is never substituted"
+          }
+        }
+      }
+    },
+    "/api/executions.list": {
+      "get": {
+        "operationId": "listExecutionSnapshots",
+        "summary": "List snapshots by campaign, broadcast, or automation source",
+        "tags": [
+          "Executions"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Up to 50 immutable snapshots ordered newest first"
+          },
+          "403": {
+            "description": "Insufficient permission"
+          }
+        }
+      }
+    },
+    "/api/executions.asset": {
+      "get": {
+        "operationId": "downloadExecutionAsset",
+        "summary": "Download a hash-verified archived material referenced by this execution",
+        "tags": [
+          "Executions"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "execution_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hash",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Immutable material bytes with private caching"
+          },
+          "403": {
+            "description": "Insufficient permission"
+          },
+          "404": {
+            "description": "Asset is not bound to the execution or does not exist"
+          }
+        }
+      }
+    },
+    "/api/executions.observations": {
+      "get": {
+        "operationId": "getExecutionObservations",
+        "summary": "Count saved task events and states in the exact execution cohort",
+        "tags": [
+          "Executions"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "execution_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Saved tracking plan",
+            "data watermark": null,
+            "event occurrence IDs": null,
+            "distinct customers and configured objects": null,
+            "with observed and attributed counts separate": null
+          },
+          "403": {
+            "description": "Broadcast or automation read and contact read permission required"
+          }
+        }
+      }
+    },
     "/api/channels.catalog": {
       "get": {
         "summary": "List the omnichannel material catalogue",
@@ -1402,6 +3448,45 @@
           },
           "400": {
             "description": "Import cannot be cancelled"
+          }
+        }
+      }
+    },
+    "/api/imports.retry": {
+      "post": {
+        "summary": "Retry failed rows from a completed import",
+        "description": "Successful rows remain terminal; only failed rows return to the durable pending queue.",
+        "operationId": "retryCustomerImport",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Failed rows were queued for retry"
+          },
+          "400": {
+            "description": "Import has no retryable failures"
           }
         }
       }
@@ -3160,6 +5245,16 @@
             "example": true
           },
           {
+            "name": "with_profiles",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Include current customer profile status, tags and attributes for file export, loaded in one batch. Requires customers.read in addition to contacts.read. Customer authority values take precedence over legacy profile values."
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
@@ -3181,16 +5276,6 @@
             },
             "description": "Pagination cursor from previous response",
             "example": "MjAyMy0wMS0xNVQxMDozMDowMFp+dXNlckBleGFtcGxlLmNvbQ=="
-          },
-          {
-            "name": "with_profiles",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": false
-            },
-            "description": "Include current customer profile status, tags and attributes for file export, loaded in one batch. Requires customers.read in addition to contacts.read. Customer authority values take precedence over legacy profile values."
           }
         ],
         "responses": {
@@ -3866,7 +5951,7 @@
     "/api/customers.list": {
       "get": {
         "summary": "List and search Customers",
-        "description": "Returns a stable keyset-paginated Customer summary list. Exact email or phone searches use workspace-scoped identity fingerprints; responses expose masked hints only. Merged source Customers are excluded by default.",
+        "description": "Returns a stable keyset-paginated Customer summary list. Searches match customer_no, external_user_id, profile names, masked hints, and exact workspace-scoped fingerprints for email, phone, anonymous, device, WhatsApp, Telegram, and custom identities; responses expose masked hints only. Merged source Customers are excluded by default.",
         "operationId": "listCustomers",
         "security": [
           {
@@ -6564,6 +8649,168 @@
         }
       }
     },
+    "/api/customEvents.upsert": {
+      "post": {
+        "summary": "Create or update one custom event resource",
+        "operationId": "upsertCustomEvent",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "workspace_id"
+                    ],
+                    "properties": {
+                      "workspace_id": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/CustomEvent"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current custom event resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "event": {
+                      "$ref": "#/components/schemas/CustomEvent"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid custom event request"
+          }
+        }
+      }
+    },
+    "/api/customEvents.get": {
+      "get": {
+        "summary": "Get one custom event resource",
+        "operationId": "getCustomEvent",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "event_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "external_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Custom event resource"
+          },
+          "400": {
+            "description": "Invalid query parameters"
+          },
+          "404": {
+            "description": "Custom event not found"
+          }
+        }
+      }
+    },
+    "/api/customEvents.list": {
+      "get": {
+        "summary": "List custom event resources",
+        "operationId": "listCustomEvents",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          {
+            "name": "event_name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Custom event resources"
+          },
+          "400": {
+            "description": "Invalid query parameters"
+          }
+        }
+      }
+    },
     "/api/webhookSubscriptions.create": {
       "post": {
         "summary": "Create a webhook subscription",
@@ -7659,287 +9906,6 @@
           }
         }
       }
-    },
-    "/api/imports.fields": {
-      "get": {
-        "summary": "Get the current shared customer export and import field schema",
-        "description": "Requires contacts.read or customers.read. Evaluated on every request, including custom field labels, configured customer attributes and observed profile attribute keys. Profile columns require customers.read; contacts-only readers receive the base contact fields. Headers include stable keys where labels can change. Does not return customer values.",
-        "operationId": "getCustomerFileFields",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "workspace_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Current ordered columns; response is not cached.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "fields"
-                  ],
-                  "properties": {
-                    "fields": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "key",
-                          "header",
-                          "type",
-                          "read_only"
-                        ],
-                        "properties": {
-                          "key": {
-                            "type": "string"
-                          },
-                          "header": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "type": "string",
-                            "enum": [
-                              "string",
-                              "number",
-                              "integer",
-                              "boolean",
-                              "json",
-                              "datetime",
-                              "auto"
-                            ]
-                          },
-                          "read_only": {
-                            "type": "boolean"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid workspace"
-          },
-          "403": {
-            "description": "Contact or customer read permission required"
-          }
-        }
-      }
-    },
-    "/api/businessDefinitions.extendEvents": {
-      "post": {
-        "summary": "Add optional report fields to existing events",
-        "operationId": "businessDefinitions_extendEvents",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Requires workspace-write. Applies additive optional fields to selected non-archived events in one transaction. Conflicts reject the whole operation. Built-in meanings and producer permissions remain protected. Reporters must supply actual data values; this does not collect fingerprints or rewrite historical events.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "workspace_id",
-                  "event_keys",
-                  "schema"
-                ],
-                "properties": {
-                  "workspace_id": {
-                    "type": "string"
-                  },
-                  "event_keys": {
-                    "type": "array",
-                    "minItems": 1,
-                    "maxItems": 1000,
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "schema": {
-                    "type": "object",
-                    "additionalProperties": true
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated definitions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "definitions": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "kind",
-                          "key",
-                          "name",
-                          "schema",
-                          "settings"
-                        ],
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "format": "uuid"
-                          },
-                          "kind": {
-                            "type": "string",
-                            "enum": [
-                              "customer_attribute",
-                              "object_type",
-                              "object_relation",
-                              "event",
-                              "event_mapping",
-                              "state",
-                              "funnel"
-                            ]
-                          },
-                          "key": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "description": {
-                            "type": "string"
-                          },
-                          "schema": {
-                            "type": "object",
-                            "additionalProperties": true,
-                            "description": "Configurable recursive validation schema. Supported types, object properties, required fields, array items, enum, nullable type, numeric and length bounds, UUID/email/date-time formats."
-                          },
-                          "settings": {
-                            "type": "object",
-                            "additionalProperties": true,
-                            "description": "Kind-specific configuration; see docs/guides/configurable-marketing.md."
-                          },
-                          "status": {
-                            "type": "string",
-                            "enum": [
-                              "draft",
-                              "active",
-                              "archived"
-                            ]
-                          },
-                          "revision": {
-                            "type": "integer",
-                            "description": "Optimistic concurrency token for definitions; this is not a campaign version."
-                          },
-                          "created_at": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "updated_at": {
-                            "type": "string",
-                            "format": "date-time"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid",
-            "required or conflicting fields": null
-          },
-          "403": {
-            "description": "Workspace write permission required"
-          }
-        }
-      }
-    },
-    "/api/subjectStates.inspect": {
-      "post": {
-        "summary": "Inspect saved state rules on real customer or object data",
-        "operationId": "subjectStates_inspect",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Requires customers-read. Customers accept UUID, email or external user ID; objects require UUID. Refreshes derived state projections using saved active rules. Does not create manual overrides, send marketing messages or emit state transition events.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "workspace_id",
-                  "subject_type",
-                  "subject_id"
-                ],
-                "properties": {
-                  "workspace_id": {
-                    "type": "string"
-                  },
-                  "subject_type": {
-                    "type": "string"
-                  },
-                  "subject_id": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Calculated state results",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "states": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": true
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid identifier",
-            "missing subject or invalid state rules": null
-          },
-          "403": {
-            "description": "Customer read permission required"
-          }
-        }
-      }
     }
   },
   "components": {
@@ -7951,112 +9917,6 @@
       }
     },
     "schemas": {
-      "ConsoleTheme": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "version": {
-            "type": "integer",
-            "enum": [
-              1
-            ],
-            "default": 1
-          },
-          "color_scheme": {
-            "type": "string",
-            "enum": [
-              "light",
-              "dark",
-              "system"
-            ],
-            "default": "light"
-          },
-          "accent_mode": {
-            "type": "string",
-            "enum": [
-              "preset",
-              "solid",
-              "gradient"
-            ],
-            "default": "preset"
-          },
-          "accent_preset": {
-            "type": "string",
-            "enum": [
-              "yaoguang",
-              "blue",
-              "purple",
-              "teal",
-              "rose",
-              "indigo",
-              "nebula",
-              "dusk"
-            ],
-            "default": "yaoguang"
-          },
-          "primary_color": {
-            "type": "string",
-            "pattern": "^#[0-9a-fA-F]{6}$",
-            "default": "#7763F1"
-          },
-          "gradient_colors": {
-            "type": "array",
-            "minItems": 2,
-            "maxItems": 3,
-            "items": {
-              "type": "string",
-              "pattern": "^#[0-9a-fA-F]{6}$"
-            }
-          },
-          "gradient_type": {
-            "type": "string",
-            "enum": [
-              "linear",
-              "radial"
-            ],
-            "default": "linear"
-          },
-          "gradient_angle": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 360,
-            "default": 135
-          },
-          "sidebar_style": {
-            "type": "string",
-            "enum": [
-              "light",
-              "dark"
-            ],
-            "default": "light"
-          },
-          "content_width": {
-            "type": "string",
-            "enum": [
-              "fluid",
-              "fixed"
-            ],
-            "default": "fluid"
-          },
-          "density": {
-            "type": "string",
-            "enum": [
-              "comfortable",
-              "compact"
-            ],
-            "default": "comfortable"
-          },
-          "title_style": {
-            "type": "string",
-            "enum": [
-              "accent",
-              "plain",
-              "compact"
-            ],
-            "default": "accent"
-          }
-        }
-      },
       "ErrorResponse": {
         "type": "object",
         "properties": {
@@ -12953,6 +14813,761 @@
           "email"
         ]
       },
+      "ConsoleTheme": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "type": "integer",
+            "enum": [
+              1
+            ],
+            "default": 1
+          },
+          "color_scheme": {
+            "type": "string",
+            "enum": [
+              "light",
+              "dark",
+              "system"
+            ],
+            "default": "light"
+          },
+          "accent_mode": {
+            "type": "string",
+            "enum": [
+              "preset",
+              "solid",
+              "gradient"
+            ],
+            "default": "preset"
+          },
+          "accent_preset": {
+            "type": "string",
+            "enum": [
+              "yaoguang",
+              "blue",
+              "purple",
+              "teal",
+              "rose",
+              "indigo",
+              "nebula",
+              "dusk"
+            ],
+            "default": "yaoguang"
+          },
+          "primary_color": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$",
+            "default": "#7763F1"
+          },
+          "gradient_colors": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 3,
+            "items": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$"
+            }
+          },
+          "gradient_type": {
+            "type": "string",
+            "enum": [
+              "linear",
+              "radial"
+            ],
+            "default": "linear"
+          },
+          "gradient_angle": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 360,
+            "default": 135
+          },
+          "sidebar_style": {
+            "type": "string",
+            "enum": [
+              "light",
+              "dark"
+            ],
+            "default": "light"
+          },
+          "content_width": {
+            "type": "string",
+            "enum": [
+              "fluid",
+              "fixed"
+            ],
+            "default": "fluid"
+          },
+          "density": {
+            "type": "string",
+            "enum": [
+              "comfortable",
+              "compact"
+            ],
+            "default": "comfortable"
+          },
+          "title_style": {
+            "type": "string",
+            "enum": [
+              "accent",
+              "plain",
+              "compact"
+            ],
+            "default": "accent"
+          }
+        }
+      },
+      "BusinessDefinition": {
+        "type": "object",
+        "required": [
+          "kind",
+          "key",
+          "name",
+          "schema",
+          "settings"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "customer_attribute",
+              "object_type",
+              "object_relation",
+              "event",
+              "event_mapping",
+              "state",
+              "funnel"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "schema": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Configurable recursive validation schema. Supported types, object properties, required fields, array items, enum, nullable type, numeric and length bounds, UUID/email/date-time formats."
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Kind-specific configuration; see docs/guides/configurable-marketing.md."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "active",
+              "archived"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "description": "Optimistic concurrency token for definitions; this is not a campaign version."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "StateCoverageQuery": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "subject_type",
+          "as_of",
+          "watermark",
+          "selected_state_keys"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          },
+          "subject_type": {
+            "type": "string"
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "watermark": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "selected_state_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "maxItems": 50
+          }
+        }
+      },
+      "StateCoverageResult": {
+        "type": "object",
+        "properties": {
+          "subject_type": {
+            "type": "string"
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "watermark": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "intersection": {
+            "type": "integer"
+          },
+          "union": {
+            "type": "integer"
+          },
+          "states": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "state_key": {
+                  "type": "string"
+                },
+                "satisfied": {
+                  "type": "integer"
+                },
+                "false": {
+                  "type": "integer"
+                },
+                "unknown": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "BusinessObject": {
+        "type": "object",
+        "required": [
+          "customer_id",
+          "object_type",
+          "source",
+          "external_key"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customer_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "object_type": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "external_key": {
+            "type": "string"
+          },
+          "attributes": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "StateOverride": {
+        "type": "object",
+        "required": [
+          "state_key",
+          "value",
+          "reason"
+        ],
+        "properties": {
+          "state_key": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string",
+            "enum": [
+              "true",
+              "false",
+              "unknown"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string",
+            "description": "Overwritten with the authenticated user identity."
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Set to server current time on manual update."
+          },
+          "valid_to": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "StateRule": {
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "all",
+              "any",
+              "not",
+              "attribute",
+              "event",
+              "state",
+              "object_any"
+            ]
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StateRule"
+            }
+          },
+          "field": {
+            "type": "string"
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "eq",
+              "neq",
+              "gt",
+              "gte",
+              "lt",
+              "lte",
+              "exists"
+            ]
+          },
+          "operand": {},
+          "event": {
+            "type": "string"
+          },
+          "revoke_event": {
+            "type": "string"
+          },
+          "window_seconds": {
+            "type": "integer"
+          },
+          "minimum": {
+            "type": "integer"
+          },
+          "state_key": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string",
+            "enum": [
+              "true",
+              "false",
+              "unknown"
+            ]
+          },
+          "subject_type": {
+            "type": "string"
+          },
+          "relation_key": {
+            "type": "string"
+          }
+        }
+      },
+      "FunnelStep": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "subject_type": {
+            "type": "string",
+            "description": "Defaults to the root counting object; an entered child object stays bound in later steps."
+          },
+          "relation_key": {
+            "type": "string"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "all_events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Parallel events; mutually exclusive with events."
+          },
+          "optional": {
+            "type": "boolean"
+          },
+          "window_seconds": {
+            "type": "integer"
+          },
+          "filter": {
+            "$ref": "#/components/schemas/StateRule"
+          },
+          "state_filters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "unknown"
+              ]
+            }
+          }
+        }
+      },
+      "FunnelDefinition": {
+        "type": "object",
+        "required": [
+          "subject_type",
+          "window_seconds",
+          "steps"
+        ],
+        "properties": {
+          "subject_type": {
+            "type": "string"
+          },
+          "customer_via_object": {
+            "type": "boolean"
+          },
+          "window_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 31536000
+          },
+          "late_grace_seconds": {
+            "type": "integer"
+          },
+          "allow_same_time": {
+            "type": "boolean"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FunnelStep"
+            },
+            "minItems": 1,
+            "maxItems": 30
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "all_site",
+              "recipients",
+              "attributed"
+            ]
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "attribution_window_seconds": {
+            "type": "integer"
+          }
+        }
+      },
+      "FunnelQuery": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "start",
+          "end"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "definition": {
+            "$ref": "#/components/schemas/FunnelDefinition"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "watermark": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "include_details": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FunnelResult": {
+        "type": "object",
+        "properties": {
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "objects": {
+                  "type": "integer"
+                },
+                "occurrences": {
+                  "type": "integer"
+                },
+                "pending": {
+                  "type": "integer"
+                },
+                "expired": {
+                  "type": "integer"
+                },
+                "step_rate": {
+                  "type": "number",
+                  "nullable": true
+                },
+                "cumulative_rate": {
+                  "type": "number",
+                  "nullable": true
+                },
+                "amount_minor": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer"
+                  }
+                },
+                "branches": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          "entered": {
+            "type": "integer"
+          },
+          "converted": {
+            "type": "integer"
+          },
+          "mature": {
+            "type": "integer"
+          },
+          "pending": {
+            "type": "integer"
+          },
+          "excluded": {
+            "type": "integer"
+          },
+          "watermark": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "computed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "Matched event IDs, root Customer UUID and subject, bound related objects, attribution, observation interval."
+            }
+          }
+        }
+      },
+      "FunnelQueryJob": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workspace_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "query": {
+            "$ref": "#/components/schemas/FunnelQuery"
+          },
+          "result": {
+            "$ref": "#/components/schemas/FunnelResult"
+          },
+          "error": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TrackedEvent": {
+        "type": "object",
+        "required": [
+          "report_id",
+          "event_code",
+          "customer_attributes",
+          "data",
+          "triggered_at"
+        ],
+        "properties": {
+          "report_id": {
+            "type": "string",
+            "description": "Unique occurrence ID within the source. Reuse only when retrying this exact occurrence. Login or borrow codes may occur repeatedly for the same customer."
+          },
+          "event_code": {
+            "type": "string"
+          },
+          "event_name": {
+            "type": "string",
+            "description": "Defaults to the configured event name."
+          },
+          "customer_attributes": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "triggered_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "backfill": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "TrackEventRequest": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "source",
+          "event"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "mapping_key": {
+            "type": "string"
+          },
+          "event": {
+            "$ref": "#/components/schemas/TrackedEvent"
+          }
+        }
+      },
+      "TrackedEventResult": {
+        "type": "object",
+        "properties": {
+          "report_id": {
+            "type": "string"
+          },
+          "event_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customer_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reported_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duplicate": {
+            "type": "boolean"
+          },
+          "processing_status": {
+            "type": "string",
+            "enum": [
+              "accepted",
+              "expired",
+              "backfill",
+              "pending_identity",
+              "associated_history"
+            ]
+          }
+        }
+      },
       "CustomerTimelineEntry": {
         "type": "object",
         "required": [
@@ -13741,6 +16356,8 @@
               "staged",
               "processing",
               "completed",
+              "needs_attention",
+              "retrying",
               "rejected",
               "cancelled"
             ]

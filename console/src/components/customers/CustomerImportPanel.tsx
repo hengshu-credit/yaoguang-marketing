@@ -22,6 +22,7 @@ export function CustomerImportPanel({ workspaceId, canWrite, canBindLists = true
   const [selectedListIDs, setSelectedListIDs] = useState<string[]>([])
   const [importJob, setImportJob] = useState<ImportJob>()
   const [uploading, setUploading] = useState(false)
+  const [retryingJobId, setRetryingJobId] = useState<string>()
   const lists = useQuery({
     queryKey: ['lists', workspaceId],
     queryFn: () => listsApi.list({ workspace_id: workspaceId }),
@@ -77,7 +78,7 @@ export function CustomerImportPanel({ workspaceId, canWrite, canBindLists = true
   const terminal = (currentImport?.counters.succeeded ?? 0) + (currentImport?.counters.failed ?? 0)
   const percent = total === 0 ? 0 : Math.round((terminal / total) * 100)
   const activeStatus = currentImport?.status
-  const importStep = activeStatus === 'completed' || activeStatus === 'cancelled' ? 4 : activeStatus === 'rejected' ? 2 : activeStatus === 'staged' || activeStatus === 'processing' ? 3 : 0
+  const importStep = activeStatus === 'completed' || activeStatus === 'needs_attention' || activeStatus === 'retrying' || activeStatus === 'cancelled' ? 4 : activeStatus === 'rejected' ? 2 : activeStatus === 'staged' || activeStatus === 'processing' ? 3 : 0
   const cancelImport = async (job: ImportJob) => {
     if (!canWrite) return
     await importJobApi.cancel(workspaceId, job.id)
@@ -86,6 +87,22 @@ export function CustomerImportPanel({ workspaceId, canWrite, canBindLists = true
       queryClient.invalidateQueries({ queryKey: ['customer-import', workspaceId, job.id] })
     ])
     message.success(t`Import cancelled; every unfinished row is recorded as failed.`)
+  }
+  const retryImport = async (job: ImportJob) => {
+    if (!canWrite || retryingJobId) return
+    setRetryingJobId(job.id)
+    try {
+      await importJobApi.retry(workspaceId, job.id)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['customer-imports', workspaceId] }),
+        queryClient.invalidateQueries({ queryKey: ['customer-import', workspaceId, job.id] })
+      ])
+      message.success(t`Failed rows were queued for retry.`)
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : t`Unable to retry failed rows`)
+    } finally {
+      setRetryingJobId(undefined)
+    }
   }
   const renderBoundLists = (listIDs: string[] | undefined) => {
     if (!listIDs?.length) return <Typography.Text type="secondary">{t`No list binding`}</Typography.Text>
@@ -146,7 +163,7 @@ export function CustomerImportPanel({ workspaceId, canWrite, canBindLists = true
         <Card size="small" className="mt-4">
           <Space orientation="vertical" className="w-full">
             <Space wrap><Typography.Text strong>{currentImport.filename}</Typography.Text><Tag>{currentImport.status}</Tag>{renderBoundLists(currentImport.list_ids)}</Space>
-            <Progress percent={percent} status={['rejected', 'cancelled'].includes(currentImport.status) ? 'exception' : currentImport.status === 'completed' ? 'success' : 'active'} />
+            <Progress percent={percent} status={['rejected', 'cancelled', 'needs_attention'].includes(currentImport.status) ? 'exception' : currentImport.status === 'completed' ? 'success' : 'active'} />
             <Descriptions size="small" column={{ xs: 2, sm: 5 }} items={[
               { key: 'total', label: t`Total`, children: total },
               { key: 'pending', label: t`Pending`, children: currentImport.counters.pending },
@@ -156,6 +173,7 @@ export function CustomerImportPanel({ workspaceId, canWrite, canBindLists = true
             ]} />
             <Space>
               {currentImport.counters.failed > 0 ? <Button icon={<DownloadOutlined />} onClick={() => void importJobApi.downloadErrors(workspaceId, currentImport.id)}>{t`Download failed rows`}</Button> : null}
+              {canWrite && currentImport.status === 'needs_attention' ? <Button loading={retryingJobId === currentImport.id} onClick={() => void retryImport(currentImport)}>{t`Retry failed rows`}</Button> : null}
               {canWrite && ['uploading', 'staged', 'processing'].includes(currentImport.status) ? <Popconfirm title={t`Unfinished rows will be marked as failed; successful rows are not rolled back.`} onConfirm={() => cancelImport(currentImport)}><Button danger icon={<StopOutlined />}>{t`Cancel import`}</Button></Popconfirm> : null}
             </Space>
           </Space>
@@ -174,11 +192,11 @@ export function CustomerImportPanel({ workspaceId, canWrite, canBindLists = true
           columns={[
             { title: t`File`, dataIndex: 'filename' },
             { title: t`Lists`, dataIndex: 'list_ids', render: renderBoundLists },
-            { title: t`Status`, dataIndex: 'status', render: (status: ImportJob['status']) => <Tag>{status}</Tag> },
+            { title: t`Status`, dataIndex: 'status', render: (status: ImportJob['status']) => <Tag color={status === 'needs_attention' ? 'orange' : undefined}>{status}</Tag> },
             { title: t`Total`, render: (_: unknown, job: ImportJob) => job.counters.total },
             { title: t`Succeeded`, render: (_: unknown, job: ImportJob) => job.counters.succeeded },
             { title: t`Failed`, render: (_: unknown, job: ImportJob) => job.counters.failed },
-            { title: t`Actions`, render: (_: unknown, job: ImportJob) => <Space><Button size="small" onClick={() => setImportJob(job)}>{t`View`}</Button>{job.counters.failed > 0 ? <Button size="small" onClick={() => void importJobApi.downloadErrors(workspaceId, job.id)}>{t`Failed rows`}</Button> : null}</Space> }
+            { title: t`Actions`, render: (_: unknown, job: ImportJob) => <Space><Button size="small" onClick={() => setImportJob(job)}>{t`View`}</Button>{job.counters.failed > 0 ? <Button size="small" onClick={() => void importJobApi.downloadErrors(workspaceId, job.id)}>{t`Failed rows`}</Button> : null}{canWrite && job.status === 'needs_attention' ? <Button size="small" loading={retryingJobId === job.id} onClick={() => void retryImport(job)}>{t`Retry`}</Button> : null}</Space> }
           ]}
         />
       </Card>

@@ -133,6 +133,24 @@ func (r *importJobRepositoryMemory) CancelImportJob(context.Context, string, str
 	r.job.Status = domain.ImportJobCancelled
 	return nil
 }
+func (r *importJobRepositoryMemory) RetryImportJob(context.Context, string, string) error {
+	var retried int64
+	for ordinal, row := range r.rows {
+		if row.Status == domain.ImportRowFailed {
+			row.Status, row.ErrorCode, row.ErrorDetail = domain.ImportRowPending, "", ""
+			row.CustomerID, row.Action = "", ""
+			r.rows[ordinal] = row
+			retried++
+		}
+	}
+	if retried == 0 || r.job.Status != domain.ImportJobCompleted {
+		return fmt.Errorf("import job is not retryable")
+	}
+	r.job.Counters.Failed -= retried
+	r.job.Counters.Pending += retried
+	r.job.Status = domain.ImportJobStaged
+	return nil
+}
 func (r *importJobRepositoryMemory) ListImportJobErrors(context.Context, string, string, int, int) ([]domain.ImportJobRow, int, error) {
 	items := make([]domain.ImportJobRow, 0)
 	for _, row := range r.rows {
@@ -245,4 +263,22 @@ func TestImportJobAddsCustomersToSelectedListsWithoutReplacementSemantics(t *tes
 		{ListID: "listA", Status: "active"},
 	}, *additions)
 	assert.Nil(t, customers.requests[0].Items[0].Customer.ListMemberships)
+}
+
+func TestImportJobCompletedWithFailuresNeedsAttentionAndCanRetry(t *testing.T) {
+	repository := &importJobRepositoryMemory{
+		job:  domain.ImportJob{ID: "job-1", Status: domain.ImportJobCompleted, Counters: domain.ImportCounters{Total: 2, Succeeded: 1, Failed: 1}},
+		rows: map[int64]domain.ImportJobRow{1: {Ordinal: 1, Status: domain.ImportRowSucceeded}, 2: {Ordinal: 2, Status: domain.ImportRowFailed, ErrorCode: "validation_error"}},
+	}
+	service, err := NewImportJobService(ImportJobServiceDependencies{Repository: repository, MaxRows: 100, ChunkSize: 20, MaxFileBytes: 1 << 20})
+	require.NoError(t, err)
+
+	job, err := service.Get(context.Background(), "workspace1", "job-1")
+	require.NoError(t, err)
+	assert.Equal(t, domain.ImportJobNeedsAttention, job.Status)
+
+	require.NoError(t, service.Retry(context.Background(), "workspace1", "job-1"))
+	assert.Equal(t, domain.ImportJobStaged, repository.job.Status)
+	assert.Equal(t, int64(1), repository.job.Counters.Pending)
+	assert.Equal(t, domain.ImportRowPending, repository.rows[2].Status)
 }

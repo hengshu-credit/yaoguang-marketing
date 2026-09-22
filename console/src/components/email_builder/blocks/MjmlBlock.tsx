@@ -1,18 +1,33 @@
 import React from 'react'
 import { useLingui } from '@lingui/react/macro'
+import { Form, Input, Select } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEnvelope } from '@fortawesome/free-solid-svg-icons'
 import type { MJMLComponentType } from '../types'
-import { BaseEmailBlock, type PreviewProps } from './BaseEmailBlock'
+import { BaseEmailBlock, type OnUpdateAttributesFunction, type PreviewProps } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { EmailBlockClass } from '../EmailBlockClass'
 import PanelLayout from '../panels/PanelLayout'
 
 // Functional component for settings panel with i18n support
-const MjmlSettingsPanel: React.FC = () => {
+const MjmlSettingsPanel: React.FC<{ attributes: Record<string, unknown>; onUpdate: OnUpdateAttributesFunction }> = ({ attributes, onUpdate }) => {
   const { t } = useLingui()
 
-  return <PanelLayout title={t`Email Attributes`}>{t`TODO`}</PanelLayout>
+  return <PanelLayout title={t`Email Attributes`}>
+    <Form layout="vertical">
+      <Form.Item label={t`Document language`} extra={t`Used for accessibility and language metadata in the compiled email.`}>
+        <Input value={String(attributes.lang ?? '')} placeholder="en" onChange={(event) => onUpdate({ lang: event.target.value.trim() || undefined })} />
+      </Form.Item>
+      <Form.Item label={t`Text direction`}>
+        <Select
+          className="w-full"
+          value={String(attributes.dir ?? 'ltr')}
+          options={[{ value: 'ltr', label: t`Left to right` }, { value: 'rtl', label: t`Right to left` }]}
+          onChange={(value) => onUpdate({ dir: value })}
+        />
+      </Form.Item>
+    </Form>
+  </PanelLayout>
 }
 
 /**
@@ -50,8 +65,8 @@ export class MjmlBlock extends BaseEmailBlock {
   /**
    * Render the settings panel for the mjml block
    */
-  renderSettingsPanel(): React.ReactNode {
-    return <MjmlSettingsPanel />
+  renderSettingsPanel(onUpdate: OnUpdateAttributesFunction): React.ReactNode {
+    return <MjmlSettingsPanel attributes={(this.block.attributes ?? {}) as Record<string, unknown>} onUpdate={onUpdate} />
   }
 
   getEdit(props: PreviewProps): React.ReactNode {

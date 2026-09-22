@@ -55,8 +55,9 @@ export class OperatorEquals implements IOperator {
       default:
         value = (
           <Alert
-            type="error"
-            title={'equals operator not implemented for type: ' + filter.field_type}
+            type="warning"
+            showIcon
+            title="This field type cannot use Equals. Choose another operator or field."
           />
         )
     }
@@ -198,7 +199,7 @@ export class OperatorEquals implements IOperator {
         )
       default:
         return (
-          <Alert type="error" title={'equals form item not implemented for type: ' + fieldType} />
+          <Alert type="info" showIcon title="This field type is not supported by Equals. Choose another field or operator." />
         )
     }
 

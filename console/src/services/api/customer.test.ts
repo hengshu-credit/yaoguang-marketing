@@ -111,4 +111,30 @@ describe('customerApi', () => {
       status: 'unsubscribed'
     })
   })
+
+  it('merges two customers through the idempotent merge contract', async () => {
+    vi.mocked(api.post).mockResolvedValue({ merge: {
+      source_customer_id: 'customer-1',
+      target_customer_id: 'customer-2',
+      target_customer_no: 'U0002',
+      target_version: 4,
+      replayed: false
+    } })
+
+    await expect(customerApi.merge({
+      workspace_id: 'ws1',
+      idempotency_key: 'merge-1',
+      source: { customer_id: 'customer-1' },
+      target: { customer_id: 'customer-2' },
+      reason: 'Duplicate identity confirmed by operations'
+    })).resolves.toMatchObject({ source_customer_id: 'customer-1' })
+
+    expect(api.post).toHaveBeenCalledWith('/api/customers.merge', {
+      workspace_id: 'ws1',
+      idempotency_key: 'merge-1',
+      source: { customer_id: 'customer-1' },
+      target: { customer_id: 'customer-2' },
+      reason: 'Duplicate identity confirmed by operations'
+    })
+  })
 })

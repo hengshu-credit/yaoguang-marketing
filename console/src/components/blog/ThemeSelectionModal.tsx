@@ -74,7 +74,7 @@ export function ThemeSelectionModal({
                 {preset.id === 'blank' ? (
                   <FileOutlined className="text-5xl text-gray-400 mb-2" />
                 ) : null}
-                <span className="text-sm text-gray-500">{t`Preview Coming Soon`}</span>
+                <span className="text-sm text-gray-600">{t`Theme preview`}</span>
               </div>
 
               {/* Theme Info */}

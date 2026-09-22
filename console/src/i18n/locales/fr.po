@@ -1167,8 +1167,8 @@ msgstr "Alimama FangYuan"
 
 #: src/App.tsx:133
 #: src/components/brand/YaoguangBrand.tsx:101
-msgid "Alkaid Marketing Platform"
-msgstr "Plateforme marketing Alkaïd"
+msgid "Yaoguang Marketing Platform"
+msgstr "Plateforme marketing Yaoguang"
 
 #: src/components/analytics/EmailMetricsChart.tsx:284
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:118

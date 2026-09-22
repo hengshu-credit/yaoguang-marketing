@@ -43,6 +43,7 @@ type TrackEventRequest struct {
 	Event           map[string]any `json:"event"`
 }
 type TrackedEventResult struct {
+	Source           string        `json:"source"`
 	ReportID         string        `json:"report_id"`
 	EventID          string        `json:"event_id"`
 	CustomerID       string        `json:"customer_id,omitempty"`

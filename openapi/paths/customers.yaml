@@ -1,7 +1,7 @@
 /api/customers.list:
   get:
     summary: List and search Customers
-    description: Returns a stable keyset-paginated Customer summary list. Exact email or phone searches use workspace-scoped identity fingerprints; responses expose masked hints only. Merged source Customers are excluded by default.
+    description: Returns a stable keyset-paginated Customer summary list. Searches match customer_no, external_user_id, profile names, masked hints, and exact workspace-scoped fingerprints for email, phone, anonymous, device, WhatsApp, Telegram, and custom identities; responses expose masked hints only. Merged source Customers are excluded by default.
     operationId: listCustomers
     security:
       - BearerAuth: []

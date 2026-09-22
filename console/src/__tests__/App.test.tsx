@@ -30,8 +30,8 @@ vi.mock('../contexts/LocaleContext', async () => {
 describe('App', () => {
   beforeEach(() => {
     localeState.current = 'en'
-    i18n.load('en', { 'Alkaid Marketing Platform': 'Alkaid Marketing Platform' })
-    i18n.load('zh-CN', { 'Alkaid Marketing Platform': '瑶光营销平台' })
+    i18n.load('en', { 'Yaoguang Marketing Platform': 'Yaoguang Marketing Platform' })
+    i18n.load('zh-CN', { 'Yaoguang Marketing Platform': '瑶光营销平台' })
     i18n.activate('en')
     document.title = ''
   })
@@ -51,7 +51,7 @@ describe('App', () => {
 
   it('updates the browser title when the configured locale changes', async () => {
     const view = render(<App />)
-    await waitFor(() => expect(document.title).toBe('Alkaid Marketing Platform'))
+    await waitFor(() => expect(document.title).toBe('Yaoguang Marketing Platform'))
 
     act(() => {
       localeState.current = 'zh-CN'

@@ -107,6 +107,17 @@ vi.mock('../services/api/list', () => ({
   }
 }))
 
+vi.mock('../services/api/customer', () => ({
+  customerApi: {
+    list: vi.fn(async () => ({ customers: [], next_cursor: undefined }))
+  },
+  customerQueryKeys: {
+    all: (workspaceId: string) => ['customers', workspaceId],
+    list: (workspaceId: string, request: unknown) => ['customers', workspaceId, request],
+    detail: (workspaceId: string, customerId: string) => ['customers', workspaceId, customerId]
+  }
+}))
+
 vi.mock('../services/api/segment', () => ({
   listSegments: vi.fn(async () => ({ segments: [] }))
 }))
@@ -157,12 +168,14 @@ describe('ContactsPage row delete and bulk selection', () => {
     state.contacts = [state.makeContact('alice@example.com'), state.makeContact('bob@example.com')]
   })
 
-  it('lets customer-only readers open imports without querying the restricted contact directory', async () => {
+  it('lets customer-only readers open the customer directory without querying the restricted contact directory', async () => {
     state.canReadContacts = false
     render(<ContactsPage />, { wrapper: createWrapper() })
-    expect(await screen.findByText('Customer CSV import')).toBeVisible()
+    expect(await screen.findByRole('tab', { name: 'Customers' })).toBeVisible()
     expect(screen.getByRole('tab', { name: 'Contacts' })).toHaveAttribute('aria-disabled', 'true')
     expect(contactsApi.list).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('tab', { name: 'Import customers' }))
+    expect(await screen.findByText('Customer CSV import')).toBeVisible()
   })
 
   it('opens customer import without losing contact selection when returning to the directory', async () => {

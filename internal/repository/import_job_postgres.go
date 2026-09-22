@@ -339,6 +339,49 @@ func (r *ImportJobPostgresRepository) CancelImportJob(ctx context.Context, works
 	return tx.Commit()
 }
 
+// RetryImportJob moves only failed rows back to pending. Successful rows are
+// immutable, so retrying a job is safe and never duplicates customer writes.
+func (r *ImportJobPostgresRepository) RetryImportJob(ctx context.Context, workspaceID, jobID string) error {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	result, err := tx.ExecContext(ctx, `UPDATE import_job_rows SET status = 'pending',
+		error_code = NULL, error_detail = NULL, customer_id = NULL, action = NULL,
+		claim_token = NULL, lease_expires_at = NULL, updated_at = CURRENT_TIMESTAMP
+		WHERE job_id = NULLIF($1, '')::uuid AND status = 'failed'`, jobID)
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return errors.New("import job has no failed rows to retry")
+	}
+	jobResult, err := tx.ExecContext(ctx, `UPDATE import_jobs SET status = 'staged',
+		pending_count = pending_count + $2, failed_count = failed_count - $2,
+		completed_at = NULL, updated_at = CURRENT_TIMESTAMP
+		WHERE id = NULLIF($1, '')::uuid AND status IN ('completed', 'needs_attention')`, jobID, count)
+	if err != nil {
+		return err
+	}
+	updated, err := jobResult.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if updated != 1 {
+		return errors.New("import job is not retryable")
+	}
+	return tx.Commit()
+}
+
 func (r *ImportJobPostgresRepository) ListImportJobErrors(ctx context.Context, workspaceID, jobID string, limit, offset int) ([]domain.ImportJobRow, int, error) {
 	if limit <= 0 || limit > 10_000 {
 		limit = 1_000

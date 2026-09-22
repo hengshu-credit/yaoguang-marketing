@@ -62,3 +62,61 @@
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
             example:
               error: Failed to create custom events
+
+/api/customEvents.upsert:
+  post:
+    summary: Create or update one custom event resource
+    operationId: upsertCustomEvent
+    security: [{BearerAuth: []}]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            allOf:
+              - type: object
+                required: [workspace_id]
+                properties:
+                  workspace_id: {type: string}
+              - $ref: '../components/schemas/custom-event.yaml#/CustomEvent'
+    responses:
+      '200':
+        description: Current custom event resource
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event: {$ref: '../components/schemas/custom-event.yaml#/CustomEvent'}
+      '400': {description: Invalid custom event request}
+
+/api/customEvents.get:
+  get:
+    summary: Get one custom event resource
+    operationId: getCustomEvent
+    security: [{BearerAuth: []}]
+    parameters:
+      - {name: workspace_id, in: query, required: true, schema: {type: string}}
+      - {name: event_name, in: query, required: true, schema: {type: string}}
+      - {name: external_id, in: query, required: true, schema: {type: string}}
+    responses:
+      '200':
+        description: Custom event resource
+      '400': {description: Invalid query parameters}
+      '404': {description: Custom event not found}
+
+/api/customEvents.list:
+  get:
+    summary: List custom event resources
+    operationId: listCustomEvents
+    security: [{BearerAuth: []}]
+    parameters:
+      - {name: workspace_id, in: query, required: true, schema: {type: string}}
+      - {name: email, in: query, schema: {type: string, format: email}}
+      - {name: event_name, in: query, schema: {type: string}}
+      - {name: limit, in: query, schema: {type: integer}}
+      - {name: offset, in: query, schema: {type: integer}}
+    responses:
+      '200':
+        description: Custom event resources
+      '400': {description: Invalid query parameters}

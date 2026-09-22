@@ -12,14 +12,14 @@ describe('YaoguangBrand', () => {
     i18n.loadAndActivate({
       locale: 'en',
       messages: {
-        'Alkaid Marketing Platform': 'Alkaid Marketing Platform',
+        'Yaoguang Marketing Platform': 'Yaoguang Marketing Platform',
         'Understanding Intent. Reaching Customers': 'Understanding Intent. Reaching Customers'
       }
     })
 
     render(<YaoguangBrand layout="vertical" />)
 
-    expect(screen.getByText('Alkaid Marketing Platform')).toBeInTheDocument()
+    expect(screen.getByText('Yaoguang Marketing Platform')).toBeInTheDocument()
     expect(screen.getByText('Understanding Intent. Reaching Customers')).toBeInTheDocument()
     expect(
       screen.getByText('面向金融科技及互联网业务的开源用户营销与客户触达平台。')
@@ -30,7 +30,7 @@ describe('YaoguangBrand', () => {
     i18n.loadAndActivate({
       locale: 'zh-CN',
       messages: {
-        'Alkaid Marketing Platform': '瑶光营销平台',
+        'Yaoguang Marketing Platform': '瑶光营销平台',
         'Understanding Intent. Reaching Customers': '观心知意，循光达客'
       }
     })

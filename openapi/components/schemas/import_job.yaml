@@ -13,7 +13,7 @@ ImportJob:
   required: [id, status, filename, counters]
   properties:
     id: { type: string, format: uuid }
-    status: { type: string, enum: [uploading, staged, processing, completed, rejected, cancelled] }
+    status: { type: string, enum: [uploading, staged, processing, completed, needs_attention, retrying, rejected, cancelled] }
     filename: { type: string }
     list_ids:
       type: array

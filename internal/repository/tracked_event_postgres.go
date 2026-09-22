@@ -42,6 +42,7 @@ func readTrackedReceipt(ctx context.Context, q customerQueryer, source, reportID
 		return nil, "", err
 	}
 	result.Duplicate = true
+	result.Source = source
 	return &result, hash, nil
 }
 func (r *TrackedEventPostgresRepository) GetReceipt(ctx context.Context, w, source, reportID string) (*domain.TrackedEventResult, string, error) {
@@ -156,7 +157,7 @@ func (r *TrackedEventPostgresRepository) Ingest(ctx context.Context, c domain.Tr
 	if _, err = AppendRealtimeEventTx(ctx, tx, c.WorkspaceID, envelope, c.Event.ReportedAt); err != nil {
 		return nil, err
 	}
-	result := &domain.TrackedEventResult{ReportID: c.Event.ReportID, EventID: eventID.String(), CustomerID: customerID, ReportedAt: c.Event.ReportedAt, ProcessingStatus: c.Event.ProcessingStatus, Event: c.Event}
+	result := &domain.TrackedEventResult{Source: c.Source, ReportID: c.Event.ReportID, EventID: eventID.String(), CustomerID: customerID, ReportedAt: c.Event.ReportedAt, ProcessingStatus: c.Event.ProcessingStatus, Event: c.Event}
 	response, _ := json.Marshal(result)
 	if _, err = tx.ExecContext(ctx, `UPDATE event_report_receipts SET customer_id=NULLIF($3,'')::uuid,processing_status=$4,normalized_event=$5,response=$6 WHERE source=$1 AND report_id=$2`, c.Source, c.Event.ReportID, customerID, c.Event.ProcessingStatus, normalized, response); err != nil {
 		return nil, err
@@ -174,24 +175,58 @@ func (r *TrackedEventPostgresRepository) List(ctx context.Context, w, customerID
 	if limit < 1 || limit > 500 {
 		limit = 100
 	}
-	rows, err := db.QueryContext(ctx, `SELECT response FROM event_report_receipts WHERE ($1='' OR customer_id=NULLIF($1,'')::uuid) ORDER BY reported_at DESC LIMIT $2`, customerID, limit)
+	rows, err := db.QueryContext(ctx, `SELECT source, response FROM event_report_receipts WHERE ($1='' OR customer_id=NULLIF($1,'')::uuid) ORDER BY reported_at DESC LIMIT $2`, customerID, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	out := []domain.TrackedEventResult{}
 	for rows.Next() {
+		var source string
 		var raw []byte
-		if err = rows.Scan(&raw); err != nil {
+		if err = rows.Scan(&source, &raw); err != nil {
 			return nil, err
 		}
 		var value domain.TrackedEventResult
 		if err = json.Unmarshal(raw, &value); err != nil {
 			return nil, err
 		}
+		value.Source = source
 		out = append(out, value)
 	}
 	return out, rows.Err()
+}
+
+func (r *TrackedEventPostgresRepository) ListPending(ctx context.Context, w string, limit int) ([]domain.TrackedEventResult, error) {
+	db, err := r.getDB(ctx, w)
+	if err != nil {
+		return nil, err
+	}
+	if limit < 1 || limit > 500 {
+		limit = 100
+	}
+	rows, err := db.QueryContext(ctx, `SELECT source, response FROM event_report_receipts
+		WHERE processing_status = 'pending_identity' AND customer_id IS NULL
+		ORDER BY reported_at DESC LIMIT $1`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	results := make([]domain.TrackedEventResult, 0)
+	for rows.Next() {
+		var source string
+		var raw []byte
+		if err := rows.Scan(&source, &raw); err != nil {
+			return nil, err
+		}
+		var result domain.TrackedEventResult
+		if err := json.Unmarshal(raw, &result); err != nil {
+			return nil, err
+		}
+		result.Source = source
+		results = append(results, result)
+	}
+	return results, rows.Err()
 }
 func (r *TrackedEventPostgresRepository) resolveTrackedCustomer(ctx context.Context, tx *sql.Tx, c domain.TrackedEventCommand) (string, error) {
 	// Sort lock keys so reports sharing identities serialize creation consistently.

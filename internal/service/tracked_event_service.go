@@ -238,3 +238,25 @@ func (s *TrackedEventService) Diagnostics(ctx context.Context, w, source string,
 	}
 	return reader.ListDiagnostics(ctx, w, source, limit)
 }
+
+// Pending returns live events that were durably accepted but could not yet be
+// associated with a Customer. It is intentionally separate from diagnostics:
+// diagnostics are validation failures, while pending rows are actionable
+// business work that can be released exactly once by ResolvePending.
+func (s *TrackedEventService) Pending(ctx context.Context, w string, limit int) ([]domain.TrackedEventResult, error) {
+	ctx, err := s.authorize(ctx, w, false)
+	if err != nil {
+		return nil, err
+	}
+	reader, ok := s.repo.(interface {
+		ListPending(context.Context, string, int) ([]domain.TrackedEventResult, error)
+	})
+	if !ok {
+		return nil, fmt.Errorf("pending event repository unavailable")
+	}
+	results, err := reader.ListPending(ctx, w, limit)
+	if err != nil {
+		return nil, err
+	}
+	return s.redactResults(ctx, w, results)
+}

@@ -21,14 +21,14 @@ const LOCALES_DIR = import.meta.dirname
 const SOURCE_LOCALE = 'en'
 
 const browserTitles = {
-  en: 'Alkaid Marketing Platform',
-  fr: 'Plateforme marketing Alkaïd',
-  es: 'Plataforma de marketing Alkaid',
-  de: 'Alkaid-Marketingplattform',
-  ca: 'Plataforma de màrqueting Alkaid',
-  'pt-BR': 'Plataforma de Marketing Alkaid',
-  ja: 'アルカイド・マーケティングプラットフォーム',
-  it: 'Piattaforma di marketing Alkaid',
+  en: 'Yaoguang Marketing Platform',
+  fr: 'Plateforme marketing Yaoguang',
+  es: 'Plataforma de marketing Yaoguang',
+  de: 'Yaoguang-Marketingplattform',
+  ca: 'Plataforma de màrqueting Yaoguang',
+  'pt-BR': 'Plataforma de Marketing Yaoguang',
+  ja: 'Yaoguangマーケティングプラットフォーム',
+  it: 'Piattaforma di marketing Yaoguang',
   'zh-CN': '瑶光营销平台',
 } as const
 
@@ -96,7 +96,7 @@ describe('shipped translation catalogues', () => {
 
   it.each(locales)('%s ships the localized browser title', (locale) => {
     const entries = parsePOCatalog(readFileSync(join(LOCALES_DIR, `${locale}.po`), 'utf8'))
-    const title = entries.find((entry) => entry.msgid === 'Alkaid Marketing Platform')
+    const title = entries.find((entry) => entry.msgid === 'Yaoguang Marketing Platform')
 
     expect(title?.msgstr).toBe(browserTitles[locale])
   })

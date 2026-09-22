@@ -45,6 +45,8 @@ import { useContactsCsvUpload } from '../components/contacts/ContactsCsvUploadPr
 import { getCustomFieldLabel } from '../hooks/useCustomFieldLabel'
 import { useLingui } from '@lingui/react/macro'
 import { CustomerImportPanel } from '../components/customers/CustomerImportPanel'
+import { CustomerDirectory } from '../components/customers/CustomerDirectory'
+import { PendingEventsPanel } from '../components/business/PendingEventsPanel'
 import { WorkspacePageHeader } from '../components/navigation/WorkspacePageHeader'
 
 const STORAGE_KEY = 'contact_columns_visibility'
@@ -87,8 +89,9 @@ const DEFAULT_VISIBLE_COLUMNS = {
 export function ContactsPage() {
   const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/contacts' })
+  const searchParams = useSearch({ from: workspaceContactsRoute.id })
   const { permissions, loading } = useWorkspacePermissions(workspaceId)
-  const [selectedTab, setSelectedTab] = React.useState<string>()
+  const [selectedTab, setSelectedTab] = React.useState<string | undefined>(searchParams.tab)
   const [actionsContainer, setActionsContainer] = React.useState<HTMLDivElement | null>(null)
   const canReadContacts = Boolean(permissions?.contacts?.read)
   const canReadCustomers = Boolean(permissions?.customers?.read)
@@ -99,7 +102,13 @@ export function ContactsPage() {
   })
   if (loading) return <div className="p-6"><Spin /></div>
   if (!canReadContacts && !canReadCustomers) return <div className="p-6"><Alert type="error" title={t`No Access`} /></div>
-  const activeTab = selectedTab === 'import' && canReadCustomers ? 'import' : canReadContacts ? 'contacts' : 'import'
+  const activeTab = selectedTab === 'import' && canReadCustomers
+    ? 'import'
+    : selectedTab === 'customers' && canReadCustomers
+      ? 'customers'
+      : canReadContacts
+        ? 'contacts'
+        : 'customers'
   return (
     <div>
       <WorkspacePageHeader title={t`Customers`} />
@@ -108,6 +117,18 @@ export function ContactsPage() {
         onChange={setSelectedTab}
         tabBarExtraContent={<div ref={setActionsContainer} hidden={activeTab !== 'contacts'} />}
         items={[
+          ...(canReadCustomers ? [{
+            key: 'customers',
+            label: t`Customers`,
+            children: <Space orientation="vertical" size="large" className="w-full">
+              <PendingEventsPanel
+                workspaceId={workspaceId}
+                canRead={canReadContacts}
+                canResolve={Boolean(permissions?.contacts?.write && permissions?.customers?.write)}
+              />
+              <CustomerDirectory workspaceId={workspaceId} canWrite={Boolean(permissions?.customers?.write)} />
+            </Space>
+          }] : []),
           {
             key: 'contacts',
             label: <Space size={6}>

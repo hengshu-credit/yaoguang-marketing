@@ -60,7 +60,7 @@ export interface ListCustomEventsResponse {
 
 export const customEventApi = {
   create: async (params: CreateCustomEventRequest): Promise<CreateCustomEventResponse> => {
-    return api.post('/api/customEvents.create', params)
+    return api.post('/api/customEvents.upsert', params)
   },
 
   import: async (params: ImportCustomEventsRequest): Promise<ImportCustomEventsResponse> => {

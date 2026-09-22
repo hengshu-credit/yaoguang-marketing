@@ -120,8 +120,8 @@ describe('Notification Center App', () => {
       const mockUnsubscribe = vi.mocked(notificationCenterApi.unsubscribeOneClick)
       const mockParseParams = vi.mocked(notificationCenterApi.parseNotificationCenterParams)
 
-      const paramsWithoutLid = { ...testData.validParams }
-      delete (paramsWithoutLid as any).lid
+      const paramsWithoutLid: Omit<typeof testData.validParams, 'lid'> & { lid?: string } = { ...testData.validParams }
+      delete paramsWithoutLid.lid
 
       mockParseParams.mockReturnValue({
         ...paramsWithoutLid,

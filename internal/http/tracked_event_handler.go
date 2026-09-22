@@ -20,7 +20,7 @@ func NewTrackedEventHandler(s *service.TrackedEventService, secret func() ([]byt
 func (h *TrackedEventHandler) RegisterRoutes(mux *http.ServeMux) {
 	auth := middleware.NewAuthMiddleware(h.secret).RequireAuth()
 	for _, prefix := range []string{"events", "trackedEvents"} {
-		for _, action := range []string{"track", "batch", "get", "list", "diagnostics", "resolvePending"} {
+		for _, action := range []string{"track", "batch", "get", "list", "diagnostics", "pending", "resolvePending"} {
 			mux.Handle("/api/"+prefix+"."+action, auth(http.HandlerFunc(h.handle(action))))
 		}
 	}
@@ -61,6 +61,20 @@ func (h *TrackedEventHandler) handle(action string) http.HandlerFunc {
 				return
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"diagnostics": diagnostics})
+			return
+		}
+		if action == "pending" {
+			if r.Method != http.MethodGet {
+				w.WriteHeader(405)
+				return
+			}
+			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+			pending, pendingErr := h.service.Pending(r.Context(), r.URL.Query().Get("workspace_id"), limit)
+			if pendingErr != nil {
+				writeBusinessError(w, pendingErr)
+				return
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"events": pending})
 			return
 		}
 		if action == "get" || action == "list" {

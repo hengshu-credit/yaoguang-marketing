@@ -141,16 +141,14 @@ export class OperatorContains implements IOperator {
         }
         break
       case 'number':
-        // TODO input
-        break
       case 'time':
-        // TODO input
-        break
+        return <Alert type="info" showIcon title="Contains is available for text fields only. Choose a numeric or date operator for this field." />
       default:
         return (
           <Alert
-            type="error"
-            title={'contains form item not implemented for type: ' + fieldType}
+            type="info"
+            showIcon
+            title="Contains is available for text fields only. Choose another field or operator."
           />
         )
     }

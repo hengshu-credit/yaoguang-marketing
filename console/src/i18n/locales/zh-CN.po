@@ -1182,7 +1182,7 @@ msgstr "阿里妈妈方圆体"
 
 #: src/App.tsx:133
 #: src/components/brand/YaoguangBrand.tsx:101
-msgid "Alkaid Marketing Platform"
+msgid "Yaoguang Marketing Platform"
 msgstr "瑶光营销平台"
 
 #: src/components/analytics/EmailMetricsChart.tsx:284

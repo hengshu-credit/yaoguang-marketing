@@ -98,7 +98,7 @@ export function YaoguangBrand({
 }: YaoguangBrandProps) {
   const { t } = useLingui()
   const vertical = layout === 'vertical'
-  const productName = t`Alkaid Marketing Platform`
+  const productName = t`Yaoguang Marketing Platform`
   const tagline = t`Understanding Intent. Reaching Customers`
 
   return (

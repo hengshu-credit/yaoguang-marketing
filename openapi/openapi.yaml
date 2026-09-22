@@ -80,6 +80,8 @@ paths:
     $ref: './paths/tracked-events.yaml#/~1api~1events.resolvePending'
   /api/events.diagnostics:
     $ref: './paths/tracked-events.yaml#/~1api~1events.diagnostics'
+  /api/events.pending:
+    $ref: './paths/tracked-events.yaml#/~1api~1events.pending'
   /track/events:
     $ref: './paths/tracked-events.yaml#/~1track~1events'
   /track/identify:
@@ -134,6 +136,8 @@ paths:
     $ref: './paths/import_jobs.yaml#/~1api~1imports.list'
   /api/imports.cancel:
     $ref: './paths/import_jobs.yaml#/~1api~1imports.cancel'
+  /api/imports.retry:
+    $ref: './paths/import_jobs.yaml#/~1api~1imports.retry'
   /api/imports.errors:
     $ref: './paths/import_jobs.yaml#/~1api~1imports.errors'
   /api/imports.process:
@@ -264,6 +268,12 @@ paths:
     $ref: './paths/template-categories.yaml#/~1api~1templateCategories.delete'
   /api/customEvents.import:
     $ref: './paths/custom-events.yaml#/~1api~1customEvents.import'
+  /api/customEvents.upsert:
+    $ref: './paths/custom-events.yaml#/~1api~1customEvents.upsert'
+  /api/customEvents.get:
+    $ref: './paths/custom-events.yaml#/~1api~1customEvents.get'
+  /api/customEvents.list:
+    $ref: './paths/custom-events.yaml#/~1api~1customEvents.list'
   /api/webhookSubscriptions.create:
     $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.create'
   /api/webhookSubscriptions.list:

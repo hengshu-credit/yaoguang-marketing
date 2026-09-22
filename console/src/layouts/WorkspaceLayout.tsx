@@ -403,12 +403,12 @@ export function WorkspaceLayout() {
         </Link>
       )
     },
-    hasAccess('lists') && {
+    (hasAccess('lists') || hasAccess('segments')) && {
       key: 'audiences',
       icon: <UsergroupAddOutlined />,
       label: (
-        <Link to="/console/workspace/$workspaceId/audiences" params={{ workspaceId }}>
-          {t`Audiences`}
+        <Link to="/console/workspace/$workspaceId/lists" params={{ workspaceId }}>
+          {t`Audiences & Lists`}
         </Link>
       )
     },

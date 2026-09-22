@@ -10,7 +10,7 @@ describe('BrandLockup', () => {
       'src',
       '/console/images/hengshucredit_animated.svg'
     )
-    expect(screen.getByText('Alkaid Marketing Platform')).toBeInTheDocument()
+    expect(screen.getByText('Yaoguang Marketing Platform')).toBeInTheDocument()
     expect(screen.getByText('Understanding Intent. Reaching Customers')).toBeInTheDocument()
   })
 

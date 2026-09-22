@@ -56,4 +56,5 @@ function Button({
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- the variant helper is a stable styling API
 export { Button, buttonVariants }

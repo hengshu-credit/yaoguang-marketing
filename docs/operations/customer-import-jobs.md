@@ -23,7 +23,9 @@
 
 ## 状态与守恒
 
-Job 状态：`uploading → staged → processing → completed`，也可能进入 `rejected` 或 `cancelled`。
+Job 状态：`uploading → staged → processing → completed`，也可能进入 `rejected`、`cancelled` 或 `needs_attention`。
+
+当任务已完成但存在失败行时，控制台显示 `needs_attention`。操作人可以先下载失败明细，确认数据可重试后点击“重试失败行”；重试只把失败行重新放回队列，已经成功的 Customer 不会再次写入。
 
 任意时刻必须满足：
 
@@ -39,7 +41,7 @@ import:<job_id>:<ordinal>:<row_checksum>
 
 ## 运营操作
 
-1. 在“客群 → 批量导入”上传 CSV。
+1. 在“客户管理 → Import customers”上传 CSV。
 2. 收到“名单已完整接收”后可以关闭页面；后台任务继续执行。
 3. 任务卡片分别显示总数、待处理、处理中、成功、明确失败，进度只使用终态行计算。
 4. 失败数大于零时下载 UTF-8 CSV 明细，修正后作为新任务重新上传。

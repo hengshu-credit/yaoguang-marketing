@@ -65,7 +65,7 @@ export interface AudienceMemberRequest {
 
 export interface ImportJob {
   id: string
-  status: 'uploading' | 'staged' | 'processing' | 'completed' | 'rejected' | 'cancelled'
+  status: 'uploading' | 'staged' | 'processing' | 'completed' | 'needs_attention' | 'retrying' | 'rejected' | 'cancelled'
   filename: string
   list_ids?: string[]
   counters: { total: number; pending: number; processing: number; succeeded: number; failed: number }
@@ -174,6 +174,10 @@ export const importJobApi = {
   cancel: (workspaceId: string, jobId: string) => {
     const params = new URLSearchParams({ workspace_id: workspaceId, job_id: jobId })
     return api.postRaw<{ cancelled: boolean }>(`/api/imports.cancel?${params}`, '', 'text/plain')
+  },
+  retry: (workspaceId: string, jobId: string) => {
+    const params = new URLSearchParams({ workspace_id: workspaceId, job_id: jobId })
+    return api.postRaw<{ retrying: boolean }>(`/api/imports.retry?${params}`, '', 'text/plain')
   },
   errors: (workspaceId: string, jobId: string, limit = 100, offset = 0) => {
     const params = new URLSearchParams({ workspace_id: workspaceId, job_id: jobId, limit: String(limit), offset: String(offset) })

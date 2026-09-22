@@ -51,15 +51,12 @@ function App() {
 
   useEffect(() => {
     async function loadNotificationData() {
-      ;(window as any).Consecration =
-        'Imperet illi Deus, supplices deprecamur: tuque, Princeps militiae caelestis, Satanam aliosque spiritus malignos, qui ad perditionem animarum pervagantur in mundo, divina virtute in infernum detrude. Amen.'
-
       try {
         // Parse parameters from URL
         const params = parseNotificationCenterParams()
 
         if (!params) {
-          setError(t('missingParameters'))
+          setError(getTranslation('missingParameters', getLanguage()))
           setLoading(false)
           return
         }
@@ -229,7 +226,7 @@ function App() {
         setLoading(false)
       } catch (err) {
         console.error('Failed to load notification center data:', err)
-        setError(err instanceof Error ? err.message : t('failedToLoad'))
+        setError(err instanceof Error ? err.message : getTranslation('failedToLoad', getLanguage()))
         setLoading(false)
       }
     }
@@ -255,7 +252,7 @@ function App() {
   // Update page title with contact information
   useEffect(() => {
     if (notificationData?.contact) {
-      document.title = `${notificationData.contact.email} | ${t('emailSubscriptions')}`
+      document.title = `${notificationData.contact.email} | ${getTranslation('emailSubscriptions', language)}`
     }
   }, [notificationData?.contact, language])
 

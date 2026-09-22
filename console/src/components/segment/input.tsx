@@ -901,8 +901,9 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                             <td>
                               {!fieldTypeRenderer && (
                                 <Alert
-                                  type="error"
-                                  title={t`type ${rendererType} is not implemented`}
+                                  type="warning"
+                                  showIcon
+                                  title={t`This saved filter uses an unsupported field type. Remove it and add a supported filter.`}
                                 />
                               )}
                               {fieldTypeRenderer && (

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import {
+  Alert,
   Card,
   Row,
   Col,
@@ -14,7 +15,7 @@ import {
   Input,
   message
 } from 'antd'
-import { useParams } from '@tanstack/react-router'
+import { Link, useParams } from '@tanstack/react-router'
 import { listsApi } from '../services/api/list'
 import { templatesApi } from '../services/api/template'
 import type { List, TemplateReference, Workspace } from '../services/api/types'
@@ -95,14 +96,16 @@ export function ListsPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const queryClient = useQueryClient()
   const { workspaces } = useAuth()
-  const { permissions } = useWorkspacePermissions(workspaceId)
+  const { permissions, loading: permissionsLoading } = useWorkspacePermissions(workspaceId)
   const workspace = workspaces.find((w) => w.id === workspaceId)
+  const canReadLists = Boolean(permissions?.lists?.read)
 
   const { data, isLoading } = useQuery({
     queryKey: ['lists', workspaceId],
     queryFn: () => {
       return listsApi.list({ workspace_id: workspaceId })
-    }
+    },
+    enabled: canReadLists
   })
 
   const handleDelete = async () => {
@@ -151,6 +154,24 @@ export function ListsPage() {
     return <div>{t`Loading...`}</div>
   }
 
+  if (permissionsLoading || !permissions) {
+    return <div>{t`Loading...`}</div>
+  }
+
+  if (!canReadLists) {
+    return <div>
+      <WorkspacePageTitle>{t`Audiences & Lists`}</WorkspacePageTitle>
+      <Alert
+        className="mt-4"
+        type="info"
+        showIcon
+        title={t`You do not have permission to view static lists`}
+        description={t`You can still manage dynamic audiences if your workspace role allows it.`}
+        action={<Link to="/console/workspace/$workspaceId/audiences" params={{ workspaceId }}><Button>{t`Manage dynamic audiences`}</Button></Link>}
+      />
+    </div>
+  }
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -162,6 +183,9 @@ export function ListsPage() {
         </div>
         {(isLoading || hasLists) && (
           <Space>
+            <Link to="/console/workspace/$workspaceId/audiences" params={{ workspaceId }}>
+              <Button size="small">{t`Manage dynamic audiences`}</Button>
+            </Link>
             <Tooltip title={t`Refresh`}>
               <Button
                 type="text"
@@ -301,7 +325,12 @@ export function ListsPage() {
           </Title>
           <Paragraph type="secondary">{t`Create your first list to get started`}</Paragraph>
           <div className="mt-4">
-            <CreateListDrawer workspaceId={workspaceId} buttonProps={{ size: 'large' }} />
+            <Space>
+              <CreateListDrawer workspaceId={workspaceId} buttonProps={{ size: 'large' }} />
+              <Link to="/console/workspace/$workspaceId/audiences" params={{ workspaceId }}>
+                <Button size="large">{t`Manage dynamic audiences`}</Button>
+              </Link>
+            </Space>
           </div>
         </div>
       )}

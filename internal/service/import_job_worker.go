@@ -57,7 +57,7 @@ func (w *ImportJobWorker) Process(ctx context.Context, task *domain.Task, timeou
 			task.Progress = float64(state.ProcessedRows) / float64(state.TotalRows) * 100
 		}
 		switch job.Status {
-		case domain.ImportJobCompleted, domain.ImportJobCancelled, domain.ImportJobRejected:
+		case domain.ImportJobCompleted, domain.ImportJobNeedsAttention, domain.ImportJobCancelled, domain.ImportJobRejected:
 			return true, nil
 		}
 		if processed == 0 {

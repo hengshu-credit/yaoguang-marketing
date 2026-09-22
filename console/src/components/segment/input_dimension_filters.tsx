@@ -76,8 +76,9 @@ export const InputDimensionFilters = (props: {
                     )}
                     {field && !fieldTypeRenderer && (
                       <Alert
-                        type="error"
-                        title={t`type ${filter.field_type} is not implemented`}
+                        type="warning"
+                        showIcon
+                        title={t`This saved filter uses an unsupported field type. Remove it and add a supported filter.`}
                       />
                     )}
                     {field && fieldTypeRenderer && (
@@ -273,8 +274,9 @@ const AddFilterButton = (props: {
                   if (!fieldTypeRenderer)
                     return (
                       <Alert
-                        type="error"
-                        title={t`type ${selectedField.type} is not implemented`}
+                        type="info"
+                        showIcon
+                        title={t`This field type is not supported by the segment builder. Choose another field.`}
                       />
                     )
 

@@ -96,7 +96,15 @@ func (r *CustomerPostgresRepository) List(ctx context.Context, workspaceID strin
 		args = append(args, "%"+escapeLikePattern(request.Search)+"%")
 		patternPlaceholder := fmt.Sprintf("$%d", len(args))
 		exactIdentity := ""
-		for _, identityType := range []domain.CustomerIdentityType{domain.CustomerIdentityEmail, domain.CustomerIdentityPhone} {
+		for _, identityType := range []domain.CustomerIdentityType{
+			domain.CustomerIdentityEmail,
+			domain.CustomerIdentityPhone,
+			domain.CustomerIdentityAnonymousID,
+			domain.CustomerIdentityDeviceID,
+			domain.CustomerIdentityWhatsApp,
+			domain.CustomerIdentityTelegram,
+			domain.CustomerIdentityCustom,
+		} {
 			normalized, normalizeErr := domain.NormalizeCustomerIdentity(domain.CustomerIdentityInput{Type: identityType, Value: request.Search})
 			if normalizeErr != nil {
 				continue
@@ -106,8 +114,10 @@ func (r *CustomerPostgresRepository) List(ctx context.Context, workspaceID strin
 				return nil, fingerprintErr
 			}
 			args = append(args, fingerprint)
-			exactIdentity = fmt.Sprintf(" OR (ci.identity_type = '%s' AND ci.lookup_fingerprint = $%d)", identityType, len(args))
-			break
+			// A value can be valid for multiple identity types (for example an
+			// email-shaped anonymous ID). Search every namespace, not just the
+			// first normalization that succeeds.
+			exactIdentity += fmt.Sprintf(" OR (ci.identity_type = '%s' AND ci.lookup_fingerprint = $%d)", identityType, len(args))
 		}
 		clauses = append(clauses, fmt.Sprintf(`(
 			c.customer_no ILIKE %[1]s ESCAPE '\' OR

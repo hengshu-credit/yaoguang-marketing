@@ -29,6 +29,7 @@ func (h *ImportJobHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/imports.get", auth.RequireAuth()(http.HandlerFunc(h.get)))
 	mux.Handle("/api/imports.list", auth.RequireAuth()(http.HandlerFunc(h.list)))
 	mux.Handle("/api/imports.cancel", auth.RequireAuth()(http.HandlerFunc(h.cancel)))
+	mux.Handle("/api/imports.retry", auth.RequireAuth()(http.HandlerFunc(h.retry)))
 	mux.Handle("/api/imports.errors", auth.RequireAuth()(http.HandlerFunc(h.errors)))
 	mux.Handle("/api/imports.process", auth.RequireAuth()(http.HandlerFunc(h.process)))
 }
@@ -72,6 +73,18 @@ func (h *ImportJobHandler) cancel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]bool{"cancelled": true})
+}
+
+func (h *ImportJobHandler) retry(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeAPIError(w, requestIDFor(r), "method_not_allowed", "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := h.service.Retry(r.Context(), r.URL.Query().Get("workspace_id"), r.URL.Query().Get("job_id")); err != nil {
+		h.error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"retrying": true})
 }
 
 func (h *ImportJobHandler) errors(w http.ResponseWriter, r *http.Request) {

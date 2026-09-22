@@ -80,7 +80,7 @@ describe('SignInPage', () => {
     renderWithProviders(<SignInPage />)
 
     expect(screen.getByRole('img', { name: '衡枢真信' })).toBeInTheDocument()
-    expect(screen.getByText('Alkaid Marketing Platform')).toBeInTheDocument()
+    expect(screen.getByText('Yaoguang Marketing Platform')).toBeInTheDocument()
     expect(screen.getByText('Understanding Intent. Reaching Customers')).toBeInTheDocument()
   })
 

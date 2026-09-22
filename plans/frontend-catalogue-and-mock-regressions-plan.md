@@ -7,10 +7,11 @@
 - 公共 `@lingui/core/macro` Mock 补齐 `t`，复用真实 i18n 运行时做翻译而非固定返回字符串；增加静态、变量、描述符和语言切换测试。
 - 回归检查目录解析、占位符一致、非空翻译、生产 Lingui 编译，并执行 Console 全量 Vitest、TypeScript、ESLint 和生产构建。报告实际结果，不跳过测试或掩盖失败。
 
-## 进度
+## 完成结果
 
 - 已补齐全部 3,036 条空译文，保留此前主题改动和既有非空翻译。
 - 中文证件业务误报及公共 `t` Mock 已修复，新增正反例与运行时回归；定向 353 项全部通过。
 - 所有新译文通过真实编译目录的运行时核对，插值与源文案一致。
-- Lingui 编译、TypeScript、ESLint、生产构建通过；全量 Vitest 等待最终结果。
+- Lingui 编译、TypeScript、ESLint、生产构建及 `git diff --check` 通过。
+- 全量 Vitest：201 个测试文件、2,109 项测试全部通过，0 失败、0 跳过。
 - 验收记录：`docs/operations/frontend-regressions-2026-09-21.md`。
