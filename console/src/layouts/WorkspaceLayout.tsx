@@ -15,11 +15,12 @@ import {
   faAngleRight
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../contexts/AuthContext'
+import { WorkspacePermissionsContext } from '../contexts/WorkspacePermissionsContext'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { BrandLockup } from '../components/BrandLockup'
 import { Workspace, UserPermissions } from '../services/api/types'
 import { ContactsCsvUploadProvider } from '../components/contacts/ContactsCsvUploadProvider'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from 'react'
 import { FileManagerProvider } from '../components/file_manager/context'
 import { FileManagerSettings } from '../components/file_manager/interfaces'
@@ -97,8 +98,10 @@ export function WorkspaceLayout() {
   const suppressResizeClickRef = useRef(false)
   const clearResizeClickTimerRef = useRef<number | null>(null)
   const [resizingSidebar, setResizingSidebar] = useState(false)
-  const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null)
-  const [loadingPermissions, setLoadingPermissions] = useState(true)
+  const [permissionResult, setPermissionResult] = useState<{ workspaceId: string; userId: string; permissions: UserPermissions }>()
+  const userPermissions = permissionResult?.workspaceId === workspaceId && permissionResult.userId === user?.id ? permissionResult.permissions : null
+  const loadingPermissions = !!user && !userPermissions
+  const permissionSnapshot = useMemo(() => ({ workspaceId, userId: user?.id ?? '', permissions: userPermissions, loading: loadingPermissions }), [workspaceId, user?.id, userPermissions, loadingPermissions])
 
   const desktopCompact = sidebarState.width < SIDEBAR_COMPACT_THRESHOLD
   const sidebarCompact = narrow ? collapsed : desktopCompact
@@ -155,7 +158,7 @@ export function WorkspaceLayout() {
   // Use useMatches to determine the current route path
   const matches = useMatches()
   const currentPath = matches[matches.length - 1]?.pathname || ''
-  const isSettingsPage = currentPath.includes('/settings') || currentPath.includes('/blog')
+  const isSettingsPage = currentPath.includes('/settings')
 
   useEffect(() => {
     const updateViewport = () => {
@@ -252,9 +255,12 @@ export function WorkspaceLayout() {
 
   // Fetch user permissions for the current workspace
   useEffect(() => {
+    let current = true
+    const setUserPermissions = (permissions: UserPermissions) => {
+      if (current && user) setPermissionResult({ workspaceId, userId: user.id, permissions })
+    }
     const fetchUserPermissions = async () => {
       if (!user || !workspaceId) {
-        setLoadingPermissions(false)
         return
       }
 
@@ -262,12 +268,12 @@ export function WorkspaceLayout() {
       if (isRootUser(user.email)) {
         setThemeOwner({id:workspaceId,userId:user.id,allowed:true})
         setUserPermissions(createFullPermissions())
-        setLoadingPermissions(false)
         return
       }
 
       try {
         const response = await workspaceService.getMembers(workspaceId)
+        if (!current) return
         const currentUserMember = response.members.find((member) => member.user_id === user.id)
         setThemeOwner({id:workspaceId,userId:user.id,allowed:currentUserMember?.role === 'owner'})
 
@@ -283,12 +289,11 @@ export function WorkspaceLayout() {
         console.error('Failed to fetch user permissions', error)
         // On error, assume no permissions
         setUserPermissions(createEmptyPermissions())
-      } finally {
-        setLoadingPermissions(false)
       }
     }
 
     fetchUserPermissions()
+    return () => { current = false }
   }, [workspaceId, user])
 
   // Helper function to check if user has access to a resource
@@ -305,7 +310,7 @@ export function WorkspaceLayout() {
     selectedKey = 'settings'
   } else if (currentPath.includes('/customers') || currentPath.includes('/contacts')) {
     selectedKey = 'customers'
-  } else if (currentPath.includes('/lists') || currentPath.includes('/audiences')) {
+  } else if (currentPath.includes('/lists')) {
     selectedKey = 'audiences'
   } else if (currentPath.includes('/broadcasts')) {
     selectedKey = 'campaigns'
@@ -756,7 +761,9 @@ export function WorkspaceLayout() {
                 onUpdateSettings={handleUpdateWorkspaceSettings}
                 readOnly={!userPermissions?.templates?.write}
               >
-                <Outlet />
+                <WorkspacePermissionsContext.Provider value={permissionSnapshot}>
+                  <Outlet />
+                </WorkspacePermissionsContext.Provider>
                 {themeWorkspace === workspaceId && currentWorkspace && <ConsoleThemeDrawer key={workspaceId} workspace={currentWorkspace} canManage={themeOwner?.id === workspaceId && themeOwner.userId === user?.id && themeOwner.allowed} onClose={() => setThemeWorkspace(undefined)} onSaved={refreshWorkspaces} />}
               </FileManagerProvider>
             </Content>

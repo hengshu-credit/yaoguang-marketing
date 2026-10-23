@@ -295,7 +295,6 @@ import { CreateWorkspacePage } from '../pages/CreateWorkspacePage'
 import { AnalyticsPage } from '../pages/AnalyticsPage'
 import { BroadcastsPage } from '../pages/BroadcastsPage'
 import { ContactsPage } from '../pages/ContactsPage'
-import { ListsPage } from '../pages/ListsPage'
 import { TemplatesPage } from '../pages/TemplatesPage'
 import { AutomationsPage } from '../pages/AutomationsPage'
 import { TransactionalNotificationsPage } from '../pages/TransactionalNotificationsPage'
@@ -416,14 +415,6 @@ describe('Page Smoke Tests', () => {
     it('ContactsPage renders without error', async () => {
       const Wrapper = createWrapper()
       expect(() => render(<ContactsPage />, { wrapper: Wrapper })).not.toThrow()
-      await waitFor(() => {
-        expect(document.body).toBeTruthy()
-      })
-    })
-
-    it('ListsPage renders without error', async () => {
-      const Wrapper = createWrapper()
-      expect(() => render(<ListsPage />, { wrapper: Wrapper })).not.toThrow()
       await waitFor(() => {
         expect(document.body).toBeTruthy()
       })

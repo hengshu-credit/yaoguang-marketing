@@ -31,6 +31,20 @@ const renderDrawer = (overrides: Partial<React.ComponentProps<typeof Omnichannel
 )
 
 describe('OmnichannelTemplateDrawer', () => {
+  it('switches empty drafts between device buttons without sending invalid preview requests', async () => {
+    vi.mocked(templatesApi.preview).mockRejectedValue(new Error('body is required'))
+    const { container } = renderDrawer({ livePreviewDelay: 0 })
+    await userEvent.click(screen.getByRole('button', { name: 'Create template' }))
+    for (const [label, device] of [['Computer', 'desktop'], ['Pad', 'tablet'], ['Android', 'android'], ['iOS', 'ios']]) {
+      await userEvent.click(screen.getByRole('button', { name: label }))
+      expect(container.ownerDocument.querySelector('[data-preview-device]')).toHaveAttribute('data-preview-device', device)
+      expect(screen.queryByText('body is required')).not.toBeInTheDocument()
+    }
+    expect(templatesApi.preview).not.toHaveBeenCalled()
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Untitled draft' } })
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 30)) })
+    expect(templatesApi.preview).not.toHaveBeenCalled()
+  })
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(templatesApi.preview).mockResolvedValue({
@@ -55,7 +69,7 @@ describe('OmnichannelTemplateDrawer', () => {
       { id: 'whatsapp', label_key: 'WhatsApp', content_families: ['rich_card'], preview_profiles: [{ id: 'whatsapp_ios', label_key: 'WhatsApp iOS', surface: 'mobile' }], delivery_modes: ['signed_webhook'], limits: {} }
     ] })
     await userEvent.click(screen.getByRole('button', { name: 'Edit Template' }))
-    expect(screen.getByLabelText('Client preview')).toHaveValue('whatsapp_ios')
+    expect(screen.getByRole('button', { name: 'iOS' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.queryByText('This preview profile is not supported.')).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Open' })).toHaveAttribute('href', 'https://example.com')
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))

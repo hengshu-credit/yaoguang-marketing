@@ -1,10 +1,47 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { useState } from 'react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import type { StateRule } from '../../services/api/funnels'
 import { StateRuleEditor } from './StateConditionTree'
 import { normalizeStateRule } from './state-rule-utils'
 
 const catalogue = { objects: [], events: [], states: [] }
+function EditableTree({ initial }: { initial: StateRule }) {
+ const [value, onChange] = useState(initial)
+ return <><StateRuleEditor {...catalogue} value={value} onChange={onChange} /><output data-testid="rule">{JSON.stringify(value)}</output></>
+}
 describe('State condition tree', () => {
+ it.each(['all', 'any'] as const)('removes the only nested subtree from an %s group and allows rebuilding', kind => {
+  const { container } = render(<EditableTree initial={{ kind, children: [{ kind: 'all', children: [{ kind: 'any', children: [{ kind: 'event', event: 'login' }] }] }] }} />)
+  // The last remove button belongs to the root; all descendants go with it.
+  const buttons = screen.getAllByRole('button', { name: /Remove condition/ })
+  expect(buttons[buttons.length - 1]).toBeEnabled()
+  fireEvent.click(buttons[buttons.length - 1])
+  expect(JSON.parse(screen.getByTestId('rule').textContent!)).toEqual({ kind, children: [] })
+  expect(container.querySelector('[data-condition-depth="1"]')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: /Add condition group/ }))
+  expect(JSON.parse(screen.getByTestId('rule').textContent!)).toEqual({ kind, children: [{ kind: 'all', children: [{ kind: 'event', event: '', minimum: 1 }] }] })
+ })
+ it('removes a nested last leaf without changing its parent or sibling conditions', () => {
+  const sibling: StateRule = { kind: 'attribute', field: 'tier', operator: 'eq', operand: 'gold' }
+  const { container } = render(<EditableTree initial={{ kind: 'all', children: [{ kind: 'any', children: [{ kind: 'event', event: 'login' }] }, sibling] }} />)
+  const nestedGroup = container.querySelector('[data-condition-depth="1"]') as HTMLElement
+  fireEvent.click(within(nestedGroup).getByRole('button', { name: /Remove condition/ }))
+  expect(JSON.parse(screen.getByTestId('rule').textContent!)).toEqual({ kind: 'all', children: [{ kind: 'any', children: [] }, sibling] })
+  fireEvent.click(within(nestedGroup).getByRole('button', { name: /Add condition$/ }))
+  expect(JSON.parse(screen.getByTestId('rule').textContent!)).toEqual({ kind: 'all', children: [{ kind: 'any', children: [{ kind: 'event', event: '', minimum: 1 }] }, sibling] })
+  fireEvent.click(screen.getAllByRole('button', { name: /Remove condition/ })[1])
+  expect(JSON.parse(screen.getByTestId('rule').textContent!)).toEqual({ kind: 'all', children: [sibling] })
+ })
+ it('does not allow removing conditions in a read-only tree', () => {
+  const change = vi.fn()
+  render(<StateRuleEditor {...catalogue} readOnly value={{ kind: 'all', children: [{ kind: 'event', event: 'login' }, { kind: 'event', event: 'logout' }] }} onChange={change} />)
+  for (const button of screen.getAllByRole('button', { name: /Remove condition/ })) {
+   expect(button).toBeDisabled()
+   fireEvent.click(button)
+  }
+  expect(change).not.toHaveBeenCalled()
+ })
  it('persists the displayed equality operator and typed value immediately', () => {
   const change = vi.fn()
   const { rerender } = render(<StateRuleEditor {...catalogue} value={{ kind: 'attribute', field: 'tier', operand: 'old' }} onChange={change} attributes={[{ key: 'tier', name: 'Tier', type: 'string' }]} />)

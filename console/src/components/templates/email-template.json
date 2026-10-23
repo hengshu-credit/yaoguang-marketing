@@ -73,7 +73,7 @@
                   "alt": "",
                   "fluidOnMobile": "false",
                   "sizes": "",
-                  "src": "https://placehold.co/150x60/E3F2FD/1976D2?font=playfair-display&text=LOGO",
+                  "src": "",
                   "srcset": "",
                   "title": "",
                   "usemap": ""
@@ -223,28 +223,18 @@
                     "children": [
                       {
                         "id": "27603929-6b68-411e-b335-4beed8bd64b9",
-                        "type": "mj-image",
+                        "type": "mj-text",
                         "attributes": {
-                          "borderRadius": "0px",
+                          "align": "left",
+                          "color": "#7763f1",
+                          "fontFamily": "Arial, sans-serif",
+                          "fontSize": "22px",
+                          "paddingTop": "10px",
                           "paddingBottom": "30px",
                           "paddingLeft": "25px",
-                          "paddingRight": "0px",
-                          "paddingTop": "10px",
-                          "height": "auto",
-                          "width": "100px",
-                          "href": "",
-                          "rel": "noopener noreferrer",
-                          "target": "_blank",
-                          "containerBackgroundColor": "transparent",
-                          "align": "left",
-                          "alt": "",
-                          "fluidOnMobile": "false",
-                          "sizes": "",
-                          "src": "https://storage.googleapis.com/cdn-eu-rimdian/notifuse/logo.png",
-                          "srcset": "",
-                          "title": "",
-                          "usemap": ""
-                        }
+                          "paddingRight": "25px"
+                        },
+                        "content": "<p><strong>Yaoguang Marketing</strong></p>"
                       },
                       {
                         "id": "1c771e88-da3e-4d96-a4e6-ec08e7878225",
@@ -411,66 +401,7 @@
                       "paddingLeft": "0px",
                       "paddingRight": "0px",
                       "paddingTop": "0px",
-                      "width": "50%",
-                      "verticalAlign": "top",
-                      "cssClass": "",
-                      "innerBackgroundColor": "transparent",
-                      "innerBorderTop": "none",
-                      "innerBorderRight": "none",
-                      "innerBorderBottom": "none",
-                      "innerBorderLeft": "none",
-                      "innerBorderRadius": "0px"
-                    }
-                  },
-                  {
-                    "id": "9d2f7280-fe42-4703-a7d2-bf7aa473ff5e",
-                    "type": "mj-column",
-                    "children": [
-                      {
-                        "id": "9e8096bf-3ab0-4746-b29a-fe5592a1ef9b",
-                        "type": "mj-social",
-                        "children": [
-                          {
-                            "id": "2d0fe2a2-0377-496a-a75a-c2f2e5750627",
-                            "type": "mj-social-element",
-                            "attributes": {
-                              "backgroundColor": "#000000",
-                              "borderRadius": "3px",
-                              "name": "x-noshare",
-                              "href": "https://x.com/notifuse"
-                            }
-                          }
-                        ],
-                        "attributes": {
-                          "paddingBottom": "10px",
-                          "paddingLeft": "25px",
-                          "paddingRight": "25px",
-                          "paddingTop": "10px",
-                          "containerBackgroundColor": "transparent",
-                          "align": "right",
-                          "borderRadius": "3px",
-                          "iconHeight": "20px",
-                          "iconSize": "20px",
-                          "innerPadding": "4px",
-                          "lineHeight": "22px",
-                          "mode": "horizontal",
-                          "tableLayout": "auto",
-                          "textPadding": "4px 4px 4px 0px"
-                        }
-                      }
-                    ],
-                    "attributes": {
-                      "backgroundColor": "transparent",
-                      "borderBottom": "none",
-                      "borderLeft": "none",
-                      "borderRadius": "0px",
-                      "borderRight": "none",
-                      "borderTop": "none",
-                      "paddingBottom": "0px",
-                      "paddingLeft": "0px",
-                      "paddingRight": "0px",
-                      "paddingTop": "0px",
-                      "width": "50%",
+                      "width": "100%",
                       "verticalAlign": "top",
                       "cssClass": "",
                       "innerBackgroundColor": "transparent",

@@ -178,6 +178,9 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
     // ============================================
     // SEGMENTS (supports both singular and plural API routes)
     // ============================================
+    if (url.includes('/api/audiences.list')) {
+      return route.fulfill(jsonResponse({ items: [], total: 0 }))
+    }
     if (url.includes('/api/segment.list') || url.includes('/api/segments.list')) {
       return route.fulfill(jsonResponse(withData ? mockSegmentsResponse : mockEmptySegments))
     }

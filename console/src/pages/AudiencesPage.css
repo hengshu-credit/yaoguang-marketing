@@ -1,0 +1,9 @@
+/* Separate audience groups while keeping each list's details and counts together. */
+.audiences-table .ant-table-tbody > tr.audience-row > .ant-table-cell {
+  border-top: 16px solid var(--console-bg, #f3f6fc);
+  background: var(--console-surface, #fff);
+}
+
+.audiences-table .ant-table-tbody > tr.ant-table-expanded-row > .ant-table-cell {
+  background: var(--console-surface, #fff);
+}

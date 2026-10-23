@@ -102,15 +102,16 @@ test.describe('Protected Pages Load', () => {
     expect(errors).toHaveLength(0)
   })
 
-  test('ListsPage loads and renders lists content', async ({ authenticatedPage }) => {
+  test('lists URL opens the unified audience page', async ({ authenticatedPage }) => {
     const page = authenticatedPage
     const errors = setupConsoleErrorTracking(page)
 
     await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
     await waitForPageLoad(page)
 
-    await expect(page.getByRole('heading', { name: 'No lists found' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Create List' })).toBeVisible()
+    await expect(page).toHaveURL(`/console/workspace/${WORKSPACE_ID}/lists`)
+    await expect(page.getByText('No audiences yet')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Create list', exact: true })).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)

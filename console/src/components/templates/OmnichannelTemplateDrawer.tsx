@@ -70,6 +70,16 @@ const normalizeContent = (draft: MaterialDraft | undefined, family: ContentFamil
   return content
 }
 
+const hasPreviewContent = (content: ChannelTemplateContent): boolean => {
+  switch (content.family) {
+    case 'external_template': return Boolean(content.external_template?.id && content.external_template?.language)
+    case 'webhook_payload': return Boolean(content.webhook?.body?.trim())
+    case 'carousel': return Boolean(content.cards?.length && content.cards.every(card => card.body?.trim()))
+    case 'notification': return Boolean(content.title?.trim() && content.body?.trim())
+    default: return Boolean(content.body?.trim())
+  }
+}
+
 const OmnichannelTemplateDrawer: React.FC<OmnichannelTemplateDrawerProps> = ({
   workspace, definitions, defaultChannel, template, fromTemplate, buttonContent, buttonProps, livePreviewDelay = 300
 }) => {
@@ -151,6 +161,10 @@ const OmnichannelTemplateDrawer: React.FC<OmnichannelTemplateDrawerProps> = ({
       const values = form.getFieldsValue(true)
       if (!values.channel || !values.family) return
       const payload = buildPayload(values)
+      // An incomplete draft is normal while typing or switching devices.
+      // Explicit preview/save still validates and reports actionable errors.
+      if (!validate && (!hasPreviewContent(payload.content) ||
+        (payload.translations[language]?.content && !hasPreviewContent(payload.translations[language].content!)))) return
       const result = await templatesApi.preview({
         workspace_id: workspace.id, channel: payload.channel as Template['channel'], content_schema_version: 1,
         content: payload.content, translations: payload.translations, language, profile, test_data: payload.test_data
@@ -241,7 +255,7 @@ const OmnichannelTemplateDrawer: React.FC<OmnichannelTemplateDrawerProps> = ({
         </Col>
         <Col xs={24} lg={11}>
           {previewError && <Alert type="error" showIcon title={previewError} className="mb-4" />}
-          <OmnichannelPreview definition={definition} preview={preview?.channel_preview || localPreview} onProfileChange={(next) => { setProfile(next); invalidatePreview() }} />
+          <OmnichannelPreview key={channel} definition={definition} preview={preview?.channel_preview || localPreview} onProfileChange={(next) => { setProfile(next); invalidatePreview() }} />
           {!preview?.channel_preview && <Alert type="info" showIcon className="mt-4" title={t`Draft preview updates immediately. Server Liquid validation follows automatically.`} />}
         </Col>
       </Row>

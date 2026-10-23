@@ -15,6 +15,7 @@ import { WorkspacePageTitle } from '../components/navigation/WorkspacePageTitle'
 import { CreateListDrawer } from '../components/lists/ListDrawer'
 import { ListStats } from '../components/lists/ListStats'
 import type { List } from '../services/api/list'
+import './AudiencesPage.css'
 
 const { Paragraph, Text } = Typography
 
@@ -119,7 +120,8 @@ export function AudiencesPage() {
       dataIndex: 'name',
       render: (name: string, row) => (
         <Link
-          to="/console/workspace/$workspaceId/audiences/$sourceType/$sourceId"
+          className="font-semibold"
+          to="/console/workspace/$workspaceId/lists/$sourceType/$sourceId"
           params={{ workspaceId, sourceType: row.sourceType, sourceId: row.id }}
         >
           {name}
@@ -223,6 +225,8 @@ export function AudiencesPage() {
         <Empty description={t`No audiences yet`} />
       ) : (
         <Table<AudienceRow>
+          className="audiences-table"
+          rowClassName="audience-row"
           rowKey={(row) => `${row.sourceType}:${row.id}`}
           columns={columns}
           dataSource={items}

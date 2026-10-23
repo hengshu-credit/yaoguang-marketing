@@ -466,6 +466,7 @@ const MessageTemplateDrawer: React.FC<MessageTemplateDrawerProps> = ({
               onPlatformChange={(nextPlatform) => {
                 setPlatform(nextPlatform)
                 setPreview(null)
+                setPreviewError(null)
               }}
             />
             {!preview && (

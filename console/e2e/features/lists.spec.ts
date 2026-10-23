@@ -15,28 +15,18 @@ const createListDrawer = (page: Page) =>
 
 const editListDrawer = (page: Page) => page.getByRole('dialog', { name: 'Edit List', exact: true })
 
-/** Open the create drawer from the page-level "Create List" button. */
+/** Open the create drawer from the unified audience page. */
 async function openCreateDrawer(page: Page): Promise<Locator> {
-  await page.getByRole('button', { name: 'Create List', exact: true }).click()
+  await page.getByRole('button', { name: 'Create list', exact: true }).click()
   const drawer = createListDrawer(page)
   await expect(drawer).toBeVisible()
   return drawer
 }
 
-/**
- * Open the edit drawer of a list card. The card is picked by its title so the
- * locator only resolves once the list has loaded, and the card's edit control is
- * an icon-only button, so it is identified by the icon it renders.
- */
+/** Open the edit drawer belonging to the named audience row. */
 async function openEditDrawer(page: Page, listName = 'Newsletter'): Promise<Locator> {
-  const card = page
-    .locator('.ant-card')
-    .filter({ has: page.locator('.ant-card-head-title', { hasText: listName }) })
-
-  await card
-    .locator('button')
-    .filter({ has: page.locator('svg[data-icon="pen-to-square"]') })
-    .click()
+  const row = page.getByRole('row').filter({ has: page.getByRole('link', { name: listName, exact: true }) })
+  await row.getByRole('button', { name: 'Edit list', exact: true }).click()
 
   const drawer = editListDrawer(page)
   await expect(drawer).toBeVisible()
@@ -45,15 +35,15 @@ async function openEditDrawer(page: Page, listName = 'Newsletter'): Promise<Loca
 
 test.describe('Lists Feature', () => {
   test.describe('Page Load & Empty State', () => {
-    test('loads lists page and shows empty state', async ({ authenticatedPage }) => {
+    test('loads the unified lists page and shows its empty state', async ({ authenticatedPage }) => {
       const page = authenticatedPage
 
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      await expect(page.getByText('No lists found')).toBeVisible()
-      await expect(page.getByText('Create your first list to get started')).toBeVisible()
-      await expect(page.getByRole('button', { name: 'Create List', exact: true })).toBeVisible()
+      await expect(page).toHaveURL(`/console/workspace/${WORKSPACE_ID}/lists`)
+      await expect(page.getByText('No audiences yet')).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Create list', exact: true })).toBeVisible()
     })
 
     test('loads lists page with data', async ({ authenticatedPageWithData }) => {
@@ -62,9 +52,8 @@ test.describe('Lists Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      // One card per mocked list, titled with the list name
-      await expect(page.locator('.ant-card')).toHaveCount(3)
-      await expect(page.locator('.ant-card-head-title')).toHaveText([
+      await expect(page.locator('.audience-row')).toHaveCount(3)
+      await expect(page.locator('.audience-row > td:first-child a')).toHaveText([
         'Newsletter',
         'Marketing Updates',
         'Beta Testers'
@@ -114,11 +103,11 @@ test.describe('Lists Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      // The card body carries the list's descriptions rather than opening a detail view
-      const details = page.locator('.ant-card').first().locator('.ant-descriptions')
-      await expect(details).toContainText('list-1')
+      const details = page.getByRole('row').filter({ has: page.getByRole('link', { name: 'Newsletter', exact: true }) })
       await expect(details).toContainText('Monthly newsletter subscribers')
-      await expect(details).toContainText('Public')
+      await expect(details.getByRole('link', { name: 'Newsletter' })).toHaveAttribute(
+        'href', `/console/workspace/${WORKSPACE_ID}/lists/list/list-1`
+      )
     })
   })
 
@@ -169,8 +158,7 @@ test.describe('Lists Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
       await waitForLoading(page)
 
-      // Each card pulls its own counters from /api/lists.stats
-      const stats = page.locator('.ant-card').first().locator('.ant-statistic')
+      const stats = page.getByLabel('Customer status counts for Newsletter', { exact: true }).locator('.ant-statistic')
       await expect(stats.filter({ hasText: 'Active' })).toContainText('150')
       await expect(stats.filter({ hasText: 'Pending' })).toContainText('25')
       await expect(stats.filter({ hasText: 'Unsub' })).toContainText('10')
@@ -267,19 +255,15 @@ test.describe('Lists Feature', () => {
   })
 
   test.describe('Navigation', () => {
-    test('navigates to lists from sidebar', async ({ authenticatedPage }) => {
+    test('navigates to audiences from sidebar', async ({ authenticatedPage }) => {
       const page = authenticatedPage
 
       // Start at dashboard
       await page.goto(`/console/workspace/${WORKSPACE_ID}/`)
       await waitForLoading(page)
 
-      // Click lists link in sidebar
-      const listsLink = page.locator('a[href*="lists"], [data-menu-id*="lists"]').first()
-      await listsLink.click()
-
-      // Should be on lists page
-      await expect(page).toHaveURL(/lists/)
+      await page.getByRole('link', { name: 'Audiences & Lists', exact: true }).click()
+      await expect(page).toHaveURL(`/console/workspace/${WORKSPACE_ID}/lists`)
     })
 
     test('can close create form', async ({ authenticatedPage }) => {

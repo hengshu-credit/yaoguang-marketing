@@ -206,6 +206,12 @@ describe('WorkspaceLayout product navigation', () => {
     signInAsRoot()
   })
 
+  it.each(['blog', 'templates', 'file-manager'])('uses the shared page spacing for %s', page => {
+    currentPathname = `/console/workspace/ws1/${page}`
+    const { container } = render(<WorkspaceLayout />)
+    expect((container.querySelector('.workspace-main-layout') as HTMLElement).style.padding).toBe('var(--console-page-padding, 24px)')
+  })
+
   it('shows the approved Yaoguang brand lockup', () => {
     render(<WorkspaceLayout />)
 
@@ -237,7 +243,7 @@ describe('WorkspaceLayout product navigation', () => {
     expect(document.querySelector('.workspace-sider-nav .ant-menu-item')?.textContent).toBe('Data Analytics')
   })
 
-  it('links the audiences and lists navigation item to the canonical lists workspace', async () => {
+  it('links the audiences and lists navigation item to the unified audience page', async () => {
     render(<WorkspaceLayout />)
 
     const audienceEntry = await screen.findByText('Audiences & Lists')
@@ -259,7 +265,6 @@ describe('WorkspaceLayout product navigation', () => {
     ['', 'Data Analytics'],
     ['/customers', 'Customers'],
     ['/contacts', 'Customers'],
-    ['/audiences', 'Audiences & Lists'],
     ['/lists', 'Audiences & Lists'],
     ['/broadcasts', 'Marketing Campaigns'],
     ['/automations', 'Automation Journeys'],

@@ -376,7 +376,7 @@ export function UITranslationsSettings({
           description={t`Reload this page to try again.`}
         />
       ) : (
-        <div role="region" aria-label={t`Workspace UI translations`}>
+        <div role="region" aria-label={t`Workspace UI translations`} style={{ isolation: 'isolate' }}>
           <Table<TranslationTreeNode>
             rowKey="key"
             columns={columns}
@@ -384,7 +384,8 @@ export function UITranslationsSettings({
             loading={loading}
             pagination={false}
             size="small"
-            scroll={{ x: TRANSLATION_TABLE_WIDTH, y: 'calc(100vh - 360px)' }}
+            scroll={{ x: TRANSLATION_TABLE_WIDTH }}
+            sticky={{ offsetHeader: 64, offsetScroll: dirty ? 88 : 0 }}
             expandable={{
               expandedRowKeys: searchExpandedKeys,
               onExpandedRowsChange: (keys) => setExpandedKeys([...keys]),

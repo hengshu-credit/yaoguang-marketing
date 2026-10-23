@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { applyConsoleTheme, colorContrast, consoleAccent, DEFAULT_CONSOLE_THEME, normalizeConsoleTheme } from './consoleTheme'
+import { ACCENT_PRESETS, antdConsoleTheme, applyConsoleTheme, colorContrast, consoleAccent, consolePalette, DEFAULT_CONSOLE_THEME, normalizeConsoleTheme } from './consoleTheme'
 
 describe('console theme contract', () => {
+  it.each([false, true])('keeps menu selections readable for preset and custom accents (dark=%s)', dark => {
+    for (const color of [...Object.values(ACCENT_PRESETS).map(colors => colors[0]), '#FFFFFF', '#000000', '#FFFF00']) {
+      const value = normalizeConsoleTheme({ accent_mode: 'solid', primary_color: color })
+      const palette = consolePalette(value, dark)
+      const menu = antdConsoleTheme(value, dark).components?.Menu
+      expect(menu?.itemSelectedColor).toBe(palette.link)
+      expect(menu?.itemBg).toBe(palette.surface)
+      expect(colorContrast(palette.link, palette.selected)).toBeGreaterThanOrEqual(4.5)
+      expect(colorContrast(palette.link, palette.surface)).toBeGreaterThanOrEqual(4.5)
+    }
+  })
   it('rejects unsafe colors and copies mutable arrays instead of mutating defaults', () => {
     expect(normalizeConsoleTheme({primary_color:'url(javascript:bad)'})).toEqual(DEFAULT_CONSOLE_THEME)
     expect(normalizeConsoleTheme({version:99})).toEqual(DEFAULT_CONSOLE_THEME)

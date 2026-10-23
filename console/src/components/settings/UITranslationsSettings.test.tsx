@@ -168,6 +168,15 @@ describe('UITranslationsSettings', () => {
     )
   })
 
+  it('uses page scrolling vertically and keeps a sticky header below the app header', async () => {
+    renderSettings()
+    const region = await screen.findByRole('region', { name: 'Workspace UI translations' })
+    const scroller = region.querySelector<HTMLElement>('.ant-table-body, .ant-table-content')
+    expect(scroller?.style.maxHeight).toBe('')
+    expect(scroller?.style.overflowY).not.toBe('scroll')
+    expect(region.querySelector<HTMLElement>('.ant-table-sticky-holder')?.style.top).toBe('64px')
+  })
+
   it('marks both frozen columns as opaque scroll boundaries', async () => {
     renderSettings()
 

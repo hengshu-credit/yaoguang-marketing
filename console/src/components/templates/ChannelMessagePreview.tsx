@@ -1,8 +1,11 @@
 import { Alert, Card, Space, Tag, Typography } from 'antd'
+import { useState } from 'react'
 import { useLingui } from '@lingui/react/macro'
 import type { PreviewTemplateResponse } from '../../services/api/template'
 import { DeviceFrame, PreviewToolbar } from '../preview'
 import NotificationPreview from './channelPreviews/NotificationPreview'
+import PreviewDeviceButtons from '../preview/PreviewDeviceButtons'
+import type { PreviewDevice } from '../preview'
 
 const { Text } = Typography
 
@@ -19,20 +22,23 @@ const ChannelMessagePreview: React.FC<ChannelMessagePreviewProps> = ({
   preview, platform, onPlatformChange, showDiagnostics = true
 }) => {
   const { t } = useLingui()
+  const [selectedDevice, setDevice] = useState<PreviewDevice>()
   if (!preview.sms && !preview.push) return null
-  const device = platform === 'ios' ? 'ios' : platform === 'web' && !preview.sms ? 'desktop' : 'android'
+  const device = selectedDevice || (platform === 'ios' ? 'ios' : platform === 'web' && !preview.sms ? 'desktop' : 'android')
   const platforms: { label: string; value: PushClientProfile }[] = [
-    { label: 'iOS', value: 'ios' }, { label: 'Android', value: 'android' },
     ...(!preview.sms ? [
-      { label: 'PC / Web', value: 'web' as const },
       { label: 'Huawei', value: 'huawei' as const }, { label: 'Honor', value: 'honor' as const },
       { label: 'Xiaomi', value: 'xiaomi' as const }, { label: 'OPPO', value: 'oppo' as const }, { label: 'vivo', value: 'vivo' as const }
     ] : [])
   ]
   return <div data-console-preview className="min-w-0 space-y-4">
     <PreviewToolbar>
-      <div className="material-preview-platforms" role="group" aria-label={t`Client preview`}>
-        {platforms.map((option) => <button key={option.value} type="button" aria-pressed={platform === option.value} onClick={() => onPlatformChange(option.value)}>{option.label}</button>)}
+      <PreviewDeviceButtons value={device} onChange={next => {
+        setDevice(next)
+        onPlatformChange(next === 'desktop' ? 'web' : next === 'android' ? 'android' : 'ios')
+      }} />
+      <div className="material-preview-platforms">
+        {platforms.map((option) => <button key={option.value} type="button" aria-pressed={!selectedDevice && platform === option.value} onClick={() => { setDevice(undefined); onPlatformChange(option.value) }}>{option.label}</button>)}
       </div>
     </PreviewToolbar>
     {preview.sms && <>

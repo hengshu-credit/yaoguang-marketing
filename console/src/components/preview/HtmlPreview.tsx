@@ -13,7 +13,7 @@ export default function HtmlPreview({ html, title, device, browser = false, prof
   const viewport = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
   // A desktop template must hit desktop media queries even inside a narrow drawer.
-  const layoutWidth = device === 'desktop' ? 1024 : device === 'android' ? 393 : 375
+  const layoutWidth = device === 'desktop' ? 1024 : device === 'tablet' ? 768 : device === 'android' ? 393 : 375
   const scale = size.width > 0 ? size.width / layoutWidth : 1
   useLayoutEffect(() => {
     const element = viewport.current

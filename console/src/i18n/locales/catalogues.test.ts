@@ -85,6 +85,23 @@ describe('shipped translation catalogues', () => {
   // of the check.
   const translatedLocales = locales.filter((locale) => locale !== SOURCE_LOCALE)
 
+  const audienceNavigation = {
+    'Audiences & Lists': '客群与列表',
+    'Manage dynamic audiences': '管理动态客群',
+    'You do not have permission to view static lists': '您没有查看静态列表的权限',
+    'You can still manage dynamic audiences if your workspace role allows it.': '如果您的工作区角色具有相应权限，您仍可管理动态客群。',
+  }
+
+  it.each(locales)('%s includes audience navigation and list permission messages', locale => {
+    const entries = parsePOCatalog(readFileSync(join(LOCALES_DIR, `${locale}.po`), 'utf8'))
+    for (const [msgid, chinese] of Object.entries(audienceNavigation)) {
+      const translation = entries.find(entry => entry.msgid === msgid)?.msgstr
+      expect(translation, msgid).toBeTruthy()
+      if (locale === 'zh-CN') expect(translation).toBe(chinese)
+      if (locale !== SOURCE_LOCALE) expect(translation).not.toBe(msgid)
+    }
+  })
+
   it.each(translatedLocales)('%s translates every message it carries', (locale) => {
     const { translated, untranslated } = readCatalogue(locale)
 

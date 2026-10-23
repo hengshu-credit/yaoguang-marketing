@@ -129,24 +129,6 @@
   }
 }
 
-/* Scrollbar styling for toolbar overflow */
-.notifuse-editor-floating-toolbar::-webkit-scrollbar {
-  height: 4px;
-}
-
-.notifuse-editor-floating-toolbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.notifuse-editor-floating-toolbar::-webkit-scrollbar-thumb {
-  background: #d9d9d9;
-  border-radius: 2px;
-}
-
-.notifuse-editor-floating-toolbar::-webkit-scrollbar-thumb:hover {
-  background: #bfbfbf;
-}
-
 /* Ensure toolbar buttons don't wrap */
 .notifuse-editor-toolbar-section {
   flex-shrink: 0;

@@ -9,7 +9,7 @@ describe('EmailClientFrame', () => {
     render(<EmailClientFrame html="<p>Hello</p>" title="Preview" />)
     const frame = screen.getByTitle('Preview')
     expect(frame).toHaveAttribute('data-client-profile', 'email_mobile')
-    await user.selectOptions(screen.getByLabelText(/Email client preview/i), 'email_desktop')
+    await user.click(screen.getByRole('button', { name: 'Computer' }))
     expect(frame).toHaveAttribute('data-client-profile', 'email_desktop')
     expect(frame).toHaveAttribute('srcdoc', '<p>Hello</p>')
   })

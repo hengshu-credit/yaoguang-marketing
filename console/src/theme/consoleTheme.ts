@@ -68,14 +68,15 @@ export function consolePalette(value: ConsoleTheme, dark: boolean) {
   const accent = consoleAccent(value)
   const page = dark ? '#101828' : '#F5F7FB'
   const surface = dark ? '#182235' : '#FFFFFF'
+  const selected = mixColor(accent.primary,surface,dark ? 0.76 : 0.9)
   let link = accent.primary
-  for (let i = 0; colorContrast(link,surface) < 4.5 && i < 20; i++) link = mixColor(link, dark ? '#FFFFFF' : '#111827', 0.12)
+  for (let i = 0; (colorContrast(link,surface) < 4.5 || colorContrast(link,selected) < 4.5) && i < 20; i++) link = mixColor(link, dark ? '#FFFFFF' : '#111827', 0.12)
   return {
     ...accent, link, page, surface, elevated: dark ? '#202D44' : '#FFFFFF', muted: dark ? '#233149' : '#F1F4F9',
     border: dark ? '#3A4961' : '#DCE3ED', text: dark ? '#E9EEF7' : '#172033', secondary: dark ? '#B6C2D5' : '#56647A',
     sidebar: value.sidebar_style === 'dark' ? '#151D32' : surface,
     sidebarText: value.sidebar_style === 'dark' ? '#DFE6F3' : (dark ? '#E9EEF7' : '#172033'),
-    selected: mixColor(accent.primary,surface,dark ? 0.76 : 0.9)
+    selected
   }
 }
 
@@ -87,8 +88,9 @@ export function antdConsoleTheme(value: ConsoleTheme, dark: boolean): ThemeConfi
     components: {
       Layout: { bodyBg: p.page, headerBg: p.surface, siderBg: p.sidebar, lightSiderBg: p.sidebar },
       Card: { headerFontSize: 15, borderRadiusLG: 8 },
-      Table: { headerBg: p.muted, rowHoverBg: p.selected, headerSortActiveBg: p.selected, bodySortBg: p.muted, headerColor: p.text, cellFontSize: 13, cellFontSizeMD: 13, cellFontSizeSM: 12 },
-      Menu: { darkItemBg: p.sidebar, darkItemSelectedBg: p.primary, itemSelectedBg: p.selected },
+      Table: { headerBg: p.muted, rowHoverBg: p.selected, headerSortActiveBg: p.selected, bodySortBg: p.muted, headerColor: p.text, cellFontSize: 13, cellFontSizeMD: 13, cellFontSizeSM: 12, stickyScrollBarBg: p.link, stickyScrollBarBorderRadius: 0 },
+      Progress: { lineBorderRadius: 0, defaultColor: p.primary, remainingColor: p.muted },
+      Menu: { itemBg: p.surface, itemColor: p.text, itemHoverColor: p.link, itemSelectedBg: p.selected, itemSelectedColor: p.link, darkItemBg: p.sidebar, darkItemSelectedBg: p.primary },
       Typography: { titleMarginTop: 0 }
     }
   }

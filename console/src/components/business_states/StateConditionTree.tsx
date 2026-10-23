@@ -50,7 +50,7 @@ export function StateRuleEditor({ value, onChange, objects, events, states, dept
   {grouped && <div className="ml-2 space-y-3 border-l-2 border-violet-200 pl-4">
    {(value.children ?? []).map((child, index) => <div key={index} className="relative"><span className="absolute -left-4 top-6 w-4 border-t-2 border-violet-200" />
     <StateRuleEditor {...{ objects, events, states, allowedKinds, readOnly, relations, objectAttributes }} attributes={value.kind === 'object_any' ? objectAttributes[value.subject_type ?? ''] ?? [] : attributes} subjectType={value.kind === 'object_any' ? value.subject_type : subjectType} depth={depth + 1} value={child} onChange={rule => set({ children: value.children?.map((item, position) => position === index ? rule : item) })} />
-    {multiple && <Button type="text" danger icon={<DeleteOutlined />} disabled={readOnly || (value.children?.length ?? 0) <= 1} onClick={() => set({ children: value.children?.filter((_, position) => position !== index) })}>{t`Remove condition`}</Button>}
+    {multiple && <Button type="text" danger icon={<DeleteOutlined />} disabled={readOnly} onClick={() => set({ children: value.children?.filter((_, position) => position !== index) })}>{t`Remove condition`}</Button>}
    </div>)}
    {multiple && depth < 12 && <Space wrap><Button icon={<PlusOutlined />} onClick={() => set({ children: [...value.children ?? [], newLeaf()] })}>{t`Add condition`}</Button>{(!allowedKinds || allowedKinds.includes('all')) && <Button icon={<PlusOutlined />} onClick={() => set({ children: [...value.children ?? [], { kind: 'all', children: [newLeaf()] }] })}>{t`Add condition group`}</Button>}</Space>}
   </div>}

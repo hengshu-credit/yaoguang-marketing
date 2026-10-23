@@ -15,7 +15,7 @@ import {
 } from 'antd'
 import { useParams, useSearch, useNavigate } from '@tanstack/react-router'
 import { templatesApi } from '../services/api/template'
-import type { Template, Workspace } from '../services/api/types'
+import type { Template } from '../services/api/types'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faPenToSquare,
@@ -67,7 +67,7 @@ export function TemplatesPage() {
   const queryClient = useQueryClient()
   const { workspaces } = useAuth()
   const { permissions } = useWorkspacePermissions(workspaceId)
-  const [workspace, setWorkspace] = useState<Workspace | null>(null)
+  const workspace = workspaces.find(item => item.id === workspaceId)
   // Derive selectedCategory from search params, default to 'all'
   const selectedCategory = search.category || 'all'
   // Search term derived from the URL; the box filters the (already-loaded)
@@ -142,17 +142,6 @@ export function TemplatesPage() {
       .filter((category) => category.is_active || category.id === selectedCategory)
       .map((category) => ({ label: templateCategoryDisplayName(category, systemCategoryNames), value: category.id }))
   ]
-
-  // current workspace from workspaceId
-  useEffect(() => {
-    if (workspaces.length > 0) {
-      const currentWorkspace = workspaces.find((w) => w.id === workspaceId)
-      if (currentWorkspace) {
-         
-        setWorkspace(currentWorkspace)
-      }
-    }
-  }, [workspaces, workspaceId])
 
   const { data, isLoading } = useQuery({
     // Use selectedCategory from search params in queryKey

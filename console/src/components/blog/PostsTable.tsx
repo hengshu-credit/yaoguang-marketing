@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { useLingui } from '@lingui/react/macro'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -13,7 +13,9 @@ import {
   Segmented,
   Popconfirm,
   Tooltip,
-  Popover
+  Popover,
+  Skeleton,
+  Spin
 } from 'antd'
 import { useParams, useSearch, useNavigate } from '@tanstack/react-router'
 import { blogPostsApi, blogCategoriesApi, BlogPost, BlogPostStatus } from '../../services/api/blog'
@@ -23,7 +25,6 @@ import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons'
 import { PlusOutlined } from '@ant-design/icons'
 import { useWorkspacePermissions, useAuth } from '../../contexts/AuthContext'
 import dayjs from '../../lib/dayjs'
-import { PostDrawer } from './PostDrawer'
 import { DeletePostModal } from './DeletePostModal'
 import { PostStatusTag } from './PostStatusTag'
 import { CategoryDrawer } from './CategoryDrawer'
@@ -32,6 +33,7 @@ import { MissingMetaTagsWarning } from '../seo/MissingMetaTagsWarning'
 import { PublishModal } from './PublishModal'
 
 const { Title, Paragraph } = Typography
+const PostDrawer = lazy(() => import('./PostDrawer').then(module => ({ default: module.PostDrawer })))
 
 interface PostsSearch {
   status?: BlogPostStatus
@@ -402,7 +404,7 @@ export function PostsTable() {
         />
       </div>
 
-      {hasPosts ? (
+      {isLoading ? <Skeleton active /> : hasPosts ? (
         <Card>
           <Table
             columns={columns}
@@ -421,13 +423,13 @@ export function PostsTable() {
         </Card>
       )}
 
-      <PostDrawer
+      {drawerOpen && <Suspense fallback={<Spin fullscreen />}><PostDrawer
         open={drawerOpen}
         onClose={handleDrawerClose}
         post={editingPost}
         workspace={workspace}
         initialCategoryId={categoryId}
-      />
+      /></Suspense>}
 
       <DeletePostModal
         open={deleteModalOpen}

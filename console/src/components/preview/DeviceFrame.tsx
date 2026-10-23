@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { BatteryFull, ChevronLeft, Ellipsis, LockKeyhole, Signal, Wifi } from 'lucide-react'
 import './preview.css'
 
-export type PreviewDevice = 'ios' | 'android' | 'desktop' | 'h5'
+export type PreviewDevice = 'ios' | 'android' | 'desktop' | 'tablet' | 'h5'
 
 export interface DeviceFrameProps {
   device: PreviewDevice

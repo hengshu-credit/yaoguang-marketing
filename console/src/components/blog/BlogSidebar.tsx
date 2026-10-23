@@ -98,7 +98,7 @@ export function BlogSidebar({
         selectedKeys={[selectedKey]}
         items={menuItems}
         onClick={({ key }) => onCategoryChange(key === 'all' ? null : key)}
-        style={{ borderRight: 0, backgroundColor: '#F9F9F9' }}
+        style={{ borderInlineEnd: 0 }}
       />
       <Divider className="!my-4" />
       <div className="px-6 pb-6">

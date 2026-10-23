@@ -173,7 +173,7 @@ export function AudienceMembersPage() {
   return (
     <Space orientation="vertical" size="large" style={{ width: '100%', minWidth: 0 }}>
       <div>
-        <Link to="/console/workspace/$workspaceId/audiences" params={{ workspaceId }}>
+        <Link to="/console/workspace/$workspaceId/lists" params={{ workspaceId }}>
           {t`Back to audiences`}
         </Link>
         <WorkspacePageTitle style={{ marginTop: 8, marginBottom: 4 }}>

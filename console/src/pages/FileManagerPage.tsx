@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'
 import { App } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { FileManager } from '../components/file_manager/fileManager'
@@ -7,7 +6,7 @@ import { StorageObject } from '../components/file_manager/interfaces'
 import { useParams, useSearch, useNavigate } from '@tanstack/react-router'
 import { useAuth } from '../contexts/AuthContext'
 import { workspaceService } from '../services/api/workspace'
-import { Workspace, FileManagerSettings } from '../services/api/types'
+import { FileManagerSettings } from '../services/api/types'
 import { useWorkspacePermissions } from '../contexts/AuthContext'
 import { ContentCenterTabs } from '../components/navigation/WorkspaceSectionTabs'
 import { workspaceFileManagerRoute } from '../router'
@@ -20,19 +19,8 @@ export function FileManagerPage() {
   const navigate = useNavigate()
   const { workspaces, refreshWorkspaces } = useAuth()
   const { permissions } = useWorkspacePermissions(workspaceId)
-  const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null)
+  const currentWorkspace = workspaces.find(item => item.id === workspaceId)
   const { message } = App.useApp()
-
-  // Initialize settings from the current workspace
-  useEffect(() => {
-    if (workspaceId && workspaces.length > 0) {
-      const workspace = workspaces.find((w) => w.id === workspaceId)
-      if (workspace) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setCurrentWorkspace(workspace)
-      }
-    }
-  }, [workspaceId, workspaces])
 
   const handleError = (error: Error) => {
     console.error('File manager error:', error)

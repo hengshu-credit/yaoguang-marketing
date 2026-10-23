@@ -2,6 +2,7 @@
 @import "./components/email_builder/editor.css";
 @import "./styles/reactflow.css";
 @import "./theme/console-theme.css";
+@import "./theme/console-scrollbars.css";
 
 @font-face {
   font-family: "AlimamaFangYuanTiVF";
@@ -80,7 +81,9 @@ body,
   width: 100%;
   max-width: 100%;
   min-height: 100%;
-  overflow-x: hidden;
+  /* Clip horizontal overflow without creating nested vertical scroll containers.
+     Sticky table headers and save bars then follow the page's single scroll. */
+  overflow-x: clip;
 }
 
 /* Translation grid: the item and current-language columns stay fixed while
@@ -91,8 +94,10 @@ td.ant-table-cell.translations-fixed-col,
 th.ant-table-cell.translations-fixed-col {
   background-color: var(--ant-color-bg-container, #fff);
 }
-.ant-table-tbody > tr:hover > td.ant-table-cell.translations-fixed-col {
-  background-color: var(--ant-color-bg-container, #fff);
+.ant-table-tbody > tr:hover > td.ant-table-cell.translations-fixed-col,
+.ant-table-tbody > tr > td.ant-table-cell.translations-fixed-col.ant-table-cell-row-hover {
+  /* Override the inline opaque base without exposing the columns underneath. */
+  background-color: var(--ant-table-row-hover-bg, var(--console-selected, #f5f5f5)) !important;
 }
 
 .drawer-body-no-padding .ant-drawer-body {
@@ -298,8 +303,6 @@ th.ant-table-cell.translations-fixed-col {
   overscroll-behavior: contain;
   /* Reserve the gutter so expanding a submenu doesn't shift the labels. */
   scrollbar-gutter: stable;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0,

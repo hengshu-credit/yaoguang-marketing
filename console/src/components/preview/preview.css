@@ -20,7 +20,7 @@
 .material-preview-toolbar__controls select { max-width: 100%; min-width: 0; padding: 7px 28px 7px 11px; border: 1px solid #dce2eb; border-radius: 8px; background: white; color: #1e293b; font: inherit; }
 .material-preview-toolbar__simulation { display: inline-flex; align-items: center; gap: 6px; color: #64748b; font-size: 12px; }
 .material-preview-platforms { display: flex; flex-wrap: wrap; gap: 5px; }
-.material-preview-platforms button { border: 1px solid #e2e8f0; border-radius: 8px; background: white; padding: 6px 11px; color: #64748b; font: inherit; font-size: 12px; cursor: pointer; }
+.material-preview-platforms button { display: inline-flex; align-items: center; gap: 5px; border: 1px solid #e2e8f0; border-radius: 8px; background: white; padding: 6px 11px; color: #64748b; font: inherit; font-size: 12px; cursor: pointer; }
 .material-preview-platforms button[aria-pressed="true"] { background: #eff6ff; border-color: #93b4ef; color: #2455b0; font-weight: 600; }
 .material-preview-platforms button:focus-visible, .material-preview-toolbar select:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 .material-device {
@@ -48,7 +48,7 @@
 .material-device__app-bar { flex-shrink: 0; display: flex; align-items: center; gap: 12px; justify-content: space-between; padding: 10px 16px 15px; border-bottom: 1px solid #e8ecf1; }
 .material-device__app-bar > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; }
 .material-device__app-bar > svg { flex-shrink: 0; color: #5b708c; }
-.material-device__viewport { min-height: 0; flex: 1; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #9ba6b780 transparent; overflow-wrap: anywhere; }
+.material-device__viewport { min-height: 0; flex: 1; overflow: auto; overscroll-behavior: contain; overflow-wrap: anywhere; }
 .material-device__viewport:focus-visible { outline: 2px solid #7195cd; outline-offset: -3px; }
 .material-device__home { display: flex; flex: 0 0 24px; justify-content: center; align-items: center; }
 .material-device__home > span { height: 4px; width: 104px; border-radius: 4px; background: currentColor; opacity: .8; }
@@ -58,6 +58,10 @@
 .material-device--android .material-device__camera::after { width: 5px; height: 5px; top: 3px; right: 3px; }
 .material-device--android .material-device__status { flex-basis: 44px; padding-inline: 18px; }
 .material-device--android .material-device__home > span { width: 74px; }
+.material-device--tablet { flex-basis: 768px; width: 768px; height: 720px; border-radius: 28px; padding: 10px; }
+.material-device--tablet .material-device__screen { border-radius: 19px; }
+.material-device--tablet .material-device__camera { width: 10px; height: 10px; top: 16px; }
+.material-device--tablet .material-device__camera::after { display: none; }
 .material-device--notification .material-device__screen {
   background: radial-gradient(ellipse at 20% -20%, #d294ed 0%, transparent 53%), radial-gradient(ellipse at 120% 110%, #839fdf 0%, transparent 60%), linear-gradient(165deg, #5041b1 0%, #111e44 48%, #17305e 100%);
   color: #fff;
@@ -162,8 +166,7 @@
 .material-mobile-marketing--carousel > .material-mobile-marketing__surface { border: 0; border-radius: 0; background: transparent; box-shadow: none; overflow: visible; }
 .material-message--mobile-carousel > .material-message__text { padding: 0 20px 12px; }
 .material-mobile-carousel { min-width: 0; width: 100%; }
-.material-mobile-carousel__rail { display: flex; gap: 12px; padding: 8px 16px 18px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-inline: 16px; scrollbar-width: none; }
-.material-mobile-carousel__rail::-webkit-scrollbar { display: none; }
+.material-mobile-carousel__rail { display: flex; gap: 12px; padding: 8px 16px 18px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-inline: 16px; }
 .material-mobile-carousel__rail:focus-visible { outline: 2px solid #7560e8; outline-offset: -3px; }
 .material-mobile-carousel__card { flex: 0 0 88%; min-width: 0; overflow: hidden; border: 1px solid #e5e2ee; border-radius: 20px; background: #fff; box-shadow: 0 8px 18px -12px #46377465; scroll-snap-align: start; }
 .material-device--android .material-mobile-carousel__card { border-radius: 16px; }

@@ -85,23 +85,3 @@
 .slash-popover-content {
   scroll-behavior: smooth;
 }
-
-/* Custom scrollbar for better appearance */
-.slash-popover-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.slash-popover-content::-webkit-scrollbar-track {
-  background: #f9fafb;
-  border-radius: 4px;
-}
-
-.slash-popover-content::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 4px;
-}
-
-.slash-popover-content::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
-}
-

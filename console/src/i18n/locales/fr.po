@@ -20470,3 +20470,23 @@ msgstr "Workspace appearance"
 #: src/theme/ConsoleThemeDrawer.tsx:40
 msgid "Yaoguang purple"
 msgstr "Yaoguang purple"
+
+#: src/layouts/WorkspaceLayout.tsx:411 src/pages/ListsPage.tsx:163
+msgid "Audiences & Lists"
+msgstr "Audiences et listes"
+
+#: src/pages/ListsPage.tsx:170 src/pages/ListsPage.tsx:187 src/pages/ListsPage.tsx:331
+msgid "Manage dynamic audiences"
+msgstr "Gérer les audiences dynamiques"
+
+#: src/pages/ListsPage.tsx:168
+msgid "You do not have permission to view static lists"
+msgstr "Vous n’avez pas l’autorisation de consulter les listes statiques"
+
+#: src/pages/ListsPage.tsx:169
+msgid "You can still manage dynamic audiences if your workspace role allows it."
+msgstr "Vous pouvez toujours gérer les audiences dynamiques si votre rôle dans l’espace de travail le permet."
+
+#: src/components/preview/PreviewDeviceButtons.tsx:12
+msgid "Computer"
+msgstr "Ordinateur"

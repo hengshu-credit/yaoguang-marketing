@@ -7,8 +7,8 @@ describe('email client header and body', () => {
   it('keeps the configured sender, subject, summary and body together across devices', async () => {
     const html = '<p>Personalized message body</p>'
     render(<EmailClientFrame title="Preview" html={html} email={{ senderName: 'Member Services', senderEmail: 'members@example.com', subject: 'Welcome Ada', previewText: 'Your member benefits are ready' }} />)
-    for (const profile of ['email_mobile', 'email_android', 'email_desktop', 'h5']) {
-      await userEvent.selectOptions(screen.getByLabelText('Email client preview'), profile)
+    for (const profile of ['iOS', 'Android', 'Computer', 'Pad']) {
+      await userEvent.click(screen.getByRole('button', { name: profile }))
       const header = within(screen.getByTestId('email-message-header'))
       expect(header.getByRole('heading', { name: 'Welcome Ada' })).toBeVisible()
       expect(header.getByText('Member Services')).toBeVisible()

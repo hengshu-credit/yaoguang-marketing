@@ -4,6 +4,7 @@ import { workspaceService } from '../services/api/workspace'
 import { createEmptyPermissions, createFullPermissions } from '../services/api/permissions'
 import { Workspace, UserPermissions } from '../services/api/types'
 import { isRootUser } from '../services/api/auth'
+import { WorkspacePermissionsContext } from './WorkspacePermissionsContext'
 
 export interface User {
   id: string
@@ -140,10 +141,13 @@ const NO_PERMISSIONS: UserPermissions = createEmptyPermissions()
 // eslint-disable-next-line react-refresh/only-export-components -- Hook co-located with context
 export function useWorkspacePermissions(workspaceId: string) {
   const { user } = useAuth()
+  const snapshot = useContext(WorkspacePermissionsContext)
+  const inherited = snapshot?.workspaceId === workspaceId && snapshot.userId === user?.id ? snapshot : null
   const [permissions, setPermissions] = useState<UserPermissions | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (inherited) return
     const fetchPermissions = async () => {
       if (!user || !workspaceId) {
         setLoading(false)
@@ -179,7 +183,7 @@ export function useWorkspacePermissions(workspaceId: string) {
     }
 
     fetchPermissions()
-  }, [workspaceId, user])
+  }, [workspaceId, user, inherited])
 
-  return { permissions, loading }
+  return inherited ? { permissions: inherited.permissions, loading: inherited.loading } : { permissions, loading }
 }

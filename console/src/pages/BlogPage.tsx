@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Layout, Button, Empty, App } from 'antd'
+import { Alert, Button, Empty, App, Skeleton } from 'antd'
 import { useParams, useNavigate, useSearch } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { PlusOutlined } from '@ant-design/icons'
@@ -8,12 +8,9 @@ import { PostsTable } from '../components/blog/PostsTable'
 import { BlogSidebar } from '../components/blog/BlogSidebar'
 import { CategoryDrawer } from '../components/blog/CategoryDrawer'
 import { DeleteCategoryModal } from '../components/blog/DeleteCategoryModal'
-import { PostDrawer } from '../components/blog/PostDrawer'
-import { blogCategoriesApi, blogPostsApi, BlogCategory } from '../services/api/blog'
+import { blogCategoriesApi, BlogCategory } from '../services/api/blog'
 import { useAuth } from '../contexts/AuthContext'
 import BlogPageHeader from '../components/blog/BlogPageHeader'
-
-const { Sider, Content } = Layout
 
 interface BlogSearch {
   category_id?: string
@@ -33,9 +30,7 @@ export function BlogPage() {
   const [editingCategory, setEditingCategory] = useState<BlogCategory | null>(null)
   const [deleteCategoryModalOpen, setDeleteCategoryModalOpen] = useState(false)
   const [categoryToDelete, setCategoryToDelete] = useState<BlogCategory | null>(null)
-  const [postDrawerOpen, setPostDrawerOpen] = useState(false)
-
-  const { data: categoriesData } = useQuery({
+  const { data: categoriesData, isPending, error, refetch } = useQuery({
     queryKey: ['blog-categories', workspaceId],
     queryFn: () => blogCategoriesApi.list(workspaceId)
   })
@@ -43,15 +38,6 @@ export function BlogPage() {
   const categories = categoriesData?.categories ?? []
   const hasCategories = categories.length > 0
   const activeCategoryId = search.category_id || null
-
-  // Check if there are any posts (without filters) for empty state
-  const { data: allPostsData } = useQuery({
-    queryKey: ['blog-posts', workspaceId, 'all', undefined],
-    queryFn: () => blogPostsApi.list(workspaceId, { status: 'all', limit: 1 }),
-    enabled: hasCategories
-  })
-
-  const hasPosts = allPostsData && allPostsData.total_count > 0
 
   const deleteCategoryMutation = useMutation({
     mutationFn: (id: string) => blogCategoriesApi.delete(workspaceId, { id }),
@@ -106,26 +92,12 @@ export function BlogPage() {
     setEditingCategory(null)
   }
 
-  const handleCreatePost = () => {
-    setPostDrawerOpen(true)
-  }
-
-  const handlePostDrawerClose = () => {
-    setPostDrawerOpen(false)
-  }
-
   return (
-    <>
+    <div>
       <BlogPageHeader workspaceId={workspaceId} />
 
-      <Layout style={{ minHeight: 'calc(100vh - 48px)' }}>
-        <Sider
-          width={250}
-          style={{
-            borderRight: '1px solid #f0f0f0',
-            overflow: 'auto'
-          }}
-        >
+      <div className="grid items-start gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="min-w-0 overflow-hidden rounded-lg border" style={{ backgroundColor: 'var(--console-surface, #FFFFFF)', borderColor: 'var(--console-border, #DCE3ED)' }}>
           <BlogSidebar
             workspaceId={workspaceId}
             activeCategoryId={activeCategoryId}
@@ -134,31 +106,20 @@ export function BlogPage() {
             onEditCategory={handleEditCategory}
             onDeleteCategory={handleDeleteCategory}
           />
-        </Sider>
-        <Layout>
-          <Content>
-            <div style={{ padding: '24px' }}>
-              {!hasCategories ? (
-                <Empty description={t`No categories yet`} style={{ marginTop: '100px' }}>
-                  <Button type="primary" icon={<PlusOutlined />} onClick={handleNewCategory}>
-                    {t`Create Your First Category`}
-                  </Button>
-                </Empty>
-              ) : !hasPosts && !activeCategoryId ? (
-                <Empty
-                  description={t`Create your first blog post to get started`}
-                  style={{ marginTop: '100px' }}
-                >
-                  <Button type="primary" icon={<PlusOutlined />} onClick={handleCreatePost}>
-                    {t`Create Your First Post`}
-                  </Button>
-                </Empty>
-              ) : (
-                <PostsTable />
-              )}
-            </div>
-          </Content>
-        </Layout>
+        </aside>
+        <div className="min-w-0">
+          {isPending ? <Skeleton active /> : error ? (
+            <Alert type="error" showIcon title={error.message} action={<Button onClick={() => void refetch()}>{t`Retry`}</Button>} />
+          ) : !hasCategories ? (
+            <Empty description={t`No categories yet`} className="py-16">
+              <Button type="primary" icon={<PlusOutlined />} onClick={handleNewCategory}>
+                {t`Create Your First Category`}
+              </Button>
+            </Empty>
+          ) : (
+            <PostsTable />
+          )}
+        </div>
 
         <CategoryDrawer
           open={categoryDrawerOpen}
@@ -166,7 +127,6 @@ export function BlogPage() {
           category={editingCategory}
           workspaceId={workspaceId}
         />
-
         <DeleteCategoryModal
           open={deleteCategoryModalOpen}
           category={categoryToDelete}
@@ -178,14 +138,7 @@ export function BlogPage() {
           loading={deleteCategoryMutation.isPending}
         />
 
-        <PostDrawer
-          open={postDrawerOpen}
-          onClose={handlePostDrawerClose}
-          post={null}
-          workspace={workspace}
-          initialCategoryId={activeCategoryId}
-        />
-      </Layout>
-    </>
+      </div>
+    </div>
   )
 }

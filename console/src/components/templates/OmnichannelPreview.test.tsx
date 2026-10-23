@@ -92,7 +92,7 @@ describe('OmnichannelPreview', () => {
     const user = userEvent.setup()
     const onProfileChange = vi.fn()
     render(<OmnichannelPreview definition={definition} preview={preview} onProfileChange={onProfileChange} />)
-    await user.selectOptions(screen.getByLabelText(/Client preview/i), 'whatsapp_web')
+    await user.click(screen.getByRole('button', { name: 'Computer' }))
     expect(onProfileChange).toHaveBeenCalledWith('whatsapp_web')
   })
 

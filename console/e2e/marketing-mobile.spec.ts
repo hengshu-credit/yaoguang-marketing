@@ -41,7 +41,7 @@ for (const viewport of [
       }
 
       for (const target of [
-        { path: 'audiences', visible: '客群' },
+        { path: 'lists', visible: '客群' },
         { path: 'broadcasts', visible: 'No broadcasts found' },
         { path: 'automations', visible: 'Automations' },
         { path: 'deliveries', visible: 'Delivery Center' }

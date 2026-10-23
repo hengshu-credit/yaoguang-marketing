@@ -233,7 +233,7 @@ export function WorkspaceSettingsPage() {
   }
 
   return (
-    <Layout style={{ minHeight: 'calc(100vh - 48px)' }}>
+    <Layout style={{ minHeight: 'calc(100dvh - 64px)' }}>
       <Sider
         theme="light"
         width={250}

@@ -9,7 +9,6 @@ import { CreateWorkspacePage } from './pages/CreateWorkspacePage'
 import { DashboardPage } from './pages/DashboardPage'
 import { WorkspaceSettingsPage } from './pages/WorkspaceSettingsPage'
 import { ContactsPage } from './pages/ContactsPage'
-import { ListsPage } from './pages/ListsPage'
 import { AudiencesPage } from './pages/AudiencesPage'
 import { AudienceMembersPage } from './pages/AudienceMembersPage'
 import { FileManagerPage } from './pages/FileManagerPage'
@@ -186,7 +185,7 @@ const workspaceAutomationsRoute = createRoute({
 const workspaceListsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: '/lists',
-  component: ListsPage
+  component: AudiencesPage
 })
 
 export const workspaceFileManagerRoute = createRoute({
@@ -241,19 +240,13 @@ export const workspaceDeliveriesRoute = createRoute({
   component: DeliveryCenterPage
 })
 
-const workspaceAudiencesRoute = createRoute({
-  getParentRoute: () => workspaceRoute,
-  path: '/audiences',
-  component: AudiencesPage
-})
-
 const workspaceAudienceMembersRoute = createRoute({
   getParentRoute: () => workspaceRoute,
-  path: '/audiences/$sourceType/$sourceId',
+  path: '/lists/$sourceType/$sourceId',
   beforeLoad: ({ params }) => {
     if (params.sourceType !== 'list' && params.sourceType !== 'dynamic') {
       throw redirect({
-        to: '/console/workspace/$workspaceId/audiences',
+        to: '/console/workspace/$workspaceId/lists',
         params: { workspaceId: params.workspaceId },
         replace: true
       })
@@ -440,7 +433,6 @@ const routeTree = rootRoute.addChildren([
     workspaceAutomationsRoute,
     workspaceCustomersRoute,
     workspaceContactsRoute,
-    workspaceAudiencesRoute,
     workspaceAudienceMembersRoute,
     workspaceListsRoute,
     workspaceTransactionalNotificationsRoute,

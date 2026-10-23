@@ -5,7 +5,9 @@ import { WorkspacePageTitle } from '../navigation/WorkspacePageTitle'
 const BlogPageHeader: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
   const { t } = useLingui()
   return <div>
-    <WorkspacePageTitle style={{ marginBottom: 24 }}>{t`Categories`}</WorkspacePageTitle>
+    <div className="flex justify-between items-center mb-6">
+      <WorkspacePageTitle>{t`Blog Content`}</WorkspacePageTitle>
+    </div>
     <ContentCenterTabs workspaceId={workspaceId} activeKey="blog" />
   </div>
 }

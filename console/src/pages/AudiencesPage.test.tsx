@@ -84,11 +84,11 @@ it('shows lists and dynamic audiences as linked rows in one audience table', asy
 
   expect(await screen.findByRole('link', { name: 'Newsletter' })).toHaveAttribute(
     'href',
-    '/console/workspace/$workspaceId/audiences/list/newsletter'
+    '/console/workspace/$workspaceId/lists/list/newsletter'
   )
   expect(screen.getByRole('link', { name: 'Recently active customers' })).toHaveAttribute(
     'href',
-    '/console/workspace/$workspaceId/audiences/dynamic/audience-1'
+    '/console/workspace/$workspaceId/lists/dynamic/audience-1'
   )
   expect(screen.getByText('List')).toBeInTheDocument()
   expect(screen.getByText('Dynamic')).toBeInTheDocument()

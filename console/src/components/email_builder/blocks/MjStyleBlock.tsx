@@ -62,8 +62,8 @@ const MjStyleSettingsPanel: React.FC<MjStyleSettingsPanelProps> = ({
     scrollbar: {
       vertical: 'visible' as const,
       horizontal: 'visible' as const,
-      verticalScrollbarSize: 12,
-      horizontalScrollbarSize: 12
+      verticalScrollbarSize: 6,
+      horizontalScrollbarSize: 6
     }
   }
 
